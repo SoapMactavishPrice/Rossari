@@ -1,0 +1,27 @@
+/* Allow overflow so dropdowns can extend outside table boundaries */
+.custom-scroll {
+    overflow: visible !important;
+}
+
+.custom-scroll table {
+    overflow: visible;
+}
+
+/* Table cells: allow dropdowns and lookups to overflow */
+.slds-table td {
+    overflow: visible;
+    position: relative; /* positioning context for dropdown */
+   /* z-index: 1;*/
+}
+
+/* Ensure lightning-combobox and lookup components show on top */
+lightning-combobox,
+c-look-up-component {
+    position: relative;
+    /*z-index: 9999;*/
+}
+
+/* Fix lookup wrapper div to allow dropdown outside */
+div[style*="min-width: 200px"] {
+    overflow: visible !important;
+}

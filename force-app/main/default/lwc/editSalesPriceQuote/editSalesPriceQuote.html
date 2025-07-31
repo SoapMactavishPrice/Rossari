@@ -1,0 +1,88 @@
+<template>
+    <lightning-card>
+        <div class="slds-text-align_center slds-p-around_small" style="margin-top: -32px;">
+            <h3 class="slds-text-heading_medium">Sales Price Information</h3>
+        </div>
+
+        <div class="slds-p-around_medium">
+            <template if:true={isLoading}>
+                <div class="slds-is-relative" style="height: 5rem;">
+                    <lightning-spinner alternative-text="Loading" size="large"></lightning-spinner>
+                </div>
+            </template>
+
+            <template if:false={isLoading}>
+                <template if:true={error}>
+                    <div class="slds-notify slds-notify_alert slds-theme_alert-texture slds-theme_error">
+                        {error}
+                    </div>
+                </template>
+
+                <div class="slds-scrollable_x">
+                    <table class="slds-table slds-table_bordered slds-table_col-bordered">
+                        <thead>
+                            <tr>
+                                <th
+                                    style="text-align: center; font-size: 13px; background-color: #9d0b0f; font-weight: bold; padding: 4px 6px; color: white;">
+                                    Product Name</th>
+                                <th
+                                    style="text-align: center; font-size: 13px; background-color: #9d0b0f; font-weight: bold; padding: 4px 6px; color: white;">
+                                    Quantity</th>
+                                <th
+                                    style="text-align: center; font-size: 13px; background-color: #9d0b0f; font-weight: bold; padding: 4px 6px; color: white;">
+                                    List Price</th>
+                                <th
+                                    style="text-align: center; font-size: 13px; background-color: #9d0b0f; font-weight: bold; padding: 4px 6px; color: white;">
+                                    Sales Price</th>
+                                <th
+                                    style="text-align: center; font-size: 13px; background-color: #9d0b0f; font-weight: bold; padding: 4px 6px; color: white;">
+                                    Approval Status</th>
+                                <th
+                                    style="text-align: center; font-size: 13px; background-color: #9d0b0f; font-weight: bold; padding: 4px 6px; color: white;">
+                                    Approval Comments</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <template for:each={quoteLineItems} for:item="item" for:index="index">
+                                <tr key={item.Id} class="slds-hint-parent">
+                                    <td>{item.Product2.Name}</td>
+                                    <td>
+                                        <lightning-input type="number" value={item.Quantity} data-index={index}
+                                            data-field="Quantity" onchange={handleInputChange}></lightning-input>
+                                    </td>
+                                    <td>{item.ListPrice}</td>
+                                    <td>
+                                        <lightning-input type="number" value={item.UnitPrice} data-index={index}
+                                            data-field="UnitPrice" onchange={handleInputChange}></lightning-input>
+                                    </td>
+                                    <td>
+                                        <lightning-combobox name="approvalStatus" variant="label-hidden"
+                                            value={item.Approval_Status__c} placeholder="Select Status"
+                                            options={approvalStatusOptions} data-index={index}
+                                            data-field="Approval_Status__c" onchange={handleInputChange}>
+                                        </lightning-combobox>
+                                    </td>
+
+                                    <td>
+                                        <lightning-input type="text" value={item.Approval_Comments__c}
+                                            data-index={index} data-field="Approval_Comments__c"
+                                            onchange={handleInputChange}></lightning-input>
+                                    </td>
+                                </tr>
+                            </template>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="slds-m-top_medium slds-text-align_center">
+                    <lightning-button variant="brand" label="Save" title="Save" onclick={handleSave}
+                        class="slds-m-right_x-small">
+                    </lightning-button>
+
+                    <lightning-button label="Cancel" variant="neutral" onclick={navigateToQuote}></lightning-button>
+                </div>
+
+            </template>
+        </div>
+    </lightning-card>
+</template>

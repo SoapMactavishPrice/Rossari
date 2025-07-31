@@ -1,0 +1,142 @@
+<template>
+    <lightning-card>
+        <div class="slds-text-align_center slds-p-around_medium" style="margin-top: -32px;">
+            <h2 class="slds-text-heading_medium">Create Quote</h2>
+        </div>
+
+        <!-- Quote Header Fields -->
+        <div class="slds-p-around_medium slds-grid slds-wrap" style="margin-top: -25px;">
+            <!-- <div class="slds-col slds-size_1-of-2 slds-p-around_x-small">
+                <lightning-input label="Quote Name" value={quoteFields.name} data-field="name"
+                    onchange={handleFieldChange} required>
+                </lightning-input>
+            </div> -->
+
+            <div class="slds-col slds-size_1-of-4 slds-p-around_x-small" style="margin-left: -22px;">
+                <lightning-combobox label="Status" value={quoteFields.status} options={statusOptions}
+                    data-field="status" onchange={handleFieldChange}>
+                </lightning-combobox>
+            </div>
+
+            <div class="slds-col slds-size_1-of-4 slds-p-around_x-small">
+                <lightning-input type="date" label="Expiration Date" value={quoteFields.expirationDate}
+                    data-field="expirationDate" onchange={handleFieldChange}>
+                </lightning-input>
+            </div>
+
+            <div class="slds-col slds-size_1-of-4 slds-p-around_x-small">
+                <lightning-combobox label="Contact" value={quoteFields.contactId} options={contacts}
+                    data-field="contactId" onchange={handleFieldChange}>
+                </lightning-combobox>
+            </div>
+
+            <div class="slds-col slds-size_1-of-4 slds-p-around_x-small" style="margin-right: -34px;">
+                <lightning-combobox label="Currency" value={quoteFields.currencyCode} options={currencyOptions}
+                    data-field="currencyCode" onchange={handleFieldChange} disabled="true" style="margin-right: -37px;">
+                </lightning-combobox>
+            </div>
+        </div>
+
+        <!-- Quote Line Items Table -->
+        <div class="slds-p-around_medium" style="padding:0px">
+            <table class="slds-table slds-table_cell-buffer slds-table_bordered slds-table_col-bordered">
+                <thead>
+                    <tr>
+                        <th
+                            style="text-align: center; font-size: 13px; background-color: #9d0b0f; font-weight: bold; padding: 4px 6px; color: white;">
+                            Select</th>
+                        <th
+                            style="text-align: center; font-size: 13px; background-color: #9d0b0f; font-weight: bold; padding: 4px 6px; color: white;">
+                            Product Name</th>
+                        <th
+                            style="text-align: center; font-size: 13px; background-color: #9d0b0f; font-weight: bold; padding: 4px 6px; color: white;">
+                            List Price ({quoteFields.currencyCode})</th>
+                        <th
+                            style="text-align: center; font-size: 13px; background-color: #9d0b0f; font-weight: bold; padding: 4px 6px; color: white;">
+                            Sales Price ({quoteFields.currencyCode})</th>
+                        <th
+                            style="text-align: center; font-size: 13px; background-color: #9d0b0f; font-weight: bold; padding: 4px 6px; color: white;">
+                            Quantity</th>
+                        <th
+                            style="text-align: center; font-size: 13px; background-color: #9d0b0f; font-weight: bold; padding: 4px 6px; color: white;">
+                            Discount %</th>
+                        <th
+                            style="text-align: center; font-size: 13px; background-color: #9d0b0f; font-weight: bold; padding: 4px 6px; color: white;">
+                            Actions</th>
+                    </tr>
+                </thead>
+
+                <tbody>
+                    <template for:each={oppLineItems} for:item="item">
+                        <tr key={item.index}>
+                            <td class="slds-text-align_center">
+                                <lightning-input type="checkbox" data-index={item.index} checked={item.selected}
+                                    onchange={handleCheckboxChange}>
+                                </lightning-input>
+                            </td>
+                            <td>
+                                <c-reusable-lookup selected-record-id={item.pbeId}
+                                    currency-code={quoteFields.currencyCode} data-index={item.index} data-label="prodId"
+                                    index={item.index} selected-icon-name="standard:product" object-label="Product"
+                                    object-api-name="PricebookEntry" onvalueselected={handleValueSelectedOnAccount}>
+                                </c-reusable-lookup>
+                            </td>
+                            <td class="slds-text-align_center" data-label="List Price">
+                                <lightning-formatted-number value={item.listPrice} format-style="currency"
+                                    currency-code={quoteFields.currencyCode}>
+                                </lightning-formatted-number>
+                            </td>
+                            <td class="slds-text-align_center" data-label="Sales Price">
+                                <lightning-input type="number" variant="label-hidden" value={item.salesPrice}
+                                    data-index={item.index} onchange={handlePriceChange}>
+                                </lightning-input>
+                            </td>
+                            <td class="slds-text-align_center">
+                                <lightning-input type="number" variant="label-hidden" value={item.Quantity}
+                                    data-index={item.index} onchange={handleQuantityChange}>
+                                </lightning-input>
+                            </td>
+                            <td class="slds-text-align_center" data-label="Discount (%)">
+                                <lightning-input type="number" variant="label-hidden" value={item.Discount}
+                                    data-index={item.index} min="0" max="100" step="0.01"
+                                    onchange={handleDiscountChange}>
+                                </lightning-input>
+                            </td>
+                            <td class="slds-text-align_center">
+                                <div style="display:flex; gap: 5px; justify-content: center;">
+                                    <lightning-button-icon icon-name="utility:add" alternative-text="Add"
+                                        title="Add Product" onclick={addAnswerItem} data-index={item.index}>
+                                    </lightning-button-icon>
+                                    <lightning-button-icon icon-name="utility:delete" alternative-text="Remove"
+                                        title="Remove Product" onclick={removeAnswer} data-index={item.index}>
+                                    </lightning-button-icon>
+                                </div>
+                            </td>
+                        </tr>
+                    </template>
+                </tbody>
+            </table>
+
+            <div if:true={error} class="slds-notify slds-notify_alert slds-theme_alert-texture slds-theme_error">
+                {error}
+            </div>
+        </div>
+
+        <footer class="slds-card__footer slds-text-align_center">
+            <lightning-button label="Cancel" variant="neutral" onclick={handleCancel} class="slds-m-right_small"
+                disabled={isLoading}></lightning-button>
+            <lightning-button label="Create Quote" variant="brand" onclick={createQuote}
+                disabled={isLoading}></lightning-button>
+        </footer>
+
+        <template if:true={isLoading}>
+            <div class="slds-spinner_container">
+                <div class="slds-spinner slds-spinner_medium" role="alert">
+                    <span class="slds-assistive-text">Loading</span>
+                    <div class="slds-spinner__dot-a"></div>
+                    <div class="slds-spinner__dot-b"></div>
+                </div>
+            </div>
+        </template>
+    </lightning-card>
+</template>

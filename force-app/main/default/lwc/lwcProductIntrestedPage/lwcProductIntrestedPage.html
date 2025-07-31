@@ -1,0 +1,155 @@
+<template>
+    <lightning-card>
+        <template if:true={showSpinner}>
+            <lightning-spinner size="small"></lightning-spinner>
+        </template>
+
+        <!-- Header table -->
+        <div class="slds-scrollable_x custom-scroll">
+            <table class="slds-table slds-table_cell-buffer slds-table_bordered slds-table_col-bordered">
+                <thead>
+                    <tr>
+                        <th
+                            style="text-align: center;font-size: 15px;;background-color: #9d0b0f;font-weight: bold;padding: 4px 6px;color: white;">
+                            Add/Edit Product Interested
+                        </th>
+                    </tr>
+                </thead>
+            </table>
+        </div>
+
+        <!-- Data table -->
+        <div class="slds-scrollable_x custom-scroll" style="margin-top: 10px;">
+            <table class=" slds-table slds-table_cell-buffer slds-table_bordered slds-table_col-bordered">
+                <thead>
+                    <tr>
+                        <th style="text-align: center; background-color: #ddd; padding: 4px 6px; font-size: 13px;">
+                            <div class="slds-truncate" title="New Product">New Product?</div>
+                        </th>
+                        <th style="text-align: center; background-color: #ddd; padding: 4px 6px; font-size: 13px;">
+                            <div class="slds-truncate" title="Product Name">Product Name</div>
+                        </th>
+                        <th style="text-align: center; background-color: #ddd; padding: 4px 6px; font-size: 13px;">
+                            <div class="slds-truncate" title="Product Code">Product Code</div>
+                        </th>
+                        <th style="text-align: center; background-color: #ddd; padding: 4px 6px; font-size: 13px;">
+                            <div class="slds-truncate" title="Quantity">Quantity (Kgs)</div>
+                        </th>
+                        <th style="text-align: center; background-color: #ddd; padding: 4px 6px; font-size: 13px;">
+                            <div class="slds-truncate" title="Frequency">Quantity Frequency</div>
+                        </th>
+                        <th style="text-align: center; background-color: #ddd; padding: 4px 6px; font-size: 13px;">
+                            <div class="slds-truncate" title="List Price">List Price ({currencyCode})</div>
+                        </th>
+                        <th style="text-align: center; background-color: #ddd; padding: 4px 6px; font-size: 13px;">
+                            <div class="slds-truncate" title="Expected Price">Expected Price ({currencyCode})</div>
+                        </th>
+                        <th style="text-align: center; background-color: #ddd; padding: 4px 6px; font-size: 13px;">
+                            <div class="slds-truncate" title="Add in Opty">Add in Opportunity?</div>
+                        </th>
+                        <th style="text-align: center; background-color: #ddd; padding: 4px 6px; font-size: 13px;">
+                            <div class="slds-truncate" title="Action">Action</div>
+                        </th>
+                    </tr>
+                </thead>
+
+                <tbody>
+                    <template for:each={addAnswer} for:item="answer">
+                        <tr key={answer.index}>
+                            <!-- New Product Checkbox -->
+                            <td style="text-align: center; vertical-align: middle;">
+                                <lightning-input type="checkbox" variant="label-hidden" checked={answer.New_Product}
+                                    onchange={handleCheckboxChange} data-index={answer.index}>
+                                </lightning-input>
+                            </td>
+
+                            <!-- Product Name -->
+                            <td>
+                                <template if:true={answer.New_Product}>
+                                    <lightning-input type="text" variant="label-hidden" value={answer.New_Product_Name}
+                                        onchange={handleTextInputChange} data-index={answer.index}>
+                                    </lightning-input>
+                                </template>
+                                <template if:false={answer.New_Product}>
+                                    <div style="min-width: 200px; position: relative;">
+                                        <c-look-up-component object-api-name="PricebookEntry"
+                                            icon-name="standard:product" data-index={answer.index} data-label="pbeId"
+                                            currency-code={currencyCode} family={answer.prodFamily}
+                                            default-record-id={answer.pbeId} onrecordselection={lookupRecord}
+                                            onfocus={lookupRecord}>
+                                        </c-look-up-component>
+                                    </div>
+                                </template>
+                            </td>
+
+                            <!-- Product Code -->
+                            <td>
+                                <lightning-input variant="label-hidden" value={answer.prodCode} disabled
+                                    data-label="prodCode" data-index={answer.index} onchange={handleScoreChange}>
+                                </lightning-input>
+                            </td>
+
+                            <!-- Quantity -->
+                            <td>
+                                <lightning-input variant="label-hidden" value={answer.volume} data-label="volume"
+                                    data-index={answer.index} onchange={handleScoreChange}>
+                                </lightning-input>
+                            </td>
+
+                            <!-- Frequency -->
+                            <td>
+                                <lightning-combobox variant="label-hidden" value={answer.frequency}
+                                    options={frequencyOptions} onchange={handlefrequencyChange}
+                                    data-index={answer.index}>
+                                </lightning-combobox>
+                            </td>
+
+                            <!-- List Price -->
+                            <td>
+                                <lightning-input variant="label-hidden" value={answer.unitPrice} disabled
+                                    data-label="price" data-index={answer.index} onchange={handleScoreChange}>
+                                </lightning-input>
+                            </td>
+
+                            <!-- Expected Price -->
+                            <td>
+                                <lightning-input variant="label-hidden" value={answer.price} data-label="price"
+                                    data-index={answer.index} onchange={handleScoreChange}>
+                                </lightning-input>
+                            </td>
+
+                            <!-- Add in Opportunity -->
+                            <td style="text-align: center; vertical-align: middle;">
+                                <lightning-input type="checkbox" variant="label-hidden" checked={answer.Add_In_Opty}
+                                    data-label="Add_In_Opty" data-index={answer.index} onchange={handleSelectChange}>
+                                </lightning-input>
+                            </td>
+
+                            <!-- Action buttons -->
+                            <td>
+                                <lightning-button-icon icon-name="utility:add" alternative-text="Add" title="Add Answer"
+                                    data-edit={answer.isEdit} data-inid={answer.inId} data-index={answer.index}
+                                    onclick={addAnswerItem} class="slds-m-right_xx-small">
+                                </lightning-button-icon>
+
+                                <lightning-button-icon icon-name="utility:delete" alternative-text="Delete"
+                                    title="Remove Answer" data-edit={answer.isEdit} data-inid={answer.inId}
+                                    data-index={answer.index} onclick={removeAnswer}>
+                                </lightning-button-icon>
+                            </td>
+                        </tr>
+                    </template>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Footer buttons -->
+        <div class="slds-align_absolute-center slds-m-top_small">
+            <lightning-button variant="brand" label="Save" onclick={save}></lightning-button>
+
+            <lightning-button variant="neutral" label="Cancel" class="slds-m-left_small"
+                onclick={handleCancel}></lightning-button>
+
+        </div>
+    </lightning-card>
+</template>

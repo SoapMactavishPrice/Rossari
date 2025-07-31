@@ -1,0 +1,64 @@
+<apex:page controller="EditSalesPriceQuoteController" sidebar="false" showHeader="false">
+    <html>
+        <apex:slds />
+        <style>
+            table {
+                border-collapse: collapse;
+                border-spacing: 0;
+                width: 100%;
+                border: 1px solid #ddd;
+            }
+
+            th, td {
+                text-align: left;
+                padding: 8px;
+            }
+
+            tr:nth-child(even){background-color: #f2f2f2}
+
+            .dateFormat{
+                visibility:hidden;            
+            }
+        </style>
+
+        <body class="slds-scope">
+            <apex:form >
+                <br/>
+
+                <div class="slds-box" style="width: 95%;margin:auto">                       
+                    <apex:pagemessages /> 
+                    <p class="slds-text-title_caps" style="text-align:center;font-size:20px">Sales Price Information</p> 
+
+                    <br/> 
+                    <div id="HtmlDiv" class="table-responsive">
+                        <table class="slds-table slds-table_bordered slds-scrollable--x slds-table_col-bordered slds-table_resizable-cols"  style="width:100%">  
+                            <tr> 
+                                <th style="background-color:#0176D3;color:white;white-space: auto;" class="slds-text-align_center">Product Name</th>
+                                <th style="background-color:#0176D3;color:white;white-space: auto;" class="slds-text-align_center">Quantity</th>
+                                <th style="background-color:#0176D3;color:white;white-space: auto;" class="slds-text-align_center">List Price</th>
+                                <th style="background-color:#0176D3;color:white;white-space: auto;" class="slds-text-align_center">Sales Price</th>
+                                <th style="background-color:#0176D3;color:white;white-space: auto;" class="slds-text-align_center">Approval Status</th>
+                                <th style="background-color:#0176D3;color:white;white-space: auto;" class="slds-text-align_center">Approval Comments</th>
+                            </tr>                        
+                            <apex:repeat value="{!quoteLineItemsList}" var="qLine">
+                                <tr>
+                                    <td class="slds-text-align_center"><apex:inputField style="white-space:auto;" styleClass="slds-input" value="{!qLine.Product2.Name}"/></td>
+                                    <td class="slds-text-align_center"><apex:inputField style="white-space:auto;" styleClass="slds-input" value="{!qLine.Quantity}"/></td>
+                                    <td class="slds-text-align_center"><apex:inputField style="white-space:auto;" styleClass="slds-input" value="{!qLine.ListPrice}"/></td>
+                                    <td class="slds-text-align_center"><apex:inputField style="white-space:auto;" styleClass="slds-input" value="{!qLine.UnitPrice}"/></td>
+                                    <td class="slds-text-align_center"><apex:inputField style="white-space:auto;" styleClass="slds-input" value="{!qLine.Approval_Status__c}"/></td>
+                                    <td class="slds-text-align_center"><apex:inputField style="white-space:auto;" styleClass="slds-input" value="{!qLine.Approval_Comments__c}"/></td>
+                                </tr>
+                            </apex:repeat>   
+                        </table>
+                    </div>
+
+                    <div align="center" draggable="false">
+                        <apex:commandButton value="Save" action="{!Save}" styleClass="slds-button slds-button_brand slds-button__icon_right slds-button--brand slds-m-top--medium"/>
+                        <apex:commandButton value="Cancel" action="{!Cancel}" styleClass="slds-button slds-button_destructive slds-button__icon_right slds-button--brand slds-m-top--medium"/>
+                    </div>
+                </div>
+            </apex:form>  
+        </body>
+    </html>
+</apex:page>

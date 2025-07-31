@@ -1,0 +1,182 @@
+<template>
+    <lightning-quick-action-panel style="font-size: 13px;">
+        <div style="height: 500px;">
+            <div class="slds-p-around_xx-small slds-text-align_center">
+                <h1 style="font-size: 18px; font-weight: bold;">New Sample Request</h1>
+            </div>
+
+            <div class="slds-p-around_medium">
+                <div class="slds-grid slds-wrap">
+                    <div class="slds-col slds-size_1-of-4 slds-p-around_x-small">
+                        <lightning-input type="date" label="Sample Request Date" value={todayDate}
+                            data-name="Sample_Request_Date__c" required></lightning-input>
+                    </div>
+                    <div class="slds-col slds-size_1-of-4 slds-p-around_x-small">
+                        <lightning-input type="date" label="Sample Expected Date" data-name="Sample_Expected_Date__c"
+                            required></lightning-input>
+                    </div>
+                    <div class="slds-col slds-size_1-of-4 slds-p-around_x-small">
+                        <lightning-input type="date" label="Follow Up Date"
+                            data-name="Sample_Follow_Up_Date__c"></lightning-input>
+                    </div>
+                    <div class="slds-col slds-size_1-of-4 slds-p-around_x-small">
+                        <lightning-input type="text" label="Consignee Name" value={accountName}
+                            disabled></lightning-input>
+                    </div>
+
+                    <div class="slds-col slds-size_1-of-4 slds-p-around_x-small">
+                        <label style="font-size:13px;">Send Email To Plant?</label>
+                        <lightning-input type="checkbox" variant="label-hidden" data-name="Send_Email_To_Plant__c"
+                            checked={sendEmailToPlant} onchange={handleSendEmailCheckbox}
+                            style="margin-left: 86px; margin-bottom: -24px">
+                        </lightning-input>
+                    </div>
+
+                    <div class="slds-col slds-size_1-of-4 slds-p-around_x-small">
+                        <lightning-textarea label="Remark" data-name="Remark__c"></lightning-textarea>
+                    </div>
+
+                    <!-- Horizontal file upload section -->
+                    <lightning-layout-item size="12" large-device-size="2" padding="around-small"
+                        style="display: flex; align-items: center;padding: 40px;">
+                        <lightning-button label="Upload Files" icon-name="utility:upload" onclick={handleUploadClick}
+                            style="margin-right: 10px;">
+                        </lightning-button>
+
+                        <input type="file" accept=".pdf, .jpg, .jpeg" multiple style="display: none;"
+                            onchange={handleFileChange} class="hiddenFileInput" />
+
+
+                        <lightning-icon icon-name="action:preview" alternative-text="Preview" size="x-small"
+                            onclick={viewFile} title="Preview">
+                        </lightning-icon>
+                    </lightning-layout-item>
+
+                </div>
+
+                <div class="slds-m-top_large">
+                    <table class="slds-table slds-table_bordered slds-table_cell-buffer" style="margin-top: -25px;">
+                        <thead>
+                            <tr>
+                                <th
+                                    style="text-align: center; font-size: 13px; background-color: #9d0b0f; font-weight: bold; padding: 4px 6px; color: white;">
+                                    Product Name</th>
+                                <th
+                                    style="text-align: center; font-size: 13px; background-color: #9d0b0f; font-weight: bold; padding: 4px 6px; color: white;">
+                                    Product Code</th>
+                                <th
+                                    style="text-align: center; font-size: 13px; background-color: #9d0b0f; font-weight: bold; padding: 4px 6px; color: white;">
+                                    Description</th>
+                                <th
+                                    style="text-align: center; font-size: 13px; background-color: #9d0b0f; font-weight: bold; padding: 4px 6px; color: white;">
+                                    Sample Request To Plant</th>
+                                <th
+                                    style="text-align: center; font-size: 13px; background-color: #9d0b0f; font-weight: bold; padding: 4px 6px; color: white;">
+                                    Qty (in Kgs)</th>
+                                <th
+                                    style="text-align: center; font-size: 13px; background-color: #9d0b0f; font-weight: bold; padding: 4px 6px; color: white;Width:0px">
+                                    Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <template for:each={SampleLine} for:item="item" for:index="index">
+                                <tr key={item.sqNo}>
+                                    <td style="width: 400px;">
+                                        <c-reusable-lookup selected-record-id={item.prodId} data-index={index}
+                                            index={index} selected-icon-name="standard:product" object-label="Product"
+                                            object-api-name="Product2" field-api-name="Name"
+                                            other-field-api-name="ProductCode,Description,Plant_Name__c"
+                                            onvalueselected={handleProductSelection}
+                                            style="width: 375px;"></c-reusable-lookup>
+                                    </td>
+                                    <td>
+                                        <lightning-input type="text" value={item.Product_Code} disabled
+                                            variant="label-hidden"></lightning-input>
+                                    </td>
+                                    <td>
+                                        <lightning-input type="text" value={item.Description} disabled
+                                            variant="label-hidden"></lightning-input>
+                                    </td>
+                                    <td>
+                                        <lightning-combobox name="plant" required options={plantOptions}
+                                            value={item.Sample_Request_To_Plant} onchange={handlePlantChange}
+                                            data-index={index} variant="label-hidden"></lightning-combobox>
+                                    </td>
+                                    <td>
+                                        <lightning-input type="number" required value={item.Sample_Qty_in_Kgs}
+                                            onchange={handleQtyChange} data-index={index} variant="label-hidden"
+                                            step="Any"></lightning-input>
+                                    </td>
+                                    <td>
+                                        <lightning-button-icon icon-name="utility:add" alternative-text="Add"
+                                            onclick={handleAddProduct} data-index={index}
+                                            class="slds-m-right_x-small"></lightning-button-icon>
+                                        <lightning-button-icon icon-name="utility:delete" alternative-text="Delete"
+                                            onclick={handleDelete} data-index={index}></lightning-button-icon>
+                                    </td>
+                                </tr>
+                            </template>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="slds-align_absolute-center slds-m-top_medium">
+                    <lightning-button label="Cancel" onclick={handleCancel}></lightning-button>
+                    <lightning-button label="Save" variant="brand" onclick={handleSave}
+                        class="slds-m-left_medium"></lightning-button>
+                </div>
+            </div>
+        </div>
+    </lightning-quick-action-panel>
+
+    <template if:true={isViewFile}>
+        <section role="dialog" tabindex="-1" aria-labelledby="modal-heading-01" aria-modal="true"
+            aria-describedby="modal-content-id-1" class="slds-modal slds-fade-in-open">
+            <div class="slds-modal__container">
+                <header class="slds-modal__header">
+                    <button class="slds-button slds-button_icon slds-modal__close slds-button_icon-inverse"
+                        title="Close" onclick={hideModalBox}>
+                        <lightning-icon icon-name="utility:close" alternative-text="close"
+                            size="small"></lightning-icon>
+                        <span class="slds-assistive-text">Close</span>
+                    </button>
+                    <h2 id="modal-heading-01" class="slds-text-heading_medium slds-hyphenate">Files Selected</h2>
+                </header>
+
+                <div class="slds-modal__content slds-p-around_medium" id="modal-content-id-1">
+                    <table class="slds-table slds-table_cell-buffer slds-table_bordered slds-table_col-bordered">
+                        <thead style="background-color: #f3f2f2; font-weight: bold;">
+                            <tr>
+                                <th scope="col">
+                                    <div class="slds-truncate">File Name</div>
+                                </th>
+                                <th scope="col">
+                                    <div class="slds-truncate">Action</div>
+                                </th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <template for:each={filesData} for:item="file" for:index="index">
+                                <tr key={file.filename}>
+                                    <td>
+                                        <div class="slds-truncate">{file.filename}</div>
+                                    </td>
+                                    <td>
+                                        <lightning-button-icon icon-name="utility:close" alternative-text="Remove"
+                                            title="Remove" onclick={removeFile} data-index={index} size="x-small">
+                                        </lightning-button-icon>
+                                    </td>
+                                </tr>
+                            </template>
+                        </tbody>
+                    </table>
+                </div>
+
+                <footer class="slds-modal__footer">
+                    <button class="slds-button slds-button_neutral" onclick={hideModalBox}>Close</button>
+                </footer>
+            </div>
+        </section>
+        <div class="slds-backdrop slds-backdrop_open"></div>
+    </template>
+</template>

@@ -1,0 +1,38 @@
+<template>
+    <lightning-card class="card-wrapper">
+        <div slot="title">
+            <div class="custom-title">Price & Quantity Revision</div>
+        </div>
+
+        <template if:true={groupedItems}>
+            <template for:each={groupedItems} for:item="group">
+                <div key={group.product} class="product-section product-card">
+                    <h3 class="product-title">{group.product}</h3>
+
+                    <table class="slds-table slds-table_cell-buffer slds-table_bordered styled-table">
+                        <thead>
+                            <tr>
+                                <th>Quantity</th>
+                                <th>Sales Price</th>
+                                <th>Modified Date</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <template for:each={group.items} for:item="item">
+                                <tr key={item.id}>
+                                    <td>{item.quantity}</td>
+                                    <td>{item.salesPrice}</td>
+                                    <td>{item.modifiedDate}</td>
+                                </tr>
+                            </template>
+                        </tbody>
+                    </table>
+                </div>
+            </template>
+        </template>
+
+        <template if:true={error}>
+            <p class="slds-text-color_error error-message">{error}</p>
+        </template>
+    </lightning-card>
+</template>

@@ -1,0 +1,167 @@
+<template>
+
+    <lightning-quick-action-panel style="font-size: 13px;">
+        <div class="slds-p-around_xx-small slds-text-align_center">
+            <h1 style="font-size: 18px; font-weight: bold;">New Sample In</h1>
+        </div>
+
+        <div style="height:22rem">
+            <lightning-record-edit-form object-api-name="Sample_In__c">
+                <lightning-layout multiple-rows="true">
+                    <lightning-layout-item size="12" large-device-size="3" padding="around-small">
+                        <div class="slds-m-around-small">
+                            <abbr class="slds-required" title="required">*</abbr>
+                            <label>Competitor Name</label>
+                            <lightning-input-field data-label="Competitor_Name" field-name="Competitor_Name__c"
+                                onchange={handleSampleChange} variant="label-hidden"></lightning-input-field>
+                        </div>
+                    </lightning-layout-item>
+                    <lightning-layout-item size="12" large-device-size="3" padding="around-small">
+                        <div class="slds-m-around-small">
+                            <abbr class="slds-required" title="required">*</abbr>
+                            <label>Sample Sent To Unit</label>
+                            <lightning-input-field data-label="Sample_Sent_To_Unit" field-name="Sample_Sent_To_Unit__c"
+                                onchange={handleSampleChange} variant="label-hidden"></lightning-input-field>
+                        </div>
+                    </lightning-layout-item>
+                    <lightning-layout-item size="12" large-device-size="3" padding="around-small">
+                        <div class="slds-m-around-small">
+                            <abbr class="slds-required" title="required">*</abbr>
+                            <label>Sample Received Date</label>
+                            <lightning-input-field data-label="Sample_Received_Date"
+                                field-name="Sample_Received_Date__c" onchange={handleSampleChange}
+                                variant="label-hidden"></lightning-input-field>
+                        </div>
+                    </lightning-layout-item>
+                    <lightning-layout-item size="12" large-device-size="3" padding="around-small">
+                        <div class="slds-m-around-small">
+                            <abbr class="slds-required" title="required">*</abbr>
+                            <label>Sample Sent To Factory From HO</label>
+                            <lightning-input-field data-label="Sample_Sent_To_Factory_From_HO"
+                                field-name="Sample_Sent_To_Factory_From_HO__c" onchange={handleSampleChange}
+                                variant="label-hidden"></lightning-input-field>
+                        </div>
+                    </lightning-layout-item>
+
+
+                    <!-- 2nd row  -->
+
+                    <lightning-layout-item size="12" large-device-size="3" padding="around-small">
+                        <div class="slds-m-around-small">
+                            <abbr class="slds-required" title="required">*</abbr>
+                            <label>Courier Name</label>
+                            <lightning-input-field data-label="Courier_Name" value={sampleRequest.Courier_Name}
+                                field-name="Courier_Name__c" onchange={handleSampleChange}
+                                variant="label-hidden"></lightning-input-field>
+                        </div>
+                    </lightning-layout-item>
+                    <!-- <lightning-layout-item size="12" large-device-size="3" padding="around-small">
+                        <div class="slds-m-around-small"><label>Courier Tracking No.</label>
+                            <lightning-input-field data-label="Courier_Tracking_No"
+                                value={sampleRequest.Courier_Tracking_No} field-name="Courier_Tracking_No__c"
+                                onchange={handleSampleChange} variant="label-hidden"></lightning-input-field>
+                        </div>
+                    </lightning-layout-item> -->
+                    <lightning-layout-item size="12" large-device-size="3" padding="around-small">
+                        <div class="slds-m-around-small"><label>Account No.</label>
+                            <lightning-input-field data-label="Account_No" value={sampleRequest.Account_No}
+                                field-name="Account_No__c" onchange={handleSampleChange}
+                                variant="label-hidden"></lightning-input-field>
+                        </div>
+                    </lightning-layout-item>
+
+                    <lightning-layout-item size="12" large-device-size="3" padding="around-small">
+                        <div class="slds-m-around-small"><label>Remark</label>
+                            <lightning-textarea data-label="Remark" value={sampleRequest.Remark__c}
+                                field-name="Remark__c" onchange={handleSampleChange}
+                                variant="label-hidden"></lightning-textarea>
+                        </div>
+                    </lightning-layout-item>
+
+                </lightning-layout>
+            </lightning-record-edit-form>
+
+
+            <div class="slds-m-top_large">
+                <table class="slds-table slds-table_bordered slds-table_cell-buffer">
+                    <thead>
+                        <tr>
+                            <th
+                                style="text-align: center; font-size: 13px; background-color: #9d0b0f; font-weight: bold; padding: 4px 6px; color: white;">
+                                Customer Product Name
+                            </th>
+                            <th
+                                style="text-align: center; font-size: 13px; background-color: #9d0b0f; font-weight: bold; padding: 4px 6px; color: white;">
+                                Received Sample Qty (in Kgs)
+                            </th>
+                            <th
+                                style="text-align: center; font-size: 13px; background-color: #9d0b0f; font-weight: bold; padding: 4px 6px; color: white;">
+                                Application
+                            </th>
+                            <th
+                                style="text-align: center; font-size: 13px; background-color: #9d0b0f; font-weight: bold; padding: 4px 6px; color: white;">
+                                Actions
+                            </th>
+                        </tr>
+                    </thead>
+
+                    <tbody>
+                        <template for:each={SampleLine} for:item="item">
+                            <tr key={item.sqNo}>
+                                <td>
+                                    <lightning-input data-label="prodName" value={item.prodName}
+                                        onchange={handleSampleLineChange} data-index={item.sqNo} variant="label-hidden"
+                                        required>
+                                    </lightning-input>
+                                </td>
+                                <td>
+                                    <lightning-input type="number" data-label="qty" value={item.qty} step="any"
+                                        onchange={handleSampleLineChange} data-index={item.sqNo} variant="label-hidden"
+                                        required>
+                                    </lightning-input>
+                                </td>
+                                <td>
+                                    <lightning-input type="text" data-label="application" value={item.application}
+                                        style="width: 100%;" data-index={item.sqNo} onchange={handleSampleLineChange}
+                                        variant="label-hidden">
+                                    </lightning-input>
+                                </td>
+                                <td style="text-align: center;">
+                                    <lightning-button-icon icon-name="utility:add" onclick={handleAdd}
+                                        data-index={item.sqNo} alternative-text="Add" class="slds-m-right_x-small">
+                                    </lightning-button-icon>
+
+                                    <lightning-button-icon icon-name="utility:delete" onclick={handleDelete}
+                                        data-index={item.sqNo} alternative-text="Delete">
+                                    </lightning-button-icon>
+                                </td>
+                            </tr>
+                        </template>
+                    </tbody>
+                </table>
+            </div>
+
+
+
+            <div class="slds-align_absolute-center" if:false={isFirstPage} style="padding:15px">
+                <lightning-button label="Cancel" onclick={handleCancel} class="slds-m-left_small"></lightning-button>
+
+                <lightning-button class="slds-m-left_small" variant="brand" onclick={saveDetails} label="Save"
+                    disabled={isSaveDisabled}>
+                </lightning-button>
+            </div>
+
+
+        </div>
+
+
+
+
+
+    </lightning-quick-action-panel>
+
+
+
+
+
+</template>

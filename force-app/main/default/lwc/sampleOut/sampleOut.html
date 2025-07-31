@@ -1,0 +1,197 @@
+<template>
+    <lightning-quick-action-panel style="font-size: 13px;">
+        <div class="slds-p-around_xx-small slds-text-align_center">
+            <h1 style="font-size: 18px; font-weight: bold;">New Sample Out</h1>
+        </div>
+
+        <div class="slds-p-around_small" style="padding: 0px;">
+
+            <div class="slds-grid slds-wrap slds-gutters_x-small">
+
+                <div class="slds-col slds-size_1-of-4 slds-p-around_x-small">
+                    <lightning-input type="date" label="Sample Sent By Factory To HO"
+                        data-field="SampleSentByFactoryToHO" value={sampleOut.SampleSentByFactoryToHO}
+                        onchange={handleFieldChange} required>
+                    </lightning-input>
+                </div>
+
+                <div class="slds-col slds-size_1-of-4  slds-p-around_x-small">
+                    <lightning-combobox label="SAP Sample Document Type" value={sampleOut.SAPSampleDocumentType}
+                        options={sapSampleDocOptions} onchange={handleSampleOutChange} data-id="SAPSampleDocumentType"
+                        required>
+                    </lightning-combobox>
+                </div>
+
+                <div class="slds-col slds-size_1-of-4  slds-p-around_x-small">
+                    <lightning-combobox label="Inco Terms" value={sampleOut.IncoTerms} options={incoTermsOptions}
+                        onchange={handleSampleOutChange} data-id="IncoTerms" required>
+                    </lightning-combobox>
+                </div>
+
+                <div class="slds-col slds-size_1-of-4  slds-p-around_x-small">
+                    <lightning-input label="Sample Received By End Person" value={sampleOut.SampleReceivedByEndPerson}
+                        onchange={handleSampleOutChange} data-id="SampleReceivedByEndPerson">
+                    </lightning-input>
+                </div>
+
+                <div class="slds-col slds-size_1-of-4  slds-p-around_x-small">
+                    <lightning-input type="date" label="Delivery Date" data-field="DeliveryDate"
+                        value={sampleOut.DeliveryDate} onchange={handleFieldChange} required>
+                    </lightning-input>
+                </div>
+
+
+                <div class="slds-col slds-size_1-of-4  slds-p-around_x-small">
+                    <lightning-record-picker label="Pin Code" object-api-name="Pin_Code__c"
+                        placeholder="Search Pin Code..." value={selectedPinCode} onchange={handlePinCodeChange}
+                        disabled={isPinCodeLoading} required>
+                    </lightning-record-picker>
+
+                </div>
+
+                <div class="slds-col slds-size_1-of-4  slds-p-around_x-small">
+                    <lightning-record-picker label="City" object-api-name="City__c" value={sampleOut.City}
+                        onchange={handleAddressChange} data-field="City" required>
+                    </lightning-record-picker>
+                </div>
+
+                <div class="slds-col slds-size_1-of-4  slds-p-around_x-small">
+                    <lightning-record-picker label="State" object-api-name="State__c" value={sampleOut.State}
+                        onchange={handleAddressChange} data-field="State" required>
+                    </lightning-record-picker>
+                </div>
+
+                <div class="slds-col slds-size_1-of-4  slds-p-around_x-small">
+                    <lightning-record-picker label="Country" object-api-name="Country__c" value={sampleOut.Country}
+                        onchange={handleAddressChange} data-field="Country" required>
+                    </lightning-record-picker>
+                </div>
+
+
+                <!-- Street Address -->
+                <div class="slds-col slds-size_1-of-4  slds-p-around_x-small">
+                    <lightning-textarea label="Street 1" data-field="Street1" value={sampleOut.Street1}
+                        onchange={handleFieldChange} required>
+                    </lightning-textarea>
+                </div>
+
+                <div class="slds-col slds-size_1-of-4  slds-p-around_x-small">
+                    <lightning-textarea label="Street 2" data-field="Street2" value={sampleOut.Street2}
+                        onchange={handleFieldChange}>
+                    </lightning-textarea>
+                </div>
+
+                <div class="slds-col slds-size_1-of-4  slds-p-around_x-small">
+                    <lightning-textarea label="Street 3" data-field="Street3" value={sampleOut.Street3}
+                        onchange={handleFieldChange}>
+                    </lightning-textarea>
+                </div>
+
+                <div class="slds-col slds-size_1-of-4 slds-p-around_x-small">
+                    <lightning-combobox label="Currency" value={selectedCurrency} options={currencyOptions}
+                        onchange={handleSampleOutChange} data-id="CurrencyIsoCode" disabled>
+                    </lightning-combobox>
+                </div>
+            </div>
+
+            <!-- Line Items Table -->
+            <div class="slds-m-top_small">
+                <table class="slds-table slds-table_bordered slds-table_cell-buffer">
+                    <thead>
+                        <tr>
+                            <th
+                                style="text-align: center; font-size: 13px; background-color: #9d0b0f; font-weight: bold; padding: 4px 6px; color: white;">
+                                Select
+                            </th>
+                            <th
+                                style="text-align: center; font-size: 13px; background-color: #9d0b0f; font-weight: bold; padding: 4px 6px; color: white;">
+                                Product Name
+                            </th>
+                            <th
+                                style="text-align: center; font-size: 13px; background-color: #9d0b0f; font-weight: bold; padding: 4px 6px; color: white;">
+                                Product Code
+                            </th>
+                            <th
+                                style="text-align: center; font-size: 13px; background-color: #9d0b0f; font-weight: bold; padding: 4px 6px; color: white;">
+                                Sample Request To Plant
+                            </th>
+                            <th
+                                style="text-align: center; font-size: 13px; background-color: #9d0b0f; font-weight: bold; padding: 4px 6px; color: white;">
+                                Qty (in Kgs)
+                            </th>
+                            <th
+                                style="text-align: center; font-size: 13px; background-color: #9d0b0f; font-weight: bold; padding: 4px 6px; color: white;">
+                                Price
+                            </th>
+                            <th
+                                style="text-align: center; font-size: 13px; background-color: #9d0b0f; font-weight: bold; padding: 4px 6px; color: white;">
+                                Actions
+                            </th>
+                        </tr>
+                    </thead>
+
+                    <tbody>
+                        <template for:each={sampleOutLines} for:item="item" for:index="index">
+                            <tr key={item.Id}>
+                                <td style="text-align: center;">
+                                    <lightning-input type="checkbox" data-index={index} checked={item.Selected}
+                                        onchange={handleCheckboxChange} variant="label-hidden">
+                                    </lightning-input>
+                                </td>
+                                <td style="width: 400px;">
+                                    <c-reusable-lookup selected-record-id={item.Product} data-index={index}
+                                        index={index} selected-icon-name="standard:product" object-label="Product"
+                                        object-api-name="Product2" field-api-name="Name"
+                                        other-field-api-name="ProductCode,Description,Plant_Name__c"
+                                        onvalueselected={handleProductSelection} style="width: 375px;">
+                                    </c-reusable-lookup>
+                                </td>
+                                <td>
+                                    <lightning-input type="text" value={item.Product_Code} disabled
+                                        variant="label-hidden">
+                                    </lightning-input>
+                                </td>
+                                <td>
+                                    <lightning-combobox data-index={index} data-field="SampleOutPlant"
+                                        value={item.SampleOutPlant} options={plants} onchange={handleLineChange}
+                                        required variant="label-hidden">
+                                    </lightning-combobox>
+                                </td>
+                                <td>
+                                    <lightning-input type="number" data-index={index} data-field="SampleQtyInKgs"
+                                        value={item.SampleQtyInKgs} onchange={handleLineChange} required
+                                        variant="label-hidden" step="any">
+                                    </lightning-input>
+                                </td>
+                                <td>
+                                    <lightning-input type="number" data-index={index} data-field="Price"
+                                        value={item.Price} onchange={handleLineChange} required variant="label-hidden"
+                                        formatter="currency" step="any">
+                                    </lightning-input>
+                                </td>
+                                <td style="text-align: center;">
+                                    <lightning-button-icon icon-name="utility:add" alternative-text="Add"
+                                        onclick={handleAddProduct} data-index={index} class="slds-m-right_x-small">
+                                    </lightning-button-icon>
+
+                                    <lightning-button-icon icon-name="utility:delete" alternative-text="Delete"
+                                        onclick={handleDelete} data-index={index}>
+                                    </lightning-button-icon>
+                                </td>
+
+                            </tr>
+                        </template>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="slds-m-top_small slds-text-align_center">
+                <lightning-button label="Cancel" onclick={handleCancel} disabled={isLoading}>
+                </lightning-button>
+                <lightning-button label="Save" variant="brand" onclick={handleSave} disabled={isLoading}
+                    class="slds-m-left_small">
+                </lightning-button>
+            </div>
+        </div>
+    </lightning-quick-action-panel>
+</template>

@@ -1,0 +1,217 @@
+@isTest
+public class LeadTriggerHandlerTest {
+
+    @testSetup
+    static void setupData() {
+        // Setup mock data
+        Country__c country = new Country__c(
+            Name = 'India'
+        );
+        insert country;
+        
+        State__c state = new State__c(
+            Name = 'Gujarat',
+            Country__c = country.Id
+        );
+        insert state;
+        
+        City__c city = new City__c(
+            Name = 'Ahmedabad',
+            State__c = state.Id
+        );
+        insert city;
+        
+        Pin_Code__c pinCode = new Pin_Code__c(
+            Name = '380015',
+            City__c = city.Id
+        );
+        insert pinCode;
+
+        Company__c rossari = new Company__c(
+            Name = 'Rossari Biotech Limited'
+        );
+        insert rossari;
+    }
+
+    @isTest
+    static void testUpdateLeadAddresses_usingPinCode() {
+        Pin_Code__c pin = [SELECT Id FROM Pin_Code__c LIMIT 1];
+        
+        Lead l = new Lead(
+            FirstName = 'Test',
+            LastName = 'Lead',
+            Company = 'TestCo',
+            Pin_Code__c = pin.Id
+        );
+        insert l;
+        
+        Test.startTest();
+        List<Lead> leads = [
+            SELECT Id,
+            Pin_Code__c,
+            City__c,
+            State__c,
+            Country__c,
+            Zone__c, 
+            Region__c
+            FROM Lead
+            WHERE Id = :l.Id
+        ];
+        LeadTriggerHandler.updateLeadAddresses(leads);
+        Test.stopTest();
+    }
+
+    @isTest
+    static void testSetRossariCompany() {
+        Lead l = new Lead(
+            FirstName = 'Rossari', 
+            LastName = 'Test',
+            Company = 'Test'
+        );
+        insert l;
+
+        List<Lead> leads = [SELECT Id,
+                            Rossari_Company__c 
+                            FROM Lead WHERE Id = :l.Id];
+        Test.startTest();
+        LeadTriggerHandler.setRossariCompany(leads);
+        Test.stopTest();
+
+    }
+
+    @isTest
+    static void testCreateContactInformation() {
+        Lead l = new Lead(
+            FirstName = 'John', 
+            LastName = 'Doe',
+            Company = 'Company',
+            Email = 'john@x.com', 
+            MobilePhone = '9999999999', 
+            Title = 'Manager'
+        );
+        insert l;
+
+        List<Lead> leads = [SELECT Id, FirstName, LastName, Email, MobilePhone, Title FROM Lead WHERE Id = :l.Id];
+        Test.startTest();
+        LeadTriggerHandler.createContactInformation(leads);
+        Test.stopTest();
+
+        List<Contact_Information__c> infos = [SELECT Id FROM Contact_Information__c WHERE Lead__c = :l.Id];
+    }
+
+    @isTest
+    static void testHandleAfterLeadConvert() {
+        Lead l = new Lead(
+            FirstName = 'Convert', 
+            LastName = 'Me',
+            Company = 'Comp'
+        );
+        insert l;
+
+        Account acc = new Account(
+            Name = 'Converted Acc'
+        );
+        insert acc;
+
+        Opportunity opp = new Opportunity(
+            Name = 'Converted Opp', 
+            StageName = 'Prospecting',
+            CloseDate = Date.today()
+        );
+        insert opp;
+
+      //  l.ConvertedAccountId = acc.Id;
+    //    l.ConvertedOpportunityId = opp.Id;
+       // l.IsConverted = true;
+        update l;
+
+        Contact_Information__c ci = new Contact_Information__c(
+            Lead__c = l.Id, 
+            Name = 'Test',
+            Last_Name__c = 'C', 
+            Is_Primary__c = false
+        );
+        insert ci;
+
+        Map<Id, Lead> oldMap = new Map<Id, Lead>{ l.Id => new Lead(Id = l.Id, IsConverted = false) };
+
+        Test.startTest();
+        LeadTriggerHandler.handleAfterLeadConvert(new List<Lead>{l}, oldMap);
+        Test.stopTest();
+
+        List<Contact> cons = [SELECT Id FROM Contact WHERE AccountId = :acc.Id];
+    }
+
+    @isTest
+    static void testHandleFollowUpTask() {
+        Lead l = new Lead(
+            FirstName = 'Follow',
+            LastName = 'Up', 
+            Company = 'Test Co', 
+            Next_Follow_Up_in_Days__c = 3
+        );
+        insert l;
+
+        Map<Id, Lead> oldMap = new Map<Id, Lead>{ l.Id => new Lead(Id = l.Id, Next_Follow_Up_in_Days__c = null) };
+
+        Test.startTest();
+        LeadTriggerHandler.handleFollowUpTask(new List<Lead>{l}, oldMap);
+        Test.stopTest();
+
+        List<Task> tasks = [SELECT Id FROM Task WHERE WhatId = :l.Id];
+    }
+
+    @isTest
+    static void testCreateAddressInfoFromConvertedLead() {
+        Lead l = new Lead(
+            FirstName = 'Addr',
+            LastName = 'Test', 
+            Company = 'Addr Inc', 
+            IsConverted = false
+        );
+        insert l;
+
+        Account a = new Account(
+            Name = 'Addr Account'
+        );
+        insert a;
+
+     //   l.IsConverted = true;
+      //  l.ConvertedAccountId = a.Id;
+        update l;
+
+        Map<Id, Lead> oldMap = new Map<Id, Lead>{ l.Id => new Lead(Id = l.Id, IsConverted = false) };
+
+        Test.startTest();
+        LeadTriggerHandler.createAddressInfoFromConvertedLead(new List<Lead>{l}, oldMap);
+        Test.stopTest();
+
+        List<Address_Information__c> addrList = [SELECT Id FROM Address_Information__c WHERE Account__c = :a.Id];
+    }
+
+    @isTest
+    static void testHandleAfterUpdate() {
+        Lead l = new Lead(FirstName = 'Updt', LastName = 'Lead', Company = 'Lead Ltd');
+        insert l;
+
+        Account a = new Account(Name = 'Acct');
+        insert a;
+
+        Opportunity o = new Opportunity(Name = 'Opp', StageName = 'Prospecting', CloseDate = Date.today());
+        insert o;
+
+      //  l.IsConverted = true;
+       // l.ConvertedAccountId = a.Id;
+    //    l.ConvertedOpportunityId = o.Id;
+        l.Description = 'Updated Desc';
+        update l;
+
+        Map<Id, Lead> oldMap = new Map<Id, Lead>{ l.Id => new Lead(Id = l.Id, IsConverted = false) };
+
+        Test.startTest();
+        LeadTriggerHandler.handleAfterUpdate(new List<Lead>{l}, oldMap);
+        Test.stopTest();
+
+        Opportunity updatedOpp = [SELECT Description FROM Opportunity WHERE Id = :o.Id];
+    }
+}

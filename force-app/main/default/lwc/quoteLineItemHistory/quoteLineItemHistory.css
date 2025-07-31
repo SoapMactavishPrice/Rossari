@@ -1,0 +1,77 @@
+/* Apply a subtle border and padding to the entire card body */
+:host {
+    display: block;
+    padding: 1rem;
+    border: 2px solid #d8dde6;
+    border-radius: 8px;
+    background-color: #fefefe;
+}
+
+.custom-title {
+    font-size: 1.25rem;
+    font-weight: bold;
+    padding-bottom: 0.5rem;
+    color: #ab2d20;
+    text-align: center;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    width: 100%; 
+    margin: 0 auto;
+    /* justify-content: center; */
+    translate: 0px;
+    padding: 0px 0px;
+    position: absolute;
+}
+
+
+/* Product section spacing */
+.product-section {
+    margin-top: 2rem;
+    margin-bottom: 2rem;
+    padding: 1rem;
+    border: 1px solid #e0e5ee;
+    border-radius: 6px;
+    background-color: #f9f9f9;
+}
+
+/* Product name */
+.product-title {
+    font-size: 1.1rem;
+    font-weight: 600;
+    margin-bottom: 0.75rem;
+    color: #032d60;
+    border-bottom: 2px solid #032d60; 
+    display: inline-block;
+    padding-bottom: 0.25rem;
+    transition: color 0.3s ease, border-color 0.3s ease;
+    cursor: pointer;
+}
+
+.product-title:hover {
+    color: #014486; 
+    border-bottom-color: #014486; 
+}
+
+/* Table styling improvements */
+.slds-table {
+    width: 100%;
+    background-color: white;
+}
+
+.slds-table th {
+    background-color: #f3f6f9;
+    font-weight: 600;
+    color: #1a1a1a;
+    text-align: left;
+}
+
+.slds-table td {
+    color: #333;
+}
+
+/* Error message styling */
+.slds-text-color_error {
+    padding: 0.5rem;
+    color: red;
+    font-weight: 500;
+}

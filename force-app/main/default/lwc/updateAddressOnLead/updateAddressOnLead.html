@@ -1,0 +1,104 @@
+<template>
+    <lightning-card>
+        <!-- Header -->
+        <div class="slds-p-around_xx-small slds-text-align_center slds-border_bottom slds-theme_shade"
+            style="margin-left: -4px;background-color: #9d0b0f; color: #ffffff;">
+            <h3 class="slds-text-heading_small" style="margin: 0;">Update Address</h3>
+        </div>
+
+
+        <!-- Body -->
+        <div class="slds-p-around_medium">
+            <lightning-record-edit-form object-api-name="Lead" record-id={recordId} onsuccess={handleSuccess}>
+                <lightning-messages></lightning-messages>
+
+                <!-- 3-column layout -->
+                <div class="slds-grid slds-wrap slds-gutters slds-var-m-bottom_medium">
+                    <!-- Street 1 -->
+                    <!-- Street 1 -->
+                    <div class="slds-col slds-size_1-of-3">
+                        <label>Street 1</label>
+                        <lightning-input-field field-name="Street_1__c" variant="label-hidden"></lightning-input-field>
+                    </div>
+                    <!-- Street 2 -->
+                    <div class="slds-col slds-size_1-of-3">
+                        <label>Street 2</label>
+                        <lightning-input-field field-name="Street_2__c" variant="label-hidden"></lightning-input-field>
+                    </div>
+                    <!-- Street 3 -->
+                    <div class="slds-col slds-size_1-of-3">
+                        <label>Street 3</label>
+                        <lightning-input-field field-name="Street_3__c" variant="label-hidden"></lightning-input-field>
+                    </div>
+
+                    <!-- Region -->
+                    <div class="slds-col slds-size_1-of-3">
+                        <lightning-combobox name="region" label="Region" value={regionValue} placeholder="Select Region"
+                            options={regionOptions} onchange={handleRegionChange} data-id="region">
+                        </lightning-combobox>
+                    </div>
+
+                    <!-- Country -->
+                    <div class="slds-col slds-size_1-of-3">
+                        <lightning-combobox name="country" label="Country" value={countryId}
+                            placeholder="Select Country" options={countryOptions} onchange={handleInputChange}
+                            data-id="countryId">
+                        </lightning-combobox>
+                    </div>
+
+                    <!-- Pincode -->
+                    <div class="slds-col slds-size_1-of-3">
+                        <lightning-record-picker label="Pin Code" object-api-name="Pin_Code__c" display-field="Name"
+                            data-id="pincode" value-field="Id" value={currentPinCodeId} placeholder="Search Pin Code..."
+                            onchange={handleInputChange} disabled={isPinCodeLoading}>
+                        </lightning-record-picker>
+
+                        <!-- Loading Spinner -->
+                        <template if:true={isPinCodeLoading}>
+                            <div class="slds-spinner_container">
+                                <div class="slds-spinner slds-spinner_small" role="alert">
+                                    <span class="slds-assistive-text">Loading</span>
+                                    <div class="slds-spinner__dot-a"></div>
+                                    <div class="slds-spinner__dot-b"></div>
+                                </div>
+                            </div>
+                        </template>
+                    </div>
+
+                    <!-- City -->
+                    <div class="slds-col slds-size_1-of-3">
+                        <lightning-record-picker label="City" object-api-name="City__c" display-field="Name"
+                            value-field="Id" placeholder="Search City..." value={cityId} onchange={handleInputChange}
+                            data-id="cityId">
+                        </lightning-record-picker>
+                    </div>
+
+                    <!-- State -->
+                    <div class="slds-col slds-size_1-of-3">
+                        <lightning-record-picker label="State" object-api-name="State__c" display-field="Name"
+                            value-field="Id" placeholder="Search State..." value={stateId} onchange={handleInputChange}
+                            data-id="stateId">
+                        </lightning-record-picker>
+                    </div>
+
+                    <!-- Zone -->
+                    <div class="slds-col slds-size_1-of-3">
+                        <lightning-combobox name="zone" label="Zone" value={zoneValue} placeholder="Select Zone"
+                            options={zoneOptions} onchange={handleZoneChange} data-id="zone">
+                        </lightning-combobox>
+                    </div>
+                </div>
+
+                <!-- Footer Buttons -->
+                <div class="slds-border_top slds-p-top_medium slds-text-align_center">
+                    <lightning-button type="submit" label="Save" variant="brand" onclick={handleSuccess}
+                        class="slds-m-right_small" disabled={isPinCodeLoading}>
+                    </lightning-button>
+                    <lightning-button label="Cancel" variant="neutral" onclick={handleCancel}
+                        disabled={isPinCodeLoading}>
+                    </lightning-button>
+                </div>
+            </lightning-record-edit-form>
+        </div>
+    </lightning-card>
+</template>

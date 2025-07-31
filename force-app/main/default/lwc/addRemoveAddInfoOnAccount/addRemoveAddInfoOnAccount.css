@@ -1,0 +1,9 @@
+.scroll-container {
+    max-height: 230px; /* adjust this to visually match left column height */
+    overflow-y: auto;
+    padding-right: 0.5rem;
+}
+
+.scroll-container lightning-record-picker {
+    margin-bottom: 0.75rem;
+}
