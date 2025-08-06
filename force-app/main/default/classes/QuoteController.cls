@@ -120,6 +120,9 @@ public with sharing class QuoteController {
             insert qliList;
         }
         
+        opp.StageName = 'Quotation';
+        update opp;
+        
         return quote.Id;
     }
     

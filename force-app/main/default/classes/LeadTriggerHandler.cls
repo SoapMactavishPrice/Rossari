@@ -68,14 +68,14 @@ public class LeadTriggerHandler {
         }
     }
     
-   public static void setDefaultLeadStatus(List<Lead> leads) {
-    for (Lead l : leads) {
-        if (String.isBlank(l.Status) || l.Status == 'New') {
-            l.Status = 'Working';
-        }
+    public static void setDefaultLeadStatus(List<Lead> leads) {
+        /*   for (Lead l : leads) {
+if (String.isBlank(l.Status) || l.Status == 'New') {
+l.Status = 'Working';
+}			
+}	*/
     }
-}
-
+    
     
     public static void setLeadTypeBasedOnRecordType(List<Lead> leads) {
         Map<Id, RecordType> rtMap = new Map<Id, RecordType>(
@@ -89,7 +89,7 @@ public class LeadTriggerHandler {
             }
         }
     }
-
+    
     
     public static void setRossariCompany(List<Lead> leads) {
         if (leads == null || leads.isEmpty()) return;
@@ -116,7 +116,7 @@ public class LeadTriggerHandler {
             }
         }
     }
-
+    
     
     
     public static void createContactInformation(List<Lead> newLeads) {
@@ -267,11 +267,11 @@ public class LeadTriggerHandler {
         
         for (Lead lead : newLeads) {
             // Check if the field was actually modified
-            if (lead.Next_Follow_Up_in_Days__c != null && 
+            if (lead.Next_Follow_Up__c != null && 
                 (oldMap == null || // for insert
-                 oldMap.get(lead.Id).Next_Follow_Up_in_Days__c != lead.Next_Follow_Up_in_Days__c)) {
+                 oldMap.get(lead.Id).Next_Follow_Up__c != lead.Next_Follow_Up__c)) {
                      
-                     Date followUpDate = Date.today().addDays(Integer.valueOf(lead.Next_Follow_Up_in_Days__c));
+                     Date followUpDate = lead.Next_Follow_Up__c;
                      
                      if (leadTaskMap.containsKey(lead.Id)) {
                          Task existingTask = leadTaskMap.get(lead.Id);
@@ -404,5 +404,113 @@ public class LeadTriggerHandler {
             update accountsToUpdate;
         }
     }
+    
+    
+    
+    public static void createQuotesForConvertedLeads(List<Id> convertedLeadIds) {
+        // Query converted leads
+        List<Lead> convertedLeads = [
+            SELECT Id, ConvertedOpportunityId, ConvertedOpportunity.Name, 
+            ConvertedAccountId, ConvertedContactId
+            FROM Lead 
+            WHERE Id IN :convertedLeadIds 
+            AND ConvertedOpportunityId != NULL
+        ];
+        
+        // Query related opportunities with line items
+        List<Opportunity> opportunities = [
+            SELECT Id, Name, Pricebook2Id, StageName,
+            (SELECT Id, PricebookEntryId, Quantity, UnitPrice FROM OpportunityLineItems)
+            FROM Opportunity 
+            WHERE Id IN (SELECT ConvertedOpportunityId FROM Lead WHERE Id IN :convertedLeadIds)
+        ];
+        
+        // Map opportunities for quick access
+        Map<Id, Opportunity> oppMap = new Map<Id, Opportunity>();
+        for (Opportunity opp : opportunities) {
+            oppMap.put(opp.Id, opp);
+        }
+        
+        // Create Quotes
+        List<Quote> quotesToInsert = new List<Quote>();
+        Map<Id, Id> quoteToOpportunityMap = new Map<Id, Id>(); // To use later for line items
+        Set<Id> oppIdsToUpdateStage = new Set<Id>();
+        
+        for (Lead lead : convertedLeads) {
+            if (lead.ConvertedOpportunityId != null && oppMap.containsKey(lead.ConvertedOpportunityId)) {
+                Opportunity opp = oppMap.get(lead.ConvertedOpportunityId);
+                
+                Quote quote = new Quote(
+                    Name = opp.Name,
+                    OpportunityId = opp.Id,
+                    Pricebook2Id = opp.Pricebook2Id,
+                    ContactId = lead.ConvertedContactId,
+                    ExpirationDate = System.today().addDays(30)
+                );
+                quotesToInsert.add(quote);
+                quoteToOpportunityMap.put(opp.Id, opp.Id);
+                oppIdsToUpdateStage.add(opp.Id);
+            }
+        }
+        
+        // Insert Quotes
+        if (!quotesToInsert.isEmpty()) {
+            insert quotesToInsert;
+            
+            // Create QuoteLineItems
+            List<QuoteLineItem> lineItemsToInsert = new List<QuoteLineItem>();
+            Map<Id, Id> oppToQuoteMap = new Map<Id, Id>();
+            
+            // Map OpportunityId -> QuoteId
+            for (Quote quote : quotesToInsert) {
+                oppToQuoteMap.put(quote.OpportunityId, quote.Id);
+            }
+            
+            for (Opportunity opp : opportunities) {
+                if (opp.OpportunityLineItems != null && !opp.OpportunityLineItems.isEmpty()) {
+                    for (OpportunityLineItem oli : opp.OpportunityLineItems) {
+                        if (oppToQuoteMap.containsKey(opp.Id)) {
+                            QuoteLineItem qli = new QuoteLineItem(
+                                QuoteId = oppToQuoteMap.get(opp.Id),
+                                PricebookEntryId = oli.PricebookEntryId,
+                                Quantity = oli.Quantity,
+                                UnitPrice = oli.UnitPrice,
+                                OpportunityLineItemId = oli.Id
+                            );
+                            lineItemsToInsert.add(qli);
+                        }
+                    }
+                }
+            }
+            
+            if (!lineItemsToInsert.isEmpty()) {
+                insert lineItemsToInsert;
+            }
+        }
+        
+        // Update Opportunity stage to 'Quotation'
+        if (!oppIdsToUpdateStage.isEmpty()) {
+            List<Opportunity> oppsToUpdate = new List<Opportunity>();
+            for (Id oppId : oppIdsToUpdateStage) {
+                oppsToUpdate.add(new Opportunity(
+                    Id = oppId,
+                    StageName = 'Quotation'
+                ));
+            }
+            update oppsToUpdate;
+        }
+    }
+    
+    
+    private static Id getOpportunityPricebook(List<Opportunity> opportunities, Id opportunityId) {
+        for (Opportunity opp : opportunities) {
+            if (opp.Id == opportunityId) {
+                return opp.Pricebook2Id;
+            }
+        }
+        return null;
+    }
+    
+    
     
 }

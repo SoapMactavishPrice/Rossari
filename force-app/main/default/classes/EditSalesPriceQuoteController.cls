@@ -11,8 +11,8 @@ public class EditSalesPriceQuoteController {
 
         if (currentRecID != null) {
             fetchQuote();
-            List<QuoteLineItem> allQuoteItems = [SELECT Id,Product2Id, Product2.Name,QuoteId, ListPrice, Purchase_Price_in_INR__c, Quantity,
-                                                     Purchase_Price_Status__c, Reject_Reason__c, Approver__c, Approval_Status__c, Approval_Comments__c, UnitPrice
+            List<QuoteLineItem> allQuoteItems = [SELECT Id,Product2Id, Product2.Name,QuoteId, ListPrice, Quantity,
+                                                      Reject_Reason__c, Approver__c, Approval_Status__c, Approval_Comments__c, UnitPrice
                                                      FROM QuoteLineItem 
                                                      WHERE QuoteId = :currentRecID];
 

@@ -10,7 +10,7 @@ public class SendEmail {
         Opportunity opp = [
             SELECT Id, Name, OwnerId, Owner.Email, Owner.Name, 
             Owner.Manager.Email, Link__c, Owner.Id,
-            (SELECT Product2.Name, UnitPrice, ListPrice, Quantity, Quality__c, Request_Purchase_Price__c 
+            (SELECT Product2.Name, UnitPrice, ListPrice, Quantity, Quality__c 
              FROM OpportunityLineItems) 
             FROM Opportunity 
             WHERE Id = :oppId LIMIT 1
@@ -33,7 +33,7 @@ public class SendEmail {
             // Check if both ListPrice and UnitPrice are 0 or null
             if ((item.UnitPrice == 0 || item.UnitPrice == null) && (item.ListPrice == 0 || item.ListPrice == null)) {
                 sendEmail = true;
-                item.Request_Purchase_Price__c = true; // Set Request_Purchase_Price__c to true on OpportunityLineItem
+              
             }
         }
         
@@ -98,7 +98,7 @@ public class SendEmail {
         // After sending the email, update the Request_Purchase_Price__c field on the OpportunityLineItems
         try {
             update opp.OpportunityLineItems; // Update the OpportunityLineItems with the updated checkbox field
-            System.debug('OpportunityLineItems updated with Request_Purchase_Price__c = true');
+           
         } catch (Exception e) {
             System.debug('Error updating OpportunityLineItems: ' + e.getMessage());
         }
@@ -245,7 +245,7 @@ public class SendEmail {
         
         // Query the Quote record by ID and its QuoteLineItems, and the OwnerId email
         Quote quote = [SELECT Id, Name, OwnerId, Owner.Name, Link__c, Owner.Email, 
-                       (SELECT Product2.Name, UnitPrice, ListPrice, Quantity, Quality__c, Request_Purchase_Price__c FROM QuoteLineItems) 
+                       (SELECT Product2.Name, UnitPrice, ListPrice, Quantity, Quality__c FROM QuoteLineItems) 
                        FROM Quote WHERE Id = :quoteId LIMIT 1];
         
         System.debug('Quote found: ' + quote.Name);
@@ -268,7 +268,7 @@ public class SendEmail {
             if ((item.UnitPrice == 0 || item.UnitPrice == null) && (item.ListPrice == 0 || item.ListPrice == null)) {
                 System.debug('Item ' + item.Product2.Name + ' has UnitPrice and ListPrice set to 0 or null');
                 sendEmail = true;
-                item.Request_Purchase_Price__c = true; // Set Request_Purchase_Price__c to true on QuoteLineItem
+              //  item.Request_Purchase_Price__c = true; // Set Request_Purchase_Price__c to true on QuoteLineItem
             } else {
                 System.debug('Item ' + item.Product2.Name + ' does not require email: UnitPrice = ' + item.UnitPrice + ', ListPrice = ' + item.ListPrice);
             }
@@ -331,7 +331,7 @@ public class SendEmail {
         // After sending the email, update the Request_Purchase_Price__c field on the QuoteLineItems
         try {
             update quote.QuoteLineItems; // Update the QuoteLineItems with the updated checkbox field
-            System.debug('QuoteLineItems updated with Request_Purchase_Price__c = true');
+         
         } catch (Exception e) {
             System.debug('Error updating QuoteLineItems: ' + e.getMessage());
         }

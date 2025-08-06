@@ -1,0 +1,46 @@
+<template>
+    <lightning-card>
+        <div class="slds-p-around_xx-small slds-text-align_center slds-border_bottom slds-theme_shade"
+            style="margin-left: -4px;background-color: #9d0b0f; color: #ffffff;">
+            <h3 class="slds-text-heading_small" style="margin: 0;">Mark Opportunity as Closed Lost</h3>
+        </div>
+        <div class="slds-p-around_medium">
+            <lightning-combobox name="lostReason" label="Closed/Lost Reason" value={lostReason} options={reasonOptions}
+                onchange={handleReasonChange} required>
+            </lightning-combobox>
+
+            <template if:true={showCompetitorFields}>
+                <lightning-input name="competitorLostTo" label="Competitor Lost To" value={competitorLostTo}
+                    onchange={handleInputChange} required>
+                </lightning-input>
+                <lightning-input type="text" name="competitorPrice" label="Competitor Price" value={competitorPrice}
+                    onchange={handleInputChange} required>
+                </lightning-input>
+                <lightning-input name="competitorProduct" label="Competitor Product" value={competitorProduct}
+                    onchange={handleInputChange} required>
+                </lightning-input>
+            </template>
+
+            <template if:true={showOtherReasonField}>
+                <lightning-textarea name="otherReasons" label="Other Reasons" value={otherReasons}
+                    onchange={handleInputChange} required message-when-value-missing="Please provide detailed reasons">
+                </lightning-textarea>
+            </template>
+
+            <lightning-input type="date" name="nextFollowUp" label="Next Follow Up Date" value={nextFollowUp}
+                onchange={handleInputChange} required>
+            </lightning-input>
+
+            <lightning-textarea name="note" label="Notes" value={note} required
+                message-when-value-missing="Notes are required" onchange={handleInputChange}>
+            </lightning-textarea>
+
+            <div class="slds-m-top_medium slds-text-align_center">
+                <lightning-button variant="brand" label="Submit" onclick={handleSubmit}
+                    disabled={isLoading}></lightning-button>
+                <lightning-button class="slds-m-left_small" label="Cancel" onclick={handleCancel}
+                    disabled={isLoading}></lightning-button>
+            </div>
+        </div>
+    </lightning-card>
+</template>

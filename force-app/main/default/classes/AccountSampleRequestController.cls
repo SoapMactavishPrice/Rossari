@@ -15,7 +15,7 @@ public with sharing class AccountSampleRequestController {
     
     @AuraEnabled(cacheable=true)
     public static List<Plant__c> getPlantOptions() {
-        return [SELECT Id, Name FROM Plant__c ORDER BY Name];
+        return [SELECT Id, Name, Plant_Name__c FROM Plant__c ORDER BY Name];
     }
 
     @AuraEnabled

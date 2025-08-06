@@ -35,10 +35,10 @@ export default class Lwc_SampleIn extends NavigationMixin(LightningElement) {
     generateRandomNum() {
         let randomId;
         do {
-            randomId = Math.floor(Math.random() * 9000) + 1000;  // Generates a random number between 1000 and 9999
-        } while (this.generatedIds.has(randomId)); // If the number already exists, regenerate
+            randomId = Math.floor(Math.random() * 9000) + 1000;
+        } while (this.generatedIds.has(randomId));
 
-        // Add the randomId to the set of generated ids to avoid duplicates
+
         this.generatedIds.add(randomId);
         return randomId;
 

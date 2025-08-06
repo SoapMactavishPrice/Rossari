@@ -3,36 +3,21 @@ private class LeadAddressHelperTest {
 
     @testSetup
     static void setupData() {
-        // Setup mock data
-        Country__c country = new Country__c(
-            Name = 'India'
-        );
+        Country__c country = new Country__c(Name = 'India');
         insert country;
         
-        State__c state = new State__c(
-            Name = 'Gujarat',
-            Country__c = country.Id
-        );
+        State__c state = new State__c(Name = 'Gujarat', Country__c = country.Id);
         insert state;
         
-        City__c city = new City__c(
-            Name = 'Ahmedabad',
-            State__c = state.Id
-        );
+        City__c city = new City__c(Name = 'Ahmedabad', State__c = state.Id);
         insert city;
         
-        Pin_Code__c pinCode = new Pin_Code__c(
-            Name = '380015',
-            City__c = city.Id
-        );
+        Pin_Code__c pinCode = new Pin_Code__c(Name = '380015', City__c = city.Id);
         insert pinCode;
 
-        Company__c rossari = new Company__c(
-            Name = 'Rossari Biotech Limited'
-        );
+        Company__c rossari = new Company__c(Name = 'Rossari Biotech Limited');
         insert rossari;
 
-        // Create Lead
         Lead lead = new Lead(LastName = 'Test Lead', Company = 'Test Company');
         insert lead;
     }
@@ -41,13 +26,11 @@ private class LeadAddressHelperTest {
     static void testGetAddressDataByPin() {
         Pin_Code__c pin = [SELECT Id FROM Pin_Code__c LIMIT 1];
         Map<String, String> result = LeadAddressHelper.getAddressDataByPin(pin.Id);
-      
     }
 
     @isTest
     static void testGetCountriesByRegion() {
         List<Country__c> countries = LeadAddressHelper.getCountriesByRegion('TestRegion');
-        
     }
 
     @isTest
@@ -80,6 +63,24 @@ private class LeadAddressHelperTest {
         Test.stopTest();
 
         Lead updatedLead = [SELECT Id, Pin_Code__c, City__c, State__c, Country__c, Region__c, Zone__c FROM Lead WHERE Id = :lead.Id];
-        
+    }
+
+    @isTest
+    static void testGetUnqualifiedReasonsAndUpdateLeadStatus() {
+        Lead testLead = [SELECT Id FROM Lead LIMIT 1];
+        List<String> reasons = LeadAddressHelper.getUnqualifiedReasons();
+
+        Map<String, Object> leadData = new Map<String, Object>{
+            'leadId' => testLead.Id,
+            'status' => 'Unqualified',
+            'unqualifiedReason' => 'Others',
+            'nextFollowUp' => String.valueOf(Date.today().addDays(5)),
+            'note' => 'Test note',
+            'otherReasons' => 'Budget constraints'
+        };
+
+        Test.startTest();
+        LeadAddressHelper.updateLeadStatus(leadData);
+        Test.stopTest();
     }
 }

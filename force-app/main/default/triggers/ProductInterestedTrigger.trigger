@@ -21,5 +21,20 @@ trigger ProductInterestedTrigger on Product_Interested__c (
 
     if (!leadIds.isEmpty()) {
         ProductInterestedHelper.updateLeadTotalQuantities(leadIds);
+        
+        
+        if (Trigger.isInsert || Trigger.isUndelete) {
+            List<Lead> leadsToUpdate = new List<Lead>();
+            for (Lead l : [SELECT Id, Status FROM Lead 
+                          WHERE Id IN :leadIds AND Status = 'New']) {
+                l.Status = 'Working';
+                leadsToUpdate.add(l);
+            }
+            
+            if (!leadsToUpdate.isEmpty()) {
+                update leadsToUpdate;
+            }
+        }
     }
+    
 }

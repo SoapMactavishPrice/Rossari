@@ -33,6 +33,17 @@ export default class SampleOutForm extends NavigationMixin(LightningElement) {
     @track incoTermsOptions = [];
     @track currencyOptions = [];
     @track Selected = true;
+    @track sampleOut = {
+        SampleRequest: null,
+        // Initialize with empty address fields
+        Street1: '',
+        Street2: '',
+        Street3: '',
+        PinCode: '',
+        City: '',
+        State: '',
+        Country: ''
+    };
 
     connectedCallback() {
         if (this.recordId) {
@@ -129,7 +140,23 @@ export default class SampleOutForm extends NavigationMixin(LightningElement) {
                         value: plant.Id
                     }));
 
-                    this.sampleOut.CurrencyIsoCode = result.currencyIsoCode;
+                    this.sampleOut.CurrencyIsoCode = result.currencyCode;
+
+                    // 🆕 Autofill address from lead if available
+                    if (result.address) {
+                        this.sampleOut = {
+                            ...this.sampleOut,
+                            Street1: result.address.Street1 || '',
+                            Street2: result.address.Street2 || '',
+                            Street3: result.address.Street3 || '',
+                            PinCode: result.address.PinCodeId || '',
+                            City: result.address.CityId || '',
+                            State: result.address.StateId || '',
+                            Country: result.address.CountryId || ''
+                        };
+
+                        this.selectedPinCode = result.address.PinCodeId || '';
+                    }
 
                     if (result.lineItems && result.lineItems.length > 0) {
                         this.sampleOutLines = result.lineItems.map(item => ({
@@ -142,7 +169,7 @@ export default class SampleOutForm extends NavigationMixin(LightningElement) {
                             SampleRequestLine: item.Id,
                             SampleQtyInKgs: item.Sample_Qty_in_Kgs__c || 0,
                             SampleOutPlant: item.Sample_Request_To_Plant__c,
-                            Price: item.Price__c || 0
+                            Price: item.Sales_Price__c || 0
                         }));
                     } else {
                         this.showError('No Products', 'No line items found for this Sample Request');
@@ -158,6 +185,7 @@ export default class SampleOutForm extends NavigationMixin(LightningElement) {
                 this.showSpinner = false;
             });
     }
+
 
     addEmptyRow() {
         this.sampleOutLines = [{

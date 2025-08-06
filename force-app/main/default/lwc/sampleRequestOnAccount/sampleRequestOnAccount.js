@@ -40,7 +40,7 @@ export default class AccountSampleRequest extends NavigationMixin(LightningEleme
             // Load plant options
             this.plantOptions = await getPlantOptions();
             this.plantOptions = this.plantOptions.map(plant => ({
-                label: plant.Name,
+                label: `${plant.Name} - ${plant.Plant_Name__c}`,
                 value: plant.Id
             }));
 

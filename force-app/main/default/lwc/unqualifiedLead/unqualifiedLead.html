@@ -1,0 +1,46 @@
+<template>
+    <lightning-card>
+        <div class="slds-p-around_xx-small slds-text-align_center slds-border_bottom slds-theme_shade"
+            style="margin-left: -4px;background-color: #9d0b0f; color: #ffffff;">
+            <h3 class="slds-text-heading_small" style="margin: 0;">Mark Lead as Unqualified</h3>
+        </div>
+        <div class="slds-p-around_medium">
+            <!-- Unqualified Reason Dropdown -->
+            <lightning-combobox name="unqualifiedReason" label="Unqualified Reason" value={unqualifiedReason}
+                options={reasonOptions} onchange={handleReasonChange} required>
+            </lightning-combobox>
+
+            <!-- Competitor Fields -->
+            <template if:true={showCompetitorFields}>
+                <lightning-input name="competitorLostTo" label="Competitor Lost To" value={competitorLostTo}
+                    onchange={handleInputChange} required></lightning-input>
+                <lightning-input name="competitorPrice" label="Competitor Price*" value={competitorPrice}
+                    onchange={handleInputChange} required></lightning-input>
+                <lightning-input name="competitorProduct" label="Competitor Product" value={competitorProduct}
+                    onchange={handleInputChange} required></lightning-input>
+            </template>
+
+            <!-- Other Reasons -->
+            <template if:true={showOtherReasonField}>
+                <lightning-textarea name="otherReasons" label="Other Reasons" value={otherReasons}
+                    onchange={handleInputChange} required></lightning-textarea>
+            </template>
+
+            <lightning-input type="date" name="nextFollowUp" label="Next Follow Up Date" value={nextFollowUp}
+                onchange={handleInputChange} required>
+            </lightning-input>
+
+            <!-- Notes -->
+            <lightning-textarea name="note" label="Notes" value={note} onchange={handleInputChange}
+                required></lightning-textarea>
+
+            <div class="slds-m-top_medium slds-text-align_center">
+                <lightning-button variant="brand" label="Submit" onclick={handleSubmit}
+                    disabled={isLoading}></lightning-button>
+                <lightning-button class="slds-m-left_small" label="Cancel" onclick={handleCancel}
+                    disabled={isLoading}></lightning-button>
+
+            </div>
+        </div>
+    </lightning-card>
+</template>

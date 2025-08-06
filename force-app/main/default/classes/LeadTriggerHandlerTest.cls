@@ -101,47 +101,113 @@ public class LeadTriggerHandlerTest {
 
     @isTest
     static void testHandleAfterLeadConvert() {
+        
+        Pricebook2 standardPricebook = new Pricebook2(
+            Id = Test.getStandardPricebookId(),
+            IsActive = true
+        );
+        update standardPricebook;
+        
+        Product2 testProduct = new Product2(
+            Name = 'Test Product',
+            IsActive = true
+        );
+        insert testProduct;
+        
+        PricebookEntry standardPbe = new PricebookEntry(
+            Pricebook2Id = standardPricebook.Id,
+            Product2Id = testProduct.Id,
+            UnitPrice = 100,
+            IsActive = true,
+            UseStandardPrice = false
+        );
+        insert standardPbe;
+        
+        Country__c country = new Country__c(
+            Name = 'India'
+        );
+        insert country;
+        
+        State__c state = new State__c(
+            Name = 'Maharashtra',
+            Country__c = country.Id
+        );
+        insert state;
+        
+        City__c testCity = new City__c(
+            Name = 'Test City',
+            State__c = state.id,
+            Country__c = country.id
+        );
+        insert testCity;
+        
+        Product2 pro = New Product2();
+        pro.Name = 'UNITOX - KRN-HD200T80';
+        pro.Family = 'ZFG';
+        
+        insert pro;
+        
+       
+        
         Lead l = new Lead(
             FirstName = 'Convert', 
             LastName = 'Me',
-            Company = 'Comp'
+            Company = 'Comp',
+            Department__c = 'Sales',
+            City__c = testCity.Id    
         );
         insert l;
-
-        Account acc = new Account(
-            Name = 'Converted Acc'
-        );
-        insert acc;
-
-        Opportunity opp = new Opportunity(
-            Name = 'Converted Opp', 
-            StageName = 'Prospecting',
-            CloseDate = Date.today()
-        );
-        insert opp;
-
-      //  l.ConvertedAccountId = acc.Id;
-    //    l.ConvertedOpportunityId = opp.Id;
-       // l.IsConverted = true;
-        update l;
-
-        Contact_Information__c ci = new Contact_Information__c(
+        
+        Contact_Information__c primaryCi = new Contact_Information__c(
             Lead__c = l.Id, 
-            Name = 'Test',
-            Last_Name__c = 'C', 
-            Is_Primary__c = false
+            Name = 'Primary',
+            Last_Name__c = 'Contact', 
+            Is_Primary__c = true,
+            Email__c = 'primary@test.com'
         );
-        insert ci;
-
+        insert primaryCi;
+        
+        Contact_Information__c secondaryCi = new Contact_Information__c(
+            Lead__c = l.Id, 
+            Name = 'Secondary',
+            Last_Name__c = 'Contact', 
+            Is_Primary__c = false,
+            Email__c = 'secondary@test.com',
+            Department__c = 'Secondary Dept'
+        );
+        insert secondaryCi;
+        
+         Product_Interested__c pi = New Product_Interested__c();
+       	pi.product__c = pro.id;
+        pi.Quantity_in_Kgs__c = 10;
+        pi.Expected_Price__c = 12;
+        pi.Lead__c = l.Id;
+        
+        insert pi;
+        
+        Database.LeadConvert lc = new Database.LeadConvert();
+        lc.setLeadId(l.Id);
+        lc.setDoNotCreateOpportunity(false); 
+        lc.setConvertedStatus('Qualified');
+        Database.LeadConvertResult lcr = Database.convertLead(lc);
+        
+        Lead convertedLead = [SELECT Id, IsConverted, ConvertedAccountId, ConvertedContactId, 
+                              ConvertedOpportunityId, City__c, Department__c 
+                              FROM Lead WHERE Id = :l.Id];
+        
         Map<Id, Lead> oldMap = new Map<Id, Lead>{ l.Id => new Lead(Id = l.Id, IsConverted = false) };
-
-        Test.startTest();
-        LeadTriggerHandler.handleAfterLeadConvert(new List<Lead>{l}, oldMap);
+            
+            Test.startTest();
+        LeadTriggerHandler.handleAfterLeadConvert(new List<Lead>{convertedLead}, oldMap);
         Test.stopTest();
-
-        List<Contact> cons = [SELECT Id FROM Contact WHERE AccountId = :acc.Id];
+        
+        List<Contact> secondaryContacts = [SELECT Id, Email FROM Contact 
+                                           WHERE Email = 'secondary@test.com' 
+                                           AND AccountId = :convertedLead.ConvertedAccountId];
+        
+        Contact primaryContact = [SELECT Id, Department FROM Contact WHERE Id = :convertedLead.ConvertedContactId];
     }
-
+    
     @isTest
     static void testHandleFollowUpTask() {
         Lead l = new Lead(
@@ -151,13 +217,13 @@ public class LeadTriggerHandlerTest {
             Next_Follow_Up_in_Days__c = 3
         );
         insert l;
-
+        
         Map<Id, Lead> oldMap = new Map<Id, Lead>{ l.Id => new Lead(Id = l.Id, Next_Follow_Up_in_Days__c = null) };
-
-        Test.startTest();
+            
+            Test.startTest();
         LeadTriggerHandler.handleFollowUpTask(new List<Lead>{l}, oldMap);
         Test.stopTest();
-
+        
         List<Task> tasks = [SELECT Id FROM Task WHERE WhatId = :l.Id];
     }
 
@@ -197,8 +263,8 @@ public class LeadTriggerHandlerTest {
         Account a = new Account(Name = 'Acct');
         insert a;
 
-        Opportunity o = new Opportunity(Name = 'Opp', StageName = 'Prospecting', CloseDate = Date.today());
-        insert o;
+      //  Opportunity o = new Opportunity(Name = 'Opp', StageName = 'Prospecting', CloseDate = Date.today());
+       // insert o;
 
       //  l.IsConverted = true;
        // l.ConvertedAccountId = a.Id;
@@ -212,6 +278,6 @@ public class LeadTriggerHandlerTest {
         LeadTriggerHandler.handleAfterUpdate(new List<Lead>{l}, oldMap);
         Test.stopTest();
 
-        Opportunity updatedOpp = [SELECT Description FROM Opportunity WHERE Id = :o.Id];
+        //Opportunity updatedOpp = [SELECT Description FROM Opportunity WHERE Id = :o.Id];
     }
 }

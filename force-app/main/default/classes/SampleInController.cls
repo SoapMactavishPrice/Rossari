@@ -49,7 +49,6 @@ public class SampleInController {
             src.Sample_Sent_To_Unit__c = sampleSentToPlant;
             src.Sample_Sent_To_Factory_From_HO__c = Date.valueOf(SampleSentToFactoryFromHO); // Converting string to Date
             src.Courier_Name__c = CourierName;
-            src.Account_No__c = AccountNo;
             src.Remark__c = OtherRemark;
           //  src.Email_Id__c = emailId;
             insert src;

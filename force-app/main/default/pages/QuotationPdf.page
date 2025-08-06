@@ -1,10 +1,10 @@
-<apex:page renderAs="pdf" showHeader="false" sidebar="false">
+<apex:page controller="QuotationPdfController" renderAs="pdf" showHeader="false" sidebar="false" applyHtmlTag="false" applyBodyTag="false" standardStylesheets="false" docType="html-5.0">
     <head>
         <style>
             table { 
                 width: 100%; 
                 border-collapse: collapse; 
-                font-size: 11px;
+                font-size: 10px;
             }
             th, td { 
                 border: 1px solid black; 
@@ -17,8 +17,7 @@
             .section-title {
                 text-align: center;
                 font-weight: bold;
-                font-size: 14px;
-                padding: 8px 0;
+                font-size: 13px;
             }
             .right-align {
                 text-align: right;
@@ -26,8 +25,22 @@
             .bold {
                 font-weight: bold;
             }
-            .borderless {
-                border: none !important;
+            .leftBorder {
+                border-left: 1px solid black;
+                border-right: none;
+                border-top: none;
+                border-bottom: none;
+            }
+
+            .doubleBorder {
+                border-left: 1px solid black;
+                border-right: 1px solid black;
+                border-top: none;
+                border-bottom: none;
+            }
+
+            .borderlessClean {
+                border: none;
             }
             .small-text {
                 font-size: 9px;
@@ -35,7 +48,13 @@
         </style>
     </head>
 
-    <div class="section-title">QUOTATION</div>
+    <table>
+        <tr>
+            <td class="section-title">
+                QUOTATION
+            </td>
+        </tr>
+    </table>
 
     <table>
         <tr>
@@ -43,73 +62,120 @@
             <th colspan="2">Bill to</th>
         </tr>
         <tr>
-            <td>Order No.:</td>
-            <td>Payment Terms:</td>
-            <td>Name:</td>
-            <td rowspan="2">Address:</td>
+            <td style="width: 36%;" class="leftBorder">Order No.: {!quotation.QuoteNumber}</td>
+            <td style="width: 36%;" class="borderlessClean">Payment Terms: {!quotation.Payment_Terms__c}</td>
+            <td style="width: 27%;" class="doubleBorder" colspan="2">Name: {!quotation.BillingName}</td>
         </tr>
         <tr>
-            <td>Order Date:</td>
-            <td>Our Bankers:</td>
-            <td></td>
+            
+            <td class="leftBorder">Order Date: 
+                <apex:outputText value="{0,date,dd/MM/yyyy}">
+                    &nbsp;<apex:param value="{!quotation.CreatedDate}" />
+                </apex:outputText>
+            </td>
+            <td class="borderlessClean">Our Bankers: (HC)</td>
+            <apex:outputPanel layout="none" rendered="{!NOT(isExport)}">
+                <td class="doubleBorder" colspan="2" rowspan="4">Address: {!billingAddress}</td>
+            </apex:outputPanel>
+            <apex:outputPanel layout="none" rendered="{!isExport}">
+                <td class="doubleBorder" colspan="2" rowspan="5">Address: {!billingAddress}</td>
+            </apex:outputPanel>
         </tr>
         <tr>
-            <td>Buyer Ref No.:</td>
-            <td>A/c No.:</td>
-            <td colspan="2"></td>
+            <td class="leftBorder">Buyer Ref No.: (HC)</td>
+            <td class="borderlessClean">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;A/c No.: (HC)</td>
         </tr>
         <tr>
-            <td>Buyer Ref Date:</td>
-            <td>Bank Name:</td>
-            <td colspan="2"></td>
+            <td class="leftBorder">Buyer Ref Date: (HC)</td>
+            <td class="borderlessClean">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Bank Name: (HC)</td>
         </tr>
         <tr>
-            <td>Quotation Validity:</td>
-            <td>Branch:</td>
-            <td colspan="2"></td>
+            <td class="leftBorder">Quotation Validity: 
+                <apex:outputText value="{0,date,dd/MM/yyyy}">
+                    &nbsp;<apex:param value="{!quotation.ExpirationDate}" />
+                </apex:outputText>
+            </td>
+            <td class="borderlessClean">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Branch: (HC)</td>
         </tr>
         <tr>
-            <td>Currency:</td>
-            <td>Swift Code:</td>
-            <td colspan="2"></td>
+            <td class="leftBorder">Currency: {!quotation.CurrencyIsoCode}</td>
+            <td class="borderlessClean">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Swift Code: (HC)</td>
+            <apex:outputPanel layout="none" rendered="{!NOT(isExport)}">
+                <td class="doubleBorder" colspan="2">GSTIN: (HC)</td>
+            </apex:outputPanel>
         </tr>
     </table>
 
-    <table>
-        <tr>
-            <th colspan="2">Shipment Details</th>
-            <th colspan="2">Ship to</th>
-        </tr>
-        <tr>
-            <td>Incoterms:</td>
-            <td>Pre-Carriage Mode:</td>
-            <td>Name:</td>
-            <td rowspan="2">Address:</td>
-        </tr>
-        <tr>
-            <td>Country of Origin:</td>
-            <td>Pre-Carriage Destination:</td>
-            <td></td>
-        </tr>
-        <tr>
-            <td>Country of Destination:</td>
-            <td>Vessel/Flight No.:</td>
-            <td colspan="2"></td>
-        </tr>
-        <tr>
-            <td>Final Destination:</td>
-            <td>Loading Port:</td>
-            <td colspan="2"></td>
-        </tr>
-        <tr>
-            <td>Place of Supply:</td>
-            <td>Discharge Port:</td>
-            <td colspan="2"></td>
-        </tr>
-        <tr>
-            <td colspan="4">Partial Shipment:</td>
-        </tr>
-    </table>
+    <apex:outputPanel layout="none" rendered="{!isExport}">
+        <table>
+            <tr>
+                <th colspan="2">Shipment Details</th>
+                <th colspan="2">Ship to</th>
+            </tr>
+            <tr>
+                <td style="width: 36%;" class="leftBorder">Incoterms: {!quotation.Inco_Terms__c}</td>
+                <td style="width: 36%;" class="borderlessClean">Pre-Carriage Mode: {!quotation.Pre_Carriage_Mode__c}</td>
+                <td style="width: 27%;" class="doubleBorder" colspan="2">Name: {!quotation.ShippingName}</td>
+            </tr>
+            <tr>
+                <td class="leftBorder">Country of Origin: {!quotation.Country_of_Origin__c}</td>
+                <td class="borderlessClean">Pre-Carriage Destination: (HC)</td>
+                <td class="doubleBorder" colspan="2" rowspan="5">Address: {!shippingAddress}</td>
+            </tr>
+            <tr>
+                <td class="leftBorder">Country of Destination: {!quotation.Country_of_Destination__c}</td>
+                <td class="borderlessClean">Vessel/Flight No.: (HC)</td>
+            </tr>
+            <tr>
+                <td class="leftBorder">Final Destination: {!quotation.Destination__c}</td>
+                <td class="borderlessClean">Loading Port: {!quotation.Loading_Port__c}</td>
+            </tr>
+            <tr>
+                <td class="leftBorder">Place of Supply: {!quotation.Place_of_Supplier__c}</td>
+                <td class="borderlessClean">Discharge Port: {!quotation.Destination_Port__c}</td>
+            </tr>
+            <tr>
+                <td class="leftBorder">Partial Shipment: {!quotation.Partial_Shipment__c}</td>
+                <td class="borderlessClean"></td>
+            </tr>
+        </table>
+    </apex:outputPanel>
+
+    <apex:outputPanel layout="none" rendered="{!NOT(isExport)}">
+        <table>
+            <tr>
+                <th colspan="2">Shipment Details</th>
+                <th colspan="2">Ship to</th>
+            </tr>
+            <tr>
+                <td style="width: 36%;" class="leftBorder">Incoterms: {!quotation.Inco_Terms__c}</td>
+                <td style="width: 36%;" class="borderlessClean">Destination: {!quotation.Destination__c}</td>
+                <td style="width: 27%;" class="doubleBorder" colspan="2">Name: {!quotation.ShippingName}</td>
+            </tr>
+            <tr>
+                <td class="leftBorder"></td>
+                <td class="borderlessClean"></td>
+                <td class="doubleBorder" colspan="2" rowspan="4">Address: {!shippingAddress}</td>
+            </tr>
+            <tr>
+                <td class="leftBorder"></td>
+                <td class="borderlessClean"></td>
+            </tr>
+            <tr>
+                <td class="leftBorder"></td>
+                <td class="borderlessClean"></td>
+            </tr>
+            <tr>
+                <td class="leftBorder"></td>
+                <td class="borderlessClean"></td>
+            </tr>
+            <tr>
+                <td class="leftBorder"></td>
+                <td class="borderlessClean"></td>
+                <td class="doubleBorder" colspan="2">GSTIN: (HC)</td>
+            </tr>
+        </table>
+    </apex:outputPanel>
 
     <table>
         <tr>
@@ -124,73 +190,82 @@
             <th>Price</th>
             <th>Amount</th>
         </tr>
-        <!-- <apex:repeat value="{!ListOfItems}" var="item"> -->
+        <apex:variable var="srNo" value="{!1}" />
+        <apex:repeat value="{!quoteLineItems}" var="item">
             <tr>
-                <td>{!item.srNo}</td>
-                <td>{!item.materialCode}</td>
-                <td>{!item.hsn}</td>
-                <td>{!item.description}</td>
-                <td>{!item.packSize}</td>
-                <td>{!item.uom}</td>
-                <td>{!item.quantity}</td>
-                <td>{!item.unit}</td>
-                <td>{!item.price}</td>
-                <td>{!item.amount}</td>
+                <td>{!srNo}</td>
+                <td>(HC)</td>
+                <td>(HC)</td>
+                <td>{!item.Description}</td>
+                <td>(HC)</td>
+                <td>(HC)</td>
+                <td>{!item.Quantity}</td>
+                <td>{!item.ListPrice}</td>
+                <td>{!item.UnitPrice}</td>
+                <td>{!item.TotalPrice}</td>
             </tr>
-        <!-- </apex:repeat> -->
+            <apex:variable var="srNo" value="{!srNo + 1}" />
+        </apex:repeat>
+    <tr>
+        <td colspan="6" rowspan="5">
+            <b>Terms and Conditions:</b><br/>
+            • All bank charges outside India will be borne by the customer and such charges should not be deducted from our payment.<br/>
+            • We should receive full invoice amount in our bank account and you are liable to pay the bank charges which are applicable in India only.<br/>
+            • After finalization of order if there is any change in Statutory Govt. levies than it will be in your scope.
+        </td>
+        <td colspan="3" class="bold">Amount Before Tax</td>
+        <td>(HC)</td>
+    </tr>
+    <tr>
+        <td colspan="2" class="bold">CGST</td>
+        <td>(HC)</td>
+        <td>(HC)</td>
+    </tr>
+    <tr>
+        <td colspan="2" class="bold">SGST</td>
+        <td>(HC)</td>
+        <td>(HC)</td>
+    </tr>
+    <tr>
+        <td colspan="2" class="bold">IGST</td>
+        <td>(HC)</td>
+        <td>(HC)</td>
+    </tr>
+    <tr>
+        <td colspan="2" class="bold">Round Off</td>
+        <td>(HC)</td>
+        <td>(HC)</td>
+    </tr>
+    <tr>
+        <td colspan="6"><b>Net Weight</b>: (HC)</td>
+        <td colspan="3" class="bold">Total Amount After Tax</td>
+        <td>{!quotation.GrandTotal}</td>
+    </tr>
+    </table>
+
+    <table>
         <tr>
-            <td colspan="10">&nbsp;</td>
+            <td style="text-align:left;"><b>Total Amount in Words:</b> {!totalAmountInWords}</td>
+        </tr>
+        <tr>
+            <td style="text-align:left;"><b>Declaration</b>: We declare that this quotation shows the actual price of goods and that all particulars are true and correct.</td>
         </tr>
     </table>
 
     <table>
         <tr>
-            <td colspan="6" rowspan="4" class="borderless">
-                <b>Terms and Conditions:</b><br/>
-                • All bank charges outside India will be borne by the customer and such charges should not be deducted from our payment.<br/>
-                • We should receive full invoice amount in our bank account and you are liable to pay the bank charges which are applicable in India only.<br/>
-                • After finalization of order if there is any change in Statutory Govt. levies than it will be in your scope.
-            </td>
-            <td colspan="2" class="bold">Amount Before Tax</td>
-            <td colspan="2"></td>
-        </tr>
-        <tr>
-            <td colspan="2" class="bold">CGST</td>
-            <td colspan="2">9%</td>
-        </tr>
-        <tr>
-            <td colspan="2" class="bold">SGST</td>
-            <td colspan="2">9%</td>
-        </tr>
-        <tr>
-            <td colspan="2" class="bold">IGST</td>
-            <td colspan="2">18%</td>
-        </tr>
-        <tr>
-            <td colspan="6" class="borderless">Net Weight:</td>
-            <td colspan="2" class="bold">Round Off</td>
-            <td colspan="2"></td>
-        </tr>
-        <tr>
-            <td colspan="6" class="borderless"><b>Total Amount in Words:</b></td>
-            <td colspan="2" class="bold">Total Amount After Tax</td>
-            <td colspan="2"></td>
-        </tr>
-    </table>
-
-    <br/>
-
-    <table class="no-border">
-        <tr>
-            <td class="borderless">Declaration: We declare that this quotation shows the actual price of goods and that all particulars are true and correct.</td>
-            <td class="right-align borderless">
-                For ROSSARI BIOTECH LIMITED<br/><br/><br/>
+            <td class="right-align">
+                For ROSSARI BIOTECH LIMITED<br/><br/><br/><br/><br/><br/>
                 Authorized Signatory
             </td>
         </tr>
     </table>
 
-    <div class="small-text" style="text-align: center; margin-top: 20px;">
-        This document is computer-generated and does not require a physical signature.
-    </div>
+    <table style="font-size:9px; border-collapse:collapse;">
+        <tr>
+            <td style="text-align:center;">
+                This document is computer-generated and does not require a physical signature.
+            </td>
+        </tr>
+    </table>
 </apex:page>

@@ -1,0 +1,75 @@
+<template>
+    <lightning-card>
+        <template if:true={showSpinner}>
+            <lightning-spinner size="small"></lightning-spinner>
+        </template>
+
+        <!-- Header -->
+        <div class="slds-scrollable_x custom-scroll">
+            <table class="slds-table slds-table_cell-buffer slds-table_bordered slds-table_col-bordered">
+                <thead>
+                    <tr>
+                        <th
+                            style="text-align: center; font-size:15px; background-color:#9d0b0f; color:white; padding:4px;">
+                            Add Company Users
+                        </th>
+                    </tr>
+                </thead>
+            </table>
+        </div>
+
+        <!-- Data table -->
+        <div class="slds-scrollable_x custom-scroll slds-m-top_medium">
+            <table class="slds-table slds-table_cell-buffer slds-table_bordered slds-table_col-bordered">
+                <thead>
+                    <tr>
+                        <th>User</th>
+                        <th>Business Unit</th>
+                        <th>Division</th>
+                        <th>Product Group</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <template for:each={companyUsers} for:item="user" for:index="index">
+                        <tr key={user.id}>
+                            <td>
+                                <lightning-combobox name="User__c" label="" value={user.User__c} options={userOptions}
+                                    data-field="User__c" data-index={index} onchange={handleChange}
+                                    variant="label-hidden" required></lightning-combobox>
+                            </td>
+                            <td>
+                                <lightning-combobox name="Business_Unit__c" label="" value={user.Business_Unit__c}
+                                    options={businessUnitOptions} data-field="Business_Unit__c" data-index={index}
+                                    onchange={handleChange} variant="label-hidden"></lightning-combobox>
+                            </td>
+                            <td>
+                                <lightning-combobox name="Division__c" label="" value={user.Division__c}
+                                    options={divisionOptions} data-field="Division__c" data-index={index}
+                                    onchange={handleChange} variant="label-hidden"></lightning-combobox>
+                            </td>
+                            <td>
+                                <lightning-combobox name="Product_Group__c" label="" value={user.Product_Group__c}
+                                    options={productGroupOptions} data-field="Product_Group__c" data-index={index}
+                                    onchange={handleChange} variant="label-hidden"></lightning-combobox>
+                            </td>
+                            <td>
+                                <lightning-button-icon icon-name="utility:add" alternative-text="Add" title="Add Row"
+                                    onclick={addNewRow} class="slds-m-right_xx-small"></lightning-button-icon>
+                                <lightning-button-icon icon-name="utility:delete" alternative-text="Delete"
+                                    title="Remove Row" data-index={index} onclick={removeRow}></lightning-button-icon>
+                            </td>
+                        </tr>
+                    </template>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Footer -->
+        <div class="slds-align_absolute-center slds-m-top_small">
+            <lightning-button variant="brand" label="Save" onclick={handleSave}></lightning-button>
+            <lightning-button variant="neutral" label="Cancel" class="slds-m-left_small"
+                onclick={handleCancel}></lightning-button>
+        </div>
+    </lightning-card>
+</template>

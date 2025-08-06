@@ -1,48 +1,68 @@
 public with sharing class SampleOutController {
     
-    @AuraEnabled(cacheable=true)
-    public static ResponseWrapper getSampleRequestData(Id sampleRequestId) {
-        ResponseWrapper response = new ResponseWrapper();
-        
-        try {
-            // Verify the Sample Request exists
-            Sample_Request__c request = [
-                SELECT Id, Name,CurrencyIsoCode FROM Sample_Request__c 
-                WHERE Id = :sampleRequestId LIMIT 1
-            ];
-            response.requestNumber = request.Name;
-            response.currencyCode = request.CurrencyIsoCode;
-            
-            // Get line items with all required fields
-            response.lineItems = [
-                SELECT 
-                    Id, 
-                    Product__c, 
-                    Product__r.Name, 
-                    Product__r.ProductCode,
-                    Sample_Request_To_Plant__c,
-                    Sample_Qty_in_Kgs__c,
-                    Description__c,
-                    Sales_Price__c
-                FROM Sample_Request_Line_Item__c
-                WHERE Sample_Request__c = :sampleRequestId
-                ORDER BY CreatedDate
-            ];
-            
-            // Get active plants
-            response.plants = [
-                SELECT Id, Name 
-                FROM Plant__c 
-                ORDER BY Name
-            ];
-            
-        } catch (Exception e) {
-            throw new AuraHandledException('Error fetching data: ' + e.getMessage());
+@AuraEnabled(cacheable=true)
+public static ResponseWrapper getSampleRequestData(Id sampleRequestId) {
+    ResponseWrapper response = new ResponseWrapper();
+
+    try {
+        Sample_Request__c request = [
+            SELECT Id, Name, CurrencyIsoCode, Lead__c,
+                   Lead__r.Street_1__c,
+                   Lead__r.Street_2__c,
+                   Lead__r.Street_3__c,
+                   Lead__r.Pin_Code__c,
+                   Lead__r.City__c,
+                   Lead__r.State__c,
+                   Lead__r.Country__c
+            FROM Sample_Request__c
+            WHERE Id = :sampleRequestId
+            LIMIT 1
+        ];
+
+        response.requestNumber = request.Name;
+        response.currencyCode = request.CurrencyIsoCode;
+
+        // Map address from Lead if present
+        if (request.Lead__c != null) {
+            response.address = new Map<String, String>{
+                'Street1' => request.Lead__r.Street_1__c,
+                'Street2' => request.Lead__r.Street_2__c,
+                'Street3' => request.Lead__r.Street_3__c,
+                'PinCodeId' => request.Lead__r.Pin_Code__c,
+                'CityId' => request.Lead__r.City__c,
+                'StateId' => request.Lead__r.State__c,
+                'CountryId' => request.Lead__r.Country__c
+            };
         }
-        
-        return response;
+
+        response.lineItems = [
+            SELECT 
+                Id, 
+                Product__c, 
+                Product__r.Name, 
+                Product__r.ProductCode,
+                Sample_Request_To_Plant__c,
+                Sample_Qty_in_Kgs__c,
+                Description__c,
+                Sales_Price__c
+            FROM Sample_Request_Line_Item__c
+            WHERE Sample_Request__c = :sampleRequestId
+            ORDER BY CreatedDate
+        ];
+
+        response.plants = [
+            SELECT Id, Name 
+            FROM Plant__c 
+            ORDER BY Name
+        ];
+
+    } catch (Exception e) {
+        throw new AuraHandledException('Error fetching data: ' + e.getMessage());
     }
-    
+
+    return response;
+}
+
      @AuraEnabled(cacheable=true)
     public static Map<String, String> getAddressDataByPin(Id pinCodeId) {
         Map<String, String> result = new Map<String, String>();
@@ -201,5 +221,39 @@ public with sharing class SampleOutController {
         @AuraEnabled public List<Sample_Request_Line_Item__c> lineItems;
         @AuraEnabled public List<Plant__c> plants;
         @AuraEnabled public String currencyCode;
+        @AuraEnabled public Map<String, String> address; // NEW
     }
+    
+    public static void updateSampleOutAddresses(List<Sample_Out__c> newSampleOuts) {
+        Set<Id> pinCodeIds = new Set<Id>();
+        for (Sample_Out__c sampleOut : newSampleOuts) {
+            if (sampleOut.Pin_Code__c != null) {
+                pinCodeIds.add(sampleOut.Pin_Code__c);
+            }
+        }
+
+        if (pinCodeIds.isEmpty()) return;
+
+        Map<Id, Pin_Code__c> pinMap = new Map<Id, Pin_Code__c>([
+            SELECT Id, City__c, 
+                   City__r.State__c,
+                   City__r.State__r.Country__c,
+                   City__r.State__r.Zone__c,
+                   City__r.State__r.Country__r.Region__c
+            FROM Pin_Code__c
+            WHERE Id IN :pinCodeIds
+        ]);
+
+        for (Sample_Out__c sampleOut : newSampleOuts) {
+            if (sampleOut.Pin_Code__c != null && pinMap.containsKey(sampleOut.Pin_Code__c)) {
+                Pin_Code__c pin = pinMap.get(sampleOut.Pin_Code__c);
+                sampleOut.City__c = pin.City__c;
+                sampleOut.State__c = pin.City__r.State__c;
+                sampleOut.Country__c = pin.City__r.State__r.Country__c;
+               // sampleOut.Zone__c = pin.City__r.State__r.Zone__c;
+               // sampleOut.Region__c = pin.City__r.State__r.Country__r.Region__c;
+            }
+        }
+    }
+
 }
