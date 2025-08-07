@@ -2,7 +2,72 @@ public class QuoteLineItemTriggerHandler {
     public static Map<Id, Decimal> oldPurchasePriceMap = new Map<Id, Decimal>();
     public static Map<Id, Decimal> oldQuantityMap = new Map<Id, Decimal>();
 
-    // Store old values
+    public static void updateIsSPlessThanLP(List<QuoteLineItem> quoteLineItems, Map<Id, QuoteLineItem> oldMap) {
+        Set<Id> pricebookEntryIds = new Set<Id>();
+        
+        // Collect all PricebookEntryIds
+        for (QuoteLineItem qli : quoteLineItems) {
+            if (qli.PricebookEntryId != null) {
+                pricebookEntryIds.add(qli.PricebookEntryId);
+            }
+        }
+        
+        if (pricebookEntryIds.isEmpty()) {
+            return;
+        }
+        
+        // Fetch List Price from PricebookEntry
+        Map<Id, PricebookEntry> pricebookEntryMap = new Map<Id, PricebookEntry>(
+            [SELECT Id, UnitPrice FROM PricebookEntry WHERE Id IN :pricebookEntryIds]
+        );
+        
+        // Update Is_SP_less_than_LP__c based on Sales Price and List Price
+        for (QuoteLineItem qli : quoteLineItems) {
+            if (qli.PricebookEntryId != null && pricebookEntryMap.containsKey(qli.PricebookEntryId)) {
+                Decimal listPrice = pricebookEntryMap.get(qli.PricebookEntryId).UnitPrice;
+                qli.Is_SP_less_than_LP__c = (qli.UnitPrice < listPrice);
+                
+                if (qli.UnitPrice != oldMap.get(qli.Id).UnitPrice) {
+                    if (qli.Is_SP_less_than_LP__c) {
+                        qli.Approval_Status__c = 'Pending';
+                    }
+                }
+            }
+        }
+    }
+
+    public static void updateIsSPlessThanLPForInsert(List<QuoteLineItem> quoteLineItems) {
+        Set<Id> pricebookEntryIds = new Set<Id>();
+        
+        // Collect all PricebookEntryIds
+        for (QuoteLineItem qli : quoteLineItems) {
+            if (qli.PricebookEntryId != null) {
+                pricebookEntryIds.add(qli.PricebookEntryId);
+            }
+        }
+        
+        if (pricebookEntryIds.isEmpty()) {
+            return;
+        }
+        
+        // Fetch List Price from PricebookEntry
+        Map<Id, PricebookEntry> pricebookEntryMap = new Map<Id, PricebookEntry>(
+            [SELECT Id, UnitPrice FROM PricebookEntry WHERE Id IN :pricebookEntryIds]
+        );
+        
+        // Update Is_SP_less_than_LP__c based on Sales Price and List Price
+        for (QuoteLineItem qli : quoteLineItems) {
+            if (qli.PricebookEntryId != null && pricebookEntryMap.containsKey(qli.PricebookEntryId)) {
+                Decimal listPrice = pricebookEntryMap.get(qli.PricebookEntryId).UnitPrice;
+                qli.Is_SP_less_than_LP__c = (qli.UnitPrice < listPrice);
+
+                if (qli.Is_SP_less_than_LP__c) {
+                    qli.Approval_Status__c = 'Pending';
+                }
+            }
+        }
+    }
+
     public static void storeOldValues(Map<Id, QuoteLineItem> oldMap) {
         for (QuoteLineItem oli : oldMap.values()) {
             oldPurchasePriceMap.put(oli.Id, oli.UnitPrice);

@@ -1,0 +1,60 @@
+<template>
+    <lightning-card>
+        <h4 style="text-align: center; font-size: 30px; padding-bottom: 10px;">Sales Price Approval</h4>
+        <template if:true={quotes}>
+            <template for:each={quotes} for:item="quote">
+                <div key={quote.quoteId} class="slds-box slds-m-bottom_medium">
+                    <h3 class="slds-text-heading_small" style="font-weight: bold; padding-bottom: 6px;">{quote.quoteName}</h3>
+                    <table class="slds-table slds-table_cell-buffer slds-table_bordered">
+                        <thead>
+                            <tr>
+                                <th scope="col" style="width: 20%">Product Name</th>
+                                <th scope="col" style="text-align: center;">Quantity</th>
+                                <th scope="col" style="text-align: center;">List Price</th>
+                                <th scope="col" style="text-align: center;">Sales Price</th>
+                                <th scope="col">Approval Status</th>
+                                <th scope="col">Approval Comments</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <template for:each={quote.quoteLineItems} for:item="item">
+                                <tr key={item.quoteLineItemId}>
+                                    <td>{item.productName}</td>
+                                    <td style="text-align: center;">{item.quantity}</td>
+                                    <td style="text-align: center;">{item.listPrice}</td>
+                                    <td style="text-align: center;">{item.salesPrice}</td>
+                                    <td>
+                                        <lightning-combobox
+                                            name="ApprovalStatus"
+                                            data-parent={item.parentId}
+                                            data-id={item.quoteLineItemId}
+                                            data-field="approvalStatus"
+                                            value={item.approvalStatus}
+                                            options={statusOptions}
+                                            onchange={handleLineItemChanges}
+                                            variant="label-hidden">
+                                        </lightning-combobox>
+                                    </td>
+                                    <td>
+                                        <lightning-input
+                                            value={item.approvalComments}
+                                            data-parent={item.parentId}
+                                            data-field="approvalComments"
+                                            data-id={item.quoteLineItemId}
+                                            onchange={handleLineItemChanges}
+                                            variant="label-hidden">
+                                        </lightning-input>
+                                    </td>
+                                </tr>
+                            </template>
+                        </tbody>
+                    </table>
+                </div>
+            </template>
+            <div class="slds-m-top_medium slds-text-align_center">
+                <lightning-button label="Cancel" onclick={redirectToHome} variant="neutral"></lightning-button>
+                <lightning-button class="slds-m-left_small" label="Save Changes" onclick={saveChanges} variant="brand" disabled={isSaveDisabled}></lightning-button>
+            </div>
+        </template>
+    </lightning-card>
+</template>

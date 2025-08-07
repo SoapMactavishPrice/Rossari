@@ -107,7 +107,8 @@ public with sharing class LeadAddressHelper {
             );
             
             if ('Lost to Competitor'.equals(leadData.get('unqualifiedReason'))) {
-                leadToUpdate.Competitor_Lost_to__c = (String)leadData.get('competitorLostTo');
+                leadToUpdate.Competitor_Lost_to1__c = (Id)leadData.get('competitorLostTo');
+
                 leadToUpdate.Competitor_Price__c = (String)leadData.get('competitorPrice');
                 leadToUpdate.Competitor_Product__c = (String)leadData.get('competitorProduct');
             } else if ('Others'.equals(leadData.get('unqualifiedReason'))) {

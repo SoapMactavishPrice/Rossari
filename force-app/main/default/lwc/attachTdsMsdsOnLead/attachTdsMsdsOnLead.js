@@ -5,6 +5,10 @@ import getFiledDisplay from '@salesforce/apex/SendTDSFile.getFiledDisplay';
 import getDocumentUrl from '@salesforce/apex/SendTDSFile.getDocumentUrl';
 import getEmailDetails from '@salesforce/apex/SendTDSFile.getEmailDetails';
 import sendMailToCustomer from '@salesforce/apex/SendTDSFile.sendMailToCustomer';
+import getLead from '@salesforce/apex/SendTDSFile.getLead';
+import requestApproval from '@salesforce/apex/SendTDSFile.requestApproval';
+
+
 import { CurrentPageReference } from 'lightning/navigation';
 import { NavigationMixin } from 'lightning/navigation';
 
@@ -19,6 +23,9 @@ export default class AttachTdsMsdsOnLead extends NavigationMixin(LightningElemen
     @track isLoading = false;
     @track tableData = [];
     @track isSendDisabled = false;
+
+    @track leadDetail = {};
+
     filesData = [];
 
     @wire(CurrentPageReference)
@@ -30,9 +37,14 @@ export default class AttachTdsMsdsOnLead extends NavigationMixin(LightningElemen
         }
     }
 
+    get isSendEmailDisabled() {
+        return !this.leadDetail.enableSendEmail;
+    }
+
     connectedCallback() {
         this.getProduct();
         this.getLeadDetail();
+        this.getLeadInformation();
     }
 
     getLeadDetail() {
@@ -43,6 +55,21 @@ export default class AttachTdsMsdsOnLead extends NavigationMixin(LightningElemen
                 this.showToast('Error', 'Error', 'Lead Contact Email not found');
             }
         });
+    }
+
+    getLeadInformation() {
+        getLead({leadId: this.rId}).then((result)=>{
+            console.log('lead Info', result);
+            this.leadDetail = result;
+        }).catch((error)=>{
+            this.showToast('Error', error.body.message, 'error');
+        })
+    }
+
+    handleCoaApprovalStatus(event) {
+        let field = event.target.dataset.field;
+
+        this.leadDetail[field] = event.detail.recordId;
     }
 
     handleToAddressChange(event) {
@@ -73,6 +100,17 @@ export default class AttachTdsMsdsOnLead extends NavigationMixin(LightningElemen
         } else {
             this.sendMail();
         }
+    }
+
+    handleRequestApproval() {
+        requestApproval({leadStringObject: JSON.stringify(this.leadDetail)}).then((result)=>{
+            if (result == 'Success') {
+                this.showToast('Success', 'success', 'Request for approval sent successfully');
+                this.backTorecord();
+            }
+        }).catch((error)=>{
+            this.showToast('Error', 'error', error.body.message);
+        })
     }
 
     handleFileChange(event) {

@@ -484,8 +484,43 @@ l.Status = 'Working';
             }
             
             if (!lineItemsToInsert.isEmpty()) {
-                insert lineItemsToInsert;
+                Database.SaveResult[] qliResults = Database.insert(lineItemsToInsert, false);
+                
+                // Get the inserted QLI IDs
+                List<Id> insertedQLIIds = new List<Id>();
+                for (Database.SaveResult sr : qliResults) {
+                    if (sr.isSuccess()) {
+                        insertedQLIIds.add(sr.getId());
+                    }
+                }
+                
+                if (!insertedQLIIds.isEmpty()) {
+                    // Query inserted QuoteLineItems with ListPrice
+                    List<QuoteLineItem> insertedQLIs = [
+                        SELECT Id, QuoteId, UnitPrice, ListPrice
+                        FROM QuoteLineItem
+                        WHERE Id IN :insertedQLIIds
+                    ];
+                    
+                    Set<Id> quoteIdsWithDiscounts = new Set<Id>();
+                    for (QuoteLineItem qli : insertedQLIs) {
+                        if (qli.ListPrice != null && qli.UnitPrice < qli.ListPrice) {
+                            quoteIdsWithDiscounts.add(qli.QuoteId);
+                        }
+                    }
+                    
+                    // Send emails for quotes with discounts
+                    for (Id quoteId : quoteIdsWithDiscounts) {
+                        try {
+                            ManagerEmailSender.sendEmailToManagerForQuote(quoteId);
+                        } catch(Exception e) {
+                            System.debug('Error sending email for quote ' + quoteId + ': ' + e.getMessage());
+                        }
+                    }
+                }
             }
+            
+            
         }
         
         // Update Opportunity stage to 'Quotation'

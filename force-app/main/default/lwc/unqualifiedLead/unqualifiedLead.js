@@ -18,6 +18,21 @@ export default class UnqualifiedLead extends NavigationMixin(LightningElement) {
 
     @track reasonOptions = [];
 
+    competitorPickerConfig = {
+        objectApiName: 'Competitor_Master__c',
+        displayField: 'Name',
+        valueField: 'Id',
+        placeholder: 'Search Competitor...',
+        filter: ''
+    };
+
+    handleCompetitorSelection(event) {
+        this.competitorLostTo = event.detail.recordId;
+        console.log('Selected Competitor Id:', this.competitorLostTo);
+    }
+
+
+
     connectedCallback() {
         this.loadPicklistValues();
     }
@@ -63,6 +78,34 @@ export default class UnqualifiedLead extends NavigationMixin(LightningElement) {
             return false;
         }
 
+        if (this.unqualifiedReason === 'Lost to Competitor') {
+            if (!this.competitorLostTo) {
+                this.showToast('Error', 'Competitor Lost To is required', 'error');
+                return false;
+            }
+        }
+
+        if (this.unqualifiedReason === 'Lost to Competitor') {
+            if (!this.competitorPrice) {
+                this.showToast('Error', 'Competitor Price is required', 'error');
+                return false;
+            }
+        }
+
+        if (this.unqualifiedReason === 'Lost to Competitor') {
+            if (!this.competitorProduct) {
+                this.showToast('Error', 'Competitor Product is required', 'error');
+                return false;
+            }
+        }
+
+        if (this.unqualifiedReason === 'Others') {
+            if (!this.otherReasons) {
+                this.showToast('Error', 'Please Provide Other Reasons', 'error');
+                return false;
+            }
+        }
+
         if (!this.nextFollowUp) {
             this.showToast('Error', 'Next Follow Up Date is required', 'error');
             return false;
@@ -70,18 +113,6 @@ export default class UnqualifiedLead extends NavigationMixin(LightningElement) {
 
         if (!this.note) {
             this.showToast('Error', 'Notes are required', 'error');
-            return false;
-        }
-
-        if (this.unqualifiedReason === 'Lost to Competitor') {
-            if (!this.competitorLostTo || !this.competitorPrice || !this.competitorProduct) {
-                this.showToast('Error', 'All competitor fields are required', 'error');
-                return false;
-            }
-        }
-
-        if (this.unqualifiedReason === 'Others' && !this.otherReasons) {
-            this.showToast('Error', 'Please provide Other Reasons', 'error');
             return false;
         }
 

@@ -1,4 +1,5 @@
-trigger QuoteLineItem on QuoteLineItem (after insert) {
+trigger QuoteLineItem on QuoteLineItem (after insert, after update, before insert, before update) {
+
     Set<Id> quoteIds = new Set<Id>();
 
     for (QuoteLineItem qli : Trigger.new) {

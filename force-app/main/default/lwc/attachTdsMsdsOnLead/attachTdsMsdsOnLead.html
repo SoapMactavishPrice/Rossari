@@ -173,9 +173,45 @@
                         </ul>
                     </template>
                 </div>
+                <template if:true={leadDetail.isTristarOrUnitop}>
+                    <template if:false={leadDetail.enableSendEmail}>
+                        <div class="slds-grid slds-wrap slds-gutters">
+                            <div class="slds-col slds-size_1-of-4"></div>
+                            <div class="slds-col slds-size_1-of-4">
+                                <lightning-record-picker
+                                    label="COA Approval Level 1"
+                                    placeholder="Search Users..."
+                                    object-api-name="User"
+                                    data-field="level1User"
+                                    value={leadDetail.level1User}
+                                    onchange={handleCoaApprovalStatus}>
+                                </lightning-record-picker>
+                            </div>
+                            <div class="slds-col slds-size_1-of-4">
+                                <lightning-record-picker
+                                    label="COA Approval Level 2"
+                                    placeholder="Search Users..."
+                                    object-api-name="User"
+                                    data-field="level2User"
+                                    value={leadDetail.level2User}
+                                    onchange={handleCoaApprovalStatus}>
+                                </lightning-record-picker>
+                            </div>
+                            <div class="slds-col slds-size_1-of-4"></div>
+                            <div class="slds-col slds-size_1-of-1 slds-p-around_medium" style="padding-bottom: 30px;"></div>
+                        </div>
+                    </template>
+                </template>
 
                 <footer class="slds-modal__footer">
-                    <lightning-button variant="brand" label="Send Email" onclick={openModaltoSend}></lightning-button>
+                    <template if:true={leadDetail.isTristarOrUnitop}>
+                        <template if:false={leadDetail.enableSendEmail}>
+                            <lightning-button variant="brand" label="Request Approval" onclick={handleRequestApproval}></lightning-button>
+                        </template>
+                    </template>
+                    <template if:true={leadDetail.enableSendEmail}>
+                        <lightning-button variant="brand" label="Send Email" onclick={openModaltoSend}></lightning-button>
+                    </template>
                     <lightning-button variant="neutral" label="Cancel" class="slds-m-left_small"
                         onclick={backTorecord}></lightning-button>
                 </footer>

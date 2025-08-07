@@ -26,6 +26,28 @@ public class EditSalesPriceQuoteController {
         }
     }
 
+
+    public EditSalesPriceQuoteController(String quoteId) {
+
+        currentRecID = quoteId;
+
+        if (currentRecID != null) {
+            fetchQuote();
+            List<QuoteLineItem> allQuoteItems = [SELECT Id,Product2Id, Product2.Name,QuoteId, ListPrice, Quantity,
+                                                      Reject_Reason__c, Approver__c, Approval_Status__c, Approval_Comments__c, UnitPrice
+                                                     FROM QuoteLineItem 
+                                                     WHERE QuoteId = :currentRecID];
+
+            quoteLineItemsList = new List<QuoteLineItem>();
+            for (QuoteLineItem item : allQuoteItems) {
+                if (item.UnitPrice < item.ListPrice && item.Approval_Status__c != 'Approved') {
+                    item.Approver__c = ownerManagerId; // Set Approver__c to Owner.ManagerId
+                    quoteLineItemsList.add(item);
+                }
+            }
+        }
+    }
+
     // Fetch Quote Details with OwnerId field and Owner's Manager Email
     private void fetchQuote() {
         quote = [SELECT Id, Name, Owner.Email, Owner.Name, OwnerId,Link__c  
@@ -64,7 +86,9 @@ public class EditSalesPriceQuoteController {
     }
 
     // Email Notification Method
-    private void sendEmailNotification() {
+    public void sendEmailNotification() {
+
+        System.debug('Inside sendEmailNotification');
         // Check if any QuoteLineItem has Approval_Status__c set to 'Approved' or 'Rejected'
         Boolean isApproved = false;
         Boolean isRejected = false;
@@ -78,11 +102,13 @@ public class EditSalesPriceQuoteController {
 
         // Send email if the status is 'Approved'
         if (isApproved) {
+            System.debug('Inside sendEmailNotification isApproved');
             sendEmail('Approved');
         }
 
         // Send email if the status is 'Rejected'
         if (isRejected) {
+            System.debug('Inside sendEmailNotification isRejected');
             sendEmail('Rejected');
         }
     }
@@ -90,7 +116,7 @@ public class EditSalesPriceQuoteController {
     private void sendEmail(String status) {
         Messaging.SingleEmailMessage email = new Messaging.SingleEmailMessage();
         email.setToAddresses(new String[]{quote.Owner.Email});
-        email.setCCAddresses(new String[]{'ankit@finessedirect.com'});
+        email.setCCAddresses(new String[]{'sahil@finessedirect.com', 'praveen@finessedirect.com'});
         email.setSubject('Sales Price ' + status + ' - ' + quote.Name);
 
         String body = 'Dear ' + quote.Owner.Name + ',<br/><br/>';

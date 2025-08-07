@@ -22,7 +22,7 @@ public with sharing class AccountSampleRequestController {
     public static String saveSample(String accountId, String sampleJs, 
                                    List<Map<String, Object>> attachmentsFromUploadFile, 
                                    String sampleLine) {
-        try {
+        // try {
             // Deserialize the sample data
             Map<String, Object> sampleData = (Map<String, Object>)JSON.deserializeUntyped(sampleJs);
             
@@ -33,10 +33,11 @@ public with sharing class AccountSampleRequestController {
                 Sample_Expected_Date__c = Date.valueOf((String)sampleData.get('Sample_Expected_Date')),
                 Consignee_Name__c = (String)sampleData.get('Consignee_Name'),
                 Send_Email_To_Plant__c = (Boolean)sampleData.get('Send_Email_To_Plant'),
+                Additional_Email__c = (String)sampleData.get('Email'),
                 Remark__c = (String)sampleData.get('Remark')
             );
             
-            if (sampleData.containsKey('Sample_Follow_Up_Date') && sampleData.get('Sample_Follow_Up_Date') != null) {
+            if (sampleData.containsKey('Sample_Follow_Up_Date') && sampleData.get('Sample_Follow_Up_Date') != null && (String)sampleData.get('Sample_Follow_Up_Date') != '') {
                 sampleRequest.Sample_Follow_Up_Date__c = Date.valueOf((String)sampleData.get('Sample_Follow_Up_Date'));
             }
             
@@ -99,10 +100,10 @@ public with sharing class AccountSampleRequestController {
             
             return sampleRequest.Id;
             
-        } catch(Exception e) {
-            throw new AuraHandledException('Error creating sample request: ' + e.getMessage() + 
-                                          ' [Line: ' + e.getLineNumber() + ']');
-        }
+        // } catch(Exception e) {
+        //     throw new AuraHandledException('Error creating sample request: ' + e.getMessage() + 
+        //                                   ' [Line: ' + e.getLineNumber() + ']');
+        // }
     }
 
     // Additional method to handle file uploads separately if needed

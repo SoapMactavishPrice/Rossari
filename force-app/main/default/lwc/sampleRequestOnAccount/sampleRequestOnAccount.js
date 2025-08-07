@@ -231,9 +231,33 @@ export default class AccountSampleRequest extends NavigationMixin(LightningEleme
         return true;
     }
 
+    validateEmails(input) {
+        const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        
+        const emails = input
+            .split(/[,;]/)        // Split by comma or semicolon
+            .map(e => e.trim())   // Trim each entry
+            .filter(e => e);      // Remove empty strings
+        
+        let validate = true; 
+        emails.forEach(email => {
+            if (emailPattern.test(email)) {
+
+            } else {
+                validate = false;
+            }
+        });
+
+        return validate;
+    }
+
+
     validateForm() {
         const requestDate = this.template.querySelector("[data-name='Sample_Request_Date__c']")?.value;
         const expectedDate = this.template.querySelector("[data-name='Sample_Expected_Date__c']")?.value;
+        const email = this.template.querySelector("[data-name='Email__c']")?.value;
+
+        console.log('email', email);
 
         if (!requestDate) {
             this.showError('Validation Error', 'Sample Request Date is required');
@@ -250,6 +274,11 @@ export default class AccountSampleRequest extends NavigationMixin(LightningEleme
             return false;
         }
 
+        if (email && !this.validateEmails(email)) {
+            this.showError('Validation Error', 'Enter valid emails separated by comma or semicolon');
+            return false;
+        }
+
         return this.validateCurrentProducts();
     }
 
@@ -258,6 +287,7 @@ export default class AccountSampleRequest extends NavigationMixin(LightningEleme
             Request_Date: this.template.querySelector("[data-name='Sample_Request_Date__c']")?.value,
             Sample_Expected_Date: this.template.querySelector("[data-name='Sample_Expected_Date__c']")?.value,
             Sample_Follow_Up_Date: this.template.querySelector("[data-name='Sample_Follow_Up_Date__c']")?.value,
+            Email: this.template.querySelector("[data-name='Email__c']")?.value,
             Consignee_Name: this.accountName,
             Send_Email_To_Plant: this.sendEmailToPlant,
             Remark: this.template.querySelector("[data-name='Remark__c']")?.value

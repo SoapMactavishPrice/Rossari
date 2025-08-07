@@ -215,7 +215,7 @@ public class OpportunityTriggerHandler {
             );
             
             if ('Lost to Competitor'.equals(opportunityData.get('lostReason'))) {
-                oppToUpdate.Competitor_Lost_to__c = (String)opportunityData.get('competitorLostTo');
+                oppToUpdate.Competitor_Lost_to1__c = (Id)opportunityData.get('competitorLostTo');
                 oppToUpdate.Competitor_Price__c = (String)opportunityData.get('competitorPrice');
                 oppToUpdate.Competitor_Product__c = (String)opportunityData.get('competitorProduct');
             } else if ('Others'.equals(opportunityData.get('lostReason'))) {

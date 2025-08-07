@@ -5,7 +5,7 @@ import getOppLineItems from '@salesforce/apex/QuoteController.getOppLineItems';
 import getQuoteInitialData from '@salesforce/apex/QuoteController.getQuoteInitialData';
 import createQuoteFromOpportunity from '@salesforce/apex/QuoteController.createQuoteFromOpportunity';
 import deleteProductInterested from '@salesforce/apex/QuoteController.deleteProductInterested';
-
+import sendEmailToManagerForQuote from '@salesforce/apex/ManagerEmailSender.sendEmailToManagerForQuote';
 export default class CreateQuoteFromOpportunity extends NavigationMixin(LightningElement) {
     @api recordId;
     @track oppLineItems = [];
@@ -282,8 +282,32 @@ export default class CreateQuoteFromOpportunity extends NavigationMixin(Lightnin
             contactId: this.quoteFields.contactId,
             pricebookId: this.quoteFields.pricebookId
         })
+            // .then(quoteId => {
+            //     this.showToast('Success', 'Quote created successfully', 'success');
+            //     this[NavigationMixin.Navigate]({
+            //         type: 'standard__recordPage',
+            //         attributes: {
+            //             recordId: quoteId,
+            //             objectApiName: 'Quote',
+            //             actionName: 'view'
+            //         }
+            //     });
+            // })
+
             .then(quoteId => {
+                // First show success toast
                 this.showToast('Success', 'Quote created successfully', 'success');
+
+                // Then call Apex method to send email if needed
+                sendEmailToManagerForQuote({ quoteId: quoteId })
+                    .then(() => {
+                        console.log('Manager email check executed successfully.');
+                    })
+                    .catch(error => {
+                        console.error('Error sending manager email:', error);
+                    });
+
+                // Navigate to the new quote record
                 this[NavigationMixin.Navigate]({
                     type: 'standard__recordPage',
                     attributes: {
@@ -293,6 +317,8 @@ export default class CreateQuoteFromOpportunity extends NavigationMixin(Lightnin
                     }
                 });
             })
+
+
             .catch(error => {
                 this.showToast('Error', error.body?.message || 'Failed to create quote', 'error');
             })

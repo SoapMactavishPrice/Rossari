@@ -25,19 +25,29 @@
                     </div>
 
                     <div class="slds-col slds-size_1-of-4 slds-p-around_x-small">
+                        <p style="padding: none; padding-bottom: 4px;"></p>
                         <label style="font-size:13px;">Send Email To Plant?</label>
                         <lightning-input type="checkbox" variant="label-hidden" data-name="Send_Email_To_Plant__c"
-                            checked={sendEmailToPlant} onchange={handleSendEmailCheckbox}
-                            style="margin-left: 86px; margin-bottom: -24px">
+                            checked={sendEmailToPlant} onchange={handleSendEmailCheckbox}>
                         </lightning-input>
                     </div>
+
+                    <template if:true={sendEmailToPlant}>
+                        <div class="slds-col slds-size_1-of-4 slds-p-around_x-small">
+                            <lightning-textarea label="Additional Email"
+                                data-name="Email__c"
+                                placeholder="Enter one or more email addresses"
+                                field-level-help="Enter one or more email addresses separated by commas (,) or semicolons (;)."
+                                rows="3"></lightning-textarea>
+                        </div>
+                    </template>
 
                     <div class="slds-col slds-size_1-of-4 slds-p-around_x-small">
                         <lightning-textarea label="Remark" data-name="Remark__c"></lightning-textarea>
                     </div>
 
                     <!-- Horizontal file upload section -->
-                    <lightning-layout-item size="12" large-device-size="2" padding="around-small"
+                    <lightning-layout-item size="12" large-device-size="3" padding="around-small"
                         style="display: flex; align-items: center;padding: 40px;">
                         <lightning-button label="Upload Files" icon-name="utility:upload" onclick={handleUploadClick}
                             style="margin-right: 10px;">

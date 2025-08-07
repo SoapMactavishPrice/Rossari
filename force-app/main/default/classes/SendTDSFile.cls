@@ -12,6 +12,13 @@ public without sharing class SendTDSFile {
     }
 
     @AuraEnabled
+    public static LeadWrapper getLead(String leadId) {
+        Lead lead = [SELECT Id, Name, COA_Approval_Level_1__c, COA_Approval_Level_2__c, COA_Approval_Level_1_Status__c, COA_Approval_Level_2_Status__c, RecordType.Name FROM Lead WHERE Id = :leadId];
+        
+        return new LeadWrapper(lead);
+    }
+
+    @AuraEnabled
     public static String getProductData(String leadId) {
         List<Product_Interested__c> productList = [
             SELECT Id, Product__c 
@@ -198,11 +205,29 @@ public without sharing class SendTDSFile {
         
         return JSON.serialize(result);
     }
+
+    @AuraEnabled
+    public static String requestApproval(String leadStringObject) {
+        LeadWrapper leadWrapper = parseHeader(leadStringObject);
+
+        Lead lead = new Lead();
+        lead.Id = leadWrapper.leadId;
+        lead.COA_Approval_Level_1__c = leadWrapper.level1User;
+        lead.COA_Approval_Level_2__c = leadWrapper.level2User;
+
+        UPDATE lead;
+
+        return 'Success';
+    }
     
     @AuraEnabled
     public static UserDetailWrapper getCurrentUserDetails() {
         User currentUser = [SELECT Name, Email FROM User WHERE Id = :UserInfo.getUserId() LIMIT 1];
         return new UserDetailWrapper(currentUser.Name, currentUser.Email);
+    }
+
+    private static LeadWrapper parseHeader(string js){
+        return (LeadWrapper)system.JSON.deserialize(js,LeadWrapper.class);
     }
     
     public class UserDetailWrapper {
@@ -237,5 +262,50 @@ public without sharing class SendTDSFile {
         @AuraEnabled public Boolean closeFiles;
         @AuraEnabled public Boolean showChildData;
         @AuraEnabled public List<dataChildWrapper> dataChildFiles;
+    }
+
+    public class LeadWrapper {
+        @AuraEnabled public Boolean isTristarOrUnitop;
+        @AuraEnabled public String leadId;
+        @AuraEnabled public String leadName;
+        @AuraEnabled public String level1User;
+        @AuraEnabled public String level2User;
+        @AuraEnabled public String level1ApprovalStatus;
+        @AuraEnabled public String level2ApprovalStatus;
+        @AuraEnabled public Boolean enableSendEmail;
+
+        public LeadWrapper(Lead lead) {
+            this.leadId = lead.Id;
+            this.leadName = lead.Name;
+            this.level1User = lead.COA_Approval_Level_1__c;
+            this.level2User = lead.COA_Approval_Level_2__c;
+            this.level1ApprovalStatus = lead.COA_Approval_Level_1_Status__c;
+            this.level2ApprovalStatus = lead.COA_Approval_Level_2_Status__c;
+            this.isTristarOrUnitop = false;
+            this.enableSendEmail = false;
+
+            if (lead.RecordType.Name == 'Tristar' || lead.RecordType.Name == 'Unitop') {
+                this.isTristarOrUnitop = true;
+            }
+
+            if (!this.isTristarOrUnitop) {
+                this.enableSendEmail = true;
+            } else {
+                if (level1User != null && level2User != null) {
+                    if (level1ApprovalStatus == 'Approved' && level2ApprovalStatus == 'Approved') {
+                        this.enableSendEmail = true;
+                    } 
+                } else if (level1User != null) {
+                    if (level1ApprovalStatus == 'Approved') {
+                        this.enableSendEmail = true;
+                    }
+                } else if (level2User != null) {
+                    if (level2ApprovalStatus == 'Approved') {
+                        this.enableSendEmail = true;
+                    }
+                }
+            }
+
+        }
     }
 }

@@ -52,9 +52,9 @@ global  class ProductMasterAPI {
             List<String> hsnCodeList = new List<String>();
             List<String> itmGrpCodeList = new List<String>();
 
-			Pricebook2 pbk1 =[ SELECT IsActive ,Description, IsStandard, Id, Name, SystemModstamp FROM Pricebook2 WHERE IsActive=True and Name='Raj Petro Domestic Price Book' ];
+			Pricebook2 pbk1 =[ SELECT IsActive ,Description, IsStandard, Id, Name, SystemModstamp FROM Pricebook2 WHERE IsActive=True and Name='Roussari Domestic Price Book' ];
 
-    		 Pricebook2 pbk2 =[ SELECT IsActive ,Description, IsStandard, Id, Name, SystemModstamp FROM Pricebook2 WHERE IsActive=True and Name='Raj Petro Export Price Book' ];
+    		 Pricebook2 pbk2 =[ SELECT IsActive ,Description, IsStandard, Id, Name, SystemModstamp FROM Pricebook2 WHERE IsActive=True and Name='Roussari Export Price Book' ];
 
 			  Pricebook2 pbk3 =[ SELECT IsActive ,Description, IsStandard, Id, Name, SystemModstamp FROM Pricebook2 WHERE IsActive=True and IsStandard=true ];
 
@@ -205,7 +205,7 @@ global  class ProductMasterAPI {
                     }
                 }
                 pr.Name=jd.DISPLAY_NAME;
-                pr.ProductCode=jd.ITEM_NUMBER;
+                pr.ProductCode=String.valueOf(Integer.valueOf(jd.ITEM_NUMBER));
                 pr.Description=jd.ITEM_DESCRIPTION;
                 pr.Display_Name__c=jd.DISPLAY_NAME;
 				pr.IsActive=true;
@@ -389,6 +389,7 @@ global  class ProductMasterAPI {
                         obj.Id=mpplantExtension.get(data.ITEM_NUMBER+'-'+data.PLANT_CODE);
                     }
                     obj.Item_Master__c = productList.get(data.ITEM_NUMBER).id;    
+                    obj.Product__c = productList.get(data.ITEM_NUMBER).id;    
                     //obj.Plant_Code__c=data.PLANT_CODE;
 					 if (pltMap.containsKey(data.PLANT_CODE)) {
                     obj.Plant_Code__c=pltMap.get(data.PLANT_CODE).id;

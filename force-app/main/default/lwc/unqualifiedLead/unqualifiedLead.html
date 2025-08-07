@@ -12,9 +12,15 @@
 
             <!-- Competitor Fields -->
             <template if:true={showCompetitorFields}>
-                <lightning-input name="competitorLostTo" label="Competitor Lost To" value={competitorLostTo}
-                    onchange={handleInputChange} required></lightning-input>
-                <lightning-input name="competitorPrice" label="Competitor Price*" value={competitorPrice}
+
+                <lightning-record-picker class="slds-m-bottom_small" label="Competitor Lost To"
+                    placeholder={competitorPickerConfig.placeholder}
+                    object-api-name={competitorPickerConfig.objectApiName}
+                    display-field={competitorPickerConfig.displayField} value-field={competitorPickerConfig.valueField}
+                    onchange={handleCompetitorSelection} required>
+                </lightning-record-picker>
+
+                <lightning-input name="competitorPrice" label="Competitor Price" value={competitorPrice}
                     onchange={handleInputChange} required></lightning-input>
                 <lightning-input name="competitorProduct" label="Competitor Product" value={competitorProduct}
                     onchange={handleInputChange} required></lightning-input>
