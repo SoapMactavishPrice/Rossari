@@ -214,6 +214,12 @@ public without sharing class SendTDSFile {
         lead.Id = leadWrapper.leadId;
         lead.COA_Approval_Level_1__c = leadWrapper.level1User;
         lead.COA_Approval_Level_2__c = leadWrapper.level2User;
+        if (lead.COA_Approval_Level_1__c != null) {
+            lead.COA_Approval_Level_1_Status__c = 'Submitted';
+        } 
+        if (lead.COA_Approval_Level_2__c != null) {
+            lead.COA_Approval_Level_2_Status__c = 'Submitted';
+        }
 
         UPDATE lead;
 

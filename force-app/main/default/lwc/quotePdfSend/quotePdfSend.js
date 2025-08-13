@@ -15,6 +15,7 @@ export default class QuotePdfSend extends NavigationMixin(LightningElement) {
     @track showSpinner = false;
 
     @api recordId;
+    @api type;
     @track toEmailAddresses;
     @track ccEmailAddresses;
     @track pdfUrl;
@@ -29,6 +30,7 @@ export default class QuotePdfSend extends NavigationMixin(LightningElement) {
     @track isAttachPdf = false;
 
     connectedCallback() {
+        console.log('Type -->', this.type)
         this.body = 'Dear Sir/Madam, <br/><br/> Please find attached Quotation.<br/><br/><br/><br/>';
         this.subject = 'Rossari - Quotation';
         validateQuote({quoteId: this.recordId}).then((result)=>{
@@ -41,6 +43,7 @@ export default class QuotePdfSend extends NavigationMixin(LightningElement) {
                 this.getEmailDetails();
             } else {
                 this.showSuccess('Error', 'Customer type is not defined', 'Error');
+                this.handleCancel();
             }
         }).catch((error)=>{
             this.showSuccess('Error', error.body.message, 'Error');
@@ -57,7 +60,7 @@ export default class QuotePdfSend extends NavigationMixin(LightningElement) {
     }
 
     fetchPdfUrl() {
-        getPdfUrl({ quoteId: this.recordId })
+        getPdfUrl({ quoteId: this.recordId, type: this.type })
             .then((result) => {
                 if (result != null) {
                     this.pdfUrl = result;
@@ -85,6 +88,7 @@ export default class QuotePdfSend extends NavigationMixin(LightningElement) {
             this.toEmailAddresses = result;
         }).catch((error) => {
             this.showSuccess('Error', error.body.message, 'Error');
+            this.handleCancel();
         })
     }
 
@@ -170,7 +174,7 @@ export default class QuotePdfSend extends NavigationMixin(LightningElement) {
 
                 this.showSpinner = true;
 
-                saveAndSend({ emailId: this.toEmailAddresses, CC_Addresses: this.ccEmailAddresses, subject: this.subject, body: this.body, qtName: this.recordDeatils.Name, qId: this.recordId, OwnerEmail: this.ownerEmail, OwnerName: this.ownerName, files: JSON.stringify(this.files), isAttachPdf: this.isAttachPdf }).then(result => {
+                saveAndSend({ emailId: this.toEmailAddresses, CC_Addresses: this.ccEmailAddresses, subject: this.subject, body: this.body, qtName: this.recordDeatils.Name, qId: this.recordId, OwnerEmail: this.ownerEmail, OwnerName: this.ownerName, files: JSON.stringify(this.files), isAttachPdf: this.isAttachPdf, type: this.type }).then(result => {
                     this.showSpinner = false;
                     if (result == 'Success') {
                         this.showSuccess('Success', 'Saved and Sent Successfully !!!', 'Success');
@@ -186,7 +190,7 @@ export default class QuotePdfSend extends NavigationMixin(LightningElement) {
     }
     handleSaveEmail() {
         this.showSpinner = true;
-        save({ qtName: this.recordDeatils.Name, qId: this.recordId, files: JSON.stringify(this.files) }).then(result => {
+        save({ qtName: this.recordDeatils.Name, qId: this.recordId, files: JSON.stringify(this.files), type: this.type }).then(result => {
             this.showSpinner = false;
             if (result == 'Success') {
 

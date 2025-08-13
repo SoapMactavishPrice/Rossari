@@ -33,10 +33,18 @@ public with sharing class QuotePdfSendController {
     }
     
     @AuraEnabled(cacheable=true)
-    public static String getPdfUrl(String quoteId) {
-        PageReference pdfPage = Page.QuotationPdf;
-        pdfPage.getParameters().put('id', quoteId);
-        String pdfUrl = '/apex/QuotationPdf?id=' + quoteId + '#toolbar=0';
+    public static String getPdfUrl(String quoteId, String type) {
+        String pdfUrl = null;
+        if (type == 'quote') {
+            PageReference pdfPage = Page.QuotationPdf;
+            pdfPage.getParameters().put('id', quoteId);
+            pdfUrl = '/apex/QuotationPdf?id=' + quoteId + '#toolbar=0';
+        } else if (type == 'invoice') {
+            PageReference pdfPage = Page.ProformaInvoicePdf;
+            pdfPage.getParameters().put('id', quoteId);
+            pdfUrl = '/apex/ProformaInvoicePdf?id=' + quoteId + '#toolbar=0';
+        }
+
         return pdfUrl;
     }
     
@@ -97,13 +105,19 @@ public with sharing class QuotePdfSendController {
     }
     
     @AuraEnabled
-    public static String save(String qtName, String qId, String files) {
+    public static String save(String qtName, String qId, String files, String type) {
         try {
             PageReference pdfPage = null;
             String pdfUrl = null;
-            pdfPage = Page.QuotationPdf; // Name of your Visualforce page
-            pdfPage.getParameters().put('id', qId); // Pass the qId to the page
-            pdfUrl = '/apex/QuotationPdf?id='+qId+'#toolbar=0';
+            if (type == 'quote') {
+                pdfPage = Page.QuotationPdf; // Name of your Visualforce page
+                pdfPage.getParameters().put('id', qId); // Pass the qId to the page
+                pdfUrl = '/apex/QuotationPdf?id='+qId+'#toolbar=0';
+            } else if (type == 'invoice') {
+                pdfPage = Page.ProformaInvoicePdf; // Name of your Visualforce page
+                pdfPage.getParameters().put('id', qId); // Pass the qId to the page
+                pdfUrl = '/apex/ProformaInvoicePdf?id='+qId+'#toolbar=0';
+            }
             
             List<Object> jsonList = (List<Object>) System.JSON.deserializeUntyped(files);
             system.debug('jsonList-->'+jsonList.size());
@@ -182,16 +196,23 @@ public with sharing class QuotePdfSendController {
     }
     
     @AuraEnabled
-    public static String saveAndSend(String emailId, String CC_Addresses, String subject, String body, String qtName, String qId, String OwnerEmail, String OwnerName, String files, Boolean isAttachPdf) {
+    public static String saveAndSend(String emailId, String CC_Addresses, String subject, String body, String qtName, String qId, String OwnerEmail, String OwnerName, String files, Boolean isAttachPdf, String type) {
         try {
             if (String.isNotBlank(emailId) && String.isNotBlank(subject)) {
                 // Create PDF for the quotation
                 
                 PageReference pdfPage = null;
                 String pdfUrl = null;
-                pdfPage = Page.QuotationPdf; // Name of your Visualforce page
-                pdfPage.getParameters().put('id', qId); // Pass the qId to the page
-                pdfUrl = '/apex/QuotationPdf?id=' + qId + '#toolbar=0';
+
+                if (type == 'quote') {
+                    pdfPage = Page.QuotationPdf; // Name of your Visualforce page
+                    pdfPage.getParameters().put('id', qId); // Pass the qId to the page
+                    pdfUrl = '/apex/QuotationPdf?id=' + qId + '#toolbar=0';
+                } else if (type == 'invoice') {
+                    pdfPage = Page.ProformaInvoicePdf; // Name of your Visualforce page
+                    pdfPage.getParameters().put('id', qId); // Pass the qId to the page
+                    pdfUrl = '/apex/ProformaInvoicePdf?id=' + qId + '#toolbar=0';
+                }
                 
                 String finalString = '%' + qtName + '%';
                 List<ContentDocument> contentDocs = [SELECT Id, Title FROM ContentDocument WHERE Title LIKE :finalString ORDER BY CreatedDate DESC LIMIT 1];
