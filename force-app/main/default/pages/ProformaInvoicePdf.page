@@ -49,13 +49,13 @@
     </head>
 
     <header>
-        <apex:outputPanel rendered="{!quotation.Account.Company__r.Name = 'Rossari Biotech Limited'}">
+        <apex:outputPanel rendered="{!quotation.Account.Rossari_Company__r.Name = 'Rossari Biotech Limited'}">
             <apex:image url="{!URLFOR($Resource.RossariHeader)}" width="100%" height="100" />
         </apex:outputPanel>
-        <apex:outputPanel rendered="{!quotation.Account.Company__r.Name = 'Tristar Intermediates Private Limited'}">
+        <apex:outputPanel rendered="{!quotation.Account.Rossari_Company__r.Name = 'Tristar Intermediates Private Limited'}">
             <apex:image url="{!URLFOR($Resource.TristarHeader)}" width="100%" height="100" />
         </apex:outputPanel>
-        <apex:outputPanel rendered="{!quotation.Account.Company__r.Name = 'Unitop Chemicals Private Limited'}">
+        <apex:outputPanel rendered="{!quotation.Account.Rossari_Company__r.Name = 'Unitop Chemicals Private Limited'}">
             <apex:image url="{!URLFOR($Resource.UnitopHeader)}" width="100%" height="100" />
         </apex:outputPanel>
     </header>
@@ -273,7 +273,7 @@
         </tr>
     </table>
 
-    <table style="font-size:9px; border-collapse:collapse;">
+    <table style="font-size:9px; border-collapse:collapse; margin-bottom: 5px;">
         <tr>
             <td style="text-align:center;">
                 This document is computer-generated and does not require a physical signature.
@@ -282,13 +282,13 @@
     </table>
 
     <footer>
-        <apex:outputPanel rendered="{!quotation.Account.Company__r.Name = 'Rossari Biotech Limited'}">
+        <apex:outputPanel rendered="{!quotation.Account.Rossari_Company__r.Name = 'Rossari Biotech Limited'}">
             <apex:image url="{!URLFOR($Resource.RossariFooter)}" width="100%" height="150" />
         </apex:outputPanel>
-        <apex:outputPanel rendered="{!quotation.Account.Company__r.Name = 'Tristar Intermediates Private Limited'}">
+        <apex:outputPanel rendered="{!quotation.Account.Rossari_Company__r.Name = 'Tristar Intermediates Private Limited'}">
             <apex:image url="{!URLFOR($Resource.TristarFooter)}" width="100%" height="150" />
         </apex:outputPanel>
-        <apex:outputPanel rendered="{!quotation.Account.Company__r.Name = 'Unitop Chemicals Private Limited'}">
+        <apex:outputPanel rendered="{!quotation.Account.Rossari_Company__r.Name = 'Unitop Chemicals Private Limited'}">
             <apex:image url="{!URLFOR($Resource.UnitopFooter)}" width="100%" height="150" />
         </apex:outputPanel>
     </footer>

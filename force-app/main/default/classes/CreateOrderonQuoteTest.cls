@@ -1,103 +1,89 @@
 @isTest
-public class CreateOrderonQuoteTest {
-
+private class CreateOrderonQuoteTest {
+    
     @testSetup
     static void setupData() {
-        // Create Account
         Account acc = new Account(Name = 'Test Account');
         insert acc;
         
-        // Create Opportunity
-        Opportunity opp = new Opportunity(
-            Name = 'Test Opportunity',
-            StageName = 'Prospecting',
-            CloseDate = Date.today().addDays(10),
-            AccountId = acc.Id
-        );
-        insert opp;
+        Contact con = new Contact(FirstName = 'Test', LastName = 'Contact', Email = 'test@example.com', AccountId = acc.Id);
+        insert con;
         
-        // Create Product
+        Opportunity opp = new Opportunity(Name = 'Test Opp', StageName = 'Quotation', CloseDate = Date.today(), AccountId = acc.Id);
+        insert opp;
+
+        Pricebook2 pb = new Pricebook2(Name = 'Standard Pricebook', IsActive = true);
+        insert pb;
+
         Product2 prod = new Product2(Name = 'Test Product', IsActive = true);
         insert prod;
-        
-        // Get Standard Pricebook
-        Id stdPbId = Test.getStandardPricebookId();
-        
-        // Insert a Standard PricebookEntry (REQUIRED)
-        PricebookEntry stdPbe = new PricebookEntry(
-            Product2Id = prod.Id,
-            Pricebook2Id = stdPbId,
-            UnitPrice = 100,
-            IsActive = true
-        );
-        insert stdPbe;
-        
-        // Create Custom Pricebook
-        Pricebook2 customPb = new Pricebook2(Name = 'Test Pricebook 2', IsActive = true);
-        insert customPb;
-        
-        // Insert Custom PricebookEntry (after standard price is set)
-        PricebookEntry customPbe = new PricebookEntry(
-            Product2Id = prod.Id,
-            Pricebook2Id = customPb.Id,
-            UnitPrice = 150,
-            IsActive = true
-        );
-        insert customPbe;
-        
-        // Create Quote
-        Quote quote = new Quote(
+
+        PricebookEntry pbe = new PricebookEntry(Product2Id = prod.Id, Pricebook2Id = pb.Id, UnitPrice = 100, IsActive = true, UseStandardPrice = false);
+        insert pbe;
+
+        Quote qt = new Quote(
             Name = 'Test Quote',
             OpportunityId = opp.Id,
-            Pricebook2Id = stdPbId,
-            Status = 'Draft',
-            CurrencyIsoCode = 'INR'
+            Pricebook2Id = pb.Id,
+            BillingStreet = '123 St',
+            BillingCity = 'City',
+            BillingState = 'State',
+            BillingPostalCode = '12345',
+            BillingCountry = 'Country',
+            ShippingStreet = '123 St',
+            ShippingCity = 'City',
+            ShippingState = 'State',
+            ShippingPostalCode = '12345',
+            ShippingCountry = 'Country',
+            ContactId = con.Id
         );
-        insert quote;
-        
-        // Create Quote Line Item
+        insert qt;
+
         QuoteLineItem qli = new QuoteLineItem(
-            QuoteId = quote.Id,
-            Product2Id = prod.Id,
-            PricebookEntryId = stdPbe.Id,
-            UnitPrice = 150,
-            Quantity = 3,
-            Description = 'Test QLI'
+            QuoteId = qt.Id,
+            PricebookEntryId = pbe.Id,
+            Quantity = 2,
+            UnitPrice = 100,
+            Product2Id = prod.Id
         );
         insert qli;
     }
-
-
+    
     @isTest
-    static void testGetQuoteLineItems() {
-        Quote q = [SELECT Id FROM Quote LIMIT 1];
-
-        Test.startTest();
-        List<QuoteLineItem> result = CreateOrderonQuote.getQuoteLineItems(q.Id);
-        Test.stopTest();
-
+    static void testGetInitialData() {
+        Quote qt = [SELECT Id FROM Quote LIMIT 1];
+        CreateOrderonQuote.getInitialData(qt.Id);
     }
 
     @isTest
     static void testCreateOrderFromQuote() {
-        Quote q = [SELECT Id FROM Quote LIMIT 1];
-        List<QuoteLineItem> qlis = [SELECT Id, Product2Id, PricebookEntryId, UnitPrice, Quantity, Description FROM QuoteLineItem WHERE QuoteId = :q.Id];
+        Quote qt = [SELECT Id, Pricebook2Id, Opportunity.AccountId FROM Quote LIMIT 1];
+        QuoteLineItem qli = [SELECT Id, Product2Id, PricebookEntryId, UnitPrice, Quantity FROM QuoteLineItem LIMIT 1];
 
-        Test.startTest();
-        Id orderId = CreateOrderonQuote.createOrderFromQuote(q.Id, qlis, 'INR', Test.getStandardPricebookId());
-        Test.stopTest();
+        Map<String, Object> item = new Map<String, Object>{
+            'UnitPrice' => qli.UnitPrice,
+            'Quantity' => qli.Quantity,
+            'Discount' => 10,
+            'Product2Id' => qli.Product2Id,
+            'PricebookEntryId' => qli.PricebookEntryId,
+            'Description' => 'Test item'
+        };
+        List<Map<String, Object>> lineItems = new List<Map<String, Object>>{ item };
 
-        Order createdOrder = [SELECT Id, QuoteId FROM Order WHERE Id = :orderId];
+        CreateOrderonQuote.createOrderFromQuote(
+            qt.Id,
+            lineItems,
+            'Draft',
+            Date.today(),
+            UserInfo.getUserId(),
+            qt.CurrencyIsoCode,
+            qt.Pricebook2Id
+        );
     }
 
     @isTest
     static void testDeleteQuoteLineItem() {
         QuoteLineItem qli = [SELECT Id FROM QuoteLineItem LIMIT 1];
-
-        Test.startTest();
         CreateOrderonQuote.deleteQuoteLineItem(qli.Id);
-        Test.stopTest();
-
-        List<QuoteLineItem> remaining = [SELECT Id FROM QuoteLineItem WHERE Id = :qli.Id];
     }
 }

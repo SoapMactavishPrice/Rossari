@@ -1,0 +1,83 @@
+<!-- sampleRequestLineItems.html -->
+<template>
+    <lightning-card>
+        <div class="slds-m-around_medium">
+            <div class="slds-p-around_xx-small slds-text-align_center slds-border_bottom slds-theme_shade"
+                style="margin-left: -4px;background-color: #9d0b0f; color: #ffffff;">
+                <h3 class="slds-text-heading_small" style="margin: 0;">Add/Edit Sample Request Line Item</h3>
+            </div>
+            <div class="slds-p-around_medium" style="height: 600px;">
+                <table class="slds-table slds-table_bordered slds-table_cell-buffer">
+                    <thead>
+                        <tr class="slds-text-title_caps">
+                            <th scope="col">Product</th>
+                            <th scope="col">Product Code</th>
+                            <th scope="col">Description</th>
+                            <th scope="col">Plant</th>
+                            <th scope="col">Quantity (Kgs)</th>
+                            <th scope="col">Status</th>
+                            <th scope="col">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <template for:each={lineItems} for:item="item" for:index="index">
+                            <tr key={item.key} class="slds-hint-parent">
+                                <td style="width: 400px;">
+                                    <c-reusable-lookup selected-record-id={item.prodId} data-index={index} index={index}
+                                        selected-icon-name="standard:product" object-label="Product"
+                                        object-api-name="Product2" field-api-name="Name"
+                                        other-field-api-name="ProductCode,Description,Plant_Name__c"
+                                        onvalueselected={handleProductSelection} style="width: 375px;">
+                                    </c-reusable-lookup>
+                                </td>
+                                <td>
+                                    <lightning-input type="text" value={item.productCode} disabled
+                                        variant="label-hidden">
+                                    </lightning-input>
+                                </td>
+                                <td>
+                                    <lightning-input type="text" value={item.description} disabled
+                                        variant="label-hidden">
+                                    </lightning-input>
+                                </td>
+                                <td>
+                                    <lightning-combobox name="plant" value={item.plantId} options={plantOptions}
+                                        required onchange={handlePlantChange} data-index={index} variant="label-hidden">
+                                    </lightning-combobox>
+                                </td>
+                                <td>
+                                    <lightning-input type="number" name="quantity" value={item.quantity} min="0"
+                                        step="0.01" required onchange={handleQuantityChange} data-index={index}
+                                        variant="label-hidden">
+                                    </lightning-input>
+                                </td>
+                                <td>
+                                    <lightning-combobox name="status" value={item.status} options={statusOptions}
+                                        required onchange={handleStatusChange} data-index={index}
+                                        variant="label-hidden">
+                                    </lightning-combobox>
+                                </td>
+
+                                <td>
+                                    <lightning-button-icon icon-name="utility:add" alternative-text="Add"
+                                        onclick={handleAddProduct} data-index={index}
+                                        class="slds-m-right_x-small"></lightning-button-icon>
+                                    <lightning-button-icon icon-name="utility:delete" alternative-text="Delete"
+                                        onclick={handleDeleteItem} data-index={index}></lightning-button-icon>
+                                </td>
+                            </tr>
+                        </template>
+                    </tbody>
+                </table>
+
+                <div class="slds-align_absolute-center slds-m-top_medium">
+                    <lightning-button label="Save" variant="brand" onclick={handleSave}>
+                    </lightning-button>
+                    <lightning-button label="Cancel" variant="neutral" onclick={handleCancel}
+                        class="slds-m-left_medium">
+                    </lightning-button>
+                </div>
+            </div>
+        </div>
+    </lightning-card>
+</template>

@@ -1,6 +1,32 @@
 <apex:page controller="QuotationPdfController" renderAs="pdf" showHeader="false" sidebar="false" applyHtmlTag="false" applyBodyTag="false" standardStylesheets="false" docType="html-5.0">
     <head>
         <style>
+            @page {
+                margin-bottom: 0;
+                size: A4;
+            }
+
+            body {
+                margin: 0;
+                padding: 0;
+            }
+
+            footer.pdf-footer {
+                position: fixed;
+                bottom: 0;
+                left: 0;
+                right: 0;
+                width: 100% !important;
+                text-align: center;
+                margin: 0;
+                padding: 0;
+            }
+
+            footer.pdf-footer img {
+                width: 100% !important;
+                height: auto;
+                display: block;
+            }
             table { 
                 width: 100%; 
                 border-collapse: collapse; 
@@ -49,13 +75,13 @@
     </head>
 
     <header>
-        <apex:outputPanel rendered="{!quotation.Account.Company__r.Name = 'Rossari Biotech Limited'}">
+        <apex:outputPanel rendered="{!quotation.Account.Rossari_Company__r.Name = 'Rossari Biotech Limited'}">
             <apex:image url="{!URLFOR($Resource.RossariHeader)}" width="100%" height="100" />
         </apex:outputPanel>
-        <apex:outputPanel rendered="{!quotation.Account.Company__r.Name = 'Tristar Intermediates Private Limited'}">
+        <apex:outputPanel rendered="{!quotation.Account.Rossari_Company__r.Name = 'Tristar Intermediates Private Limited'}">
             <apex:image url="{!URLFOR($Resource.TristarHeader)}" width="100%" height="100" />
         </apex:outputPanel>
-        <apex:outputPanel rendered="{!quotation.Account.Company__r.Name = 'Unitop Chemicals Private Limited'}">
+        <apex:outputPanel rendered="{!quotation.Account.Rossari_Company__r.Name = 'Unitop Chemicals Private Limited'}">
             <apex:image url="{!URLFOR($Resource.UnitopHeader)}" width="100%" height="100" />
         </apex:outputPanel>
     </header>
@@ -273,7 +299,7 @@
         </tr>
     </table>
 
-    <table style="font-size:9px; border-collapse:collapse;">
+    <table style="font-size:9px; border-collapse:collapse; margin-bottom: 5px;">
         <tr>
             <td style="text-align:center;">
                 This document is computer-generated and does not require a physical signature.
@@ -281,14 +307,14 @@
         </tr>
     </table>
 
-    <footer>
-        <apex:outputPanel rendered="{!quotation.Account.Company__r.Name = 'Rossari Biotech Limited'}">
+    <footer class="pdf-footer">
+        <apex:outputPanel rendered="{!quotation.Account.Rossari_Company__r.Name = 'Rossari Biotech Limited'}">
             <apex:image url="{!URLFOR($Resource.RossariFooter)}" width="100%" height="150" />
         </apex:outputPanel>
-        <apex:outputPanel rendered="{!quotation.Account.Company__r.Name = 'Tristar Intermediates Private Limited'}">
+        <apex:outputPanel rendered="{!quotation.Account.Rossari_Company__r.Name = 'Tristar Intermediates Private Limited'}">
             <apex:image url="{!URLFOR($Resource.TristarFooter)}" width="100%" height="150" />
         </apex:outputPanel>
-        <apex:outputPanel rendered="{!quotation.Account.Company__r.Name = 'Unitop Chemicals Private Limited'}">
+        <apex:outputPanel rendered="{!quotation.Account.Rossari_Company__r.Name = 'Unitop Chemicals Private Limited'}">
             <apex:image url="{!URLFOR($Resource.UnitopFooter)}" width="100%" height="150" />
         </apex:outputPanel>
     </footer>

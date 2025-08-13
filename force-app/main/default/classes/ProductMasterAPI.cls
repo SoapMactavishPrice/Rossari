@@ -52,9 +52,9 @@ global  class ProductMasterAPI {
             List<String> hsnCodeList = new List<String>();
             List<String> itmGrpCodeList = new List<String>();
 
-			Pricebook2 pbk1 =[ SELECT IsActive ,Description, IsStandard, Id, Name, SystemModstamp FROM Pricebook2 WHERE IsActive=True and Name='Roussari Domestic Price Book' ];
+			Pricebook2 pbk1 =[ SELECT IsActive ,Description, IsStandard, Id, Name, SystemModstamp FROM Pricebook2 WHERE IsActive=True and Name='Rossari Domestic Price Book' ];
 
-    		 Pricebook2 pbk2 =[ SELECT IsActive ,Description, IsStandard, Id, Name, SystemModstamp FROM Pricebook2 WHERE IsActive=True and Name='Roussari Export Price Book' ];
+    		 Pricebook2 pbk2 =[ SELECT IsActive ,Description, IsStandard, Id, Name, SystemModstamp FROM Pricebook2 WHERE IsActive=True and Name='Rossari Export Price Book' ];
 
 			  Pricebook2 pbk3 =[ SELECT IsActive ,Description, IsStandard, Id, Name, SystemModstamp FROM Pricebook2 WHERE IsActive=True and IsStandard=true ];
 
@@ -205,7 +205,7 @@ global  class ProductMasterAPI {
                     }
                 }
                 pr.Name=jd.DISPLAY_NAME;
-                pr.ProductCode=String.valueOf(Integer.valueOf(jd.ITEM_NUMBER));
+                pr.ProductCode=String.valueOf(Long.valueOf(jd.ITEM_NUMBER));
                 pr.Description=jd.ITEM_DESCRIPTION;
                 pr.Display_Name__c=jd.DISPLAY_NAME;
 				pr.IsActive=true;
@@ -500,7 +500,7 @@ global  class ProductMasterAPI {
         }catch(Exception e){
             Database.RollBack(sp);
             apiLog.Exception_Description__c=e.getMessage() +' : '+e.getCause()+' : '+e.getStackTraceString();
-            response.statusCode=201;
+            response.statusCode=500;
             response.responseBody=Blob.valueOf('{"ERR_MSG":"'+apiLog.Exception_Description__c+'","Status":"Failed"}');
              apiLog.Status__c='Failed';
             

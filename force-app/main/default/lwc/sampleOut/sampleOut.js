@@ -136,7 +136,8 @@ export default class SampleOutForm extends NavigationMixin(LightningElement) {
             .then(result => {
                 if (result) {
                     this.plants = result.plants.map(plant => ({
-                        label: plant.Name,
+                        //  label: plant.Name,
+                        label: `${plant.Name} - ${plant.Plant_Name__c}`,
                         value: plant.Id
                     }));
 

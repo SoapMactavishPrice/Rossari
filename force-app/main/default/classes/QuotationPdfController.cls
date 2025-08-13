@@ -11,7 +11,7 @@ public with sharing class QuotationPdfController {
     public QuotationPdfController() {
         this.quotationId = ApexPages.currentPage().getparameters().get('id');
 
-        this.quotation = [SELECT Id, QuoteNumber, CreatedDate, ExpirationDate, CurrencyIsoCode, Payment_Terms__c, BillingName, Account.Company__r.Name,
+        this.quotation = [SELECT Id, QuoteNumber, CreatedDate, ExpirationDate, CurrencyIsoCode, Payment_Terms__c, BillingName, Account.Rossari_Company__r.Name,
                             BillingAddress, Inco_Terms__c, Pre_Carriage_Mode__c, Country_of_Origin__c, Country_of_Destination__c, 
                             Destination__c, Loading_Port__c, Destination_Port__c, Place_of_Supplier__c, Partial_Shipment__c, ShippingName,
                             BillingStreet, BillingCity, BillingState, BillingPostalCode, BillingCountry, Business_Type__c,

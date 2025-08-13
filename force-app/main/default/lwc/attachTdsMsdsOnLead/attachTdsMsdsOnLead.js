@@ -37,6 +37,10 @@ export default class AttachTdsMsdsOnLead extends NavigationMixin(LightningElemen
         }
     }
 
+    get isLevel1ApprovalPersonSelected() {
+        return !this.leadDetail.level1User;
+    }
+
     get isSendEmailDisabled() {
         return !this.leadDetail.enableSendEmail;
     }

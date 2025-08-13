@@ -93,6 +93,20 @@ export default class CompanyUserManager extends NavigationMixin(LightningElement
         });
     }
 
+    handleRecordPickerChange(event) {
+        const index = parseInt(event.target.dataset.index, 10);
+        const field = event.target.dataset.field;
+        const value = event.detail.recordId; // Record Picker returns record Id
+
+        this.companyUsers = this.companyUsers.map((row, i) => {
+            if (i === index) {
+                return { ...row, [field]: value };
+            }
+            return row;
+        });
+    }
+
+
 
     removeRow(event) {
         const index = parseInt(event.currentTarget.dataset.index, 10);

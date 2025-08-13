@@ -1,105 +1,88 @@
 @isTest
 public class QuoteControllerTest {
-
-    @testSetup
+    
+    @TestSetup
     static void setupTestData() {
-        // Create Account
-        Account acc = new Account(Name = 'Test Account');
-        insert acc;
-
-        // Create Opportunity
-        Opportunity opp = new Opportunity(
-            Name = 'Test Opportunity',
+        Account testAccount = new Account(Name = 'Test Account');
+        insert testAccount;
+        
+        Contact testContact = new Contact(LastName = 'Test Contact', AccountId = testAccount.Id);
+        insert testContact;
+        
+        Opportunity testOpp = new Opportunity(
+            Name = 'Test Opp',
             StageName = 'Prospecting',
             CloseDate = Date.today().addDays(30),
-            AccountId = acc.Id
+            AccountId = testAccount.Id
         );
-        insert opp;
-
-        // Create Product
-        Product2 prod = new Product2(Name = 'Test Product', IsActive = true);
-        insert prod;
-
-        // Activate Standard Pricebook
-        Id standardPBId = Test.getStandardPricebookId();
+        insert testOpp;
         
-       Pricebook2 standardpricebook = new Pricebook2(
-           Name = 'Test Pricebook 2', 
-           IsActive = true
-       );
-        insert standardpricebook ;
+        Product2 testProduct = new Product2(Name = 'Test Product', IsActive = true);
+        insert testProduct;
         
-        if (!standardpricebook.IsActive) {
-            standardpricebook.IsActive = true;
-            update standardpricebook;
-        }
-
-        // Create PricebookEntry
-        PricebookEntry pbe = new PricebookEntry(
-            Product2Id = prod.Id,
-            Pricebook2Id = standardPBId,
+        Pricebook2 standardPricebook = [SELECT Id FROM Pricebook2 WHERE IsStandard = true LIMIT 1];
+        
+        PricebookEntry testPbe = new PricebookEntry(
+            Pricebook2Id = standardPricebook.Id,
+            Product2Id = testProduct.Id,
             UnitPrice = 100,
             IsActive = true
         );
-        insert pbe;
-
-        // Create OpportunityLineItem
-        OpportunityLineItem oli = new OpportunityLineItem(
-            OpportunityId = opp.Id,
-            Product2Id = prod.Id,
-            PricebookEntryId = pbe.Id,
-            UnitPrice = 100,
-            Quantity = 2,
-            Description = 'Test Description'
+        insert testPbe;
+        
+        OpportunityLineItem testOli = new OpportunityLineItem(
+            OpportunityId = testOpp.Id,
+            PricebookEntryId = testPbe.Id,
+            Quantity = 1,
+            UnitPrice = 100
         );
-        insert oli;
+        insert testOli;
     }
-
-    @isTest
+    
+    @IsTest
     static void testGetOppLineItems() {
-        Opportunity opp = [SELECT Id FROM Opportunity LIMIT 1];
-
+        Opportunity testOpp = [SELECT Id FROM Opportunity LIMIT 1];
         Test.startTest();
-        List<OpportunityLineItem> items = QuoteController.getOppLineItems(opp.Id);
+        List<OpportunityLineItem> result = QuoteController.getOppLineItems(testOpp.Id);
         Test.stopTest();
-
+        System.assert(!result.isEmpty());
     }
-
-    @isTest
+    
+    @IsTest
+    static void testGetQuoteInitialData() {
+        Opportunity testOpp = [SELECT Id FROM Opportunity LIMIT 1];
+        Test.startTest();
+        Map<String, Object> result = QuoteController.getQuoteInitialData(testOpp.Id);
+        Test.stopTest();
+        System.assert(!result.isEmpty());
+    }
+    
+    @IsTest
     static void testCreateQuoteFromOpportunity() {
-        Opportunity opp = [SELECT Id FROM Opportunity LIMIT 1];
-        OpportunityLineItem oli = [SELECT Id, Product2Id, PricebookEntryId, UnitPrice, Quantity, Description FROM OpportunityLineItem WHERE OpportunityId = :opp.Id LIMIT 1];
-
-        List<OpportunityLineItem> oliList = new List<OpportunityLineItem>{ oli };
-
+        Opportunity testOpp = [SELECT Id FROM Opportunity LIMIT 1];
+        OpportunityLineItem testOli = [SELECT Id, Product2Id, PricebookEntryId, UnitPrice, Quantity FROM OpportunityLineItem LIMIT 1];
+        
         Test.startTest();
         Id quoteId = QuoteController.createQuoteFromOpportunity(
-            opp.Id,
-            oliList,
+            testOpp.Id,
+            new List<OpportunityLineItem>{testOli},
+            'Test Quote',
+            'Draft',
+            Date.today().addDays(30),
             'USD',
-            Test.getStandardPricebookId()
+            null,
+            null
         );
         Test.stopTest();
-
-
-        List<QuoteLineItem> qliList = [SELECT Id FROM QuoteLineItem WHERE QuoteId = :quoteId];
+        System.assert(quoteId != null);
     }
-
-    @isTest
-    static void testDeleteProductInterested_found() {
-        OpportunityLineItem oli = [SELECT Id FROM OpportunityLineItem LIMIT 1];
-
+    
+    @IsTest
+    static void testDeleteProductInterested() {
+        OpportunityLineItem testOli = [SELECT Id FROM OpportunityLineItem LIMIT 1];
         Test.startTest();
-        String msg = QuoteController.deleteProductInterested(oli.Id);
+        String result = QuoteController.deleteProductInterested(testOli.Id);
         Test.stopTest();
-
-    }
-
-    @isTest
-    static void testDeleteProductInterested_notFound() {
-        Test.startTest();
-        String msg = QuoteController.deleteProductInterested('001000000000000AAA'); 
-        Test.stopTest();
-
+        System.assert(result.contains('deleted'));
     }
 }

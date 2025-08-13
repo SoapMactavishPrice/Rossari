@@ -77,6 +77,13 @@ export default class CreateQuoteFromOpportunity extends NavigationMixin(Lightnin
         );
     }
 
+    handleContactClick() {
+        if (this.contacts.length === 0) {
+            this.showToast('Warning', 'No contacts available for this Opportunity\'s Account.', 'warning');
+        }
+    }
+
+
     loadOppLineItems() {
         getOppLineItems({ opportunityId: this.recordId })
             .then(result => {

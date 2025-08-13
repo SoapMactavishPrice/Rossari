@@ -19,14 +19,14 @@
             </div>
 
             <div class="slds-col slds-size_1-of-4 slds-p-around_x-small">
-                <lightning-input type="date" label="Expiration Date" value={quoteFields.expirationDate}
+                <lightning-input type="date" label="Quote Valid To" value={quoteFields.expirationDate}
                     data-field="expirationDate" onchange={handleFieldChange}>
                 </lightning-input>
             </div>
 
             <div class="slds-col slds-size_1-of-4 slds-p-around_x-small">
                 <lightning-combobox label="Contact" value={quoteFields.contactId} options={contacts}
-                    data-field="contactId" onchange={handleFieldChange}>
+                    data-field="contactId" onchange={handleFieldChange} onfocus={handleContactClick}>
                 </lightning-combobox>
             </div>
 
