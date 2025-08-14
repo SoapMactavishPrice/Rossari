@@ -16,7 +16,7 @@ public with sharing class QuotationPdfController {
                             BillingAddress, Inco_Terms__c, Pre_Carriage_Mode__c, Country_of_Origin__c, Country_of_Destination__c, 
                             Destination__c, Loading_Port__c, Destination_Port__c, Place_of_Supplier__c, Partial_Shipment__c, ShippingName,
                             BillingStreet, BillingCity, BillingState, BillingPostalCode, BillingCountry, Business_Type__c,
-                            ShippingStreet, ShippingCity, ShippingCountry, ShippingPostalCode, ShippingState, Terms_and_Conditions__c,
+                            ShippingStreet, ShippingCity, ShippingCountry, ShippingPostalCode, ShippingState, Terms_and_Conditions__c, Declaration__c,
                             ShippingAddress, GrandTotal FROM Quote WHERE Id = :quotationId];
 
         this.isExport = quotation.Business_Type__c == 'Export';
@@ -47,7 +47,7 @@ public with sharing class QuotationPdfController {
                             BillingAddress, Inco_Terms__c, Pre_Carriage_Mode__c, Country_of_Origin__c, Country_of_Destination__c, 
                             Destination__c, Loading_Port__c, Destination_Port__c, Place_of_Supplier__c, Partial_Shipment__c, ShippingName,
                             BillingStreet, BillingCity, BillingState, BillingPostalCode, BillingCountry, Business_Type__c,
-                            ShippingStreet, ShippingCity, ShippingCountry, ShippingPostalCode, ShippingState, Terms_and_Conditions__c,
+                            ShippingStreet, ShippingCity, ShippingCountry, ShippingPostalCode, ShippingState, Terms_and_Conditions__c, Declaration__c,
                             ShippingAddress, GrandTotal FROM Quote WHERE Id = :quotationId];
 
         this.isExport = quotation.Business_Type__c == 'Export';
@@ -277,7 +277,7 @@ public with sharing class QuotationPdfController {
         // Amount in Words & Declaration
         html += '<table style="' + tableStyle + '">';
         html += '<tr><td style="text-align:left; ' + borderStyle + 'border-top:none;' + '"><b>Total Amount in Words:</b> ' + ns(totalAmountInWords) + '</td></tr>';
-        html += '<tr><td style="text-align:left; ' + borderStyle + '"><b>Declaration</b>: We declare that this ' + docLabel.toLowerCase() + ' shows the actual price of goods and that all particulars are true and correct.</td></tr>';
+        html += '<tr><td style="text-align:left; ' + borderStyle + '"><b>Declaration</b>: ' + ns(this.quotation.Declaration__c) + '</td></tr>';
         html += '</table>';
 
         return html;

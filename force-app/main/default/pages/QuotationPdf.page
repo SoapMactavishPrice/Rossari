@@ -284,7 +284,7 @@
             <td style="text-align:left;"><b>Total Amount in Words:</b> {!totalAmountInWords}</td>
         </tr>
         <tr>
-            <td style="text-align:left;"><b>Declaration</b>: We declare that this quotation shows the actual price of goods and that all particulars are true and correct.</td>
+            <td style="text-align:left;"><b>Declaration</b>: {!quotation.Declaration__c}</td>
         </tr>
     </table>
 
