@@ -10,6 +10,7 @@ import getCurrentUserDetails from '@salesforce/apex/QuotePdfSendController.getCu
 import deletefile from '@salesforce/apex/QuotePdfSendController.deletefile';
 import validateQuote from '@salesforce/apex/QuotePdfSendController.validateQuote';
 import isQuoteLineItemsExist from '@salesforce/apex/QuotePdfSendController.isQuoteLineItemsExist';
+import getEmailBody from '@salesforce/apex/QuotationPdfController.getEmailBody';
 
 export default class QuotePdfSend extends NavigationMixin(LightningElement) {
     @track showSpinner = false;
@@ -31,8 +32,13 @@ export default class QuotePdfSend extends NavigationMixin(LightningElement) {
 
     connectedCallback() {
         console.log('Type -->', this.type)
-        this.body = 'Dear Sir/Madam, <br/><br/> Please find attached Quotation.<br/><br/><br/><br/>';
-        this.subject = 'Rossari - Quotation';
+        if (this.type == 'quote') {
+            this.body = 'Dear Sir/Madam, <br/><br/> Please find attached Quotation.<br/><br/><br/><br/>';
+            this.subject = 'Rossari - Quotation';
+        } else if (this.type == 'invoice') {
+            this.body = 'Dear Sir/Madam, <br/><br/> Please find attached Proforma Invoice.<br/><br/><br/><br/>';
+            this.subject = 'Rossari - Proforma Invoice';
+        }
         validateQuote({quoteId: this.recordId}).then((result)=>{
             this.customerType = result;
             if (this.customerType != null) {
@@ -41,6 +47,7 @@ export default class QuotePdfSend extends NavigationMixin(LightningElement) {
                 this.getDetails();
                 this.getUser();
                 this.getEmailDetails();
+                this.fetchEmailBody();
             } else {
                 this.showSuccess('Error', 'Customer type is not defined', 'Error');
                 this.handleCancel();
@@ -73,6 +80,14 @@ export default class QuotePdfSend extends NavigationMixin(LightningElement) {
                 console.error('Error fetching PDF URL: ', error);
                 this.showSpinner = false;
             });
+    }
+
+    fetchEmailBody() {
+        getEmailBody({ quoteId: this.recordId, type: this.type }).then((result)=>{
+            this.body += result;
+        }).catch((error)=>{
+            this.showSuccess('Error', error.body.message, 'error');
+        })
     }
 
     getUser() {

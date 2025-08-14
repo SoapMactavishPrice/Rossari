@@ -96,17 +96,17 @@
 
     <table>
         <tr>
-            <th colspan="2">Order Details</th>
+            <th colspan="2">Quote Details</th>
             <th colspan="2">Bill to</th>
         </tr>
         <tr>
-            <td style="width: 36%;" class="leftBorder">Order No.: {!quotation.QuoteNumber}</td>
+            <td style="width: 36%;" class="leftBorder">Quote No.: {!quotation.QuoteNumber}</td>
             <td style="width: 36%;" class="borderlessClean">Payment Terms: {!quotation.Payment_Terms__c}</td>
             <td style="width: 27%;" class="doubleBorder" colspan="2">Name: {!quotation.BillingName}</td>
         </tr>
         <tr>
             
-            <td class="leftBorder">Order Date: 
+            <td class="leftBorder">Quote Date: 
                 <apex:outputText value="{0,date,dd/MM/yyyy}">
                     &nbsp;<apex:param value="{!quotation.CreatedDate}" />
                 </apex:outputText>
@@ -247,9 +247,7 @@
     <tr>
         <td colspan="6" rowspan="5">
             <b>Terms and Conditions:</b><br/>
-            • All bank charges outside India will be borne by the customer and such charges should not be deducted from our payment.<br/>
-            • We should receive full invoice amount in our bank account and you are liable to pay the bank charges which are applicable in India only.<br/>
-            • After finalization of order if there is any change in Statutory Govt. levies than it will be in your scope.
+            <p style="white-space: pre-wrap; padding: 0px; margin: 0px;">{!quotation.Terms_and_Conditions__c}</p>
         </td>
         <td colspan="3" class="bold">Amount Before Tax</td>
         <td>(HC)</td>
