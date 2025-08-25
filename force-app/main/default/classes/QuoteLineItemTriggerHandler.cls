@@ -2,6 +2,22 @@ public class QuoteLineItemTriggerHandler {
     public static Map<Id, Decimal> oldPurchasePriceMap = new Map<Id, Decimal>();
     public static Map<Id, Decimal> oldQuantityMap = new Map<Id, Decimal>();
 
+    public static void updateNetWeight(List<QuoteLineItem> quoteLineItems) {
+
+        List<Id> productsIds = new List<Id>();
+        for (QuoteLineItem qli : quoteLineItems) {
+            productsIds.add(qli.Product2Id);
+        }
+
+        Map<Id, Product2> productMap = new Map<Id, Product2>([SELECT Net_Wt__c FROM Product2 WHERE Id IN :productsIds]);
+
+        for (QuoteLineItem each : quoteLineItems) {
+            if (each.Product2Id != null && productMap.get(each.Product2Id).Net_Wt__c != null) {
+                each.Net_weight__c = productMap.get(each.Product2Id).Net_Wt__c;
+            }
+        }
+    }
+
     public static void updateIsSPlessThanLP(List<QuoteLineItem> quoteLineItems, Map<Id, QuoteLineItem> oldMap) {
         Set<Id> pricebookEntryIds = new Set<Id>();
         

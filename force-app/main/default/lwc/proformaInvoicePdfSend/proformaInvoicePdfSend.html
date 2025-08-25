@@ -1,0 +1,166 @@
+<template>
+
+    <!-- Spinner for loading -->
+    <template if:true={showSpinner}>
+        <lightning-spinner alternative-text="Loading" variant="brand" size="medium"></lightning-spinner>
+    </template>
+
+    <!-- Card for email form -->
+    <lightning-card>
+        <lightning-layout multiple-rows>
+            <lightning-layout-item size="3" large-device-size="3" class="slds-var-p-horizontal_small">
+            </lightning-layout-item>
+
+            <lightning-layout-item size="6" large-device-size="6" class="slds-var-p-horizontal_small">
+                <lightning-layout multiple-rows>
+
+                    <!-- Email "To" input -->
+                    <lightning-layout-item size="12" small-device-size="12" class="slds-var-p-horizontal_small">
+                        <label class="slds-form-element__label">To</label>
+                        <lightning-input type="text" name="toEmailAddresses" variant="label-hidden"
+                            value={toEmailAddresses} onchange={handleChange} data-name="toEmailAddresses">
+                        </lightning-input>
+                    </lightning-layout-item>
+
+                    <!-- Email "Cc" input -->
+                    <lightning-layout-item size="12" small-device-size="12" medium-device-size="6"
+                        large-device-size="12" class="slds-var-p-horizontal_small">
+                        <label class="slds-form-element__label">Cc</label>
+                        <lightning-input type="text" name="ccEmailAddresses" placeholder="enter comma(,) separated"
+                            variant="label-hidden" value={ccEmailAddresses} onchange={handleCCChange}
+                            data-name="ccEmailAddresses">
+                        </lightning-input>
+                    </lightning-layout-item>
+
+                    <!-- Subject input -->
+                    <lightning-layout-item size="12" class="slds-var-p-horizontal_small">
+                        <label class="slds-form-element__label">Subject</label>
+                        <lightning-input type="text" name="subject" variant="label-hidden" value={subject}
+                            onchange={handlesubjectChange} data-name="subject"></lightning-input>
+                    </lightning-layout-item>
+
+                    <lightning-layout-item size="12" class="slds-var-p-horizontal_small">
+                        <label class="slds-form-element__label">Attach pdf in email?</label>
+                        <lightning-input type="checkbox" name="isAttachPdf" variant="label-hidden" value={isAttachPdf}
+                            onchange={handleAttachPdfChange} data-name="isAttachPdf"></lightning-input>
+                    </lightning-layout-item>
+
+                    <!-- Body input -->
+                    <lightning-layout-item size="12" class="slds-var-p-horizontal_small">
+                        <label class="slds-form-element__label">Body</label>
+                        <lightning-input-rich-text name="body" variant="label-hidden" value={body}
+                            onchange={handlebodyChange}
+                            disabled-categories="FORMAT_FONT ALIGN_TEXT INSERT_CONTENT REMOVE_FORMATTING"
+                            data-name="body"></lightning-input-rich-text>
+                    </lightning-layout-item>
+
+                    <!-- Buttons and File Upload in one line -->
+                    <lightning-layout-item size="12"
+                        class="slds-var-p-horizontal_small slds-var-p-top_large slds-var-p-bottom_small">
+                        <div class="horizontal-flex slds-wrap"
+                            style="justify-content: center;display: flex;; align-items: center;">
+
+                            <!-- Save Button -->
+                            <lightning-button label="Save" variant="brand" onclick={handleSaveEmail}
+                                class="slds-var-p-around_x-small"></lightning-button>
+
+                            <!-- Save & Send Button -->
+                            <lightning-button label="Save & Send" variant="brand" onclick={handleSendEmail}
+                                class="slds-var-p-around_x-small"></lightning-button>
+
+                            <!-- File Upload Section -->
+                            <div class="drop-container-wrapper slds-var-p-around_x-small">
+                                <label class="drop-container">
+                                    <lightning-icon icon-name="action:upload" size="x-small" alternative-text="Approved"
+                                        title="upload files"></lightning-icon>
+                                    <lightning-file-upload type="file" onuploadfinished={handleUploadFinished}
+                                        style="display: none" multiple accept=".pdf, .jpg, .jpeg">
+                                    </lightning-file-upload>
+                                </label>
+                            </div>
+                            <lightning-icon icon-name="action:preview" alternative-text="Preview" size="x-small"
+                                title="Preview" onclick={previewFile}></lightning-icon>
+                            <!-- Cancel Button -->
+                            <lightning-button label="Cancel" variant="brand-outline" onclick={handleCancel}
+                                class="slds-var-p-around_x-small"></lightning-button>
+                        </div>
+                    </lightning-layout-item>
+
+                </lightning-layout>
+            </lightning-layout-item>
+
+            <lightning-layout-item size="3" large-device-size="3" class="slds-var-p-horizontal_small">
+            </lightning-layout-item>
+
+            <lightning-layout-item size="12" large-device-size="12" class="slds-var-p-horizontal_small"
+                if:true={pdfUrl}>
+
+
+                <!-- <template if:true={pdfUrl}> -->
+                <lightning-card>
+                    <iframe src={pdfUrl} width="100%" height="600px" style="border: none;"></iframe>
+                </lightning-card>
+            </lightning-layout-item>
+
+            <!-- </template> -->
+        </lightning-layout>
+    </lightning-card>
+
+    <template if:true={isOpenFileView}>
+        <div class="slds-backdrop slds-backdrop_open" onclick={handleOkay}></div>
+        <section role="dialog" tabindex="-1" aria-labelledby="modal-heading-01" aria-modal="true"
+            aria-describedby="modal-content-id-1" class="slds-modal slds-fade-in-open">
+            <div class="slds-modal__container">
+                <!-- Modal Header -->
+                <header class="slds-modal__header">
+                    <button class="slds-button slds-button_icon slds-modal__close slds-button_icon-inverse"
+                        style="background:black" title="Close" onclick={handleOkay}>
+                        <lightning-icon icon-name="utility:close" alternative-text="close" variant="inverse"
+                            size="x-small"></lightning-icon>
+                        <span class="slds-assistive-text">Close</span>
+                    </button>
+                    <h2 id="modal-heading-01" class="slds-text-heading_medium slds-hyphenate">View Files</h2>
+                </header>
+
+                <!-- Modal Body -->
+                <div class="slds-modal__content slds-p-around_medium" id="modal-content-id-1">
+                    <table class="slds-table slds-table_cell-buffer slds-table_bordered slds-table_striped"
+                        style="width:100%;text-align:center;">
+                        <thead>
+                            <tr class="slds-line-height_reset">
+                                <th class="slds-text-color_inverse" scope="col"
+                                    style="width: 80%;background-color: #642156;color:white">File Name</th>
+                                <th class="slds-text-color_inverse" scope="col"
+                                    style="background-color: #642156;color:white">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <template for:each={files} for:item="file">
+                                <tr key={file.documentId}>
+                                    <td>{file.name}</td>
+                                    <td>
+                                        <div style="display:flex">
+                                            <lightning-icon icon-name="action:preview" size="x-small"
+                                                data-id={file.documentId} onclick={viewFile}></lightning-icon>
+                                            <lightning-icon icon-name="action:delete" class="slds-m-left_xx-small"
+                                                size="x-small" data-id={file.documentId}
+                                                onclick={deleteFiles}></lightning-icon>
+                                        </div>
+                                    </td>
+                                </tr>
+                            </template>
+                        </tbody>
+                    </table>
+                </div>
+
+
+
+                <!-- Modal Footer -->
+                <footer class="slds-modal__footer">
+                    <button class="slds-button slds-button_neutral" onclick={handleOkay} title="Cancel">Cancel</button>
+                </footer>
+            </div>
+        </section>
+    </template>
+
+</template>

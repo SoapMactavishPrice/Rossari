@@ -111,7 +111,7 @@
                     &nbsp;<apex:param value="{!quotation.CreatedDate}" />
                 </apex:outputText>
             </td>
-            <td class="borderlessClean">Our Bankers: (HC)</td>
+            <td class="borderlessClean">Our Bankers: </td>
             <apex:outputPanel layout="none" rendered="{!NOT(isExport)}">
                 <td class="doubleBorder" colspan="2" rowspan="4">Address: {!billingAddress}</td>
             </apex:outputPanel>
@@ -121,11 +121,11 @@
         </tr>
         <tr>
             <td class="leftBorder">Buyer Ref No.: (HC)</td>
-            <td class="borderlessClean">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;A/c No.: (HC)</td>
+            <td class="borderlessClean">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;A/c No.: {!quotation.Bank__r.Bank_Account_No__c}</td>
         </tr>
         <tr>
             <td class="leftBorder">Buyer Ref Date: (HC)</td>
-            <td class="borderlessClean">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Bank Name: (HC)</td>
+            <td class="borderlessClean">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Bank Name: {!quotation.Bank__r.Name}</td>
         </tr>
         <tr>
             <td class="leftBorder">Quotation Validity: 
@@ -133,11 +133,11 @@
                     &nbsp;<apex:param value="{!quotation.ExpirationDate}" />
                 </apex:outputText>
             </td>
-            <td class="borderlessClean">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Branch: (HC)</td>
+            <td class="borderlessClean">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Branch: {!quotation.Bank__r.Branch__c}</td>
         </tr>
         <tr>
             <td class="leftBorder">Currency: {!quotation.CurrencyIsoCode}</td>
-            <td class="borderlessClean">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Swift Code: (HC)</td>
+            <td class="borderlessClean">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Swift Code: {!quotation.Bank__r.SWIFT_Code__c}</td>
             <apex:outputPanel layout="none" rendered="{!NOT(isExport)}">
                 <td class="doubleBorder" colspan="2">GSTIN: (HC)</td>
             </apex:outputPanel>
@@ -157,12 +157,12 @@
             </tr>
             <tr>
                 <td class="leftBorder">Country of Origin: {!quotation.Country_of_Origin__c}</td>
-                <td class="borderlessClean">Pre-Carriage Destination: (HC)</td>
+                <td class="borderlessClean">Pre-Carriage Destination: {!quotation.Pre_Carriage_Destination__c}</td>
                 <td class="doubleBorder" colspan="2" rowspan="5">Address: {!shippingAddress}</td>
             </tr>
             <tr>
                 <td class="leftBorder">Country of Destination: {!quotation.Country_of_Destination__c}</td>
-                <td class="borderlessClean">Vessel/Flight No.: (HC)</td>
+                <td class="borderlessClean">Vessel/Flight No.: {!quotation.Vessel_Flight_No__c}</td>
             </tr>
             <tr>
                 <td class="leftBorder">Final Destination: {!quotation.Destination__c}</td>
@@ -232,11 +232,11 @@
         <apex:repeat value="{!quoteLineItems}" var="item">
             <tr>
                 <td>{!srNo}</td>
-                <td>(HC)</td>
-                <td>(HC)</td>
+                <td>{!item.Product2.ProductCode}</td>
+                <td>{!item.Product2.HSN_Code__c}</td>
                 <td>{!item.Description}</td>
-                <td>(HC)</td>
-                <td>(HC)</td>
+                <td>{!item.Product2.Pack_Size__c}</td>
+                <td>{!item.Product2.Base_UOM__c}</td>
                 <td>{!item.Quantity}</td>
                 <td>{!item.ListPrice}</td>
                 <td>{!item.UnitPrice}</td>
@@ -273,7 +273,7 @@
         <td>(HC)</td>
     </tr>
     <tr>
-        <td colspan="6"><b>Net Weight</b>: (HC)</td>
+        <td colspan="6"><b>Net Weight</b>: {!quotation.Net_weight__c}</td>
         <td colspan="3" class="bold">Total Amount After Tax</td>
         <td>{!quotation.GrandTotal}</td>
     </tr>

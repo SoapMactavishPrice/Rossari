@@ -8,6 +8,7 @@ trigger QuoteLineItemTrigger on QuoteLineItem (before insert, before update, aft
 
         if (Trigger.isInsert) {
             QuoteLineItemTriggerHandler.updateIsSPlessThanLPForInsert(Trigger.new);
+            QuoteLineItemTriggerHandler.updateNetWeight(Trigger.new);
         }
     }
 

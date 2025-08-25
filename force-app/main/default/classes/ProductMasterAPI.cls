@@ -2,9 +2,9 @@
 * @File Name : ProductMasterAPI.cls
 * @Description :
 * @Author :Shashank
-* @Last Modified By :
-* @Last Modified On : August 5, 2025
-* @Modification Log :
+* @Last Modified By : Praveen Kumar
+* @Last Modified On : August 20, 2025
+* @Modification Log : Changed the Net weight data type to number
 *==============================================================================
 * Ver | Date | Author | Modification
 *==============================================================================
@@ -537,7 +537,7 @@ global  class ProductMasterAPI {
         public String PROD_HIERACHY;	//000140001300000001
         public String GENITEMCATGROUP;	//NORM
         public String GROSS_WT;	//0
-        public String NET_WT;	//0
+        public Decimal NET_WT;	//0
         public String WT_UOM;	//KG
         public String VOLUME;	//0
         public String SIZE_DIMENSIONS;	//210 LT

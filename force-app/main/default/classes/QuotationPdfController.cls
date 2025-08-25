@@ -13,10 +13,11 @@ public with sharing class QuotationPdfController {
         this.quotationId = ApexPages.currentPage().getparameters().get('id');
 
         this.quotation = [SELECT Id, QuoteNumber, CreatedDate, ExpirationDate, CurrencyIsoCode, Payment_Terms__c, BillingName, Account.Rossari_Company__r.Name,
-                            BillingAddress, Inco_Terms__c, Pre_Carriage_Mode__c, Country_of_Origin__c, Country_of_Destination__c, 
+                            BillingAddress, Inco_Terms__c, Pre_Carriage_Mode__c, Country_of_Origin__c, Country_of_Destination__c, Net_weight__c,
                             Destination__c, Loading_Port__c, Destination_Port__c, Place_of_Supplier__c, Partial_Shipment__c, ShippingName,
-                            BillingStreet, BillingCity, BillingState, BillingPostalCode, BillingCountry, Business_Type__c,
+                            BillingStreet, BillingCity, BillingState, BillingPostalCode, BillingCountry, Business_Type__c, Vessel_Flight_No__c, Pre_Carriage_Destination__c,
                             ShippingStreet, ShippingCity, ShippingCountry, ShippingPostalCode, ShippingState, Terms_and_Conditions__c, Declaration__c,
+                            Bank__r.Bank_Account_No__c, Bank__r.Name, Bank__r.Branch__c, Bank__r.SWIFT_Code__c,
                             ShippingAddress, GrandTotal FROM Quote WHERE Id = :quotationId];
 
         this.isExport = quotation.Business_Type__c == 'Export';
@@ -35,7 +36,7 @@ public with sharing class QuotationPdfController {
         this.billingAddress = this.getFormattedBillingAddress(quotation);
         this.shippingAddress = this.getFormattedShippingAddress(quotation);
 
-        this.quoteLineItems = [SELECT Description, Quantity, UnitPrice, TotalPrice, ListPrice FROM QuoteLineItem WHERE QuoteId = :quotationId];
+        this.quoteLineItems = [SELECT Description, Quantity, UnitPrice, TotalPrice, ListPrice, Product2.ProductCode, Product2.HSN_Code__c, Product2.Pack_Size__c, Product2.Base_UOM__c FROM QuoteLineItem WHERE QuoteId = :quotationId AND (Status__c = 'Won' OR Status__c = null)];
     }
 
     public QuotationPdfController(String quoteId, String type) {
@@ -44,10 +45,11 @@ public with sharing class QuotationPdfController {
         this.quotationId = quoteId;
 
         this.quotation = [SELECT Id, QuoteNumber, CreatedDate, ExpirationDate, CurrencyIsoCode, Payment_Terms__c, BillingName, Account.Rossari_Company__r.Name,
-                            BillingAddress, Inco_Terms__c, Pre_Carriage_Mode__c, Country_of_Origin__c, Country_of_Destination__c, 
+                            BillingAddress, Inco_Terms__c, Pre_Carriage_Mode__c, Country_of_Origin__c, Country_of_Destination__c, Net_weight__c,
                             Destination__c, Loading_Port__c, Destination_Port__c, Place_of_Supplier__c, Partial_Shipment__c, ShippingName,
-                            BillingStreet, BillingCity, BillingState, BillingPostalCode, BillingCountry, Business_Type__c,
+                            BillingStreet, BillingCity, BillingState, BillingPostalCode, BillingCountry, Business_Type__c, Vessel_Flight_No__c, Pre_Carriage_Destination__c,
                             ShippingStreet, ShippingCity, ShippingCountry, ShippingPostalCode, ShippingState, Terms_and_Conditions__c, Declaration__c,
+                            Bank__r.Bank_Account_No__c, Bank__r.Name, Bank__r.Branch__c, Bank__r.SWIFT_Code__c,
                             ShippingAddress, GrandTotal FROM Quote WHERE Id = :quotationId];
 
         this.isExport = quotation.Business_Type__c == 'Export';
@@ -66,7 +68,7 @@ public with sharing class QuotationPdfController {
         this.billingAddress = this.getFormattedBillingAddress(quotation);
         this.shippingAddress = this.getFormattedShippingAddress(quotation);
 
-        this.quoteLineItems = [SELECT Description, Quantity, UnitPrice, TotalPrice, ListPrice FROM QuoteLineItem WHERE QuoteId = :quotationId];
+        this.quoteLineItems = [SELECT Description, Quantity, UnitPrice, TotalPrice, ListPrice, Product2.ProductCode, Product2.HSN_Code__c, Product2.Pack_Size__c, Product2.Base_UOM__c FROM QuoteLineItem WHERE QuoteId = :quotationId AND (Status__c = 'Won' OR Status__c = null)];
     }
 
     public String getFormattedBillingAddress(Quote quote) {
@@ -167,22 +169,22 @@ public with sharing class QuotationPdfController {
 
         html += '<tr>';
         html += '<td style="' + leftBorder + '">Buyer Ref No.: (HC)</td>';
-        html += '<td style="' + borderless + '">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;A/c No.: (HC)</td>';
+        html += '<td style="' + borderless + '">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;A/c No.: ' + ns(quotation.Bank__r.Bank_Account_No__c) + '</td>';
         html += '</tr>';
 
         html += '<tr>';
         html += '<td style="' + leftBorder + '">Buyer Ref Date: (HC)</td>';
-        html += '<td style="' + borderless + '">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Bank Name: (HC)</td>';
+        html += '<td style="' + borderless + '">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Bank Name: ' + ns(quotation.Bank__r.Name) + '</td>';
         html += '</tr>';
 
         html += '<tr>';
         html += '<td style="' + leftBorder + '">' + docLabel + ' Validity: ' + (quotation.ExpirationDate != null ? quotation.ExpirationDate.format() : '') + '</td>';
-        html += '<td style="' + borderless + '">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Branch: (HC)</td>';
+        html += '<td style="' + borderless + '">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Branch: ' + ns(quotation.Bank__r.Branch__c) + '</td>';
         html += '</tr>';
 
         html += '<tr>';
         html += '<td style="' + leftBorder + '">Currency: ' + ns(quotation.CurrencyIsoCode) + '</td>';
-        html += '<td style="' + borderless + '">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Swift Code: (HC)</td>';
+        html += '<td style="' + borderless + '">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Swift Code: ' + ns(quotation.Bank__r.SWIFT_Code__c) + '</td>';
         if (!isExport) {
             html += '<td style="' + doubleBorder + '" colspan="2">GSTIN: (HC)</td>';
         }
@@ -205,11 +207,11 @@ public with sharing class QuotationPdfController {
 
             html += '<tr>';
             html += '<td style="' + leftBorder + '">Country of Origin: ' + ns(quotation.Country_of_Origin__c) + '</td>';
-            html += '<td style="' + borderless + '">Pre-Carriage Destination: (HC)</td>';
+            html += '<td style="' + borderless + '">Pre-Carriage Destination: ' + ns(quotation.Pre_Carriage_Destination__c) + '</td>';
             html += '<td style="' + doubleBorder + '" colspan="2" rowspan="5">Address: ' + ns(shippingAddress) + '</td>';
             html += '</tr>';
 
-            html += '<tr><td style="' + leftBorder + '">Country of Destination: ' + ns(quotation.Country_of_Destination__c) + '</td><td style="' + borderless + '">Vessel/Flight No.: (HC)</td></tr>';
+            html += '<tr><td style="' + leftBorder + '">Country of Destination: ' + ns(quotation.Country_of_Destination__c) + '</td><td style="' + borderless + '">Vessel/Flight No.: ' + ns(quotation.Vessel_Flight_No__c) + '</td></tr>';
             html += '<tr><td style="' + leftBorder + '">Final Destination: ' + ns(quotation.Destination__c) + '</td><td style="' + borderless + '">Loading Port: ' + ns(quotation.Loading_Port__c) + '</td></tr>';
             html += '<tr><td style="' + leftBorder + '">Place of Supply: ' + ns(quotation.Place_of_Supplier__c) + '</td><td style="' + borderless + '">Discharge Port: ' + ns(quotation.Destination_Port__c) + '</td></tr>';
             html += '<tr><td style="' + leftBorder + '">Partial Shipment: ' + ns(quotation.Partial_Shipment__c) + '</td><td style="' + borderless + '"></td></tr>';
@@ -247,11 +249,11 @@ public with sharing class QuotationPdfController {
         for (QuoteLineItem item : quoteLineItems) {
             html += '<tr>';
             html += '<td style="' + borderStyle + '">' + srNo + '</td>';
-            html += '<td style="' + borderStyle + '">(HC)</td>';
-            html += '<td style="' + borderStyle + '">(HC)</td>';
+            html += '<td style="' + borderStyle + '">' + ns(item.Product2.ProductCode) + '</td>';
+            html += '<td style="' + borderStyle + '">' + ns(item.Product2.HSN_Code__c) + '</td>';
             html += '<td style="' + borderStyle + '">' + ns(item.Description) + '</td>';
-            html += '<td style="' + borderStyle + '">(HC)</td>';
-            html += '<td style="' + borderStyle + '">(HC)</td>';
+            html += '<td style="' + borderStyle + '">' + ns(item.Product2.Pack_Size__c) + '</td>';
+            html += '<td style="' + borderStyle + '">' + ns(item.Product2.Base_UOM__c) + '</td>';
             html += '<td style="' + borderStyle + '">' + ns(item.Quantity) + '</td>';
             html += '<td style="' + borderStyle + '">' + ns(item.ListPrice) + '</td>';
             html += '<td style="' + borderStyle + '">' + ns(item.UnitPrice) + '</td>';
@@ -271,7 +273,7 @@ public with sharing class QuotationPdfController {
         html += '<tr><td colspan="2" style="' + boldStyle + borderStyle + '">IGST</td><td style="' + borderStyle + '">(HC)</td><td style="' + borderStyle + '">(HC)</td></tr>';
         html += '<tr><td colspan="2" style="' + boldStyle + borderStyle + '">Round Off</td><td style="' + borderStyle + '">(HC)</td><td style="' + borderStyle + '">(HC)</td></tr>';
 
-        html += '<tr><td colspan="6" style="' + borderStyle + '"><b>Net Weight</b>: (HC)</td><td colspan="3" style="' + boldStyle + borderStyle + '">Total Amount After Tax</td><td style="' + borderStyle + '">' + ns(quotation.GrandTotal) + '</td></tr>';
+        html += '<tr><td colspan="6" style="' + borderStyle + '"><b>Net Weight</b>: ' + quotation.Net_weight__c + '</td><td colspan="3" style="' + boldStyle + borderStyle + '">Total Amount After Tax</td><td style="' + borderStyle + '">' + ns(quotation.GrandTotal) + '</td></tr>';
         html += '</table>';
 
         // Amount in Words & Declaration

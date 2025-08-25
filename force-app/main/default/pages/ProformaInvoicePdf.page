@@ -1,4 +1,4 @@
-<apex:page controller="QuotationPdfController" renderAs="pdf" showHeader="false" sidebar="false" applyHtmlTag="false" applyBodyTag="false" standardStylesheets="false" docType="html-5.0">
+<apex:page controller="ProformaInvoicePdfController" renderAs="pdf" showHeader="false" sidebar="false" applyHtmlTag="false" applyBodyTag="false" standardStylesheets="false" docType="html-5.0">
     <head>
         <style>
             @page {
@@ -75,13 +75,13 @@
     </head>
 
     <header>
-        <apex:outputPanel rendered="{!quotation.Account.Rossari_Company__r.Name = 'Rossari Biotech Limited'}">
+        <apex:outputPanel rendered="{!proformaInvoice.Account_Name__r.Rossari_Company__r.Name = 'Rossari Biotech Limited'}">
             <apex:image url="{!URLFOR($Resource.RossariHeader)}" width="100%" height="100" />
         </apex:outputPanel>
-        <apex:outputPanel rendered="{!quotation.Account.Rossari_Company__r.Name = 'Tristar Intermediates Private Limited'}">
+        <apex:outputPanel rendered="{!proformaInvoice.Account_Name__r.Rossari_Company__r.Name = 'Tristar Intermediates Private Limited'}">
             <apex:image url="{!URLFOR($Resource.TristarHeader)}" width="100%" height="100" />
         </apex:outputPanel>
-        <apex:outputPanel rendered="{!quotation.Account.Rossari_Company__r.Name = 'Unitop Chemicals Private Limited'}">
+        <apex:outputPanel rendered="{!proformaInvoice.Account_Name__r.Rossari_Company__r.Name = 'Unitop Chemicals Private Limited'}">
             <apex:image url="{!URLFOR($Resource.UnitopHeader)}" width="100%" height="100" />
         </apex:outputPanel>
     </header>
@@ -100,18 +100,18 @@
             <th colspan="2">Bill to</th>
         </tr>
         <tr>
-            <td style="width: 36%;" class="leftBorder">Invoice No.: {!quotation.QuoteNumber}</td>
-            <td style="width: 36%;" class="borderlessClean">Payment Terms: {!quotation.Payment_Terms__c}</td>
-            <td style="width: 27%;" class="doubleBorder" colspan="2">Name: {!quotation.BillingName}</td>
+            <td style="width: 36%;" class="leftBorder">Invoice No.: {!proformaInvoice.Proforma_Invoice_Number__c}</td>
+            <td style="width: 36%;" class="borderlessClean">Payment Terms: {!proformaInvoice.Payment_Terms__c}</td>
+            <td style="width: 27%;" class="doubleBorder" colspan="2">Name: {!proformaInvoice.Bill_To_Name__c}</td>
         </tr>
         <tr>
             
             <td class="leftBorder">Invoice Date: 
                 <apex:outputText value="{0,date,dd/MM/yyyy}">
-                    &nbsp;<apex:param value="{!quotation.CreatedDate}" />
+                    &nbsp;<apex:param value="{!proformaInvoice.CreatedDate}" />
                 </apex:outputText>
             </td>
-            <td class="borderlessClean">Our Bankers: (HC)</td>
+            <td class="borderlessClean">Our Bankers: </td>
             <apex:outputPanel layout="none" rendered="{!NOT(isExport)}">
                 <td class="doubleBorder" colspan="2" rowspan="4">Address: {!billingAddress}</td>
             </apex:outputPanel>
@@ -121,23 +121,23 @@
         </tr>
         <tr>
             <td class="leftBorder">Buyer Ref No.: (HC)</td>
-            <td class="borderlessClean">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;A/c No.: (HC)</td>
+            <td class="borderlessClean">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;A/c No.: {!proformaInvoice.Bank__r.Bank_Account_No__c}</td>
         </tr>
         <tr>
             <td class="leftBorder">Buyer Ref Date: (HC)</td>
-            <td class="borderlessClean">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Bank Name: (HC)</td>
+            <td class="borderlessClean">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Bank Name: {!proformaInvoice.Bank__r.Name}</td>
         </tr>
         <tr>
             <td class="leftBorder">Invoice Validity: 
                 <apex:outputText value="{0,date,dd/MM/yyyy}">
-                    &nbsp;<apex:param value="{!quotation.ExpirationDate}" />
+                    &nbsp;<apex:param value="{!proformaInvoice.Quote_Valid_To__c}" />
                 </apex:outputText>
             </td>
-            <td class="borderlessClean">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Branch: (HC)</td>
+            <td class="borderlessClean">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Branch: {!proformaInvoice.Bank__r.Branch__c}</td>
         </tr>
         <tr>
-            <td class="leftBorder">Currency: {!quotation.CurrencyIsoCode}</td>
-            <td class="borderlessClean">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Swift Code: (HC)</td>
+            <td class="leftBorder">Currency: {!proformaInvoice.CurrencyIsoCode}</td>
+            <td class="borderlessClean">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Swift Code: {!proformaInvoice.Bank__r.SWIFT_Code__c}</td>
             <apex:outputPanel layout="none" rendered="{!NOT(isExport)}">
                 <td class="doubleBorder" colspan="2">GSTIN: (HC)</td>
             </apex:outputPanel>
@@ -151,29 +151,29 @@
                 <th colspan="2">Ship to</th>
             </tr>
             <tr>
-                <td style="width: 36%;" class="leftBorder">Incoterms: {!quotation.Inco_Terms__c}</td>
-                <td style="width: 36%;" class="borderlessClean">Pre-Carriage Mode: {!quotation.Pre_Carriage_Mode__c}</td>
-                <td style="width: 27%;" class="doubleBorder" colspan="2">Name: {!quotation.ShippingName}</td>
+                <td style="width: 36%;" class="leftBorder">Incoterms: {!proformaInvoice.Inco_Terms__c}</td>
+                <td style="width: 36%;" class="borderlessClean">Pre-Carriage Mode: {!proformaInvoice.Pre_Carriage_Mode__c}</td>
+                <td style="width: 27%;" class="doubleBorder" colspan="2">Name: {!proformaInvoice.Ship_To_Name__c}</td>
             </tr>
             <tr>
-                <td class="leftBorder">Country of Origin: {!quotation.Country_of_Origin__c}</td>
-                <td class="borderlessClean">Pre-Carriage Destination: (HC)</td>
+                <td class="leftBorder">Country of Origin: {!proformaInvoice.Country_of_Origin__c}</td>
+                <td class="borderlessClean">Pre-Carriage Destination: {!proformaInvoice.Pre_Carriage_Destination__c}</td>
                 <td class="doubleBorder" colspan="2" rowspan="5">Address: {!shippingAddress}</td>
             </tr>
             <tr>
-                <td class="leftBorder">Country of Destination: {!quotation.Country_of_Destination__c}</td>
-                <td class="borderlessClean">Vessel/Flight No.: (HC)</td>
+                <td class="leftBorder">Country of Destination: {!proformaInvoice.Country_of_Destination__c}</td>
+                <td class="borderlessClean">Vessel/Flight No.: {!proformaInvoice.Vessel_Flight_No__c}</td>
             </tr>
             <tr>
-                <td class="leftBorder">Final Destination: {!quotation.Destination__c}</td>
-                <td class="borderlessClean">Loading Port: {!quotation.Loading_Port__c}</td>
+                <td class="leftBorder">Final Destination: {!proformaInvoice.Destination__c}</td>
+                <td class="borderlessClean">Loading Port: {!proformaInvoice.Loading_Port__c}</td>
             </tr>
             <tr>
-                <td class="leftBorder">Place of Supply: {!quotation.Place_of_Supplier__c}</td>
-                <td class="borderlessClean">Discharge Port: {!quotation.Destination_Port__c}</td>
+                <td class="leftBorder">Place of Supply: {!proformaInvoice.Place_of_Supplier__c}</td>
+                <td class="borderlessClean">Discharge Port: {!proformaInvoice.Destination_Port__c}</td>
             </tr>
             <tr>
-                <td class="leftBorder">Partial Shipment: {!quotation.Partial_Shipment__c}</td>
+                <td class="leftBorder">Partial Shipment: {!proformaInvoice.Partial_Shipment__c}</td>
                 <td class="borderlessClean"></td>
             </tr>
         </table>
@@ -186,9 +186,9 @@
                 <th colspan="2">Ship to</th>
             </tr>
             <tr>
-                <td style="width: 36%;" class="leftBorder">Incoterms: {!quotation.Inco_Terms__c}</td>
-                <td style="width: 36%;" class="borderlessClean">Destination: {!quotation.Destination__c}</td>
-                <td style="width: 27%;" class="doubleBorder" colspan="2">Name: {!quotation.ShippingName}</td>
+                <td style="width: 36%;" class="leftBorder">Incoterms: {!proformaInvoice.Inco_Terms__c}</td>
+                <td style="width: 36%;" class="borderlessClean">Destination: {!proformaInvoice.Destination__c}</td>
+                <td style="width: 27%;" class="doubleBorder" colspan="2">Name: {!proformaInvoice.Ship_To_Name__c}</td>
             </tr>
             <tr>
                 <td class="leftBorder"></td>
@@ -229,25 +229,25 @@
             <th>Amount</th>
         </tr>
         <apex:variable var="srNo" value="{!1}" />
-        <apex:repeat value="{!quoteLineItems}" var="item">
+        <apex:repeat value="{!proformaInvoiceLineItems}" var="item">
             <tr>
                 <td>{!srNo}</td>
-                <td>(HC)</td>
-                <td>(HC)</td>
-                <td>{!item.Description}</td>
-                <td>(HC)</td>
-                <td>(HC)</td>
-                <td>{!item.Quantity}</td>
-                <td>{!item.ListPrice}</td>
-                <td>{!item.UnitPrice}</td>
-                <td>{!item.TotalPrice}</td>
+                <td>{!item.Product__r.ProductCode}</td>
+                <td>{!item.Product__r.HSN_Code__c}</td>
+                <td>{!item.Line_Item_Description__c}</td>
+                <td>{!item.Product__r.Pack_Size__c}</td>
+                <td>{!item.Product__r.Base_UOM__c}</td>
+                <td>{!item.Quantity__c}</td>
+                <td>{!item.List_Price__c}</td>
+                <td>{!item.Sales_Price__c}</td>
+                <td>{!item.Total_Price__c}</td>
             </tr>
             <apex:variable var="srNo" value="{!srNo + 1}" />
         </apex:repeat>
     <tr>
         <td colspan="6" rowspan="5">
             <b>Terms and Conditions:</b><br/>
-            <p style="white-space: pre-wrap; padding: 0px; margin: 0px;">{!quotation.Terms_and_Conditions__c}</p>
+            <p style="white-space: pre-wrap; padding: 0px; margin: 0px;">{!proformaInvoice.Terms_and_Conditions__c}</p>
         </td>
         <td colspan="3" class="bold">Amount Before Tax</td>
         <td>(HC)</td>
@@ -273,9 +273,9 @@
         <td>(HC)</td>
     </tr>
     <tr>
-        <td colspan="6"><b>Net Weight</b>: (HC)</td>
+        <td colspan="6"><b>Net Weight</b>: {!proformaInvoice.Net_weight__c}</td>
         <td colspan="3" class="bold">Total Amount After Tax</td>
-        <td>{!quotation.GrandTotal}</td>
+        <td>{!proformaInvoice.Grand_Total__c}</td>
     </tr>
     </table>
 
@@ -284,7 +284,7 @@
             <td style="text-align:left;"><b>Total Amount in Words:</b> {!totalAmountInWords}</td>
         </tr>
         <tr>
-            <td style="text-align:left;"><b>Declaration</b>: {!quotation.Declaration__c}</td>
+            <td style="text-align:left;"><b>Declaration</b>: {!proformaInvoice.Declaration__c}</td>
         </tr>
     </table>
 
@@ -306,13 +306,13 @@
     </table>
 
     <footer class="pdf-footer">
-        <apex:outputPanel rendered="{!quotation.Account.Rossari_Company__r.Name = 'Rossari Biotech Limited'}">
+        <apex:outputPanel rendered="{!proformaInvoice.Account_Name__r.Rossari_Company__r.Name = 'Rossari Biotech Limited'}">
             <apex:image url="{!URLFOR($Resource.RossariFooter)}" width="100%" height="150" />
         </apex:outputPanel>
-        <apex:outputPanel rendered="{!quotation.Account.Rossari_Company__r.Name = 'Tristar Intermediates Private Limited'}">
+        <apex:outputPanel rendered="{!proformaInvoice.Account_Name__r.Rossari_Company__r.Name = 'Tristar Intermediates Private Limited'}">
             <apex:image url="{!URLFOR($Resource.TristarFooter)}" width="100%" height="150" />
         </apex:outputPanel>
-        <apex:outputPanel rendered="{!quotation.Account.Rossari_Company__r.Name = 'Unitop Chemicals Private Limited'}">
+        <apex:outputPanel rendered="{!proformaInvoice.Account_Name__r.Rossari_Company__r.Name = 'Unitop Chemicals Private Limited'}">
             <apex:image url="{!URLFOR($Resource.UnitopFooter)}" width="100%" height="150" />
         </apex:outputPanel>
     </footer>
