@@ -1,0 +1,22 @@
+<template>
+    <div slot="footer" class="slds-align_absolute-center slds-var-m-top_medium mobile-asn-table-pagination">
+        <p class='slds-var-m-right_small'>Showing {pageParam} of {totalRecords} rows</p>
+        <lightning-button label="&#9668;&#9668;" class='slds-var-m-right_small slds-p-left_small slds-border_left' disabled={isFirst}
+            onclick={handleFirst}></lightning-button>
+
+        <lightning-button label="&#9668;" class='slds-var-m-right_small' disabled={isFirst} onclick={handlePrev}>
+        </lightning-button>
+
+        <lightning-combobox name="progress" label="Page" class='slds-var-m-right_small' value={selectedPage} options={pages} onchange={handlePageChange}
+            variant='label-hidden'></lightning-combobox>
+        <lightning-button label="&#9654;" class='slds-var-m-right_small' disabled={isLast} onclick={handleNext}>
+        </lightning-button>
+
+        <lightning-button label="&#9654;&#9654;" class='slds-var-p-right_small slds-var-m-right_small slds-border_right' disabled={isLast}
+            onclick={handleLast}></lightning-button>
+
+        <lightning-combobox name="progress" label="Record to Display" class='slds-var-m-right_small slds-float_right' value={pageLimit} placeholder="Limit"
+            options={pageLimitOptions} onchange={handleLimitChange} variant='label-hidden'></lightning-combobox>
+    </div>
+
+</template>

@@ -1,0 +1,13 @@
+/* lightning-button {
+    z-index: -1;
+} */
+lightning-combobox{
+    z-index: -1;
+}
+@media screen and (max-width: 480px) {
+    .mobile-asn-table-pagination {
+        display: flex;
+        flex-wrap: wrap;
+        width: 280px;
+    }
+}

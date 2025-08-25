@@ -1,0 +1,289 @@
+.slds-truncate {
+    /* white-space: wrap; */
+    font-weight: bold;
+    text-align: center;
+}
+.is-planned {
+    --slds-c-button-brand-color-background: green;
+}
+
+.is-not-planned {
+    --slds-c-button-brand-color-background: pink;
+}
+
+/* .freeze-col {
+    background-color: #E5E5E5;
+    left: 0;
+    position: sticky;
+    z-index: 9;
+} */
+
+/* .freeze-col1 {
+    left: 64px;
+}
+
+.freeze-col2 {
+    left: 318px;
+}
+
+.freeze-col3 {
+    left: 529px;
+}
+
+.freeze-col4 {
+    left: 602px;
+}
+
+.freeze-col5 {
+    left: 653px;
+}
+
+.freeze-col6 {
+    left: 727px;
+}
+
+.freeze-col7 {
+    left: 800px;
+}
+
+.freeze-col8 {
+    left: 882px;
+} */
+
+.frm-input-label {
+    width: 50%;
+    font-size: 12px;
+    /* font-weight: bold; */
+}
+
+.display label {
+    width: 25%;
+    font-weight: bold;
+}
+
+.display {
+    display: flex;
+}
+
+.filter-button {
+    display: flex;
+    width: 100%;
+    /* justify-content: space-evenly; */
+    justify-content: end;
+}
+
+/*  */
+.open {
+    width: 100% !important;
+    /* transition: width 1s ease-in-out !important; */
+    /* height: 80vh !important; */
+    /* overflow-y: scroll; */
+    /* position: sticky; */
+    display: block;
+}
+
+.close {
+    display: none;
+}
+
+.stage-left {
+    width: 0%;
+    height: auto;
+    /* transition: width 1s ease-in-out !important; */
+    /* position: sticky; */
+    top: 130px;
+}
+
+.mobileview {
+    height: auto;
+    z-index: 1;
+    width: 100% !important;
+    top: 0;
+    padding: 0;
+    overflow: scroll;
+    position: absolute;
+}
+
+.toggleicon {
+    /* padding: 0 10px; */
+    /* position: sticky;
+    top: 9rem;
+    z-index: 1; */
+    position: sticky;
+    top: 1rem;
+    z-index: 99;
+}
+
+.toggleicon-svg {
+    /* background-color: #E40D75; */
+    width: max-content;
+    border-radius: 5px;
+    height: 30px;
+    padding: 3px;
+    cursor: pointer;
+}
+
+.lightning-accordion-hide {
+    display: none;
+}
+
+
+.lightning-accordion-show {
+    z-index: 1;
+}
+
+.toggleicon {
+    padding: 0 10px;
+}
+
+.toggleicon-svg {
+    /* background-color: #E40D75; */
+    width: max-content;
+    border-radius: 5px;
+    height: 30px;
+    padding: 3px;
+    cursor: pointer;
+}
+
+/* .mobiledata {
+    width: min-content;
+} */
+lightning-layout-item span {
+    width: 75%;
+    text-align: center;
+}
+
+td {
+    text-align: center;
+}
+
+.status_created {
+    background-color: green
+}
+
+.status_created_icon {
+    --sds-c-icon-color-background: green;
+}
+
+.status_draft_icon {
+    --sds-c-icon-color-background: red;
+}
+
+.status_draft_icon {
+    --sds-c-icon-color-background: red;
+}
+
+.status_draft {
+    background-color: red;
+}
+
+.status_pending_icon {
+    --sds-c-icon-color-background: red;
+}
+
+.status_more_icon {
+    --sds-c-icon-color-background: yellow;
+}
+
+.more-color {
+    background-color: orange;
+}
+
+.status_today_icon {
+    --sds-c-icon-color-background: green;
+}
+
+.status_less_icon {
+    --sds-c-icon-color-background: orange;
+}
+
+.less-color {
+    background-color: yellow;
+}
+
+.status_draft_icon {
+    --sds-c-icon-color-background: red;
+}
+
+.background-icon {
+    --sds-c-icon-color-background: pink;
+}
+
+.unplanned-color {
+    background-color: pink;
+}
+
+tr td .slds-truncate {
+    margin: 6px 0px;
+    /* margin-bottom: 16px; */
+    /* margin-top: 6px; */
+}
+
+/* tbody tr:hover {
+    background-color: coral !important;
+} */
+
+.slds-table_bordered:not(.slds-no-row-hover) tbody tr:hover>td:not(.slds-has-focus) {
+    background-color: rgb(255, 255, 255);
+    text-decoration: none;
+}
+
+.order-item-header {
+    position: absolute;
+    top: -12px;
+    left: -23px;
+    padding: 0px;
+    z-index: 99;
+    font-size: 12px;
+    width: 50%;
+}
+
+.order-item-table {
+    position: relative;
+    /* margin-top: 25px; */
+}
+
+.top-header {
+    border: none;
+    background-color: rgb(46 174 165 / 60%);
+    padding: 3px 5px;
+    border-radius: 50px;
+}
+
+.item-data-td {
+    position: relative !important;
+    /* padding: 10px 1.5rem !important; */
+    padding: 10px 5px !important;
+    padding-bottom: 5px !important;
+}
+
+
+.color-indication {
+    display: flex;
+    /* width: 80%; */
+    justify-content: end;
+}
+
+.color-indi-secton {
+    display: flex;
+    align-items: center;
+}
+
+.color {
+    width: 20px;
+    height: 20px;
+    border-radius: 50px;
+}
+
+.intial-color {
+    background-color: red;
+}
+
+.color-label {
+    margin-left: 4px;
+    font-style: italic;
+}
+
+.active-color {
+    background-color: green;
+}
