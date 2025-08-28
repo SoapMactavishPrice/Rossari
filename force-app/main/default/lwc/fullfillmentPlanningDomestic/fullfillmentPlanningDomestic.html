@@ -179,16 +179,16 @@
                                         <div class="slds-truncate" title="sbu">SBU</div>
                                     </th>
                                     <th scope="col">
-                                        <div class="slds-truncate">Plant Code</div>
+                                        <div class="slds-truncate" title="sbu">Plant Code</div>
                                     </th>
                                     <th scope="col">
-                                        <div class="slds-truncate">Customer Name</div>
+                                        <div class="slds-truncate" title="sbu">Customer Name</div>
                                     </th>
                                     <th scope="col">
-                                        <div class="slds-truncate">Bill To Party</div>
+                                        <div class="slds-truncate" title="sbu">Bill To Party</div>
                                     </th>
                                     <th scope="col">
-                                        <div class="slds-truncate">Ship To Party</div>
+                                        <div class="slds-truncate" title="sbu">Ship To Party</div>
                                     </th>
 
                                     <th scope="col">
@@ -241,7 +241,7 @@
                                                 </div>
                                             </td>
                                             <td class="slds-p-around_none">
-                                                <div if:true={il.SBU__c}>{il.SBU__c}</div>
+                                                <div if:true={il.SBU_val}>{il.SBU_val}</div>
                                             </td>
 
                                             <td class="slds-p-around_none">
@@ -465,14 +465,12 @@
             <table class="slds-table slds-table_bordered slds-no-row-hover slds-table_cell-buffer" role="grid">
                 <thead>
                 <tr>
-                    <th scope="col" height="22" style="width: 10%">Sr. No.</th>
+                    <th scope="col" height="22" style="width: 3rem">Nr.</th>
                     <th scope="col" height="22" style="width: 10%;">Disptach Qty</th>
                     <th scope="col" height="22" style="width: 20%;">Dispatch Plan Date</th>
-                    <th scope="col" height="22" style="width: 20%;">Planning Disptach Remarks</th>
-                    <th scope="col" height="22" style="width: 20%;">Deviation Reason</th>
-                    <th style="width: 20%; text-align:center;">
-                        <lightning-button variant="destructive" label="delete all" title="delete all" onclick={removeAllRows}></lightning-button>
-                    </th>
+                    <th scope="col" height="22" style="width: 35%;">Planning Disptach Remarks</th>
+                    <th scope="col" height="22" style="width: 35%;">Deviation Reason</th>
+                    <th scope="col" height="22" style="width: 3rem"></th>
                 </tr>
                 </thead>
                 <tbody>
@@ -501,10 +499,13 @@
                 </template>
                 </tbody>
             </table>
+            <div class="slds-p-left_small slds-p-vertical_small">
+                <lightning-button class="slds-p-right_small" variant="destructive" label="delete all rows" title="delete all rows" icon-name="utility:recycle_bin_full" onclick={removeAllRows}></lightning-button>
+            </div>
         </div>
 
         <!-- modal footer start-->
-        <footer class="slds-modal__footer" style="text-align: center;">
+        <footer class="slds-modal__footer">
             <lightning-button icon-name="utility:save" variant="brand" label="Save" title="Save" onclick={save}></lightning-button>
             <button class="slds-button slds-button_neutral" onclick={hideModalBox}>Cancel</button>
         </footer>

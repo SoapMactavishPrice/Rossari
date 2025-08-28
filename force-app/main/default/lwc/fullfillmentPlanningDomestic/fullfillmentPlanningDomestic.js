@@ -192,7 +192,7 @@ export default class FullfillmentPlanningExport extends NavigationMixin(Lightnin
     }
 
     getFilterOptions() {
-        getOrderPicklistOptions({orderRecordType: 'Export'}).then((result)=>{
+        getOrderPicklistOptions({orderRecordType: 'Domestic'}).then((result)=>{
             console.log('getOrderPicklistOptions', result);
             this.filterOption = result;
         }).catch((error)=>{
@@ -421,7 +421,7 @@ export default class FullfillmentPlanningExport extends NavigationMixin(Lightnin
         this.noData = false;
         this.processing = true;
 
-        getSOData({ orderRecordType: 'Export' })
+        getSOData({ orderRecordType: 'Domestic' })
             .then((result) => {
 
                 //this.setDelay();
@@ -432,7 +432,6 @@ export default class FullfillmentPlanningExport extends NavigationMixin(Lightnin
                     console.log('length', this.recordList.length);
                     this.recordList.forEach((element) => {
                         element['edit_record'] = false;
-                        element['dupeId'] = element['Id'] + 'second';
                         if (element.Order_Header_Text__r != null) {
                             element['internal_remark'] = element.Order_Header_Text__r[0].Text_Description__c;
                         } else {
@@ -1373,7 +1372,7 @@ export default class FullfillmentPlanningExport extends NavigationMixin(Lightnin
         // }
     }
     searchButton() {
-        getFilteredOrders({filterStringObj: JSON.stringify(this.filterObject), orderType: 'Export'}).then((result)=>{
+        getFilteredOrders({filterStringObj: JSON.stringify(this.filterObject), orderType: 'Domestic'}).then((result)=>{
             console.log('getFilteredOrders', result);
             this.recordList = result;
 
