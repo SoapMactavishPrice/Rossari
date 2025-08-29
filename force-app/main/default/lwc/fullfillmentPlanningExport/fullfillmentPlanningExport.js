@@ -19,10 +19,10 @@ import saveline from '@salesforce/apex/Snop.saveline';
 import FORM_FACTOR from '@salesforce/client/formFactor';
 
 import savePartialDisptach from '@salesforce/apex/Snop.savePartialDisptach';
-import getPartialData from '@salesforce/apex/Snop.getPartialData';
+import getScheduledOrder from '@salesforce/apex/Snop.getScheduledOrder';
 import removeALlPartialData from '@salesforce/apex/Snop.removeALlPartialData';
 import removeRowPartialData from '@salesforce/apex/Snop.removeRowPartialData';
-import getDisptachList from '@salesforce/apex/Snop.getDisptachList';
+
 import saveHeader from '@salesforce/apex/Snop.saveHeader';
 import getOrderPicklistOptions from '@salesforce/apex/Snop.getOrderPicklistOptions';
 import getFilteredOrders from '@salesforce/apex/Snop.getFilteredOrders';
@@ -203,6 +203,7 @@ export default class FullfillmentPlanningExport extends NavigationMixin(Lightnin
 
     handleClick() {
         this.filterObject = {};
+        this.totalLineItem = 0;
         const filterSection = this.template.querySelector('.filter-section');
         if (filterSection) {
             const inputFields = this.template.querySelectorAll('lightning-input-field');
@@ -1358,21 +1359,9 @@ export default class FullfillmentPlanningExport extends NavigationMixin(Lightnin
         console.log('fieldValue-->', fieldValue);
         console.log('fieldName-->', fieldName);
 
-
-        // if (fieldName == 'customersname') {
-        //     this.allCustomersFilterQuery = fieldValue;
-        // }
-        // if (fieldName == 'propertyname') {
-        //     this.allPropertyFilterQuery = fieldValue;
-        // }
-        // if (fieldName == 'unitcode') {
-        //     this.allUnitcodeFilterQuery = fieldValue;
-        // }
-        // if (fieldName == 'commissionstatus') {
-        //     this.allCommissonstatusFilterQuery = fieldValue;
-        // }
     }
     searchButton() {
+        this.totalLineItem = 0;
         getFilteredOrders({filterStringObj: JSON.stringify(this.filterObject), orderType: 'Export'}).then((result)=>{
             console.log('getFilteredOrders', result);
             this.recordList = result;
@@ -1499,14 +1488,14 @@ export default class FullfillmentPlanningExport extends NavigationMixin(Lightnin
 
     @track totalLineItem=0;
     getSOlineItemLength(lineItemList){
-        this.totalLineItem=this.totalLineItem+lineItemList.length;
+        this.totalLineItem += lineItemList.length;
     }
 
     orderId='';
-     orderLinteItemId='';
-     pendingQty=0;
-     parentIndex=0;
-     childIndex=0;
+    orderLinteItemId='';
+    pendingQty=0;
+    parentIndex=0;
+    childIndex=0;
     openDisptachPlanningPopup(event){
         this.orderId=event.target.dataset.orderid
         this.orderLinteItemId=event.target.dataset.orderlineitem;
@@ -1516,7 +1505,7 @@ export default class FullfillmentPlanningExport extends NavigationMixin(Lightnin
         
         this.parentIndex=event.target.dataset.index
         this.childIndex=event.target.dataset.yindex
-        getPartialData({orderId:this.orderId,orderLineItemId:this.orderLinteItemId})
+        getScheduledOrder({orderId:this.orderId,orderLineItemId:this.orderLinteItemId})
         .then((result)=>{
             let res=result;
             if(res.length ==0){

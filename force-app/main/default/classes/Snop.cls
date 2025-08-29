@@ -5,7 +5,7 @@ public without sharing class Snop {
         try {
             List<Order> linelist = [SELECT AccountId, Account.Name, ActivatedById, ActivatedDate, BillingAddress, BillingCity, BillingCountry, BillingGeocodeAccuracy, BillingLatitude, BillingLongitude, BillingPostalCode, BillingState, BillingStreet, BillToContactId, 
                 CompanyAuthorizedById, SBU__c, Plant_Code__c, Plant_Code__r.Name, CompanyAuthorizedDate, CreatedById, CreatedDate, CurrencyIsoCode, CustomerAuthorizedById, CustomerAuthorizedDate, Description, Distribution_Channel__c, Division__c, Document_Currency__c, Division__r.Name,
-                Document_No__c, Ship_to_party__c, Ship_to_party__r.Name, Bill_to_party__c, Bill_to_party__r.Name, Pricing_Status__c, COGS_Status__c, Credit_Status__c, isBlocked__c, Document_Type__c, EffectiveDate, EndDate, Exchange_Rate__c, Id, Inco_Remark__c, Inco_Terms__c, IsDeleted, LastModifiedById, LastModifiedDate, LastReferencedDate, LastViewedDate, Name, Name__c, OpportunityId, Order_Reason__c, 
+                Document_No__c, Block_Status__c, Ship_to_party__c, Ship_to_party__r.Name, Bill_to_party__c, Bill_to_party__r.Name, Pricing_Status__c, COGS_Status__c, Credit_Status__c, isBlocked__c, Document_Type__c, EffectiveDate, EndDate, Exchange_Rate__c, Id, Inco_Remark__c, Inco_Terms__c, IsDeleted, LastModifiedById, LastModifiedDate, LastReferencedDate, LastViewedDate, Name, Name__c, OpportunityId, Order_Reason__c, 
                 OrderNumber, OrderReferenceNumber, OriginalOrderId, OwnerId, Partner_code__c, Partner_function__c, Payment_Terms__c, PoDate, PoNumber, Pricebook2Id, QuoteId, Reason_for_Rejection__c, Reqd_Del_Date__c, Sales_Group__c, Sales_office__c, Sales_Organisations__c, 
                 ShippingAddress, ShippingCity, ShippingCountry, ShippingGeocodeAccuracy, ShippingLatitude, ShippingLongitude, ShippingPostalCode, ShippingState, ShippingStreet, ShipToContactId, Status, StatusCode, SystemModstamp, TotalAmount, Type, Valid_from__c, Valid_To__c 
                 FROM Order WHERE Account.Business_Type__c = :orderRecordType];
@@ -17,21 +17,28 @@ public without sharing class Snop {
     }
 
     @AuraEnabled
-    public static List<OrderItem> getSOLineItem(List<String> pdata) {
-        try{
-            System.debug('pdata '+pdata);
+    public static List<Order_Scheduling_Line_Item_wise__c> getSOSchedulingLineItem(List<String> pdata) {
 
-            List<OrderItem> piList = [SELECT AvailableQuantity, Product2.Name, Product2.ProductCode, Product2.Base_UOM__r.Name, Product2.Description, Dispatch_Quantity__c, Balanced_Quantity__c, COGS_Margin__c, 
-                COGS_Percentage__c, COGS_Rate__c, CreatedById, CreatedDate, CurrencyIsoCode, Lead_time__c, Product2.Sales_UOM__c, Product2.Sales_UOM__r.Name,
-                Description, Discount__c, Discount_Amount__c, EndDate, Enquiry_Line_Item_No__c, First_Date__c, HSN_Code__c, Id, IsDeleted, Item_Category__c, Item_Number__c, 
-                LastModifiedById, LastModifiedDate, ListPrice, OrderId, OrderItemNumber, OriginalOrderItemId, Plant_Code__c, PricebookEntryId, Product2Id, Quantity, QuoteLineItemId, 
-                Sales_UOM__c, SAP_Line_No__c, ServiceDate, Status__c, Total_Price__c, TotalPrice, UnitPrice
-                FROM OrderItem WHERE OrderId IN :pdata];
-            return piList;
-        }
-        catch(Exception e){
-            return null;
-        }
+        List<Order_Scheduling_Line_Item_wise__c> piList = [
+            SELECT 
+                Id,
+                Name,
+                Confirmed_Quantity__c,
+                Scheduled_Quantity__c,
+                Balance_Quantity__c,
+                Delivery_Date__c,
+                Order__c,
+                Order_Product__r.Plant_Code__c,
+                Order_Product__r.Product2.Name, 
+                Order_Product__r.Product2.ProductCode, 
+                Order_Product__r.Product2.Base_UOM__r.Name, 
+                Order_Product__r.Product2.Description,
+                Order_Product__r.Product2.Sales_UOM__c, 
+                Order_Product__r.Product2.Sales_UOM__r.Name
+            FROM Order_Scheduling_Line_Item_wise__c
+            WHERE Order__c IN :pdata];
+        return piList;
+
     }
 
     @AuraEnabled
@@ -184,10 +191,6 @@ public without sharing class Snop {
         return Database.query(baseQuery);
     }
 
-
-
-
-
     @AuraEnabled
     public static string saveline(String lineItem){
         system.debug('lineItem >> ' +lineItem);
@@ -259,114 +262,88 @@ public without sharing class Snop {
             return String.valueOf(obj);
         }
     }
-    @AuraEnabled
-    public static Boolean savePartialDisptach(String orderId,String orderLineItemId,String dataList){
-        try {
-            List<Object> lineListdata = (List<Object>) JSON.deserializeUntyped(dataList);
-            System.debug('lst_data -> ' + lineListdata );
 
-            // List<Order> linelist = new List<Order>();
-            List<Partial_Disptach_Qty__c> linelist = new List<Partial_Disptach_Qty__c>();
-            for (Object asnline : lineListdata) {
-                Map<String, Object> mapdata = (Map<String, Object>)asnline;
-                System.debug('mp_data -> ' + mapdata );
-                Partial_Disptach_Qty__c t=new Partial_Disptach_Qty__c();
-                String id= (String)mapdata.get('Id');
-                t.Order__c=orderId;
-                t.Order_Product__c=orderLineItemId;
-                if(!id.Contains('create')){
-                    t.Id=(String)mapdata.get('Id');
-                }
-                if ((String)mapdata.get('Planning_Ready_by_Date__c') != null) {
-                    t.Planning_Ready_by_Date__c = Date.valueOf((String)mapdata.get('Planning_Ready_by_Date__c'));
-                    t.Name=Decimal.valueOf(String.valueOf(mapdata.get('Disptach_Qty__c')))+'qty Will be dispacthed on '+Date.valueOf((String)mapdata.get('Planning_Ready_by_Date__c'));
-                    // t.Name=(String)mapdata.get('Planning_Ready_by_Date__c')+'-'+(String)mapdata.get('Disptach_Qty__c');
-                   
-                }
-                System.debug('==> '+mapdata.get('Disptach_Qty__c') );
-                // if (mapdata.get('Disptach_Qty__c') != null) {
-                    t.Disptach_Qty__c = Decimal.valueOf(String.valueOf(mapdata.get('Disptach_Qty__c')));
-                    // t.Disptach_Qty__c = (Decimal)mapdata.get('Disptach_Qty__c');
-                // }
-                t.Planning_Dispatch_Remark__c= (String)mapdata.get('Planning_Dispatch_Remark__c');
-                t.Deviation_Reason__c= (String)mapdata.get('Deviation_Reason__c');
-                linelist.add(t);
+    @AuraEnabled
+    public static void saveCustomerSchedules(List<CustomerScheduleWrapper> wrapperList) {
+        List<Customer_Order_Schedule_Line_Item__c> recordsToUpsert = new List<Customer_Order_Schedule_Line_Item__c>();
+
+        for (CustomerScheduleWrapper wrap : wrapperList) {
+            Customer_Order_Schedule_Line_Item__c rec = new Customer_Order_Schedule_Line_Item__c();
+
+            if (wrap.recordId != null) {
+                rec.Id = wrap.recordId; // ensures update instead of insert
             }
-            UPSERT linelist;
+
+            rec.Name = wrap.name;
+            rec.Customer_Scheduled_Quantity__c = wrap.customerScheduledQuantity;
+            rec.Customer_Scheduled_Date__c = wrap.customerScheduledDate;
+            rec.Production_Revised_Date__c = wrap.productionRevisedDate;
+            rec.Production_Scheduled_Date__c = wrap.productionScheduledDate;
+            rec.Remarks_for_Production_Planner__c = wrap.remarksForProductionPlanner;
+            rec.Order__c = wrap.orderId;
+            rec.Order_Product__c = wrap.orderProductId;
+            rec.Order_Scheduling_Line_Item__c = wrap.orderSchedulingLineItemId;
+
+            recordsToUpsert.add(rec);
+        }
+
+        if (!recordsToUpsert.isEmpty()) {
+            upsert recordsToUpsert;
+        }
+    }
+
+
+    @AuraEnabled
+    public static List<CustomerScheduleWrapper> getScheduledOrder(String orderId, String orderLineItemId, String orderSchedulingLineItemId){
+        List<Customer_Order_Schedule_Line_Item__c> customerScheduleLineItem = 
+        [
+            SELECT 
+                Id, 
+                Name, 
+                Customer_Scheduled_Quantity__c,
+                Customer_Scheduled_Date__c,
+                Production_Revised_Date__c,
+                Production_Scheduled_Date__c,
+                Remarks_for_Production_Planner__c,
+                Order__c,
+                Order_Product__c,
+                Order_Scheduling_Line_Item__c
+            FROM Customer_Order_Schedule_Line_Item__c
+            WHERE Order__c=:orderId
+            AND Order_Product__c=:orderLineItemId
+            AND Order_Scheduling_Line_Item__c = :orderSchedulingLineItemId
+            ORDER By CreatedDate
+        ];
+
+        List<CustomerScheduleWrapper> customerScheduleObjs = new List<CustomerScheduleWrapper>();
+
+        for (Customer_Order_Schedule_Line_Item__c eachCustomerScheduleLineItem : customerScheduleLineItem) {
+            customerScheduleObjs.add(new CustomerScheduleWrapper(eachCustomerScheduleLineItem));
+        }
+
+        return customerScheduleObjs;
+    }
+
+    @AuraEnabled
+    public static Boolean removeAllCustomerSchedules(String orderId, String orderLineItemId, String orderSchedulingLineItemId){
+        List<Customer_Order_Schedule_Line_Item__c>  partialData = new List<Customer_Order_Schedule_Line_Item__c>();
+        partialData =[SELECT Id
+            FROM Customer_Order_Schedule_Line_Item__c
+            WHERE Order__c=:orderId
+            AND Order_Product__c=:orderLineItemId
+            AND Order_Scheduling_Line_Item__c = :orderSchedulingLineItemId];
+        DELETE partialData;
+        return true;
+    }
+
+    @AuraEnabled
+    public static Boolean removeRowCustomerSchedule(String scheduleId){
+        List<Customer_Order_Schedule_Line_Item__c>  partialData=new List<Customer_Order_Schedule_Line_Item__c>();
+        partialData =[SELECT Id
+            FROM Customer_Order_Schedule_Line_Item__c
+            WHERE Id=:scheduleId];
+            DELETE partialData;
             return true;
-        } catch (Exception e) {
-            return false;
-        }
-    }
-
-    @AuraEnabled
-    public static List<Partial_Disptach_Qty__c> getPartialData(String orderId,String orderLineItemId){
-        try {
-            return [SELECT Id,Name , Disptach_Qty__c,Order__c,Order_Product__c,Planning_Dispatch_Remark__c,Planning_Ready_by_Date__c,Deviation_Reason__c 
-                    FROM Partial_Disptach_Qty__c
-                    WHERE Order__c=:orderId
-                    AND Order_Product__c=:orderLineItemId
-                    ORDER By CreatedDate];
-        } catch (Exception e) {
-            throw new AuraHandledException(e.getMessage());
-        }
-    }
-
-    @AuraEnabled
-    public static List<Partial_Disptach_Qty__c> getDisptachList(String lineItem){
-        Set<Id> sitem = new Set<Id>();
-        try{
-            List<Object> lineListdata = (List<Object>) JSON.deserializeUntyped(lineItem);
-            System.debug('lst_data -> ' + lineListdata );
-            Set<Id> orderIds=new Set<Id>();
-            Set<Id> orderItemIds=new Set<Id>();
-            for (Object asnline : lineListdata) {
-                Map<String, Object> mapdata = (Map<String, Object>)asnline;
-                orderIds.add((String)mapdata.get('OrderId'));
-                orderItemIds.add((String)mapdata.get('Id'));
-            }
-
-            List<Partial_Disptach_Qty__c> partiaList=new List<Partial_Disptach_Qty__c>();
-            partiaList=[SELECT Id,Name , Disptach_Qty__c,Order__c,Order_Product__c,Planning_Dispatch_Remark__c,Planning_Ready_by_Date__c,Deviation_Reason__c 
-                    FROM Partial_Disptach_Qty__c
-                    WHERE Order__c IN :orderIds
-                    AND Order_Product__c IN:orderItemIds];
-
-            return partiaList;
-        }
-        catch(Exception e){
-            //ErrorLogCls.saveLog(e.getStackTraceString(),e.getMessage(),pdata,'');
-            return null;
-        }
-    }
-
-    @AuraEnabled
-    public static Boolean removeALlPartialData(String orderId,String orderLineItemId){
-        try {
-             List<Partial_Disptach_Qty__c>  partialData=new List<Partial_Disptach_Qty__c>();
-             partialData =[SELECT Id,Name , Disptach_Qty__c,Order__c,Order_Product__c,Planning_Dispatch_Remark__c,Planning_Ready_by_Date__c,Deviation_Reason__c 
-                    FROM Partial_Disptach_Qty__c
-                    WHERE Order__c=:orderId
-                    AND Order_Product__c=:orderLineItemId];
-                    DELETE partialData;
-                    return true;
-        } catch (Exception e) {
-            throw new AuraHandledException(e.getMessage());
-        }
-    }
-
-    @AuraEnabled
-    public static Boolean removeRowPartialData(String dispatchId){
-        try {
-             List<Partial_Disptach_Qty__c>  partialData=new List<Partial_Disptach_Qty__c>();
-             partialData =[SELECT Id,Name , Disptach_Qty__c,Order__c,Order_Product__c,Planning_Dispatch_Remark__c,Planning_Ready_by_Date__c,Deviation_Reason__c 
-                    FROM Partial_Disptach_Qty__c
-                    WHERE Id=:dispatchId];
-                    DELETE partialData;
-                    return true;
-        } catch (Exception e) {
-            throw new AuraHandledException(e.getMessage());
-        }
     }
 
     public class HeaderWrapper {
@@ -406,6 +383,32 @@ public without sharing class Snop {
         @AuraEnabled public String customerFilter { get; set; }
         @AuraEnabled public String billToFilter { get; set; }
         @AuraEnabled public String shipToFilter { get; set; }
+    }
+
+    public class CustomerScheduleWrapper {
+        public String recordId { get; set; }
+        public String name { get; set; }
+        public Decimal customerScheduledQuantity { get; set; }
+        public Date customerScheduledDate { get; set; }
+        public Date productionRevisedDate { get; set; }
+        public Date productionScheduledDate { get; set; }
+        public String remarksForProductionPlanner { get; set; }
+        public String orderId { get; set; }
+        public String orderProductId { get; set; }
+        public String orderSchedulingLineItemId { get; set; }
+
+        public CustomerScheduleWrapper(Customer_Order_Schedule_Line_Item__c rec) {
+            this.recordId = rec.Id;
+            this.name = rec.Name;
+            this.customerScheduledQuantity = rec.Customer_Scheduled_Quantity__c;
+            this.customerScheduledDate = rec.Customer_Scheduled_Date__c;
+            this.productionRevisedDate = rec.Production_Revised_Date__c;
+            this.productionScheduledDate = rec.Production_Scheduled_Date__c;
+            this.remarksForProductionPlanner = rec.Remarks_for_Production_Planner__c;
+            this.orderId = rec.Order__c;
+            this.orderProductId = rec.Order_Product__c;
+            this.orderSchedulingLineItemId = rec.Order_Scheduling_Line_Item__c;
+        }
     }
 
  

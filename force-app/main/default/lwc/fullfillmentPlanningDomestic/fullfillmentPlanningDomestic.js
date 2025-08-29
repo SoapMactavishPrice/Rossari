@@ -203,6 +203,7 @@ export default class FullfillmentPlanningExport extends NavigationMixin(Lightnin
 
     handleClick() {
         this.filterObject = {};
+        this.totalLineItem = 0;
         const filterSection = this.template.querySelector('.filter-section');
         if (filterSection) {
             const inputFields = this.template.querySelectorAll('lightning-input-field');
@@ -1372,6 +1373,7 @@ export default class FullfillmentPlanningExport extends NavigationMixin(Lightnin
         // }
     }
     searchButton() {
+        this.totalLineItem = 0;
         getFilteredOrders({filterStringObj: JSON.stringify(this.filterObject), orderType: 'Domestic'}).then((result)=>{
             console.log('getFilteredOrders', result);
             this.recordList = result;
@@ -1498,7 +1500,7 @@ export default class FullfillmentPlanningExport extends NavigationMixin(Lightnin
 
     @track totalLineItem=0;
     getSOlineItemLength(lineItemList){
-        this.totalLineItem=this.totalLineItem+lineItemList.length;
+        this.totalLineItem += lineItemList.length;
     }
 
     orderId='';

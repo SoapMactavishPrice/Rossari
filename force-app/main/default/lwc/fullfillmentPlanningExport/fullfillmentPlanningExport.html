@@ -191,18 +191,18 @@
                                         <div class="slds-truncate">Ship To Party</div>
                                     </th>
 
-                                    <th scope="col">
+                                    <th scope="col" style="width: 5%;">
                                         <div class="slds-truncate" title="so_clearance_date">Pricing Status
                                         </div>
                                     </th>
-                                    <th scope="col">
+                                    <th scope="col" style="width: 5%;">
                                         <div class="slds-truncate" title="vehicle_type">COGS Status</div>
                                     </th>
-                                    <th scope="col">
+                                    <th scope="col" style="width: 5%;">
                                         <div class="slds-truncate" title="vehicle_type">Credit Status</div>
                                     </th>
-                                    <th scope="col">
-                                        <div class="slds-truncate" title="internal_remarks">Is blocked?</div>
+                                    <th scope="col" style="width: 5%;">
+                                        <div class="slds-truncate" title="internal_remarks">Block Status</div>
                                     </th>
                                     <!-- <th scope="col">
                                         <div class="slds-truncate" title="Approval_status">Approval Status</div>
@@ -221,7 +221,7 @@
                                         <tr class="slds-line-height_reset table-row" key={il.Id} style={il.styleItem}>
                                             <td class="slds-p-around_none">
                                                 <lightning-icon icon-name="action:edit_relationship"
-                                                    alternative-text="Information" title="Information" size="x-small"
+                                                    alternative-text="Information" title="Information" size="xx-small"
                                                     onclick={f_flag_showhide} data-index={index}>
                                                 </lightning-icon>
                                             </td>
@@ -260,7 +260,7 @@
                                              <td class="slds-p-around_none">
                                                 <div class="slds-truncate" title={il.Ship_to_party__r.Name} if:true={il.Ship_to_party__c}>{il.Ship_to_party__r.Name}</div>
                                             </td>
-                                            <td class="slds-p-around_none">
+                                            <td class="slds-p-around_none" style="width: 5%;">
                                                 <div>
                                                     <lightning-record-edit-form
                                                         object-api-name="Order" record-id={il.Id}>
@@ -276,7 +276,7 @@
                                                     </lightning-record-edit-form>
                                                 </div>
                                             </td>
-                                            <td class="slds-p-around_none">
+                                            <td class="slds-p-around_none" style="width: 5%;">
                                                 <div>
                                                     <lightning-record-edit-form
                                                         object-api-name="Order" record-id={il.Id}>
@@ -292,7 +292,7 @@
                                                     </lightning-record-edit-form>
                                                 </div>
                                             </td>
-                                            <td class="slds-p-around_none">
+                                            <td class="slds-p-around_none" style="width: 5%;">
                                                 <div>
                                                     <lightning-record-edit-form
                                                         object-api-name="Order" record-id={il.Id}>
@@ -309,8 +309,8 @@
                                                 </div>
                                             </td>
                                             <td class="slds-p-around_none">
-                                                <div if:true={il.isBlocked__c}>
-                                                    {il.isBlocked__c}
+                                                <div if:true={il.Block_Status__c}>
+                                                    {il.Block_Status__c}
                                                 </div>
                                             </td>
                                             <!-- <td class="slds-p-around_none">
@@ -332,11 +332,10 @@
                                                                 <th></th>
                                                                 <th style="text-align: center;">Product Code</th>
                                                                 <th style="text-align: center;">Product Description</th>
-                                                                <th style="text-align: center;">Order Quantity</th>
+                                                                <th style="text-align: center;">Confirmed Quantity</th>
                                                                 <th style="text-align: center;">Sales Order - UOM</th>
-                                                                <th style="text-align: center;">Dispatch Quantity</th>
+                                                                <th style="text-align: center;">Scheduled Quantity</th>
                                                                 <th style="text-align: center;">Balanced Quantity</th>
-                                                                <th style="text-align: center;">Standard Lead Time (Number of Days)</th>
                                                                 <th></th>
                                                             </tr>
                                                         </thead>
@@ -361,26 +360,26 @@
                                                                 
                                                                 
                                                                 <td class=" freeze-col freeze-col5 item-data-td">
-                                                                    {pl.Product2.ProductCode}
+                                                                    {pl.Order_Product__r.Product2.ProductCode}
                                                                 </td>
                                                                 <td class="freeze-col freeze-col3 item-data-td">
-                                                                    {pl.Product2.Description}
+                                                                    {pl.Order_Product__r.Product2.Description}
                                                                 </td>
 
                                                                 <td style="text-align: center;" class="freeze-col freeze-col6 item-data-td">
-                                                                    {pl.Quantity}
+                                                                    {pl.Confirmed_Quantity__c}
                                                                 </td>
 
                                                                 <td class="freeze-col freeze-col4 item-data-td">
                                                                     <div if:true={pl.Product2.Sales_UOM__c}>
-                                                                        {pl.Product2.Sales_UOM__r.Name}
+                                                                        {pl.Order_Product__r.Product2.Sales_UOM__r.Name}
                                                                     </div>
                                                                 </td>
                                                                 <td style="text-align: center;" class="item-data-td">
-                                                                    {pl.Dispatch_Quantity__c}
+                                                                    {pl.Scheduled_Quantity__c}
                                                                 </td>
                                                                 <td style="text-align: center;" class="item-data-td">
-                                                                    {pl.Balanced_Quantity__c}
+                                                                    {pl.Balance_Quantity__c}
                                                                 </td>
                                                                 
                                                                 <td style="text-align: center;" class="item-data-td">
