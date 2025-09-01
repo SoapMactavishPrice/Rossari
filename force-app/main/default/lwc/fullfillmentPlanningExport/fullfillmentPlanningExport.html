@@ -1,516 +1,276 @@
 <template>
-    <div class="my-container" style="width: 100%; margin: 0 auto;overflow:auto;">
-        <template if:true={processing}>
-            <lightning-spinner alternative-text="Loading" size="small"></lightning-spinner>
-        </template>
-
-        <template if:true={pageVisible1}>
-            <!-- <lightning-card title="Filters" icon-name="standard:calibration"> -->
-            <div>
-                <div style="display: flex;align-items:center;margin-top: -10px;justify-content:space-between;"
-                    class="slds-m-bottom_x-small">
-                   <h1 class="slds-m-horizontal_large" style="font-size:large;">Total Order Line Item : {totalLineItem}</h1>
-                    <div class="toggleicon" onclick={collapse}>
-                        <lightning-formatted-text class="slds-form-element__label slds-col" style="font-size: large;"
-                            value="Filter"></lightning-formatted-text>
-                        <lightning-icon icon-name="action:filter" alternative-text="Filters" title="Filters"
-                            size="xx-small"></lightning-icon>
-                    </div>
-                    <div class="color-indication">
-                        <div class="color-indi-secton">
-                            <div class="color status_created slds-m-left_large"></div>
-                            <label class="color-label">Planned Order {filldispatchdate}</label>
-                        </div>
-                        <div class="color-indi-secton slds-m-left_large">
-                            <div class="color unplanned-color slds-m-left_large"></div>
-                            <label class="color-label slds-m-left_large">Unplanned Order {blankdispatchdate}</label>
-                        </div>
-                    </div>
-                    <div class="color-indication">
-                        
-
-                        <div class="color-indi-secton">
-                            <label class="color-label">Today's Dispatch ({todayDispatch})</label>
-                        </div>
-                        <div class="color-indi-secton slds-m-left_large">
-                            <label class="color-label slds-m-left_large">Next Day Dispatch ({NextDayDispatch})</label>
-                        </div>
-                        <div class="color-indi-secton slds-m-left_large">
-                            <label class="color-label slds-m-left_large">Day After Tommorrow Dispatch ({DayAfterTommorrowDisptach})</label>
-                        </div>
-
-                        <div class="color-indi-secton slds-m-left_large">
-                            <label class="color-label slds-m-left_large">Other Dispatch ({OtherDisptach})</label>
-                        </div>
-
-                    </div>
-                    <div class="color-indication">
-                        <div class="color-indi-secton">
-                            <div class="color more-color slds-m-left_large"></div>
-                            <label class="color-label status_pending_icon">Due for today ({dueforTodayCount})</label>
-                        </div>
-
-                        <div class="color-indi-secton">
-                            <div class="color intial-color slds-m-left_large"></div>
-                            <label class="color-label status_less_icon">Schedule missed ({scheduleMissed})</label>
-                        </div>
-
-                    </div>
-                </div>
-
-                <lightning-layout multiple-rows="true">
-                    <lightning-layout-item size="12" small-device-size="12" medium-device-size="12"
-                        large-device-size="12">
-                        <lightning-layout class="slds-grid">
-
-                            <lightning-layout-item size="12" small-device-size="12" medium-device-size="12"
-                                large-device-size="12"
-                                class="slds-p-horizontal_small stage-left close custom-left-side-section slds-m-vertical_small">
-                                <lightning-card>
-                                    <!-- Toggle Icon end-->
-                                    <lightning-layout multiple-rows="true"
-                                        class="custom-lightning-accordion lightning-accordion-hide filter-section">
-                                        <lightning-layout-item size="1" small-device-size="1" medium-device-size="1"
-                                            large-device-size="2" class="slds-var-p-around_small">
-                                            <div>
-                                                <!-- <label class="frm-input-label">SBU</label> -->
-                                                <lightning-combobox label="SBU" data-id="sbuFilter" value={filterObject.sbuFilter} placeholder="Select SBU"
-                                                    options={filterOption.sbuPicklist} onchange={handleFilterChanges}></lightning-combobox>
-                                            </div>
-                                        </lightning-layout-item>
-                                        <lightning-layout-item size="1" small-device-size="1" medium-device-size="1"
-                                            large-device-size="2" class="slds-var-p-around_small">
-                                            <div>
-                                                <lightning-combobox label="Status" data-id="statusFilter" value={filterObject.statusFilter} placeholder="Select Status"
-                                                    options={filterOption.orderStatusPicklist} onchange={handleFilterChanges}></lightning-combobox>
-                                            </div>
-                                        </lightning-layout-item>
-                                        <lightning-layout-item size="1" small-device-size="1" medium-device-size="1"
-                                            large-device-size="2" class="slds-var-p-around_small">
-                                            <div>
-                                                <lightning-combobox label="SO No." data-id="orderNumberFilter" value={filterObject.orderNumberFilter} placeholder="Select Order Number"
-                                                    options={filterOption.orderNumberPicklist} onchange={handleFilterChanges}></lightning-combobox>
-                                            </div>
-                                        </lightning-layout-item>
-                                        <lightning-layout-item size="1" small-device-size="1" medium-device-size="1"
-                                            large-device-size="2" class="slds-var-p-around_small">
-                                            <div>
-                                                <lightning-combobox label="Plant" data-id="plantFilter" value={filterObject.plantFilter} placeholder="Select Plant"
-                                                    options={filterOption.plantPicklist} onchange={handleFilterChanges}></lightning-combobox>
-                                            </div>
-                                        </lightning-layout-item>
-                                        <lightning-layout-item size="1" small-device-size="1" medium-device-size="1"
-                                            large-device-size="2" class="slds-var-p-around_small">
-                                            <div>
-                                                <lightning-combobox label="Customer Name" data-id="customerFilter" value={filterObject.customerFilter} placeholder="Select Customer Name"
-                                                    options={filterOption.customerPicklist} onchange={handleFilterChanges}></lightning-combobox>
-                                            </div>
-                                        </lightning-layout-item>
-                                        <lightning-layout-item size="1" small-device-size="1" medium-device-size="1"
-                                            large-device-size="2" class="slds-var-p-around_small">
-                                            <div>
-                                                <lightning-combobox label="Bill to party" data-id="billToFilter" value={filterObject.billToFilter} placeholder="Select Bill to party"
-                                                    options={filterOption.billToPartyPicklist} onchange={handleFilterChanges}></lightning-combobox>
-                                            </div>
-                                        </lightning-layout-item>
-                                        <lightning-layout-item size="1" small-device-size="1" medium-device-size="1"
-                                            large-device-size="2" class="slds-var-p-around_small">
-                                            <div>
-                                                <lightning-combobox label="Ship to party" data-id="shipToFilter" value={filterObject.shipToFilter} placeholder="Select Ship to party"
-                                                    options={filterOption.shipToPartyPicklist} onchange={handleFilterChanges}></lightning-combobox>
-                                            </div>
-                                        </lightning-layout-item>
-
-                                        <lightning-layout-item size="2" small-device-size="2" medium-device-size="2"
-                                            large-device-size="2" class="slds-var-p-around_small">
-                                            <div class="filter-button" style="margin-top: 5px;">
-                                                <lightning-button class="slds-m-top_small" onclick={handleClick}
-                                                    variant="brand" label="Reset" type="button"></lightning-button>
-                                                <lightning-button class="slds-m-top_small" onclick={searchButton}
-                                                    variant="brand" label="Search" type="button"></lightning-button>
-                                                <!-- <lightning-button class="slds-button" onclick={handleClick}
-                                                variant="brand">Reset</lightning-button>
-                                            <lightning-button class="slds-button" onclick={searchButton}
-                                                variant="brand">Search</lightning-button> -->
-                                            </div>
-                                        </lightning-layout-item>
-                                    </lightning-layout>
-                                </lightning-card>
-                            </lightning-layout-item>
-                            <!-- <section class="slds-grid_vertical slds-nowrap"> -->
-
-
-                            <!-- </section> -->
-                        </lightning-layout>
-                    </lightning-layout-item>
-                    <lightning-layout-item size="12" small-device-size="12" medium-device-size="12"
-                        large-device-size="12">
-                        <table
-                            class="slds-table slds-table_cell-buffer slds-table_bordered slds-table_fixed-layout slds-table_resizable-cols slds-no-row-hover">
-                            <thead>
-                                <tr class="slds-line-height_reset">
-                                    <th class="" scope="col" style="width:80px">
-                                    </th>
-                                    <th scope="col">
-                                        <div class="slds-truncate" title="so_no" onclick={sortSoNumber}>SO No
-                                        <div if:true={isSONumberSort}>
-                                            <div if:true={isAsc}>
-                                                &#9650;
-                                            </div>
-                                            <div if:true={isDsc}>
-                                                &#9660;
-                                            </div>
-                                        </div>
-                                        </div>
-                                    </th>
-                                    <th scope="col">
-                                        <div class="slds-truncate" title="so_date " onclick={sortSoDate}>SO Date
-                                            <div if:true={isSODateSort}>
-                                                <div if:true={isAsc}>
-                                                    &#9650;
-                                                </div>
-                                                <div if:true={isDsc}>
-                                                    &#9660;
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </th>
-                                    <th scope="col">
-                                        <div class="slds-truncate" title="sbu">SBU</div>
-                                    </th>
-                                    <th scope="col">
-                                        <div class="slds-truncate">Plant Code</div>
-                                    </th>
-                                    <th scope="col">
-                                        <div class="slds-truncate">Customer Name</div>
-                                    </th>
-                                    <th scope="col">
-                                        <div class="slds-truncate">Bill To Party</div>
-                                    </th>
-                                    <th scope="col">
-                                        <div class="slds-truncate">Ship To Party</div>
-                                    </th>
-
-                                    <th scope="col" style="width: 5%;">
-                                        <div class="slds-truncate" title="so_clearance_date">Pricing Status
-                                        </div>
-                                    </th>
-                                    <th scope="col" style="width: 5%;">
-                                        <div class="slds-truncate" title="vehicle_type">COGS Status</div>
-                                    </th>
-                                    <th scope="col" style="width: 5%;">
-                                        <div class="slds-truncate" title="vehicle_type">Credit Status</div>
-                                    </th>
-                                    <th scope="col" style="width: 5%;">
-                                        <div class="slds-truncate" title="internal_remarks">Block Status</div>
-                                    </th>
-                                    <!-- <th scope="col">
-                                        <div class="slds-truncate" title="Approval_status">Approval Status</div>
-                                    </th> -->
-                                    <th scope="col">
-                                        <div class="slds-truncate" title="status">Status</div>
-                                    </th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <template if:false={noData}>
-                                    <template if:true={recordList} for:each={recordList} for:item="il"
-                                        for:index="index">
-                                        <!-- <p key={il.Id}>test</p> -->
-                                        <!-- 15-05 -->
-                                        <tr class="slds-line-height_reset table-row" key={il.Id} style={il.styleItem}>
-                                            <td class="slds-p-around_none">
-                                                <lightning-icon icon-name="action:edit_relationship"
-                                                    alternative-text="Information" title="Information" size="xx-small"
-                                                    onclick={f_flag_showhide} data-index={index}>
-                                                </lightning-icon>
-                                            </td>
-                                            <td class="slds-p-around_none">
-                                                <a data-id={il.Id} onclick={navigateToRecord}>
-                                                    <div class="slds-truncate" title={il.SAP_Doc_no__c}
-                                                        if:true={il.SAP_Doc_no__c}>
-                                                        {il.SAP_Doc_no__c}</div>
-                                                    <div class="slds-truncate" title={il.OrderNumber}
-                                                    if:false={il.SAP_Doc_no__c}>
-                                                    {il.OrderNumber}</div>
-                                                </a>
-                                            </td>
-                                            <td class="slds-p-around_none">
-                                                <div if:true={il.EffectiveDate}>
-                                                    {il.EffectiveDate}
-                                                </div>
-                                            </td>
-                                            <td class="slds-p-around_none">
-                                                <div if:true={il.SBU__c}>{il.SBU__c}</div>
-                                            </td>
-
-                                            <td class="slds-p-around_none">
-                                                <div if:true={il.Plant_Code__c}>{il.Plant_Code__r.Name}</div>
-                                            </td>
-                                            <td class="slds-p-around_none">
-                                                <a data-id={il.AccountId} onclick={navigateToRecords}>
-                                                    <div class="slds-truncate" title={il.Account.Name}
-                                                        if:true={il.Account.Name}>
-                                                        {il.Account.Name}</div>
-                                                </a>
-                                            </td>
-                                             <td class="slds-p-around_none">
-                                                <div class="slds-truncate" title={il.Bill_to_party__r.Name} if:true={il.Bill_to_party__c}>{il.Bill_to_party__r.Name}</div>
-                                            </td>
-                                             <td class="slds-p-around_none">
-                                                <div class="slds-truncate" title={il.Ship_to_party__r.Name} if:true={il.Ship_to_party__c}>{il.Ship_to_party__r.Name}</div>
-                                            </td>
-                                            <td class="slds-p-around_none" style="width: 5%;">
-                                                <div>
-                                                    <lightning-record-edit-form
-                                                        object-api-name="Order" record-id={il.Id}>
-                                                        <lightning-input-field
-                                                            field-name="Pricing_Status__c"
-                                                            name="pricingStatus"
-                                                            data-fieldname="pricingStatus"
-                                                            variant="label-hidden"
-                                                            onchange={handleHeaderChange}
-                                                            data-id={il.Id} data-index={index}
-                                                            data-yindex={index_y}>
-                                                        </lightning-input-field>
-                                                    </lightning-record-edit-form>
-                                                </div>
-                                            </td>
-                                            <td class="slds-p-around_none" style="width: 5%;">
-                                                <div>
-                                                    <lightning-record-edit-form
-                                                        object-api-name="Order" record-id={il.Id}>
-                                                        <lightning-input-field
-                                                            field-name="COGS_Status__c"
-                                                            name="cogsStatus"
-                                                            data-fieldname="cogsStatus"
-                                                            variant="label-hidden"
-                                                            onchange={handleHeaderChange}
-                                                            data-id={il.Id} data-index={index}
-                                                            data-yindex={index_y}>
-                                                        </lightning-input-field>
-                                                    </lightning-record-edit-form>
-                                                </div>
-                                            </td>
-                                            <td class="slds-p-around_none" style="width: 5%;">
-                                                <div>
-                                                    <lightning-record-edit-form
-                                                        object-api-name="Order" record-id={il.Id}>
-                                                        <lightning-input-field
-                                                            field-name="Credit_Status__c"
-                                                            name="creditStatus"
-                                                            data-fieldname="creditStatus"
-                                                            variant="label-hidden"
-                                                            onchange={handleHeaderChange}
-                                                            data-id={il.Id} data-index={index}
-                                                            data-yindex={index_y}>
-                                                        </lightning-input-field>
-                                                    </lightning-record-edit-form>
-                                                </div>
-                                            </td>
-                                            <td class="slds-p-around_none">
-                                                <div if:true={il.Block_Status__c}>
-                                                    {il.Block_Status__c}
-                                                </div>
-                                            </td>
-                                            <!-- <td class="slds-p-around_none">
-                                                <div class="slds-truncate">{il.Approval_Status__c}</div>
-                                            </td> -->
-                                            <td class="slds-p-around_none">
-                                                <div class="slds-truncate" title={il.Status}>{il.Status}</div>
-                                            </td>
-                                        </tr>
-
-                                        <!-- 16-05 -->
-                                        <template if:true={il.item_list}>
-                                            <tr key={il.dupeId} style={il.styleHistory}>
-                                                <td colspan="12" style="padding-left:0;padding-right:0;">
-                                                    <table class="order-item-table">
-                                                        <thead>
-                                                            <tr class="slds-line-height_reset">
-                                                                <th></th>
-                                                                <th></th>
-                                                                <th style="text-align: center;">Product Code</th>
-                                                                <th style="text-align: center;">Product Description</th>
-                                                                <th style="text-align: center;">Confirmed Quantity</th>
-                                                                <th style="text-align: center;">Sales Order - UOM</th>
-                                                                <th style="text-align: center;">Scheduled Quantity</th>
-                                                                <th style="text-align: center;">Balanced Quantity</th>
-                                                                <th></th>
-                                                            </tr>
-                                                        </thead>
-                                                        <template for:each={il.item_list} for:item="pl"
-                                                            for:index="index_y">
-                                                            <!-- <tr key={il.Id} style="position: absolute;">
-                                                                <td style="width: inherit;border: none;"
-                                                                    class="order-item-header">
-                                                                    
-                                                                </td>
-                                                            </tr> -->
-
-                                                            <tr key={pl.Id} class="order-item-row slds-line-height_reset">
-                                                                <td></td>
-                                                                <td class="freeze-col item-data-td">
-                                                                    <lightning-icon icon-name="action:approval"
-                                                                        alternative-text="Approved" size="x-small"
-                                                                        class={pl.background_icon}
-                                                                        title="Approved"></lightning-icon>
-
-                                                                </td>
-                                                                
-                                                                
-                                                                <td class=" freeze-col freeze-col5 item-data-td">
-                                                                    {pl.Order_Product__r.Product2.ProductCode}
-                                                                </td>
-                                                                <td class="freeze-col freeze-col3 item-data-td">
-                                                                    {pl.Order_Product__r.Product2.Description}
-                                                                </td>
-
-                                                                <td style="text-align: center;" class="freeze-col freeze-col6 item-data-td">
-                                                                    {pl.Confirmed_Quantity__c}
-                                                                </td>
-
-                                                                <td class="freeze-col freeze-col4 item-data-td">
-                                                                    <div if:true={pl.Product2.Sales_UOM__c}>
-                                                                        {pl.Order_Product__r.Product2.Sales_UOM__r.Name}
-                                                                    </div>
-                                                                </td>
-                                                                <td style="text-align: center;" class="item-data-td">
-                                                                    {pl.Scheduled_Quantity__c}
-                                                                </td>
-                                                                <td style="text-align: center;" class="item-data-td">
-                                                                    {pl.Balance_Quantity__c}
-                                                                </td>
-                                                                
-                                                                <td style="text-align: center;" class="item-data-td">
-                                                                    <lightning-record-edit-form
-                                                                        object-api-name="OrderItem" record-id={pl.Id}>
-                                                                        <lightning-input-field
-                                                                            field-name="Lead_time__c"
-                                                                            name="Lead_time__c"
-                                                                            data-fieldname="Lead_time__c"
-                                                                            variant="label-hidden"
-                                                                            onchange={handleCustomControlChange}
-                                                                            data-id={pl.Id} data-index={index}
-                                                                            data-yindex={index_y}>
-                                                                        </lightning-input-field>
-                                                                    </lightning-record-edit-form>
-                                                                </td>
-                                                                <td class="item-data-td">
-                                                                    <lightning-button icon-name="utility:save" variant="brand" label="Plan multiple schedule" title="Plan multiple schedule" onclick={openDisptachPlanningPopup} data-orderid={il.Id} data-orderlineitem={pl.Id} data-pendingqty={pl.Quantity} disabled={pl.isPlanYourDisptachAvailable}  data-index={index} data-yindex={index_y} class={pl.isplannedStaus}></lightning-button>
-                                                                </td>
-                                                            </tr>
-                                                        </template>
-                                                    </table>
-                                                </td>
-                                            </tr>
-                                        </template>
-                                    </template>
-                                </template>
-                            </tbody>
-                        </table>
-                        <lightning-layout if:false={noData} multiple-rows>
-                            <lightning-layout-item size="12" small-device-size="12" medium-device-size="12"
-                                large-device-size="12" padding="around-small" style="text-align: center">
-                                <lightning-button class="slds-m-top_small slds-m-horizontal_xx-small" onclick={saveline}
-                                    variant="brand" label="Save" type="button"></lightning-button>
-                            </lightning-layout-item>
-                        </lightning-layout>
-
-                        <template if:true={noData}>
-                            <lightning-layout class="slds-var-p-vertical_xx-large">
-                                <lightning-layout-item size="3"
-                                    class="slds-var-p-vertical_xx-large"></lightning-layout-item>
-                                <lightning-layout-item size="6" class="slds-var-p-vertical_xx-large">
-                                    <img src="/img/chatter/OpenRoad.svg"
-                                        class="slds-illustration__svg slds-var-p-around_large" />
-                                </lightning-layout-item>
-                                <lightning-layout-item size="3"
-                                    class="slds-var-p-vertical_xx-large"></lightning-layout-item>
-                            </lightning-layout>
-                        </template>
-
-                        <c-common-pagination if:false={noData} all-filtered-clients={allFilteredClients}
-                            all-clients={allClients} total-records={totalRecords}
-                            onpaginationevent={handlePaginationEvent}></c-common-pagination>
-
-                    </lightning-layout-item>
-                </lightning-layout>
-            </div>
-        </template>
-
-
-
-        <c-dialog-ok title='Success' message='Updated Successfully' original-message='test message' confirm-label='Ok'
-            name="ModalOk" visible={isDialogVisible} onclosemodalclick={f_dok_save}>
-        </c-dialog-ok>
+    <div class="slds-p-around_medium">
+        <lightning-button-icon icon-name="action:filter" alternative-text="Toggle Filters"
+            onclick={toggleFilterSection} class="slds-m-around_medium" variant="bare"></lightning-button-icon>
     </div>
-    <!-- modal start -->      
-    <template if:true={isShowModal}>
-        <section role="dialog" tabindex="-1" aria-labelledby="modal-heading-01" aria-modal="true" aria-describedby="modal-content-id-1" class="slds-modal slds-fade-in-open">
-        <div class="slds-modal__container" style="max-width: 60%;width: 60%;">
-        <!-- modal header start -->
-        <header class="slds-modal__header">
-        <lightning-icon icon-name="utility:close"
-            alternative-text="close"
-            variant="inverse"
-            size="small" ></lightning-icon>
-        <span class="slds-assistive-text">Close</span>
-        <h2 id="modal-heading-01" class="slds-text-heading_medium slds-hyphenate">Plan your disptach for {pendingQty} Qty</h2>
-        </header>
 
-        <!-- modal body start -->
-        <div class="slds-modal__content slds-p-around_medium" id="modal-content-id-1">
-            <table class="slds-table slds-table_bordered slds-no-row-hover slds-table_cell-buffer" role="grid">
-                <thead>
+    <lightning-card if:true={showFilterSection} title="Filters">
+        <lightning-layout multiple-rows="true"
+            class="custom-lightning-accordion filter-section">
+            <lightning-layout-item size="1" small-device-size="1" medium-device-size="1" large-device-size="2"
+                class="slds-var-p-around_small">
+                <div>
+                    <lightning-combobox label="SBU" data-id="sbuFilter" value={filterObject.sbuFilter}
+                        placeholder="Select SBU" options={filterOption.sbuPicklist}
+                        onchange={handleFilterChanges}></lightning-combobox>
+                </div>
+            </lightning-layout-item>
+            <lightning-layout-item size="1" small-device-size="1" medium-device-size="1" large-device-size="2"
+                class="slds-var-p-around_small">
+                <div>
+                    <lightning-combobox label="Status" data-id="statusFilter" value={filterObject.statusFilter}
+                        placeholder="Select Status" options={filterOption.orderStatusPicklist}
+                        onchange={handleFilterChanges}></lightning-combobox>
+                </div>
+            </lightning-layout-item>
+            <lightning-layout-item size="1" small-device-size="1" medium-device-size="1" large-device-size="2"
+                class="slds-var-p-around_small">
+                <div>
+                    <lightning-combobox label="SO No." data-id="orderNumberFilter"
+                        value={filterObject.orderNumberFilter} placeholder="Select Order Number"
+                        options={filterOption.orderNumberPicklist} onchange={handleFilterChanges}></lightning-combobox>
+                </div>
+            </lightning-layout-item>
+            <lightning-layout-item size="1" small-device-size="1" medium-device-size="1" large-device-size="2"
+                class="slds-var-p-around_small">
+                <div>
+                    <lightning-combobox label="Plant" data-id="plantFilter" value={filterObject.plantFilter}
+                        placeholder="Select Plant" options={filterOption.plantPicklist}
+                        onchange={handleFilterChanges}></lightning-combobox>
+                </div>
+            </lightning-layout-item>
+            <lightning-layout-item size="1" small-device-size="1" medium-device-size="1" large-device-size="2"
+                class="slds-var-p-around_small">
+                <div>
+                    <lightning-combobox label="Customer Name" data-id="customerFilter"
+                        value={filterObject.customerFilter} placeholder="Select Customer Name"
+                        options={filterOption.customerPicklist} onchange={handleFilterChanges}></lightning-combobox>
+                </div>
+            </lightning-layout-item>
+            <lightning-layout-item size="1" small-device-size="1" medium-device-size="1" large-device-size="2"
+                class="slds-var-p-around_small">
+                <div>
+                    <lightning-combobox label="Bill to party" data-id="billToFilter" value={filterObject.billToFilter}
+                        placeholder="Select Bill to party" options={filterOption.billToPartyPicklist}
+                        onchange={handleFilterChanges}></lightning-combobox>
+                </div>
+            </lightning-layout-item>
+            <lightning-layout-item size="1" small-device-size="1" medium-device-size="1" large-device-size="2"
+                class="slds-var-p-around_small">
+                <div>
+                    <lightning-combobox label="Ship to party" data-id="shipToFilter" value={filterObject.shipToFilter}
+                        placeholder="Select Ship to party" options={filterOption.shipToPartyPicklist}
+                        onchange={handleFilterChanges}></lightning-combobox>
+                </div>
+            </lightning-layout-item>
+
+            <lightning-layout-item size="2" small-device-size="2" medium-device-size="2" large-device-size="2"
+                class="slds-var-p-around_small">
+                <div class="filter-button" style="margin-top: 5px;">
+                    <lightning-button class="slds-m-top_small slds-p-right_small slds-p-top_small" onclick={handleReset} variant="neutral" label="Reset"
+                        type="button"></lightning-button>
+                    <lightning-button class="slds-m-top_small slds-p-top_small" onclick={handleSearch} variant="brand" label="Search"
+                        type="button"></lightning-button>
+                </div>
+            </lightning-layout-item>
+        </lightning-layout>
+    </lightning-card>
+
+    <div class="slds-p-around_medium">
+        <p style="font-size: larger;">
+            Total line number: {totalLineNumber}
+        </p>
+    </div>
+
+    <lightning-card title="Fulfillment Planning">
+        <table class="slds-table slds-table_bordered slds-table_cell-buffer slds-table_striped">
+            <thead>
                 <tr>
-                    <th scope="col" height="22" style="width: 10%">Sr. No.</th>
-                    <th scope="col" height="22" style="width: 10%;">Disptach Qty</th>
-                    <th scope="col" height="22" style="width: 20%;">Dispatch Plan Date</th>
-                    <th scope="col" height="22" style="width: 20%;">Planning Disptach Remarks</th>
-                    <th scope="col" height="22" style="width: 20%;">Deviation Reason</th>
-                    <th style="width: 20%; text-align:center;">
-                        <lightning-button variant="destructive" label="delete all" title="delete all" onclick={removeAllRows}></lightning-button>
-                    </th>
+                    <th></th>
+                    <th style="text-align: center;">SO No.</th>
+                    <th style="text-align: center;">SO Date</th>
+                    <th style="text-align: center;">Account</th>
+                    <th style="text-align: center;">SBU</th>
+                    <th style="text-align: center;">Ship to party</th>
+                    <th style="text-align: center;">Bill to party</th>
+                    <th style="text-align: center;">Pricing Status</th>
+                    <th style="text-align: center;">COGS Status</th>
+                    <th style="text-align: center;">Credit Status</th>
+                    <th style="text-align: center;">Block Status</th>
+                    <th style="text-align: center;">Order Status</th>
                 </tr>
-                </thead>
-                <tbody>
-                <template for:each={listOfPartialAccount} for:item="rec">
-                    <tr key={rec} class="slds-hint-parent">
-                        <td style="font-weight: bold">
-                            <lightning-formatted-number value={rec.index}></lightning-formatted-number>.
-                        </td>
+            </thead>
+            <tbody>
+                <template for:each={orders} for:item="ord">
+                    <tr key={ord.orderId}>
                         <td>
-                            <lightning-input type="number" variant="label-hidden" label="" data-id={rec.index} name="Disptach_Qty__c" value={rec.Disptach_Qty__c} onchange={handleInputChange} step="0.1"></lightning-input>
+                            <lightning-button-icon icon-name="action:edit_relationship" alternative-text="Expand"
+                                onclick={toggleExpand} data-id={ord.orderId} variant="bare"></lightning-button-icon>
                         </td>
-                        <td>
-                            <lightning-input type="date" variant="label-hidden" label="" data-id={rec.index} name="Planning_Ready_by_Date__c" value={rec.Planning_Ready_by_Date__c} onchange={handleInputChange}></lightning-input>
+                        <td style="text-align: center;">
+                            <span class="slds-truncate" style="cursor: pointer;" onclick={navigateToRecord}
+                                data-id={ord.orderId}>
+                                {ord.orderNumber}
+                            </span>
                         </td>
-                        <td>
-                            <lightning-input type="text" variant="label-hidden" label="" data-id={rec.index} name="Planning_Dispatch_Remark__c" value={rec.Planning_Dispatch_Remark__c} onchange={handleInputChange}></lightning-input>
+                        <td style="text-align: center; width: 10%;">
+                            <lightning-input type="date" value={ord.effectiveDate} variant="label-hidden"
+                                disabled></lightning-input>
                         </td>
-                        <td>
-                            <lightning-input type="text" variant="label-hidden" label="" data-id={rec.index} name="Deviation_Reason__c" value={rec.Deviation_Reason__c} onchange={handleInputChange}></lightning-input>
+                        <td style="text-align: center;">
+                            <span class="slds-truncate" style="cursor: pointer;" onclick={navigateToRecord}
+                                data-id={ord.accountId}>
+                                {ord.accountName}
+                            </span>
                         </td>
-                        <td>
-                            <lightning-button-icon icon-name="utility:delete" alternative-text="Remove" title="Remove" name={rec.index} data-id={rec.Id} onclick={removeRow}></lightning-button-icon>
-                            <lightning-button-icon class="slds-p-left_small" icon-name="utility:add" alternative-text="Add" title="add additional row" onclick={addNewRow}></lightning-button-icon>
+                        <td style="text-align: center;">{ord.sbu}</td>
+                        <td style="text-align: center;">{ord.shipToPartyName}</td>
+                        <td style="text-align: center;">{ord.billToPartyName}</td>
+                        <td style="text-align: center;">
+                            <lightning-combobox value={ord.pricingStatus} options={pricingStatusOptions}
+                                data-id={ord.orderId} data-field="pricingStatus" onchange={handleOrderFieldChange}
+                                variant="label-hidden"></lightning-combobox>
                         </td>
+                        <td style="text-align: center;">
+                            <lightning-combobox value={ord.cogsStatus} options={cogsStatusOptions} data-id={ord.orderId}
+                                data-field="cogsStatus" onchange={handleOrderFieldChange}
+                                variant="label-hidden"></lightning-combobox>
+                        </td>
+                        <td style="text-align: center;">
+                            <lightning-combobox value={ord.creditStatus} options={creditStatusOptions}
+                                data-id={ord.orderId} data-field="creditStatus" onchange={handleOrderFieldChange}
+                                variant="label-hidden"></lightning-combobox>
+                        </td>
+                        <td style="text-align: center;">{ord.blockStatus}</td>
+                        <td style="text-align: center;">{ord.status}</td>
                     </tr>
+
+                    <!-- Expanded Scheduling Lines -->
+                    <template if:true={ord.isExpanded}>
+                        <template if:true={ord.orderSchedulingLine.length}>
+                            <tr key={ord.dupeId}>
+                                <td colspan="12">
+                                    <table
+                                        class="slds-table slds-table_bordered slds-table_cell-buffer slds-table_striped slds-m-left_medium">
+                                        <thead>
+                                            <tr>
+                                                <th style="text-align: center;">Product</th>
+                                                <th style="text-align: center;">Plant Code</th>
+                                                <th style="text-align: center;">Confirmed Qty</th>
+                                                <th style="text-align: center;">Scheduled Qty</th>
+                                                <th style="text-align: center;">Balance Qty</th>
+                                                <th style="text-align: center;">Delivery Date</th>
+                                                <th></th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <template for:each={ord.orderSchedulingLine} for:item="line">
+                                                <tr key={line.id}>
+                                                    <td style="text-align: center;">
+                                                        <span class="slds-truncate" style="cursor: pointer;"
+                                                            onclick={navigateToRecord} data-id={line.productId}>
+                                                            {line.productName}
+                                                        </span>
+                                                    </td>
+                                                    <td style="text-align: center;">{line.plantCode}</td>
+                                                    <td style="text-align: center;">{line.confirmedQuantity}</td>
+                                                    <td style="text-align: center;">{line.scheduledQuantity}</td>
+                                                    <td style="text-align: center;">{line.balanceQuantity}</td>
+                                                    <td style="text-align: center;">{line.deliveryDate}</td>
+                                                    <td style="text-align: center;">
+                                                        <lightning-button label="Schedule Customers"
+                                                            data-orderid={ord.orderId} data-lineid={line.id}
+                                                            data-orderline={line.orderProductId}
+                                                            data-confirmedqty={line.confirmedQuantity}
+                                                            onclick={openCustomerModal}></lightning-button>
+                                                    </td>
+                                                </tr>
+                                            </template>
+                                        </tbody>
+                                    </table>
+                                </td>
+                            </tr>
+                        </template>
+                    </template>
                 </template>
-                </tbody>
-            </table>
-        </div>
+            </tbody>
+        </table>
 
-        <!-- modal footer start-->
-        <footer class="slds-modal__footer" style="text-align: center;">
-            <lightning-button icon-name="utility:save" variant="brand" label="Save" title="Save" onclick={save}></lightning-button>
-            <button class="slds-button slds-button_neutral" onclick={hideModalBox}>Cancel</button>
+        <footer style="text-align: center;" class="slds-m-top_medium slds-m-bottom_medium">
+            <lightning-button label="Save" variant="brand" onclick={saveHeaderChanges}></lightning-button>
         </footer>
+    </lightning-card>
 
-        </div>
+    <!-- Customer Schedule Modal -->
+    <template if:true={isModalOpen}>
+        <section role="dialog" tabindex="-1" class="slds-modal slds-fade-in-open slds-modal_medium">
+            <div class="slds-modal__container">
+                <header class="slds-modal__header">
+                    <h2 class="slds-text-heading_medium">Schedule Customers</h2>
+                </header>
+                <div class="slds-modal__content slds-p-around_medium">
+                    <table class="slds-table slds-table_bordered slds-table_cell-buffer">
+                        <thead>
+                            <tr>
+                                <th style="text-align: center;">Scheduled Qty</th>
+                                <th style="text-align: center;">Scheduled Date</th>
+                                <th style="text-align: center;">Production Scheduled</th>
+                                <th style="text-align: center;">Production Revised</th>
+                                <th style="text-align: center;">Remarks</th>
+                                <th>
+                                    <lightning-button label="Delete All" variant="brand" onclick={deleteAllCustomerRows}
+                                        class="slds-m-left_small"></lightning-button>
+                                </th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <template for:each={customerSchedules} for:item="cs" for:index="index">
+                                <tr key={cs.tempId}>
+                                    <td>
+                                        <lightning-input type="number" value={cs.customerScheduledQuantity}
+                                            data-index={index} data-field="customerScheduledQuantity"
+                                            onchange={handleCustomerChange} variant="label-hidden"></lightning-input>
+                                    </td>
+                                    <td>
+                                        <lightning-input type="date" value={cs.customerScheduledDate} data-index={index}
+                                            data-field="customerScheduledDate" onchange={handleCustomerChange}
+                                            variant="label-hidden"></lightning-input>
+                                    </td>
+                                    <td>
+                                        <lightning-input type="date" value={cs.productionScheduledDate}
+                                            data-index={index} data-field="productionScheduledDate"
+                                            onchange={handleCustomerChange} variant="label-hidden"></lightning-input>
+                                    </td>
+                                    <td>
+                                        <lightning-input type="date" value={cs.productionRevisedDate} data-index={index}
+                                            data-field="productionRevisedDate" onchange={handleCustomerChange}
+                                            variant="label-hidden"></lightning-input>
+                                    </td>
+                                    <td>
+                                        <lightning-input value={cs.remarksForProductionPlanner} data-index={index}
+                                            data-field="remarksForProductionPlanner" onchange={handleCustomerChange}
+                                            variant="label-hidden"></lightning-input>
+                                    </td>
+                                    <td>
+                                        <lightning-button-icon class="slds-p-around_small" icon-name="utility:add"
+                                            onclick={addCustomerRow}></lightning-button-icon>
+                                        <lightning-button-icon icon-name="utility:delete" alternative-text="Delete"
+                                            data-index={index} onclick={deleteCustomerRow}></lightning-button-icon>
+                                    </td>
+                                </tr>
+                            </template>
+                        </tbody>
+                    </table>
+
+                </div>
+                <footer class="slds-modal__footer" style="text-align: center;">
+                    <lightning-button class="slds-p-around_small" variant="neutral" label="Cancel"
+                        onclick={closeCustomerModal}></lightning-button>
+                    <lightning-button variant="brand" label="Save"
+                        onclick={saveCustomerScheduleLine}></lightning-button>
+                </footer>
+            </div>
         </section>
         <div class="slds-backdrop slds-backdrop_open"></div>
     </template>
-    <!-- modal end -->
 </template>

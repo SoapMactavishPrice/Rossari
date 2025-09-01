@@ -1,44 +1,60 @@
 public without sharing class Snop {
 
-    @AuraEnabled
-    public static List <Order> getSOData(String orderRecordType) {
+    
+
+    @AuraEnabled(cacheable=true)
+    public static List<OrderWrapper> getOrdersWithLineItems(String orderRecordType) {
         try {
-            List<Order> linelist = [SELECT AccountId, Account.Name, ActivatedById, ActivatedDate, BillingAddress, BillingCity, BillingCountry, BillingGeocodeAccuracy, BillingLatitude, BillingLongitude, BillingPostalCode, BillingState, BillingStreet, BillToContactId, 
-                CompanyAuthorizedById, SBU__c, Plant_Code__c, Plant_Code__r.Name, CompanyAuthorizedDate, CreatedById, CreatedDate, CurrencyIsoCode, CustomerAuthorizedById, CustomerAuthorizedDate, Description, Distribution_Channel__c, Division__c, Document_Currency__c, Division__r.Name,
-                Document_No__c, Block_Status__c, Ship_to_party__c, Ship_to_party__r.Name, Bill_to_party__c, Bill_to_party__r.Name, Pricing_Status__c, COGS_Status__c, Credit_Status__c, isBlocked__c, Document_Type__c, EffectiveDate, EndDate, Exchange_Rate__c, Id, Inco_Remark__c, Inco_Terms__c, IsDeleted, LastModifiedById, LastModifiedDate, LastReferencedDate, LastViewedDate, Name, Name__c, OpportunityId, Order_Reason__c, 
-                OrderNumber, OrderReferenceNumber, OriginalOrderId, OwnerId, Partner_code__c, Partner_function__c, Payment_Terms__c, PoDate, PoNumber, Pricebook2Id, QuoteId, Reason_for_Rejection__c, Reqd_Del_Date__c, Sales_Group__c, Sales_office__c, Sales_Organisations__c, 
-                ShippingAddress, ShippingCity, ShippingCountry, ShippingGeocodeAccuracy, ShippingLatitude, ShippingLongitude, ShippingPostalCode, ShippingState, ShippingStreet, ShipToContactId, Status, StatusCode, SystemModstamp, TotalAmount, Type, Valid_from__c, Valid_To__c 
-                FROM Order WHERE Account.Business_Type__c = :orderRecordType];
-            return linelist;
+            List<Order> orders = [
+                SELECT Id, AccountId, Account.Name, SBU__c, Plant_Code__c, Plant_Code__r.Name,
+                       Block_Status__c, Ship_to_party__c, Ship_to_party__r.Name, Bill_to_party__c, Bill_to_party__r.Name,
+                       Pricing_Status__c, COGS_Status__c, Credit_Status__c, EffectiveDate, Status, OrderNumber, 
+                       Document_No__c, Name, CreatedDate
+                FROM Order
+                WHERE Account.Business_Type__c = :orderRecordType
+            ];
+
+            if (orders.isEmpty()) {
+                return new List<OrderWrapper>();
+            }
+
+            List<Order_Scheduling_Line_Item_wise__c> allLineItems = [
+                SELECT Id, Name, Confirmed_Quantity__c, Scheduled_Quantity__c, Balance_Quantity__c, Delivery_Date__c,
+                       Order__c,
+                       Order_Product__c,
+                       Order_Product__r.Plant_Code__c,
+                       Order_Product__r.Product2.Name,
+                       Order_Product__r.Product2.ProductCode,
+                       Order_Product__r.Product2.Base_UOM__r.Name,
+                       Order_Product__r.Product2.Description,
+                       Order_Product__r.Product2.Sales_UOM__c,
+                       Order_Product__r.Product2.Sales_UOM__r.Name
+                FROM Order_Scheduling_Line_Item_wise__c
+                WHERE Order__c IN :orders
+            ];
+
+            Map<Id, List<Order_Scheduling_Line_Item_wise__c>> lineItemMap = new Map<Id, List<Order_Scheduling_Line_Item_wise__c>>();
+            for (Order_Scheduling_Line_Item_wise__c li : allLineItems) {
+                if (!lineItemMap.containsKey(li.Order__c)) {
+                    lineItemMap.put(li.Order__c, new List<Order_Scheduling_Line_Item_wise__c>());
+                }
+                lineItemMap.get(li.Order__c).add(li);
+            }
+
+            List<OrderWrapper> results = new List<OrderWrapper>();
+            for (Order o : orders) {
+                List<Order_Scheduling_Line_Item_wise__c> relatedItems = lineItemMap.containsKey(o.Id) 
+                    ? lineItemMap.get(o.Id) 
+                    : new List<Order_Scheduling_Line_Item_wise__c>();
+
+                results.add(new OrderWrapper(o, relatedItems));
+            }
+
+            return results;
+
         } catch (Exception e) {
-            //ErrorLogCls.saveLog(e.getStackTraceString(), e.getMessage(), woid, '');
-            return null;
+            throw new AuraHandledException('Error fetching Orders with Line Items: ' + e.getMessage());
         }
-    }
-
-    @AuraEnabled
-    public static List<Order_Scheduling_Line_Item_wise__c> getSOSchedulingLineItem(List<String> pdata) {
-
-        List<Order_Scheduling_Line_Item_wise__c> piList = [
-            SELECT 
-                Id,
-                Name,
-                Confirmed_Quantity__c,
-                Scheduled_Quantity__c,
-                Balance_Quantity__c,
-                Delivery_Date__c,
-                Order__c,
-                Order_Product__r.Plant_Code__c,
-                Order_Product__r.Product2.Name, 
-                Order_Product__r.Product2.ProductCode, 
-                Order_Product__r.Product2.Base_UOM__r.Name, 
-                Order_Product__r.Product2.Description,
-                Order_Product__r.Product2.Sales_UOM__c, 
-                Order_Product__r.Product2.Sales_UOM__r.Name
-            FROM Order_Scheduling_Line_Item_wise__c
-            WHERE Order__c IN :pdata];
-        return piList;
-
     }
 
     @AuraEnabled
@@ -166,9 +182,6 @@ public without sharing class Snop {
         if (String.isNotBlank(filter.orderNumberFilter)) {
             conditions.add('OrderNumber = \'' + String.escapeSingleQuotes(filter.orderNumberFilter) + '\'');
         }
-        // if (filter.orderDateFilter != null) {
-        //     conditions.add('EffectiveDate = ' + filter.orderDateFilter.format('yyyy-mm-dd'));
-        // }
         if (String.isNotBlank(filter.plantFilter)) {
             conditions.add('Plant_Code__c = \'' + String.escapeSingleQuotes(filter.plantFilter) + '\'');
         }
@@ -189,78 +202,6 @@ public without sharing class Snop {
         System.debug('Final Query ==> ' + baseQuery);
 
         return Database.query(baseQuery);
-    }
-
-    @AuraEnabled
-    public static string saveline(String lineItem){
-        system.debug('lineItem >> ' +lineItem);
-
-        Savepoint sp = Database.setSavepoint();
-
-        Map<String,Object> mp=new Map<String,Object>();
-        // try
-        // {
-            List<Object> lineListdata = (List<Object>) JSON.deserializeUntyped(lineItem);
-            System.debug('lst_data -> ' + lineListdata );
-            Set<Id> orderIds=new Set<Id>();
-            Set<Id> orderItemIds=new Set<Id>();
-            for (Object asnline : lineListdata) {
-                Map<String, Object> mapdata = (Map<String, Object>)asnline;
-                orderIds.add((String)mapdata.get('OrderId'));
-                orderItemIds.add((String)mapdata.get('Id'));
-            }
-            List<Partial_Disptach_Qty__c> partiaList=new List<Partial_Disptach_Qty__c>();
-            partiaList=[SELECT Id,Name , Disptach_Qty__c,Order__c,Order_Product__c,Planning_Dispatch_Remark__c,Planning_Ready_by_Date__c,Deviation_Reason__c 
-                    FROM Partial_Disptach_Qty__c
-                    WHERE Order__c IN :orderIds
-                    AND Order_Product__c IN:orderItemIds];
-            Map<String,String> mpPartialList=new Map<String,String>();
-            for(Partial_Disptach_Qty__c row:partiaList){
-                mpPartialList.put(row.Order__c+'-'+row.Order_Product__c,row.Id);
-            }
-
-            List<Partial_Disptach_Qty__c> linelist_partial = new List<Partial_Disptach_Qty__c>();
-            List<OrderItem> linelist = new List<OrderItem>();
-            for (Object asnline : lineListdata) {
-                Map<String, Object> mapdata = (Map<String, Object>)asnline;
-                System.debug('mp_data -> ' + mapdata );
-
-                OrderItem t  = new OrderItem();
-                t.Id  = (String)mapdata.get('Id');
-                t.Lead_time__c = (String)mapdata.get('Lead_time__c');
-                linelist.add(t);
-            }
-
-            Boolean valiadateCheck = false;
-            if(linelist.size() > 0) {
-                UPDATE linelist;
-                List<Order> ord=[SELECT Id,Status FROM  Order WHERE Id IN: orderIds];
-                for(Order row:ord){
-                    row.Status='Dispatch Planned';
-                }
-                UPDATE ord; 
-            }
-            UPSERT linelist_partial;
-            valiadateCheck = true;
-
-            mp.put('status', true);
-            mp.put('msg','Insert Succesfully');
-            mp.put('ReceiptIssued', valiadateCheck);
-        // } catch (Exception e) {
-        //     Database.RollBack(sp);
-        //     //ErrorLogCls.saveLog(e.getStackTraceString(),e.getMessage(),lineItem, '');
-        //     mp.put('status', false);
-        //     mp.put('msg', e.getMessage());
-        // }
-        return JSON.serialize(mp);
-    }
-
-    public static String replacer(Object obj) {
-        if (obj == null) {
-            return '';
-        } else {
-            return String.valueOf(obj);
-        }
     }
 
     @AuraEnabled
@@ -309,8 +250,8 @@ public without sharing class Snop {
                 Order_Product__c,
                 Order_Scheduling_Line_Item__c
             FROM Customer_Order_Schedule_Line_Item__c
-            WHERE Order__c=:orderId
-            AND Order_Product__c=:orderLineItemId
+            WHERE Order__c = :orderId
+            AND Order_Product__c = :orderLineItemId
             AND Order_Scheduling_Line_Item__c = :orderSchedulingLineItemId
             ORDER By CreatedDate
         ];
@@ -385,7 +326,110 @@ public without sharing class Snop {
         @AuraEnabled public String shipToFilter { get; set; }
     }
 
-    public class CustomerScheduleWrapper {
+    public class OrderMaster {
+        @AuraEnabled public String orderId;
+        @AuraEnabled public String accountId;
+        @AuraEnabled public String accountName;
+        @AuraEnabled public String sbu;
+        @AuraEnabled public String plantCode;
+        @AuraEnabled public String plantCodeName;
+        @AuraEnabled public String blockStatus;
+        @AuraEnabled public String shipToPartyId;
+        @AuraEnabled public String shipToPartyName;
+        @AuraEnabled public String billToPartyId;
+        @AuraEnabled public String billToPartyName;
+        @AuraEnabled public String pricingStatus;
+        @AuraEnabled public String cogsStatus;
+        @AuraEnabled public String creditStatus;
+        @AuraEnabled public Date effectiveDate;
+        @AuraEnabled public String status;
+        @AuraEnabled public String orderNumber;
+        @AuraEnabled public String documentNo;
+        @AuraEnabled public String name;
+        @AuraEnabled public Datetime createdDate;
+        @AuraEnabled public Boolean isExpanded = false;
+        @AuraEnabled public List<OrderSchedulingLine> orderSchedulingLine;
+
+        public OrderMaster(Order order, List<OrderSchedulingLine> lineItems) {
+            this.orderId          = order.Id;
+            this.accountId        = order.AccountId;
+            this.accountName      = (order.Account != null) ? order.Account.Name : null;
+            this.sbu              = order.SBU__c;
+            this.plantCode        = order.Plant_Code__c;
+            this.plantCodeName    = (order.Plant_Code__r != null) ? order.Plant_Code__r.Name : null;
+            this.blockStatus      = order.Block_Status__c;
+            this.shipToPartyId    = order.Ship_to_party__c;
+            this.shipToPartyName  = (order.Ship_to_party__r != null) ? order.Ship_to_party__r.Name : null;
+            this.billToPartyId    = order.Bill_to_party__c;
+            this.billToPartyName  = (order.Bill_to_party__r != null) ? order.Bill_to_party__r.Name : null;
+            this.pricingStatus    = order.Pricing_Status__c;
+            this.cogsStatus       = order.COGS_Status__c;
+            this.creditStatus     = order.Credit_Status__c;
+            this.effectiveDate    = order.EffectiveDate;
+            this.status           = order.Status;
+            this.orderNumber      = order.OrderNumber;
+            this.documentNo       = order.Document_No__c;
+            this.name             = order.Name;
+            this.createdDate      = order.CreatedDate;
+            this.orderSchedulingLine = lineItems;
+        }
+    }
+
+    public class OrderSchedulingLine {
+        @AuraEnabled public Id id;
+        @AuraEnabled public String name;
+        @AuraEnabled public Decimal confirmedQuantity;
+        @AuraEnabled public Decimal scheduledQuantity;
+        @AuraEnabled public Decimal balanceQuantity;
+        @AuraEnabled public Date deliveryDate;
+        @AuraEnabled public Id orderId;
+        @AuraEnabled public Id orderProductId;
+        @AuraEnabled public String plantCode;
+        @AuraEnabled public String productName;
+        @AuraEnabled public String productCode;
+        @AuraEnabled public String baseUOMName;
+        @AuraEnabled public String productDescription;
+        @AuraEnabled public String salesUOM;
+        @AuraEnabled public String salesUOMName;
+        @AuraEnabled public List<CustomerOrderSchedulingLine> customerSchedules;
+
+        public OrderSchedulingLine(Order_Scheduling_Line_Item_wise__c orderSchedulingLine, List<Customer_Order_Schedule_Line_Item__c> customerSchedules) {
+            this.id                 = orderSchedulingLine.Id;
+            this.name               = orderSchedulingLine.Name;
+            this.confirmedQuantity  = orderSchedulingLine.Confirmed_Quantity__c;
+            this.scheduledQuantity  = orderSchedulingLine.Scheduled_Quantity__c;
+            this.balanceQuantity    = orderSchedulingLine.Balance_Quantity__c;
+            this.deliveryDate       = orderSchedulingLine.Delivery_Date__c;
+            this.orderId            = orderSchedulingLine.Order__c;
+            this.orderProductId     = orderSchedulingLine.Order_Product__c;
+            this.plantCode          = (orderSchedulingLine.Order_Product__r != null) ? orderSchedulingLine.Order_Product__r.Plant_Code__c : null;
+            this.productName        = (orderSchedulingLine.Order_Product__r != null && orderSchedulingLine.Order_Product__r.Product2 != null) 
+                                    ? orderSchedulingLine.Order_Product__r.Product2.Name : null;
+            this.productCode        = (orderSchedulingLine.Order_Product__r != null && orderSchedulingLine.Order_Product__r.Product2 != null) 
+                                    ? orderSchedulingLine.Order_Product__r.Product2.ProductCode : null;
+            this.baseUOMName        = (orderSchedulingLine.Order_Product__r != null && orderSchedulingLine.Order_Product__r.Product2 != null && orderSchedulingLine.Order_Product__r.Product2.Base_UOM__r != null) 
+                                    ? orderSchedulingLine.Order_Product__r.Product2.Base_UOM__r.Name : null;
+            this.productDescription = (orderSchedulingLine.Order_Product__r != null && orderSchedulingLine.Order_Product__r.Product2 != null) 
+                                    ? orderSchedulingLine.Order_Product__r.Product2.Description : null;
+            this.salesUOM           = (orderSchedulingLine.Order_Product__r != null && orderSchedulingLine.Order_Product__r.Product2 != null) 
+                                    ? orderSchedulingLine.Order_Product__r.Product2.Sales_UOM__c : null;
+            this.salesUOMName       = (orderSchedulingLine.Order_Product__r != null && orderSchedulingLine.Order_Product__r.Product2 != null && orderSchedulingLine.Order_Product__r.Product2.Sales_UOM__r != null) 
+                                    ? orderSchedulingLine.Order_Product__r.Product2.Sales_UOM__r.Name : null;
+
+            for (Customer_Order_Schedule_Line_Item__c custSchedule : customerSchedules) {
+                for (Customer_Order_Schedule_Line_Item__c custSchedule : customerSchedules) {
+                    if (custSchedule.Order__c == this.orderId && custSchedule.Order_Product__c == this.orderProductId && custSchedule.Order_Scheduling_Line_Item__c == this.id) {
+                        if (this.customerSchedules == null) {
+                            this.customerSchedules = new List<CustomerOrderSchedulingLine>();
+                        }
+                        this.customerSchedules.add(new CustomerOrderSchedulingLine(custSchedule));
+                    }
+                }
+            }
+        }
+    }
+
+    public class CustomerOrderSchedulingLine {
         public String recordId { get; set; }
         public String name { get; set; }
         public Decimal customerScheduledQuantity { get; set; }
@@ -397,7 +441,7 @@ public without sharing class Snop {
         public String orderProductId { get; set; }
         public String orderSchedulingLineItemId { get; set; }
 
-        public CustomerScheduleWrapper(Customer_Order_Schedule_Line_Item__c rec) {
+        public CustomerOrderSchedulingLine(Customer_Order_Schedule_Line_Item__c rec) {
             this.recordId = rec.Id;
             this.name = rec.Name;
             this.customerScheduledQuantity = rec.Customer_Scheduled_Quantity__c;
@@ -410,6 +454,7 @@ public without sharing class Snop {
             this.orderSchedulingLineItemId = rec.Order_Scheduling_Line_Item__c;
         }
     }
+
 
  
 }
