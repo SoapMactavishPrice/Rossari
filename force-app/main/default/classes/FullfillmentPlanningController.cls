@@ -7,7 +7,8 @@ public without sharing class FullfillmentPlanningController {
 
         List<Order> orders = [
             SELECT Id, AccountId, Account.Name, SBU__c, Plant_Code__c, Plant_Code__r.Name,
-                Block_Status__c, Ship_to_party__c, Ship_to_party__r.Name, Bill_to_party__c, Bill_to_party__r.Name,
+                Block_Status__c, Ship_to_party__c, Ship_to_party__r.Name, Ship_to_party__r.Account__r.SAP_Customer_Code__c, 
+                Bill_to_party__c, Bill_to_party__r.Name, Bill_to_party__r.Account__r.SAP_Customer_Code__c,
                 Pricing_Status__c, COGS_Status__c, Credit_Status__c, EffectiveDate, Status, OrderNumber,
                 Document_No__c, Name, CreatedDate
             FROM Order
@@ -22,7 +23,9 @@ public without sharing class FullfillmentPlanningController {
             SELECT Id, Name, Confirmed_Quantity__c, Scheduled_Quantity__c, Balance_Quantity__c, Delivery_Date__c,
                 Order__c,
                 Order_Product__c,
-                Order_Product__r.Plant_Code__c,
+                Order_Product__r.Product2.Plant_Code__c,
+                Order_Product__r.Product2.Plant_Code__r.Name,
+                Order_Product__r.Plant__r.Name,
                 Order_Product__r.Product2Id,
                 Order_Product__r.Product2.Name,
                 Order_Product__r.Product2.ProductCode,
@@ -32,11 +35,12 @@ public without sharing class FullfillmentPlanningController {
                 Order_Product__r.Product2.Sales_UOM__r.Name
             FROM Order_Scheduling_Line_Item_wise__c
             WHERE Order__c IN :orders
+            ORDER BY Order_Product__r.Product2.ProductCode
         ];
 
         List<Customer_Order_Schedule_Line_Item__c> custSchedules = [
-            SELECT Id, Name, Customer_Scheduled_Quantity__c, Customer_Scheduled_Date__c,
-                Production_Revised_Date__c, Production_Scheduled_Date__c,
+            SELECT Id, Name, Customer_Scheduled_Quantity__c, Customer_Scheduled_Date__c, Customer_Secheduled_If_any_Revision_R__c,
+                Production_Revised_Date__c, Production_Scheduled_Date__c, Production_Revised_Date_Reason__c,
                 Remarks_for_Production_Planner__c,
                 Order__c, Order_Product__c, Order_Scheduling_Line_Item__c
             FROM Customer_Order_Schedule_Line_Item__c
@@ -114,7 +118,9 @@ public without sharing class FullfillmentPlanningController {
             SELECT Id, Name, Confirmed_Quantity__c, Scheduled_Quantity__c, Balance_Quantity__c, Delivery_Date__c,
                 Order__c,
                 Order_Product__c,
-                Order_Product__r.Plant_Code__c,
+                Order_Product__r.Product2.Plant_Code__c,
+                Order_Product__r.Product2.Plant_Code__r.Name,
+                Order_Product__r.Plant__r.Name,
                 Order_Product__r.Product2Id,
                 Order_Product__r.Product2.Name,
                 Order_Product__r.Product2.ProductCode,
@@ -124,11 +130,12 @@ public without sharing class FullfillmentPlanningController {
                 Order_Product__r.Product2.Sales_UOM__r.Name
             FROM Order_Scheduling_Line_Item_wise__c
             WHERE Order__c IN :orders
+            ORDER BY Order_Product__r.Product2.ProductCode
         ];
 
         List<Customer_Order_Schedule_Line_Item__c> custSchedules = [
-            SELECT Id, Name, Customer_Scheduled_Quantity__c, Customer_Scheduled_Date__c,
-                Production_Revised_Date__c, Production_Scheduled_Date__c,
+            SELECT Id, Name, Customer_Scheduled_Quantity__c, Customer_Scheduled_Date__c, Customer_Secheduled_If_any_Revision_R__c,
+                Production_Revised_Date__c, Production_Scheduled_Date__c, Production_Revised_Date_Reason__c,
                 Remarks_for_Production_Planner__c,
                 Order__c, Order_Product__c, Order_Scheduling_Line_Item__c
             FROM Customer_Order_Schedule_Line_Item__c
@@ -168,8 +175,8 @@ public without sharing class FullfillmentPlanningController {
     @AuraEnabled
     public static List<CustomerOrderSchedulingLine> getCustomerSchedules(String orderId, String orderProductLineId, String orderSchedulingLineItemId) {
         List<Customer_Order_Schedule_Line_Item__c> custSchedules = [
-            SELECT Id, Name, Customer_Scheduled_Quantity__c, Customer_Scheduled_Date__c,
-                Production_Revised_Date__c, Production_Scheduled_Date__c,
+            SELECT Id, Name, Customer_Scheduled_Quantity__c, Customer_Scheduled_Date__c, Customer_Secheduled_If_any_Revision_R__c, 
+                Production_Revised_Date__c, Production_Scheduled_Date__c, Production_Revised_Date_Reason__c,
                 Remarks_for_Production_Planner__c,
                 Order__c, Order_Product__c, Order_Scheduling_Line_Item__c
             FROM Customer_Order_Schedule_Line_Item__c
@@ -208,6 +215,8 @@ public without sharing class FullfillmentPlanningController {
             rec.Order_Scheduling_Line_Item__c = wrap.orderSchedulingLineItemId;
             rec.Name = wrap.name;
             rec.Customer_Scheduled_Quantity__c = wrap.customerScheduledQuantity;
+            rec.Customer_Secheduled_If_any_Revision_R__c = wrap.customerScheduleReason;
+            rec.Production_Revised_Date_Reason__c = wrap.productionRevisedReason;
             rec.Customer_Scheduled_Date__c = wrap.customerScheduledDate;
             rec.Production_Revised_Date__c = wrap.productionRevisedDate;
             rec.Production_Scheduled_Date__c = wrap.productionScheduledDate;
@@ -339,9 +348,10 @@ public without sharing class FullfillmentPlanningController {
         FilterWrapper filter = parseFilter(filterStringObj);
 
         String baseQuery = 
-            'SELECT Id, AccountId, Account.Name, SBU__c, Plant_Code__c, Plant_Code__r.Name, ' +
-            'Block_Status__c, Ship_to_party__c, Ship_to_party__r.Name, Bill_to_party__c, Bill_to_party__r.Name,' +
-            'Pricing_Status__c, COGS_Status__c, Credit_Status__c, EffectiveDate, Status, OrderNumber,' +
+            'SELECT Id, AccountId, Account.Name, SBU__c, Plant_Code__c, Plant_Code__r.Name, '+
+            'Block_Status__c, Ship_to_party__c, Ship_to_party__r.Name, Ship_to_party__r.Account__r.SAP_Customer_Code__c, '+
+            'Bill_to_party__c, Bill_to_party__r.Name, Bill_to_party__r.Account__r.SAP_Customer_Code__c, '+
+            'Pricing_Status__c, COGS_Status__c, Credit_Status__c, EffectiveDate, Status, OrderNumber, '+
             'Document_No__c, Name, CreatedDate ' +
             'FROM Order WHERE Account.Business_Type__c = \'' + String.escapeSingleQuotes(orderType) + '\'';
 
@@ -437,8 +447,10 @@ public without sharing class FullfillmentPlanningController {
         @AuraEnabled public String plantCodeName;
         @AuraEnabled public String blockStatus;
         @AuraEnabled public String shipToPartyId;
+        @AuraEnabled public String shipToPartyCode;
         @AuraEnabled public String shipToPartyName;
         @AuraEnabled public String billToPartyId;
+        @AuraEnabled public String billToPartyCode;
         @AuraEnabled public String billToPartyName;
         @AuraEnabled public String pricingStatus;
         @AuraEnabled public String cogsStatus;
@@ -478,6 +490,8 @@ public without sharing class FullfillmentPlanningController {
             this.documentNo          = order.Document_No__c;
             this.name                = order.Name;
             this.createdDate         = order.CreatedDate;
+            this.shipToPartyCode     = (order.Ship_to_party__r != null && order.Ship_to_party__r.Account__r != null) ? order.Ship_to_party__r.Account__r.SAP_Customer_Code__c : null;
+            this.billToPartyCode     = (order.Bill_to_party__r != null && order.Bill_to_party__r.Account__r != null) ? order.Bill_to_party__r.Account__r.SAP_Customer_Code__c : null;
             this.orderSchedulingLine = lineItems;
         }
     }
@@ -494,6 +508,7 @@ public without sharing class FullfillmentPlanningController {
         @AuraEnabled public String plantCode;
         @AuraEnabled public String productId;
         @AuraEnabled public String productName;
+        @AuraEnabled public String productDesc;
         @AuraEnabled public String productCode;
         @AuraEnabled public String baseUOMName;
         @AuraEnabled public String productDescription;
@@ -516,7 +531,7 @@ public without sharing class FullfillmentPlanningController {
             this.orderProductId     = orderSchedulingLine.Order_Product__c;
             this.productId          = (orderSchedulingLine.Order_Product__r != null && orderSchedulingLine.Order_Product__r.Product2Id != null) 
                                     ? orderSchedulingLine.Order_Product__r.Product2Id : null;
-            this.plantCode          = (orderSchedulingLine.Order_Product__r != null) ? orderSchedulingLine.Order_Product__r.Plant_Code__c : null;
+            this.plantCode          = (orderSchedulingLine.Order_Product__r != null && orderSchedulingLine.Order_Product__r.Product2 != null && orderSchedulingLine.Order_Product__r.Product2.Plant_Code__r != null) ? orderSchedulingLine.Order_Product__r.Product2.Plant_Code__r.Name : null;
             this.productName        = (orderSchedulingLine.Order_Product__r != null && orderSchedulingLine.Order_Product__r.Product2 != null) 
                                     ? orderSchedulingLine.Order_Product__r.Product2.Name : null;
             this.productCode        = (orderSchedulingLine.Order_Product__r != null && orderSchedulingLine.Order_Product__r.Product2 != null) 
@@ -546,6 +561,8 @@ public without sharing class FullfillmentPlanningController {
         @AuraEnabled public Date customerScheduledDate;
         @AuraEnabled public Date productionRevisedDate;
         @AuraEnabled public Date productionScheduledDate;
+        @AuraEnabled public String customerScheduleReason;
+        @AuraEnabled public String productionRevisedReason;
         @AuraEnabled public String remarksForProductionPlanner;
         @AuraEnabled public String orderId;
         @AuraEnabled public String orderProductId;
@@ -562,6 +579,8 @@ public without sharing class FullfillmentPlanningController {
             this.customerScheduledDate = rec.Customer_Scheduled_Date__c;
             this.productionRevisedDate = rec.Production_Revised_Date__c;
             this.productionScheduledDate = rec.Production_Scheduled_Date__c;
+            this.customerScheduleReason = rec.Customer_Secheduled_If_any_Revision_R__c;
+            this.productionRevisedReason = rec.Production_Revised_Date_Reason__c;
             this.remarksForProductionPlanner = rec.Remarks_for_Production_Planner__c;
             this.orderId = rec.Order__c;
             this.orderProductId = rec.Order_Product__c;

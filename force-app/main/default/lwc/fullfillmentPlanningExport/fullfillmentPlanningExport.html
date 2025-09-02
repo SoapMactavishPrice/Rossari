@@ -1,21 +1,76 @@
 <template>
+
     <div class="slds-p-around_medium">
-        <lightning-button-icon icon-name="action:filter" alternative-text="Toggle Filters"
-            onclick={toggleFilterSection} class="slds-m-around_medium" variant="bare"></lightning-button-icon>
+        <lightning-layout multiple-rows="false">
+            <lightning-layout-item padding="around-small" size="12">
+                <div class="slds-grid slds-gutters slds-wrap">
+                    <div class="slds-col slds-size_2-of-10">
+                        <template if:true={showFilterSection}>
+                            <lightning-button icon-name="action:filter" alternative-text="Toggle Filters" label="Hide Filters"
+                                onclick={toggleFilterSection} class="slds-m-around_medium" variant="bare"></lightning-button>
+                        </template>
+                        <template if:false={showFilterSection}>
+                            <lightning-button icon-name="action:filter" alternative-text="Toggle Filters" label="Show Filters"
+                                onclick={toggleFilterSection} class="slds-m-around_medium" variant="bare"></lightning-button>
+                        </template>
+                    </div>
+                    <div class="slds-col slds-size_1-of-10">
+                        <span>
+                            🟢 Planned Order: {plannedOrders} &nbsp;
+                        </span>
+                    </div>
+                    <div class="slds-col slds-size_1-of-10">
+                        <span>
+                            🟣 Unplanned Order: {unplannedOrders} &nbsp;
+                        </span>
+                    </div>
+                    <div class="slds-col slds-size_1-of-10">
+                        <span>
+                            ⚪ Today's Dispatch: {todayDispatch} &nbsp;
+                        </span>
+                    </div>
+                    <div class="slds-col slds-size_1-of-10">
+                        <span>
+                            ⚪ Next Day: {nextDayDispatch} &nbsp;
+                        </span>
+                    </div>
+                    <div class="slds-col slds-size_1-of-10">
+                        <span>
+                            ⚪ Day After: {dayAfterDispatch} &nbsp;
+                        </span>
+                    </div>
+                    <div class="slds-col slds-size_1-of-10">
+                        <span>
+                            ⚪ Other Dispatch: {otherDispatch} &nbsp;
+                        </span>
+                    </div>
+                    <div class="slds-col slds-size_1-of-10">
+                        <span>
+                            🟠 Due Today: {dueToday} &nbsp;
+                        </span>
+                    </div>
+                    <div class="slds-col slds-size_1-of-10">
+                        <span>
+                            🔴 Schedule Missed: {scheduleMissed} &nbsp;
+                        </span>
+                    </div>
+                </div>
+            </lightning-layout-item>
+        </lightning-layout>
     </div>
 
     <lightning-card if:true={showFilterSection} title="Filters">
         <lightning-layout multiple-rows="true"
             class="custom-lightning-accordion filter-section">
-            <lightning-layout-item size="1" small-device-size="1" medium-device-size="1" large-device-size="2"
-                class="slds-var-p-around_small">
+            <lightning-layout-item size="1" small-device-size="1" medium-device-size="1" large-device-size="1"
+                class="slds-var-p-around_small" style="margin-left: 10px;">
                 <div>
                     <lightning-combobox label="SBU" data-id="sbuFilter" value={filterObject.sbuFilter}
                         placeholder="Select SBU" options={filterOption.sbuPicklist}
                         onchange={handleFilterChanges}></lightning-combobox>
                 </div>
             </lightning-layout-item>
-            <lightning-layout-item size="1" small-device-size="1" medium-device-size="1" large-device-size="2"
+            <lightning-layout-item size="1" small-device-size="1" medium-device-size="1" large-device-size="1"
                 class="slds-var-p-around_small">
                 <div>
                     <lightning-combobox label="Status" data-id="statusFilter" value={filterObject.statusFilter}
@@ -23,7 +78,7 @@
                         onchange={handleFilterChanges}></lightning-combobox>
                 </div>
             </lightning-layout-item>
-            <lightning-layout-item size="1" small-device-size="1" medium-device-size="1" large-device-size="2"
+            <lightning-layout-item size="1" small-device-size="1" medium-device-size="1" large-device-size="1"
                 class="slds-var-p-around_small">
                 <div>
                     <lightning-combobox label="SO No." data-id="orderNumberFilter"
@@ -31,7 +86,7 @@
                         options={filterOption.orderNumberPicklist} onchange={handleFilterChanges}></lightning-combobox>
                 </div>
             </lightning-layout-item>
-            <lightning-layout-item size="1" small-device-size="1" medium-device-size="1" large-device-size="2"
+            <lightning-layout-item size="1" small-device-size="1" medium-device-size="1" large-device-size="1"
                 class="slds-var-p-around_small">
                 <div>
                     <lightning-combobox label="Plant" data-id="plantFilter" value={filterObject.plantFilter}
@@ -39,7 +94,7 @@
                         onchange={handleFilterChanges}></lightning-combobox>
                 </div>
             </lightning-layout-item>
-            <lightning-layout-item size="1" small-device-size="1" medium-device-size="1" large-device-size="2"
+            <lightning-layout-item size="1" small-device-size="1" medium-device-size="1" large-device-size="1"
                 class="slds-var-p-around_small">
                 <div>
                     <lightning-combobox label="Customer Name" data-id="customerFilter"
@@ -47,19 +102,19 @@
                         options={filterOption.customerPicklist} onchange={handleFilterChanges}></lightning-combobox>
                 </div>
             </lightning-layout-item>
-            <lightning-layout-item size="1" small-device-size="1" medium-device-size="1" large-device-size="2"
+            <lightning-layout-item size="1" small-device-size="1" medium-device-size="1" large-device-size="1"
                 class="slds-var-p-around_small">
                 <div>
-                    <lightning-combobox label="Bill to party" data-id="billToFilter" value={filterObject.billToFilter}
-                        placeholder="Select Bill to party" options={filterOption.billToPartyPicklist}
+                    <lightning-combobox label="Bill To Party" data-id="billToFilter" value={filterObject.billToFilter}
+                        placeholder="Select Bill To Party" options={filterOption.billToPartyPicklist}
                         onchange={handleFilterChanges}></lightning-combobox>
                 </div>
             </lightning-layout-item>
-            <lightning-layout-item size="1" small-device-size="1" medium-device-size="1" large-device-size="2"
+            <lightning-layout-item size="1" small-device-size="1" medium-device-size="1" large-device-size="1"
                 class="slds-var-p-around_small">
                 <div>
-                    <lightning-combobox label="Ship to party" data-id="shipToFilter" value={filterObject.shipToFilter}
-                        placeholder="Select Ship to party" options={filterOption.shipToPartyPicklist}
+                    <lightning-combobox label="Ship To Party" data-id="shipToFilter" value={filterObject.shipToFilter}
+                        placeholder="Select Ship To Party" options={filterOption.shipToPartyPicklist}
                         onchange={handleFilterChanges}></lightning-combobox>
                 </div>
             </lightning-layout-item>
@@ -91,17 +146,19 @@
                     <th style="text-align: center;">SO Date</th>
                     <th style="text-align: center;">Account</th>
                     <th style="text-align: center;">SBU</th>
-                    <th style="text-align: center;">Ship to party</th>
-                    <th style="text-align: center;">Bill to party</th>
+                    <th style="text-align: center;">Bill To Party Code</th>
+                    <th style="text-align: center;">Bill To Party</th>
+                    <th style="text-align: center;">Ship To Party Code</th>
+                    <th style="text-align: center;">Ship To Party</th>
+                    <th style="text-align: center;">Order Status</th>
                     <th style="text-align: center;">Pricing Status</th>
                     <th style="text-align: center;">COGS Status</th>
                     <th style="text-align: center;">Credit Status</th>
                     <th style="text-align: center;">Block Status</th>
-                    <th style="text-align: center;">Order Status</th>
                 </tr>
             </thead>
             <tbody>
-                <template for:each={orders} for:item="ord">
+                <template for:each={displayOrders} for:item="ord">
                     <tr key={ord.orderId}>
                         <td>
                             <lightning-button-icon icon-name="action:edit_relationship" alternative-text="Expand"
@@ -114,8 +171,7 @@
                             </span>
                         </td>
                         <td style="text-align: center; width: 10%;">
-                            <lightning-input type="date" value={ord.effectiveDate} variant="label-hidden"
-                                disabled></lightning-input>
+                            {ord.effectiveDate}
                         </td>
                         <td style="text-align: center;">
                             <span class="slds-truncate" style="cursor: pointer;" onclick={navigateToRecord}
@@ -124,8 +180,11 @@
                             </span>
                         </td>
                         <td style="text-align: center;">{ord.sbu}</td>
-                        <td style="text-align: center;">{ord.shipToPartyName}</td>
+                        <td style="text-align: center;">{ord.billToPartyCode}</td>
                         <td style="text-align: center;">{ord.billToPartyName}</td>
+                        <td style="text-align: center;">{ord.shipToPartyCode}</td>
+                        <td style="text-align: center;">{ord.shipToPartyName}</td>
+                        <td style="text-align: center;">{ord.status}</td>
                         <td style="text-align: center;">
                             <lightning-combobox value={ord.pricingStatus} options={pricingStatusOptions}
                                 data-id={ord.orderId} data-field="pricingStatus" onchange={handleOrderFieldChange}
@@ -142,7 +201,6 @@
                                 variant="label-hidden"></lightning-combobox>
                         </td>
                         <td style="text-align: center;">{ord.blockStatus}</td>
-                        <td style="text-align: center;">{ord.status}</td>
                     </tr>
 
                     <!-- Expanded Scheduling Lines -->
@@ -154,8 +212,10 @@
                                         class="slds-table slds-table_bordered slds-table_cell-buffer slds-table_striped slds-m-left_medium">
                                         <thead>
                                             <tr>
-                                                <th style="text-align: center;">Product</th>
+                                                <th style="text-align: center;">Product Code</th>
+                                                <th style="text-align: center;">Product Desc</th>
                                                 <th style="text-align: center;">Plant Code</th>
+                                                <th style="text-align: center;">UOM</th>
                                                 <th style="text-align: center;">Confirmed Qty</th>
                                                 <th style="text-align: center;">Scheduled Qty</th>
                                                 <th style="text-align: center;">Balance Qty</th>
@@ -169,16 +229,18 @@
                                                     <td style="text-align: center;">
                                                         <span class="slds-truncate" style="cursor: pointer;"
                                                             onclick={navigateToRecord} data-id={line.productId}>
-                                                            {line.productName}
+                                                            {line.productCode}
                                                         </span>
                                                     </td>
+                                                    <td style="text-align: center;">{line.productDescription}</td>
                                                     <td style="text-align: center;">{line.plantCode}</td>
+                                                    <td style="text-align: center;">{line.salesUOMName}</td>
                                                     <td style="text-align: center;">{line.confirmedQuantity}</td>
                                                     <td style="text-align: center;">{line.scheduledQuantity}</td>
                                                     <td style="text-align: center;">{line.balanceQuantity}</td>
                                                     <td style="text-align: center;">{line.deliveryDate}</td>
                                                     <td style="text-align: center;">
-                                                        <lightning-button label="Schedule Customers"
+                                                        <lightning-button label="Plan Dispatch"
                                                             data-orderid={ord.orderId} data-lineid={line.id}
                                                             data-orderline={line.orderProductId}
                                                             data-confirmedqty={line.confirmedQuantity}
@@ -196,6 +258,12 @@
             </tbody>
         </table>
 
+        <!-- Pagination Component -->
+        <c-pagination
+            records={orders}
+            onpaginatorchange={handlePaginationChange}>
+        </c-pagination>
+
         <footer style="text-align: center;" class="slds-m-top_medium slds-m-bottom_medium">
             <lightning-button label="Save" variant="brand" onclick={saveHeaderChanges}></lightning-button>
         </footer>
@@ -203,21 +271,24 @@
 
     <!-- Customer Schedule Modal -->
     <template if:true={isModalOpen}>
-        <section role="dialog" tabindex="-1" class="slds-modal slds-fade-in-open slds-modal_medium">
+        <section role="dialog" tabindex="-1" class="slds-modal slds-fade-in-open slds-modal_large">
             <div class="slds-modal__container">
                 <header class="slds-modal__header">
-                    <h2 class="slds-text-heading_medium">Schedule Customers</h2>
+                    <h2 class="slds-text-heading_medium">{dispatchPopupHeading}</h2>
                 </header>
-                <div class="slds-modal__content slds-p-around_medium">
-                    <table class="slds-table slds-table_bordered slds-table_cell-buffer">
+                <div class="slds-modal__content slds-p-around_medium slds-scrollable_x">
+                    <div class="slds-table_container">
+                        <table class="slds-table slds-table_bordered slds-table_cell-buffer slds-max-medium-table_stacked">
                         <thead>
                             <tr>
-                                <th style="text-align: center;">Scheduled Qty</th>
-                                <th style="text-align: center;">Scheduled Date</th>
-                                <th style="text-align: center;">Production Scheduled</th>
-                                <th style="text-align: center;">Production Revised</th>
-                                <th style="text-align: center;">Remarks</th>
-                                <th>
+                                <th style="text-align: center; width: 10%;"><abbr class="slds-required" title="required">*</abbr>Cust. Scheduled Qty</th>
+                                <th style="text-align: center; width: 10%;"><abbr class="slds-required" title="required">*</abbr>Cust. Scheduled Dt (If any Rev)</th>
+                                <th style="text-align: center; width: 10%;">Cust. Scheduled (If any Rev, Reason)</th>
+                                <th style="text-align: center; width: 10%;">Prod. Scheduled Dt</th>
+                                <th style="text-align: center; width: 10%;">Prod. Revised Dt (If any Rev)</th>
+                                <th style="text-align: center; width: 10%;">Prod. Revised (Reason)</th>
+                                <th style="text-align: center; width: 10%;">Remarks for Prod. Planner</th>
+                                <th style="text-align: center;">
                                     <lightning-button label="Delete All" variant="brand" onclick={deleteAllCustomerRows}
                                         class="slds-m-left_small"></lightning-button>
                                 </th>
@@ -226,27 +297,37 @@
                         <tbody>
                             <template for:each={customerSchedules} for:item="cs" for:index="index">
                                 <tr key={cs.tempId}>
-                                    <td>
+                                    <td style="width: 10%;">
                                         <lightning-input type="number" value={cs.customerScheduledQuantity}
                                             data-index={index} data-field="customerScheduledQuantity"
                                             onchange={handleCustomerChange} variant="label-hidden"></lightning-input>
                                     </td>
-                                    <td>
+                                    <td style="width: 10%;">
                                         <lightning-input type="date" value={cs.customerScheduledDate} data-index={index}
                                             data-field="customerScheduledDate" onchange={handleCustomerChange}
                                             variant="label-hidden"></lightning-input>
                                     </td>
-                                    <td>
+                                    <td style="width: 10%;">
+                                        <lightning-input value={cs.customerScheduleReason} data-index={index}
+                                            data-field="customerScheduleReason" onchange={handleCustomerChange}
+                                            variant="label-hidden"></lightning-input>
+                                    </td>
+                                    <td style="width: 10%;">
                                         <lightning-input type="date" value={cs.productionScheduledDate}
                                             data-index={index} data-field="productionScheduledDate"
                                             onchange={handleCustomerChange} variant="label-hidden"></lightning-input>
                                     </td>
-                                    <td>
+                                    <td style="width: 10%;">
                                         <lightning-input type="date" value={cs.productionRevisedDate} data-index={index}
                                             data-field="productionRevisedDate" onchange={handleCustomerChange}
                                             variant="label-hidden"></lightning-input>
                                     </td>
-                                    <td>
+                                    <td style="width: 10%;">
+                                        <lightning-input value={cs.productionRevisedReason} data-index={index}
+                                            data-field="productionRevisedReason" onchange={handleCustomerChange}
+                                            variant="label-hidden"></lightning-input>
+                                    </td>
+                                    <td style="width: 10%;">
                                         <lightning-input value={cs.remarksForProductionPlanner} data-index={index}
                                             data-field="remarksForProductionPlanner" onchange={handleCustomerChange}
                                             variant="label-hidden"></lightning-input>
@@ -261,7 +342,7 @@
                             </template>
                         </tbody>
                     </table>
-
+                    </div>
                 </div>
                 <footer class="slds-modal__footer" style="text-align: center;">
                     <lightning-button class="slds-p-around_small" variant="neutral" label="Cancel"

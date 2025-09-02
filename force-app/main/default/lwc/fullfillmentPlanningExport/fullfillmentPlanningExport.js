@@ -19,8 +19,17 @@ import getFilteredOrderData from '@salesforce/apex/FullfillmentPlanningControlle
 import saveHeader from '@salesforce/apex/FullfillmentPlanningController.saveHeader';
 
 export default class FulfillmentPlanning extends NavigationMixin(LightningElement) {
-    @track orders = [];
+    @track plannedOrders = 0;
+    @track unplannedOrders = 0;
+    @track todayDispatch = 0;
+    @track nextDayDispatch = 0;
+    @track dayAfterDispatch = 0;
+    @track otherDispatch = 0;
+    @track dueToday = 0;
+    @track scheduleMissed = 0;
 
+    @track orders = [];
+    @track displayOrders = [];
     @track orderHeaders = [];
 
     @track isModalOpen = false;
@@ -29,6 +38,7 @@ export default class FulfillmentPlanning extends NavigationMixin(LightningElemen
     selectedOrderLineId;
     selectedLineId;
     confirmedQty;
+    dispatchPopupHeading;
 
     @track totalLineNumber = 0;
 
@@ -93,6 +103,7 @@ export default class FulfillmentPlanning extends NavigationMixin(LightningElemen
         getOrderData({ orderRecordType: 'Export' }).then((result)=>{
             console.log('Fetched Orders:', result);
             this.orders = result;
+            this.displayOrders = result;
 
             this.totalLineNumber = 0;
             for (let order of this.orders) {
@@ -130,6 +141,7 @@ export default class FulfillmentPlanning extends NavigationMixin(LightningElemen
         getFilteredOrderData({orderRecordType: 'Export', filterStringObj: JSON.stringify(this.filterObject)}).then((result)=>{
             console.log('Filtered Orders:', result);
             this.orders = result;
+            this.displayOrders = result;
 
             this.totalLineNumber = 0;
             for (let order of this.orders) {
@@ -194,6 +206,7 @@ export default class FulfillmentPlanning extends NavigationMixin(LightningElemen
         this.selectedLineId = event.currentTarget.dataset.lineid;
         this.selectedOrderLineId = event.currentTarget.dataset.orderline;
         this.confirmedQty = event.currentTarget.dataset.confirmedqty ? event.currentTarget.dataset.confirmedqty : 0;
+        this.dispatchPopupHeading = 'Plan your dispatch for ' + this.confirmedQty + ' Qty';
         console.log('Selected Order ID:', this.selectedOrderId, 'Line ID:', this.selectedLineId);
         getCustomerSchedules({orderId: this.selectedOrderId, orderProductLineId: this.selectedOrderLineId, orderSchedulingLineItemId: this.selectedLineId}).then((result)=>{
             this.customerSchedules = result && result.length > 0
@@ -301,6 +314,15 @@ export default class FulfillmentPlanning extends NavigationMixin(LightningElemen
         let totalScheduledQty = 0;
 
         for (let each of this.customerSchedules) {
+            if (each.customerScheduledQuantity == null || each.customerScheduledQuantity === '' || isNaN(each.customerScheduledQuantity) || parseFloat(each.customerScheduledQuantity) <= 0) {
+                this.showToast('Error', 'Please enter a valid Customer Scheduled Quantity greater than 0.', 'error');
+                return false;
+            }
+            if (each.customerScheduledDate == null || each.customerScheduledDate === '') {
+                this.showToast('Error', 'Please enter a valid Customer Scheduled Date.', 'error');
+                return false;
+            }
+
             totalScheduledQty += each.customerScheduledQuantity ? parseFloat(each.customerScheduledQuantity) : 0;
         }
 
@@ -332,6 +354,10 @@ export default class FulfillmentPlanning extends NavigationMixin(LightningElemen
         let baseUrl = window.location.origin;
         let recordUrl = `${baseUrl}/${recordId}`;
         window.open(recordUrl, '_blank');
+    }
+
+    handlePaginationChange(event) {
+        this.displayOrders = event.detail.records;
     }
 
 }

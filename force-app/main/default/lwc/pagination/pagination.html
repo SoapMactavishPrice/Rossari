@@ -1,0 +1,28 @@
+<template>
+    <div class="slds-p-around_medium">
+        <div class="slds-grid slds-grid_vertical-align-center slds-grid_align-spread">
+            <div class="slds-col">
+                <p class="slds-text-body_small">
+                    Page {currentPage} of {totalPages}
+                </p>
+            </div>
+            <div class="slds-col">
+                <lightning-button-group>
+                    <lightning-button 
+                        label="Previous"
+                        icon-name="utility:chevronleft"
+                        onclick={previousHandler}
+                        disabled={disablePrevious}>
+                    </lightning-button>
+                    <lightning-button 
+                        label="Next"
+                        icon-name="utility:chevronright"
+                        icon-position="right"
+                        onclick={nextHandler}
+                        disabled={disableNext}>
+                    </lightning-button>
+                </lightning-button-group>
+            </div>
+        </div>
+    </div>
+</template>
