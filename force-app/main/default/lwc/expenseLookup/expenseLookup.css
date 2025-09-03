@@ -1,0 +1,14 @@
+.slds-combobox_container {
+    position: relative;
+}
+
+.slds-dropdown {
+    position: absolute;
+    z-index: 7000;
+    width: 100%;
+}
+
+/* Ensure the dropdown appears above other elements */
+.slds-dropdown-trigger .slds-dropdown {
+    z-index: 9000;
+}

@@ -1,0 +1,66 @@
+.lookup-container {
+    position: relative;
+    display: block;
+    height: 100%;
+}
+
+.search-input-container {
+    position: relative;
+    display: flex;
+    align-items: center;
+    height: 100%;
+}
+
+.search-input {
+    width: 100%;
+}
+
+.clear-button {
+    position: absolute;
+    right: 0.5rem;
+    top: 50%;
+    transform: translateY(-50%);
+    z-index: 1;
+}
+
+.dropdown-container {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    width: 100%;
+    max-height: 200px;
+    overflow-y: auto;
+    z-index: 7000;
+    background: white;
+    border: 1px solid #dddbda;
+    border-radius: 0.25rem;
+    box-shadow: 0 2px 3px 0 rgba(0, 0, 0, 0.16);
+    margin-top: 0.25rem;
+}
+
+.dropdown-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.lookup-item {
+    padding: 0.5rem;
+    cursor: pointer;
+    border-bottom: 1px solid #f3f2f2;
+}
+
+.lookup-item:last-child {
+    border-bottom: none;
+}
+
+.lookup-item:hover {
+    background-color: #f3f2f2;
+}
+
+.no-records {
+    padding: 0.75rem;
+    color: #706e6b;
+    text-align: center;
+    font-style: italic;
+}

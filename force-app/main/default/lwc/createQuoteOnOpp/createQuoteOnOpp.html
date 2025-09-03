@@ -50,6 +50,9 @@
                             Product Name</th>
                         <th
                             style="text-align: center; font-size: 13px; background-color: #9d0b0f; font-weight: bold; padding: 4px 6px; color: white;">
+                            Product Description</th>
+                        <th
+                            style="text-align: center; font-size: 13px; background-color: #9d0b0f; font-weight: bold; padding: 4px 6px; color: white;">
                             List Price ({quoteFields.currencyCode})</th>
                         <th
                             style="text-align: center; font-size: 13px; background-color: #9d0b0f; font-weight: bold; padding: 4px 6px; color: white;">
@@ -78,8 +81,14 @@
                                 <c-reusable-lookup selected-record-id={item.pbeId}
                                     currency-code={quoteFields.currencyCode} data-index={item.index} data-label="prodId"
                                     index={item.index} selected-icon-name="standard:product" object-label="Product"
-                                    object-api-name="PricebookEntry" onvalueselected={handleValueSelectedOnAccount}>
+                                    object-api-name="PricebookEntry"
+                                    other-field-api-name="Product2Id,Product2.Name,Product2.ProductCode,Product2.Description"
+                                    onvalueselected={handleValueSelectedOnAccount}>
                                 </c-reusable-lookup>
+                            </td>
+                            <td>
+                                <lightning-input type="text" value={item.Description} disabled
+                                    variant="label-hidden"></lightning-input>
                             </td>
                             <td class="slds-text-align_center" data-label="List Price">
                                 <lightning-formatted-number value={item.listPrice} format-style="currency"
@@ -123,10 +132,12 @@
         </div>
 
         <footer class="slds-card__footer slds-text-align_center">
-            <lightning-button label="Cancel" variant="neutral" onclick={handleCancel} class="slds-m-right_small"
+            <lightning-button label="Create Quote" variant="brand" onclick={createQuote} disabled={disableCreateButton}
+                class="slds-m-right_small"></lightning-button>
+
+            <lightning-button label="Cancel" variant="neutral" onclick={handleCancel}
                 disabled={isLoading}></lightning-button>
-            <lightning-button label="Create Quote" variant="brand" onclick={createQuote}
-                disabled={isLoading}></lightning-button>
+
         </footer>
 
         <template if:true={isLoading}>

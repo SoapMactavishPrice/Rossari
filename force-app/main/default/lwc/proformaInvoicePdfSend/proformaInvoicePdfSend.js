@@ -22,7 +22,6 @@ export default class ProformaInvoicePdfSend extends NavigationMixin(LightningEle
     @track pdfUrl;
     @track bccEmailAddresses;
     @track recordDeatils = {};
-    @track subject = '';
     @track files = [];
     @track body = '';
     @track ownerEmail = '';
@@ -30,14 +29,20 @@ export default class ProformaInvoicePdfSend extends NavigationMixin(LightningEle
     customerType = '';
     @track isAttachPdf = false;
 
+    get subject() {
+        if (this.type == 'quote') {
+            return `Quotation - ${this.recordDeatils?.Account_Name__r?.Name}`;
+        } else if (this.type == 'invoice') {
+            return `Proforma Invoice - ${this.recordDeatils?.Account_Name__r?.Name}`;
+        }
+    }
+
     connectedCallback() {
         console.log('Type -->', this.type)
         if (this.type == 'quote') {
             this.body = 'Dear Sir/Madam, <br/><br/> Please find attached Quotation.<br/><br/><br/><br/>';
-            this.subject = 'Rossari - Quotation';
         } else if (this.type == 'invoice') {
             this.body = 'Dear Sir/Madam, <br/><br/> Please find attached Proforma Invoice.<br/><br/><br/><br/>';
-            this.subject = 'Rossari - Proforma Invoice';
         }
         validateQuote({quoteId: this.recordId}).then((result)=>{
             this.customerType = result;

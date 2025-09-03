@@ -44,7 +44,7 @@ global  class AccountMasterAPI {
             //apiLog.Request__c='Total Size ='+jData.size();
             apiLog.Request__c='Total Size ='+jData.size()+'-'+jSONRequestBody;
             
-            map<Integer,AccountMasterJson> responceIdMap =new map<Integer,AccountMasterJson>();
+            map<String,AccountMasterJson> responceIdMap =new map<String,AccountMasterJson>();
             
             map<String,String> mapTem =new map<String,String>();
             
@@ -59,7 +59,7 @@ global  class AccountMasterAPI {
             List<String> sAreaList = new List<String>();
             List<String> bankList = new List<String>();
             List<String> userSAPCodeList = new List<String>();
-            List<Integer> parAccountList = new List<Integer>();
+            List<String> parAccountList = new List<String>();
             
             Map<String,String> countryPickListMap =new  Map<String,String>();
             Map<String,String> statePickListMap =new  Map<String,String>();
@@ -72,7 +72,8 @@ global  class AccountMasterAPI {
             
             for (AccountMasterJson jd : jData) {
                 
-                responceIdMap.put(Integer.valueOf(jd.CUSTOMER_NO), jd);
+                // responceIdMap.put(Integer.valueOf(jd.CUSTOMER_NO), jd);
+                responceIdMap.put(jd.CUSTOMER_NO, jd); // Changed by HA 21/08/2025
                 
                 companyCode.add(jd.COCODE);
                 slorgList.add(jd.SALES_ORG);
@@ -86,7 +87,7 @@ global  class AccountMasterAPI {
                         userSAPCodeList.add(pf.CUSTOMR_NO);
                     }else{
                         if(pf.CUSTOMER_NO!=''){
-                            parAccountList.add(Integer.valueOf(pf.CUSTOMER_NO));
+                            parAccountList.add(pf.CUSTOMER_NO);
                         }
                         
                     }
@@ -119,7 +120,7 @@ global  class AccountMasterAPI {
             
             //Contact
             List<Contact>  ctList = new   List<Contact>();
-            ctList=[Select id,name,account.Name,account.SAP_Customer_Code__c from contact where account.SAP_Customer_Code__c=:responceIdMap.keySet() ];
+            ctList=[SELECT id,name,account.Name,account.SAP_Customer_Code__c FROM contact WHERE account.SAP_Customer_Code__c=:responceIdMap.keySet() ];
             
             map<Integer,Contact> mapContaccTemp = new map<Integer,Contact>();
             for (Contact cn : ctList) {
@@ -184,9 +185,9 @@ global  class AccountMasterAPI {
                 System.debug('User='+sa.SAP_User_Id__c);
             }
             
-            Pricebook2 pbk1 =[ SELECT IsActive ,Description, IsStandard, Id, Name, SystemModstamp FROM Pricebook2 WHERE IsActive=True and Name='Roussari Domestic Price Book' ];
+            Pricebook2 pbk1 =[ SELECT IsActive ,Description, IsStandard, Id, Name, SystemModstamp FROM Pricebook2 WHERE IsActive=True and Name='Rossari Domestic Price Book' ];
             
-            Pricebook2 pbk2 =[ SELECT IsActive ,Description, IsStandard, Id, Name, SystemModstamp FROM Pricebook2 WHERE IsActive=True and Name='Roussari Export Price Book' ];
+            Pricebook2 pbk2 =[ SELECT IsActive ,Description, IsStandard, Id, Name, SystemModstamp FROM Pricebook2 WHERE IsActive=True and Name='Rossari Export Price Book' ];
             
             List<Company__c> cmList= new List<Company__c>();
             cmList = [SELECT ID,Company_Code__c FROM Company__c WHERE Company_Code__c IN : companyCode];
@@ -251,7 +252,7 @@ global  class AccountMasterAPI {
                     acc.Company_Code__c=cmMap.get(jd.COCODE).id;
                     // acc.Company_Code__c=jd.COCODE;
                 }
-                acc.SAP_Customer_Code__c=Integer.valueOf(jd.CUSTOMER_NO);
+                acc.SAP_Customer_Code__c=jd.CUSTOMER_NO;
                 
                 if (soMap.containsKey(jd.SALES_ORG)) {
                     acc.Sales_Organisation__c=soMap.get(jd.SALES_ORG).id;

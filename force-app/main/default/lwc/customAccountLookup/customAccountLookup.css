@@ -1,0 +1,33 @@
+.lookup-container {
+    position: relative;
+}
+
+.dropdown {
+    position: absolute;
+    background-color: white;
+    border: 1px solid #dcdcdc;
+    border-radius: 4px;
+    max-height: 200px;
+    overflow-y: auto;
+    width: 100%;
+    z-index: 1000;
+    margin-top: 2px;
+    padding: 0;
+    list-style: none;
+}
+
+.dropdown-item {
+    padding: 0.5rem;
+    cursor: pointer;
+}
+
+.dropdown-item:hover {
+    background-color: #f3f3f3;
+}
+
+.selected-record {
+    margin-top: 0.5rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}

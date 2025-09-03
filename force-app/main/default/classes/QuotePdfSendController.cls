@@ -2,7 +2,7 @@ public with sharing class QuotePdfSendController {
 
     @AuraEnabled
     public static Quote getQuoteDetails(string recordId) {
-        Quote quote = [SELECT Id, Name FROM Quote WHERE Id = :recordId];
+        Quote quote = [SELECT Id, Name, Account.Name FROM Quote WHERE Id = :recordId];
         
         if (quote != null) {
             return quote;

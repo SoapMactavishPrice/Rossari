@@ -6,6 +6,11 @@ trigger LeadTrigger on Lead (before insert, before update, after insert, after u
             LeadTriggerHandler.updateLeadAddresses(Trigger.new);
             LeadTriggerHandler.setRossariCompany(Trigger.new);
             
+            
+            if (Trigger.isUpdate) {
+                LeadTriggerHandler.updateContactInformationOnLeadChange(Trigger.new, Trigger.oldMap);
+            }
+            
             // Rating based on Lead Score
             for (Lead l : Trigger.new) {
                 if (l.Lead_Score__c != null) {
@@ -31,15 +36,14 @@ trigger LeadTrigger on Lead (before insert, before update, after insert, after u
             for (Lead lead : Trigger.new) {
                 Lead oldLead = Trigger.oldMap.get(lead.Id);
                 
-                // Check if lead is being converted now
-                if (lead.IsConverted && !oldLead.IsConverted) {
+              
+          /*      if (lead.IsConverted && !oldLead.IsConverted) {
                     lead.Create_Quote_upon_Conversion__c = true;
                     convertingLeadIds.add(lead.Id);
                     
-                }
+                }	*/
             }
             
-            // Block conversion if no Product_Interested__c records exist
             if (!convertingLeadIds.isEmpty()) {
                 Map<Id, Integer> productCountMap = new Map<Id, Integer>();
                 
@@ -73,6 +77,7 @@ trigger LeadTrigger on Lead (before insert, before update, after insert, after u
         OpportunityTriggerHandler.convertHandler(Trigger.new, Trigger.oldMap);
         LeadTriggerHandler.handleAfterUpdate(Trigger.new, Trigger.oldMap);
         LeadTriggerHandler.createAddressInfoFromConvertedLead(Trigger.new, Trigger.oldMap);
+        LeadTriggerHandler.setRossariCompanyOnAccount(Trigger.new, Trigger.oldMap);
         
         // Create Quotes for Converted Leads
         List<Id> convertedLeadIds = new List<Id>();

@@ -1,0 +1,497 @@
+<template>
+
+    <lightning-layout multiple-rows="true" class="color">
+        <template if:true={showSpinner}> 
+            <lightning-spinner size="small"> </lightning-spinner>
+        </template>
+        <lightning-layout-item size="12" large-device-size="2" small-device-size="1"></lightning-layout-item>
+        <lightning-layout-item size="12" large-device-size="8" small-device-size="9">
+            <lightning-card>
+                <lightning-layout multiple-rows="true">
+
+                    <lightning-layout-item size="12" large-device-size="11" small-device-size="10"
+                        class="slds-m-around_small" >
+                        <label style="font-size:18px" class="slds-align_absolute-center"><b>Visit Report</b></label>
+                    </lightning-layout-item>    
+                    
+                    <lightning-layout-item size="12" large-device-size="5" small-device-size="5"
+                        class="slds-m-around_small">Type of Visit *
+                        
+                        <lightning-record-edit-form object-api-name="Visit_Report__c">
+                            <lightning-input-field field-name="Type_of_Visit__c" variant="label-hidden" data-label="Mode"
+                                onchange={handleVisitChange}></lightning-input-field>
+                        </lightning-record-edit-form>
+                    </lightning-layout-item>
+
+                    <!-- Tour Selection -->
+                    <lightning-layout-item size="12" large-device-size="5" small-device-size="5" class="slds-m-around_small" style="margin-top: 3px;">
+                        <lightning-combobox
+                            name="tour"
+                            label="Name of the Tour"
+                            value={selectedTourId}
+                            placeholder="Select or Create Tour"
+                            options={tourOptions}
+                            onchange={handleTourChange}
+                            disabled={isTourDisabled}>
+                        </lightning-combobox>
+                    </lightning-layout-item>
+
+                    <!-- Create New Tour Modal -->
+                    <template if:true={isModalOpen}>
+                        <section role="dialog" tabindex="-1" class="slds-modal slds-fade-in-open">
+                            <div class="slds-modal__container">
+
+                                <!-- Modal Header -->
+                                <header class="slds-modal__header">
+                                    <h2 class="slds-text-heading_medium">Create New Tour</h2>
+                                    <button class="slds-button slds-button_icon slds-modal__close slds-button_icon-inverse"
+                                        title="Close" onclick={closeModal}>
+                                        <lightning-icon icon-name="utility:close" alternative-text="close" size="small"></lightning-icon>
+                                    </button>
+                                </header>
+
+                                <!-- Modal Body -->
+                                <div class="slds-modal__content slds-p-around_medium">
+                                    <lightning-input
+                                        type="text"
+                                        label="Tour Name"
+                                        value={newTourName}
+                                        onchange={handleTourNameChange}>
+                                    </lightning-input>
+
+                                    <lightning-input
+                                        type="date"
+                                        label="Tour Start Date"
+                                        value={newTourStart}
+                                        onchange={handleTourStartChange}>
+                                    </lightning-input>
+
+                                    <lightning-input
+                                        type="date"
+                                        label="Tour End Date"
+                                        value={newTourEnd}
+                                        onchange={handleTourEndChange}>
+                                    </lightning-input>
+                                </div>
+
+                                <!-- Modal Footer -->
+                                <footer class="slds-modal__footer">
+                                    <lightning-button variant="neutral" label="Cancel" onclick={closeModal}></lightning-button>
+                                    <lightning-button variant="brand" label="Save" onclick={createTour}></lightning-button>
+                                </footer>
+                            </div>
+                        </section>
+                        <div class="slds-backdrop slds-backdrop_open"></div>
+                    </template>
+
+                    
+                    <lightning-layout-item size="12" large-device-size="10.3" small-device-size="10.3"
+                        class="slds-m-around_small">Title of Meeting *
+                        <br />
+                        <lightning-record-edit-form object-api-name="Visit_Report__c">
+                            <lightning-input-field field-name="Title_of_Meeting__c" variant="label-hidden"
+                                data-label="Title_of_Meeting" onchange={handleVisitChange}></lightning-input-field>
+                        </lightning-record-edit-form>
+                    </lightning-layout-item>
+                    <lightning-layout-item size="12" large-device-size="5" small-device-size="5"
+                        class="slds-m-around_small">Start Date/Time *
+                        <lightning-record-edit-form object-api-name="Visit_Report__c">
+                            <lightning-input-field field-name="Start_Date_Time__c" variant="label-hidden"
+                                data-label="Start_Date_Time" onchange={handleVisitChange}></lightning-input-field>
+                        </lightning-record-edit-form>
+                    </lightning-layout-item>
+
+                    <lightning-layout-item size="12" large-device-size="5" small-device-size="5"
+                        class="slds-m-around_small">End Date/Time *
+                        <lightning-record-edit-form object-api-name="Visit_Report__c">
+                            <lightning-input-field field-name="End_Date_Time__c" variant="label-hidden"
+                                data-label="End_Date_Time" onchange={handleVisitChange}></lightning-input-field>
+                        </lightning-record-edit-form>
+                    </lightning-layout-item>
+
+                    
+                    <!-- <lightning-layout-item size="12" large-device-size="5" small-device-size="5" class="slds-m-around_small">
+                        <c-tour-lookup-component ontourselected={handleTourChange}></c-tour-lookup-component>
+                    </lightning-layout-item> -->
+
+                    
+
+                    <lightning-layout-item size="12" large-device-size="5" small-device-size="5"
+                        class="slds-m-around_small">Visit Category *
+                        <br />
+                        <lightning-record-edit-form object-api-name="Visit_Report__c">
+                            <lightning-input-field field-name="Visit_Category__c" variant="label-hidden" data-label="Category"
+                                onchange={handleVisitChange}></lightning-input-field>
+                        </lightning-record-edit-form>
+                    </lightning-layout-item>
+
+                    <lightning-layout-item size="12" large-device-size="5" small-device-size="5"
+                        class="slds-m-around_small">Nature of Visit *
+                        <br />
+                        <lightning-record-edit-form object-api-name="Visit_Report__c">
+                            <lightning-input-field field-name="Nature_of_Visit__c" variant="label-hidden" data-label="Nature"
+                                onchange={handleVisitChange}></lightning-input-field>
+                        </lightning-record-edit-form>
+                    </lightning-layout-item>
+                    
+                    <!-- Customer Visit Fields -->
+                    <template if:true={isCustomerVisit}>
+                        <lightning-layout-item size="12" large-device-size="5" small-device-size="5"
+                            class="slds-m-around_small">
+                            <br />
+                            <c-custom-account-lookup placeholder="Search by Customer..." data-label="Customer_Name" onrecordselected={handleAccountSelectedForBillTo} ></c-custom-account-lookup>
+                        </lightning-layout-item>
+
+                        <lightning-layout-item size="12" large-device-size="2" small-device-size="2"
+                            class="slds-m-around_small">
+                            <br />
+
+                            <lightning-input type="text" 
+                                            label="Customer Code" 
+                                            value={sapCustomerCode} 
+                                            disabled>
+                            </lightning-input>
+                            </lightning-layout-item>
+                            
+
+                            <lightning-layout-item size="12" large-device-size="3" small-device-size="3"
+                            class="slds-m-around_small">
+                            <br />
+                            <lightning-input type="text" 
+                                            label="Primary/ Secondary Tag" 
+                                            value={recordTypeName} 
+                                            disabled>
+                            </lightning-input>
+                            </lightning-layout-item>
+                        </template>
+
+                    <!-- Competitor Tracking Fields -->
+                    <template if:true={isCompetitorTracking}>
+                        <lightning-layout-item size="12" large-device-size="5" small-device-size="5"
+                            class="slds-m-around_small">
+                            <lightning-record-picker
+                                label="Competition Name"
+                                placeholder="Search Competitor..."
+                                object-api-name="Competitor_Master__c"
+                                display-field="Name"
+                                value-field="Id"
+                                value={competitorId}
+                                onchange={handleCompetitorChange}>
+                            </lightning-record-picker>
+                        </lightning-layout-item>
+
+                        <!-- Competitor Code Display -->
+                        <lightning-layout-item size="12" large-device-size="5" small-device-size="5"
+                            class="slds-m-around_small">
+                            <lightning-input type="text"
+                                label="Competitor Code"
+                                value={competitorCode}
+                                disabled>
+                            </lightning-input>
+                        </lightning-layout-item>
+                    </template>
+
+
+                    <!-- Internal Meeting -->
+                    <template if:true={isInternalMeeting}>
+                        <lightning-layout-item size="12" large-device-size="10" small-device-size="10"
+                            class="slds-m-around_small">Reason
+                            <br />
+                            <lightning-record-edit-form object-api-name="Visit_Report__c">
+                                <lightning-input-field field-name="Reason__c" variant="label-hidden"
+                                    data-label="Reason" onchange={handleVisitChange}></lightning-input-field>
+                            </lightning-record-edit-form>
+                        </lightning-layout-item>
+                    </template>
+
+
+                    <!-- RND Related Visit -->
+                    <template if:true={isRND}>
+                        <lightning-layout-item size="12" large-device-size="5" small-device-size="5" class="slds-m-around_small">
+                            <lightning-record-picker
+                                label="Name of the Project"
+                                object-api-name="Project__c"
+                                display-field="Name"
+                                value-field="Id"
+                                value={ProjectId}
+                                placeholder="Search Project..."
+                                onchange={handleProjectChange}
+                            ></lightning-record-picker>
+                        </lightning-layout-item>
+                    </template>
+
+                    <!-- Seminar / Conference -->
+                    <template if:true={isSeminar}>
+                        <lightning-layout-item size="12" large-device-size="10" small-device-size="10"
+                            class="slds-m-around_small">Name of the Conference/ Seminar
+                            <br />
+                            <lightning-record-edit-form object-api-name="Visit_Report__c">
+                                <lightning-input-field field-name="Name_of_the_Conference_Seminar__c" variant="label-hidden"
+                                    data-label="Seminar" onchange={handleVisitChange}></lightning-input-field>
+                            </lightning-record-edit-form>
+                        </lightning-layout-item>
+                    </template>
+
+                    <!-- Attendees Section -->
+                    <lightning-layout-item size="12" large-device-size="11" small-device-size="10"
+                        class="slds-m-around_small" style="background: lightgrey;color: black;">
+                        Attendees
+                    </lightning-layout-item>
+
+                    <lightning-layout-item size="12" large-device-size="11" small-device-size="10"
+                        class="slds-m-around_small">
+                        <template for:each={Attendees} for:item="item">
+                            <lightning-layout multiple-rows key={item.index}>
+
+                                <!-- Attendee Type -->
+                                <lightning-layout-item size="12" large-device-size="2" small-device-size="10"
+                                    class="slds-m-around_xx-small">
+                                    <lightning-combobox 
+                                        label="Attendee Type" 
+                                        data-index={item.index} 
+                                        data-label="Attendee_Type__c"
+                                        value={item.Attendee_Type__c} 
+                                        options={attendeeTypeOptions}
+                                        onchange={handleAttendeeChange}>
+                                    </lightning-combobox>
+                                </lightning-layout-item>
+
+                                <!-- User Type -->
+                                <lightning-layout-item size="12" large-device-size="2" small-device-size="10"
+                                    class="slds-m-around_xx-small">
+                                    <lightning-combobox label="User Type" 
+                                        data-index={item.index}
+                                        data-label="User_Type__c" 
+                                        value={item.User_Type__c} 
+                                        options={userTypeOptions}
+                                        onchange={handleAttendeeChange}>
+                                    </lightning-combobox>
+                                </lightning-layout-item>
+
+                                <!-- INTERNAL + EXISTING -->
+                                <template if:true={item.isInternalExisting}>
+                                    <lightning-layout-item size="12" large-device-size="3" small-device-size="10"
+                                        class="slds-m-around_xx-small">
+                                        <lightning-record-edit-form object-api-name="Attendees__c">
+                                            <lightning-input-field field-name="User__c" variant="label-stacked"
+                                                data-index={item.index} data-label="User__c"
+                                                onchange={handleAttendeeChange}>
+                                            </lightning-input-field>
+                                        </lightning-record-edit-form>
+                                    </lightning-layout-item>
+                                </template>
+
+                                <!-- INTERNAL + NEW -->
+                                <template if:true={item.isInternalNew}>
+                                    <lightning-layout-item size="12" large-device-size="2" class="slds-m-around_xx-small">
+                                        <lightning-input label="First Name" data-index={item.index} data-label="First_Name__c"
+                                            value={item.First_Name__c} onchange={handleAttendeeChange}></lightning-input>
+                                    </lightning-layout-item>
+                                    <lightning-layout-item size="12" large-device-size="2" class="slds-m-around_xx-small">
+                                        <lightning-input label="Last Name" data-index={item.index} data-label="Last_Name__c"
+                                            value={item.Last_Name__c} onchange={handleAttendeeChange}></lightning-input>
+                                    </lightning-layout-item>
+                                </template>
+
+                                <!-- EXTERNAL + EXISTING -->
+                                <template if:true={item.isExternalExisting}>
+                                    <lightning-layout-item size="12" large-device-size="3" class="slds-m-around_xx-small">
+                                        <lightning-combobox
+                                            name="contact"
+                                            label="Select Contact"
+                                            data-index={item.index}
+                                            data-label="Contact_Name__c"
+                                            value={item.Contact_Name__c}
+                                            options={accountContacts}
+                                            onchange={handleAttendeeChange}>
+                                        </lightning-combobox>
+
+                                    </lightning-layout-item>
+                                </template>
+
+
+                                <!-- EXTERNAL + NEW -->
+                                <template if:true={item.isExternalNew}>
+                                    <lightning-layout-item size="12" large-device-size="2" class="slds-m-around_xx-small">
+                                        <lightning-input label="First Name" data-index={item.index} data-label="First_Name__c"
+                                            value={item.First_Name__c} onchange={handleAttendeeChange}></lightning-input>
+                                    </lightning-layout-item>
+                                    <lightning-layout-item size="12" large-device-size="2" class="slds-m-around_xx-small">
+                                        <lightning-input label="Last Name" data-index={item.index} data-label="Last_Name__c"
+                                            value={item.Last_Name__c} onchange={handleAttendeeChange}></lightning-input>
+                                    </lightning-layout-item>
+                                    <lightning-layout-item size="12" large-device-size="2" class="slds-m-around_xx-small">
+                                        <lightning-input label="Email" type="email" data-index={item.index} data-label="Email__c"
+                                            value={item.Email__c} onchange={handleAttendeeChange}></lightning-input>
+                                    </lightning-layout-item>
+                                    <!-- <lightning-layout-item size="12" large-device-size="2" class="slds-m-around_xx-small">
+                                        <lightning-input label="Designation" data-index={item.index} data-label="Designation__c"
+                                            value={item.Designation__c} onchange={handleAttendeeChange}></lightning-input>
+                                    </lightning-layout-item> -->
+                                </template>
+
+                                <!-- Actions -->
+                                <lightning-layout-item size="12" large-device-size="1" small-device-size="10"
+                                    class="slds-m-around_xx-small">
+                                    Action<br />
+                                    <lightning-icon icon-name="action:new" size="xx-small" class="slds-m-right_xx-small"
+                                        data-index={item.index} onclick={addAttendeesrow}>
+                                    </lightning-icon>
+                                    <lightning-icon icon-name="action:remove" size="xx-small" data-index={item.index}
+                                        onclick={removeAttendees}>
+                                    </lightning-icon>
+                                </lightning-layout-item>
+
+                            </lightning-layout>
+                        </template>
+                    </lightning-layout-item>
+
+
+
+                    
+                    <lightning-layout-item size="12" large-device-size="11" small-device-size="10"
+                        class="slds-m-around_small">
+                        <lightning-record-edit-form object-api-name="Visit_Report__c">
+                            <lightning-input-field field-name="Discussion_Details_from_the_Meeting__c"
+                                variant="label-hidden" data-label="Discussion_Details_from_the_Meeting"
+                                onchange={handleVisitChange}></lightning-input-field>
+                        </lightning-record-edit-form>
+                    </lightning-layout-item>
+
+                    <lightning-layout-item size="12" large-device-size="11" small-device-size="10"
+                        class="slds-m-around_small" style="background: lightgrey;color: black;">Product Interested and Pricing Benchmark / Target<br />
+                    </lightning-layout-item>
+
+                     <lightning-layout-item size="12" large-device-size="11" small-device-size="10"
+                        class="slds-m-around_small">
+                        <template for:each={ProductInterestPoint} for:item="item">
+                            <lightning-layout multiple-rows key={item.index}>
+
+                                <lightning-layout-item size="12" large-device-size="4" small-device-size="10"
+                                    class="slds-m-around_xx-small">
+                                    Product
+                                    <c-reusable-lookup label="Parent Account" selected-icon-name="standard:account" object-label=""
+                        object-api-name="Product2" field-api-name="Name" data-index={item.index} data-label="prodId"
+                        onvalueselected={lookUpAccount}>
+
+                    </c-reusable-lookup>
+                                </lightning-layout-item>
+                                <lightning-layout-item size="12" large-device-size="2" small-device-size="10"
+                                    class="slds-m-around_xx-small" >
+                                    Expected Qty in Kgs
+                                    <lightning-input type="number" variant="label-hidden" data-index={item.index} data-label="qty"
+                                          onchange={handleInterestChange}></lightning-input>
+                                </lightning-layout-item>
+
+                                <lightning-layout-item size="12" large-device-size="2" small-device-size="10"
+                                    class="slds-m-around_xx-small" >
+                                    Expected Price
+                                    <lightning-input type="number" variant="label-hidden" data-index={item.index}
+                                        data-label="Price" onchange={handleInterestChange}></lightning-input>
+                                </lightning-layout-item>
+
+                                <lightning-layout-item size="12"  large-device-size="2" small-device-size="10"
+                                    class="slds-m-around_xx-small" >
+                                    Expected Date
+                                    <lightning-input type="date"  variant="label-hidden" data-index={item.index}
+                                        data-label="ExpDate" onchange={handleInterestChange}></lightning-input>
+                                </lightning-layout-item>
+
+                                <lightning-layout-item size="12" large-device-size="1" small-device-size="10"
+                                    class="slds-m-around_xx-small">
+                                    Action<br/>
+                                    <lightning-icon icon-name="action:new" size="xx-small" class="slds-m-right_xx-small"
+                                        data-index={item.index} onclick={addProductInterestrow}>
+                                    </lightning-icon>
+                                    <lightning-icon icon-name="action:remove" size="xx-small" data-index={item.index}
+                                        onclick={removeProductInterest}>
+                                    </lightning-icon>
+                                </lightning-layout-item>
+
+                            </lightning-layout>
+                        </template>
+
+                    </lightning-layout-item>
+
+                    <lightning-layout-item size="12" large-device-size="11" small-device-size="10"
+                        class="slds-m-around_small" style="background: lightgrey;color: black;">Action Points with responsibilty and Time Frame<br />
+                    </lightning-layout-item>
+
+                     <lightning-layout-item size="12" large-device-size="11" small-device-size="10"
+                        class="slds-m-around_small">
+                        <template for:each={ActionPoint} for:item="item">
+                            <lightning-layout multiple-rows key={item.index}>
+
+                                <lightning-layout-item size="12" large-device-size="4" small-device-size="10"
+                                    class="slds-m-around_xx-small">
+                                    Action Point
+                                    <lightning-input type="Text" variant="label-hidden" data-index={item.index} data-label="Name"
+                                          onchange={handleActionPlanChange}></lightning-input>
+                                </lightning-layout-item>
+
+                                
+
+                                <lightning-layout-item size="12" large-device-size="2" small-device-size="10"
+                                    class="slds-m-around_xx-small" >
+                                    Responsibility 
+                                   <lightning-record-edit-form object-api-name="Action_Point__c">
+                                        <lightning-input-field field-name="Responsibility__c" variant="label-hidden" data-index={item.index}
+                                            data-label="userId" onchange={handleActionPlanChange}></lightning-input-field>
+                                    </lightning-record-edit-form>
+                                </lightning-layout-item>
+
+                                <lightning-layout-item size="12" large-device-size="2" small-device-size="10"
+                                    class="slds-m-around_xx-small" >
+                                    Next Action Date
+                                    <lightning-input type="date" variant="label-hidden" data-index={item.index}
+                                        data-label="Next_Action_Date" onchange={handleActionPlanChange}></lightning-input>
+                                </lightning-layout-item>
+
+                                <lightning-layout-item size="12"  large-device-size="2" small-device-size="10"
+                                    class="slds-m-around_xx-small" >
+                                    Create Task & Notify
+                                    <lightning-input type="checkbox"   variant="label-hidden" data-index={item.index} checked={item.Create_Task_Notify}
+                                        data-label="Create_Task_Notify" onchange={handleActionCheckboxPlanChange}></lightning-input>
+                                </lightning-layout-item>
+
+                                <lightning-layout-item size="12" large-device-size="1" small-device-size="10"
+                                    class="slds-m-around_xx-small">
+                                    Action<br/>
+                                    <lightning-icon icon-name="action:new"  size="xx-small" class="slds-m-right_xx-small"
+                                        data-index={item.index} onclick={addActionPointrow}>
+                                    </lightning-icon>
+                                    <lightning-icon icon-name="action:remove" size="xx-small" data-index={item.index}
+                                        onclick={removeActionPoint}>
+                                    </lightning-icon>
+                                </lightning-layout-item>
+
+                            </lightning-layout>
+                        </template>
+
+                    </lightning-layout-item>
+
+
+                    <!-- <lightning-layout-item size="12" large-device-size="5" small-device-size="5"
+                        class="slds-m-around_small">Next Meeting date if agreed with the Customer<br />
+                        <lightning-record-edit-form object-api-name="Visit_Report__c">
+                            <lightning-input-field field-name="Next_Meeting_Date_agreed_with_Customer__c"
+                                variant="label-hidden" data-label="Next_Meeting_Date_agreed_with_Customer"
+                                onchange={handleVisitChange}></lightning-input-field>
+                        </lightning-record-edit-form>
+                    </lightning-layout-item> -->
+
+                    <lightning-layout-item size="12" large-device-size="11" small-device-size="10"
+                        class="slds-m-around_small slds-align_absolute-center">
+                        <lightning-button label="Refresh" onclick={handleRefresh}></lightning-button>
+                        <lightning-button label="Save" class="slds-m-left_small" variant="brand" onclick={handleSave} disabled={showSpinner}></lightning-button>
+                    </lightning-layout-item>
+
+
+                </lightning-layout>
+            </lightning-card>
+        </lightning-layout-item>
+        <lightning-layout-item size="12" large-device-size="2" small-device-size="1"></lightning-layout-item>
+
+    </lightning-layout>
+
+</template>

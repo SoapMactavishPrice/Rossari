@@ -40,6 +40,7 @@ public class LeadTriggerHandlerTest {
             FirstName = 'Test',
             LastName = 'Lead',
             Company = 'TestCo',
+            MobilePhone = '9999999999',
             Pin_Code__c = pin.Id
         );
         insert l;
@@ -65,6 +66,7 @@ public class LeadTriggerHandlerTest {
         Lead l = new Lead(
             FirstName = 'Rossari', 
             LastName = 'Test',
+            MobilePhone = '9999999999',
             Company = 'Test'
         );
         insert l;
@@ -153,6 +155,7 @@ public class LeadTriggerHandlerTest {
             LastName = 'Me',
             Company = 'Comp',
             Department__c = 'Sales',
+            MobilePhone = '9999999999',
             City__c = testCity.Id    
         );
         insert l;
@@ -212,12 +215,13 @@ public class LeadTriggerHandlerTest {
         Lead l = new Lead(
             FirstName = 'Follow',
             LastName = 'Up', 
-            Company = 'Test Co', 
-            Next_Follow_Up_in_Days__c = 3
+            Company = 'Test Co',
+            MobilePhone = '9999999999'
+            
         );
         insert l;
         
-        Map<Id, Lead> oldMap = new Map<Id, Lead>{ l.Id => new Lead(Id = l.Id, Next_Follow_Up_in_Days__c = null) };
+        Map<Id, Lead> oldMap = new Map<Id, Lead>{ l.Id => new Lead(Id = l.Id) };
             
             Test.startTest();
         LeadTriggerHandler.handleFollowUpTask(new List<Lead>{l}, oldMap);
@@ -232,7 +236,8 @@ public class LeadTriggerHandlerTest {
             FirstName = 'Addr',
             LastName = 'Test', 
             Company = 'Addr Inc', 
-            IsConverted = false
+            IsConverted = false,
+            MobilePhone = '9999999999'
         );
         insert l;
         
@@ -254,7 +259,7 @@ public class LeadTriggerHandlerTest {
     
     @isTest
     static void testHandleAfterUpdate() {
-        Lead l = new Lead(FirstName = 'Updt', LastName = 'Lead', Company = 'Lead Ltd');
+        Lead l = new Lead(FirstName = 'Updt', LastName = 'Lead', Company = 'Lead Ltd',MobilePhone = '9999999999');
         insert l;
         
         Account a = new Account(Name = 'Acct');
@@ -270,4 +275,157 @@ public class LeadTriggerHandlerTest {
         Test.stopTest();
         
     }
+    
+    @isTest
+    static void testCreateQuotesForConvertedLeads() {
+        Pricebook2 standardPb = new Pricebook2(Id = Test.getStandardPricebookId(), IsActive = true);
+        update standardPb;
+        
+        Product2 prod = new Product2(Name = 'Test Product', IsActive = true);
+        insert prod;
+        
+        PricebookEntry pbe = new PricebookEntry(
+            Pricebook2Id = standardPb.Id,
+            Product2Id = prod.Id,
+            UnitPrice = 200,
+            IsActive = true,
+            UseStandardPrice = false
+        );
+        insert pbe;
+        
+        Account acc = new Account(Name = 'Test Account');
+        insert acc;
+        
+        Contact con = new Contact(LastName = 'Test Contact', AccountId = acc.Id);
+        insert con;
+        
+        Opportunity opp = new Opportunity(
+            Name = 'Test Opp',
+            StageName = 'Prospecting',
+            CloseDate = Date.today().addDays(30),
+            AccountId = acc.Id,
+            Pricebook2Id = standardPb.Id
+        );
+        insert opp;
+        
+        OpportunityLineItem oli = new OpportunityLineItem(
+            OpportunityId = opp.Id,
+            Quantity = 5,
+            UnitPrice = 180,
+            PricebookEntryId = pbe.Id
+        );
+        insert oli;
+        
+        Country__c country = [SELECT Id FROM Country__c LIMIT 1];
+        State__c state = [SELECT Id FROM State__c WHERE Country__c = :country.Id LIMIT 1];
+        City__c city = [SELECT Id FROM City__c WHERE State__c = :state.Id LIMIT 1];
+        Pin_Code__c pin = [SELECT Id FROM Pin_Code__c WHERE City__c = :city.Id LIMIT 1];
+        Company__c comp = [SELECT Id FROM Company__c LIMIT 1];
+        
+        Lead lead = new Lead(
+            FirstName = 'Converted',
+            LastName = 'Lead',
+            Company = 'Lead Co',
+            MobilePhone = '1234567890',
+            Email = 'lead@test.com',   
+            Create_Quote_upon_Conversion__c = true,
+            Inco_Terms__c = 'FOB',
+            Payment_Term__c = 'Advance',
+            Bill_to__c = 'BillTo',
+            Ship_to__c = 'ShipTo',
+            Loading_Port__c = 'Mumbai',
+            Destination_Port__c = 'Dubai',
+            Quote_Valid_From__c = Date.today(),
+            Quote_Valid_To__c = Date.today().addDays(10),
+            Destination__c = 'Dubai',
+            Country_of_Origin__c = country.Id,
+            Country_of_Destination__c = country.Id,
+            Pre_Carriage_Mode__c = 'Sea',
+            Place_of_Supplier__c = 'Mumbai',
+            Vessel_Flight_No__c = 'VF123',
+            Street_1__c = 'Addr 1',
+            Street_2__c = 'Addr 2',
+            Street_3__c = 'Addr 3',
+            Pin_Code__c = pin.Id,
+            City__c = city.Id,
+            State__c = state.Id,
+            Country__c = country.Id,
+            Shipping_Street_1__c = 'Ship 1',
+            Shipping_Street_2__c = 'Ship 2',
+            Shipping_Street_3__c = 'Ship 3',
+            Shipping_Pin_Code__c = pin.Id,
+            Shipping_City__c = city.Id,
+            Shipping_State__c = state.Id,
+            Shipping_Country__c = country.Id
+        );
+        insert lead;
+        
+        Database.LeadConvert lc = new Database.LeadConvert();
+        lc.setLeadId(lead.Id);
+        lc.setDoNotCreateOpportunity(false);
+        lc.setConvertedStatus('Qualified');
+        lc.setAccountId(acc.Id);
+        lc.setOpportunityId(opp.Id);
+        Database.convertLead(lc);
+        
+        Test.startTest();
+        LeadTriggerHandler.createQuotesForConvertedLeads(new List<Id>{lead.Id});
+        Test.stopTest();
+    }
+ 	
+    @isTest
+static void testLeadScoreRatingWithFormulaField() {
+    // Cold: Total Score = 10 (GateKeeper) + 10 (AdHoc) + 5 (No Interest) + 10 (6 to 12 months) = 35
+    Lead coldLead = new Lead(
+        FirstName = 'Cold',
+        LastName = 'Lead',
+        Company = 'Cold Co',
+        MobilePhone = '9991111111',
+        Authority__c = 'GateKeeper',
+        Budget__c = 'Alternative / AdHoc Budget Source',
+        Need__c = 'No Interest',
+        Timeline__c = '6 to 12 months'
+    );
+
+    // Warm: Total Score = 20 (Influencer) + 15 (Half Year) + 20 (Evaluating Competitor) + 15 (3 to 6 months) = 70
+    Lead warmLead = new Lead(
+        FirstName = 'Warm',
+        LastName = 'Lead',
+        Company = 'Warm Co',
+        MobilePhone = '9992222222',
+        Authority__c = 'Influencer',
+        Budget__c = 'Forecast for Next Half Year',
+        Need__c = 'Evaluating Competitor Product',
+        Timeline__c = '3 to 6 months'
+    );
+
+    // Hot: Total Score = 25 + 25 + 25 + 25 = 100
+    Lead hotLead = new Lead(
+        FirstName = 'Hot',
+        LastName = 'Lead',
+        Company = 'Hot Co',
+        MobilePhone = '9993333333',
+        Authority__c = 'Right Person Contact',
+        Budget__c = 'Forecast for Next Quarter',
+        Need__c = 'Yes',
+        Timeline__c = 'Immediate'
+    );
+
+    insert new List<Lead>{ coldLead, warmLead, hotLead };
+
+    List<Lead> insertedLeads = [SELECT Id, Rating, Lead_Score__c FROM Lead WHERE Id IN :new List<Id>{coldLead.Id, warmLead.Id, hotLead.Id}];
+
+    for (Lead l : insertedLeads) {
+        
+        if (l.Lead_Score__c <= 50) {
+            
+        } else if (l.Lead_Score__c <= 75) {
+           
+        } else {
+            
+        }
+    }
+}
+
+    
 }

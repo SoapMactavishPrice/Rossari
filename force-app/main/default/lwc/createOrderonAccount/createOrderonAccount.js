@@ -18,7 +18,7 @@ export default class CreateOrderFromAccount extends NavigationMixin(LightningEle
     @track showOrderSelection = false;
     @track showForm = false;
 
-    @track selectedMode;
+    @track selectedMode = 'new';
     modeOptions = [
         { label: 'New', value: 'new' },
         { label: 'Existing', value: 'existing' }
@@ -47,6 +47,10 @@ export default class CreateOrderFromAccount extends NavigationMixin(LightningEle
     connectedCallback() {
         this.loadPicklists();
         this.loadContacts();
+
+        if (this.selectedMode === 'new') {
+            this.loadInitialData();
+        }
     }
 
     loadPicklists() {
@@ -66,17 +70,23 @@ export default class CreateOrderFromAccount extends NavigationMixin(LightningEle
             .catch(() => this.showToast('Error', 'Cannot load contacts', 'error'));
     }
 
+    get isExistingMode() {
+        return this.selectedMode === 'existing';
+    }
+
+
     handleModeChange(evt) {
         this.selectedMode = evt.detail.value;
-        this.showModeSelection = false;
+        this.selectedOrderId = null;
+        this.showForm = false;
 
         if (this.selectedMode === 'new') {
             this.loadInitialData();
-        } else {
-            this.showOrderSelection = true;
+        } else if (this.selectedMode === 'existing') {
             this.loadExistingOrders();
         }
     }
+
 
     loadExistingOrders() {
         this.isLoading = true;
@@ -106,8 +116,11 @@ export default class CreateOrderFromAccount extends NavigationMixin(LightningEle
 
     handleOrderSelection(evt) {
         this.selectedOrderId = evt.detail.value;
-        if (this.selectedOrderId) this.loadSelectedOrder(this.selectedOrderId);
+        if (this.selectedOrderId) {
+            this.loadSelectedOrder(this.selectedOrderId);
+        }
     }
+
 
     loadSelectedOrder(orderId) {
         this.isLoading = true;

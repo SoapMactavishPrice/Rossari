@@ -1,0 +1,142 @@
+<template>
+    <lightning-card title="Budget Report">
+        <template if:true={showSpinner}>
+            <lightning-spinner alternative-text="Loading" size="small" variant="base"></lightning-spinner>
+        </template>
+        <lightning-layout multiple-rows>
+            <lightning-layout-item size="2" padding="around-small">
+                <lightning-record-edit-form object-api-name="Budget__c">
+                    <lightning-input-field field-name="FY__c" onchange={handleFiscalChange}></lightning-input-field>
+                </lightning-record-edit-form>
+            </lightning-layout-item>
+
+            <lightning-layout-item size="2" padding="around-small">
+                <lightning-record-edit-form object-api-name="Budget__c">
+                    <lightning-input-field field-name="Sales_Employee__c" onchange={handleSalesEmpChange}>
+                    </lightning-input-field>
+                </lightning-record-edit-form>
+            </lightning-layout-item>
+        </lightning-layout>
+
+        <!-- <template if:true={vData}> -->
+        <table class="slds-table slds-table_cell-buffer slds-table_bordered bordered">
+            <thead>
+                <tr>
+                    <th>Action</th>
+                    <th>Customer Name</th>
+
+                    <th style="white-space: normal; overflow-wrap: anywhere; word-break: break-word;">
+                        sales organization</th>
+                    <th style="white-space: normal; overflow-wrap: anywhere; word-break: break-word;">distribution
+                        channel</th>
+                    <th>division</th>
+                    <th> Zone description</th>
+                    <th>HR Id -Saleperson</th>
+                </tr>
+            </thead>
+            <tbody>
+                <template for:each={vData} for:item="row">
+                    <tr key={row.Customer_Name__c}>
+                        <td if:true={row.isOpen}>
+                            <lightning-icon icon-name="utility:add" size="x-small" data-id={row.Customer_Name__c}
+                                alternative-text="Approved" title="Approved" onclick={handleOpen}></lightning-icon>
+
+                        </td>
+                        <td if:true={row.isClose}>
+                            <lightning-icon icon-name="utility:dash" size="x-small" data-id={row.Customer_Name__c}
+                                alternative-text="Delete" title="Delete" onclick={handleClose}></lightning-icon>
+
+                        </td>
+                        <td style="white-space: normal; overflow-wrap: anywhere; word-break: break-word;">
+                            {row.customerName}
+                        </td>
+
+                        <td style="white-space: normal; overflow-wrap: anywhere; word-break: break-word;">
+                            {row.Sales_Organisations}
+                        </td>
+
+
+                        <td style="white-space: normal; overflow-wrap: anywhere; word-break: break-word;">
+                            {row.Distribution_Channel}
+                        </td>
+
+
+                        <td style="white-space: normal; overflow-wrap: anywhere; word-break: break-word;">
+                            {row.Division}
+                        </td>
+
+
+                        <td style="white-space: normal; overflow-wrap: anywhere; word-break: break-word;">
+                            {row.Sub_Zone_Description__c}
+                        </td>
+
+                        <td style="white-space: normal; overflow-wrap: anywhere; word-break: break-word;">
+                            {row.HR_Id_Manager__c}
+                        </td>
+                    </tr>
+                    <tr key={row.Customer_Name__c} if:true={row.isClose}>
+                        <td></td>
+                        <td colspan="6">
+                            <table class="slds-table slds-table_cell-buffer slds-table_bordered bordered">
+                                <thead>
+                                    <tr>
+                                        <th>Product code</th>
+                                        <th>Product Name</th>
+
+                                        <th
+                                            style="white-space: normal; overflow-wrap: anywhere; word-break: break-word;">
+                                            Material Group Description</th>
+                                        <th>Sales Qauntity</th>
+                                        <th> Price</th>
+                                        <th>Sales Value</th>
+
+                                        <th>COGS/Kg </th>
+                                        <th> COGS Value</th>
+                                        <th>GM/Kg</th>
+                                        <th>GM Value</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <template for:each={row.Products} for:item="row1">
+                                        <tr key={row1.Product_Description__c}>
+                                            <td>{row1.Product_code__c}</td>
+                                            <td>{row1.Product_Description}</td>
+                                            <td>{row1.Material_Group_Desc__c}</td>
+                                            <td>{row1.Sales_Quantity__c}</td>
+                                            <td>{row1.Price__c}</td>
+                                            <td>{row1.Sales_Value__c}</td>
+                                            <td>{row1.COGS_Kg__c}</td>
+                                            <td>{row1.COGS_Value__c}</td>
+
+                                            <td>{row1.GM_Kg__c}</td>
+                                            <td>{row1.GM_Value__c}</td>
+                                        </tr>
+
+                                    </template>
+                                </tbody>
+
+                                <tr key={row.Customer_Name__c}>
+                                    <td colspan="3"><b>Sub Total</b></td>
+                                    <td><b>{row.Sub_Total_Sales_Quantity__c}</b></td>
+                                    <td><b>{row.Sub_Total_Price__c}</b></td>
+                                    <td><b>{row.Sub_Total_Sales_Value__c}</b></td>
+                                    <td><b>{row.Sub_Total_COGS_Kg__c}</b></td>
+                                    <td><b>{row.Sub_Total_COGS_Value__c}</b></td>
+                                    <td><b>{row.Sub_Total_GM_Kg__c}</b></td>
+                                    <td><b>{row.Sub_Total_GM_Value__c}</b></td>
+
+                                </tr>
+
+                            </table>
+                        </td>
+                    </tr>
+
+                </template>
+            </tbody>
+
+        </table>
+
+
+        <!-- </template> -->
+    </lightning-card>
+</template>

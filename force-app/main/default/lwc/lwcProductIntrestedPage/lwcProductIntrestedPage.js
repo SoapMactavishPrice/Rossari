@@ -331,40 +331,26 @@ export default class LwcProductIntrestedPage extends NavigationMixin(LightningEl
         for (let element of this.addAnswer) {
             console.log('ele--', JSON.stringify(element));
 
-            // if (element.prodFamily === '' || element.prodFamily === undefined || element.prodFamily === 0) {
-            //     this.showSuccess('Error', `Please Fill family for Product ${element.prodName}`, 'Error');
-            //     console.log('index at family',element.index,' - > ',element.family );
-            //     validate = false;
-            //     break; // Exit the loop early since validation failed
-            // }
-            // else
-
             if (!element.New_Product && (element.prodName === '' || element.prodName === undefined || element.prodName === 0)) {
-                this.showSuccess('Error', `Please Select Product`, 'Error');
+                this.showSuccess('Error', `Please Select a Product`, 'Error');
                 console.log('index at prodName', element.index);
 
                 validate = false;
-                break; // Exit the loop early since validation failed
+                break;
             }
             else if (element.New_Product && (element.New_Product_Name === '' || element.New_Product_Name === undefined || element.New_Product_Name === 0)) {
-                this.showSuccess('Error', `Please Select Product`, 'Error');
+                this.showSuccess('Error', `Please Enter New Product Name`, 'Error');
                 console.log('index at prodName', element.index);
 
                 validate = false;
-                break; // Exit the loop early since validation failed
+                break;
             }
-            else if (element.volume === '' || element.volume === undefined || element.volume === 0) {
-                this.showSuccess('Error', `Please Fill Quantity in kgs for Product ${element.prodName}`, 'Error');
+            else if (element.volume === '' || element.volume === undefined || element.volume <= 0) {
+                this.showSuccess('Error', `Please Fill Quantity (greater than 0) in kgs for Product ${element.prodName}`, 'Error');
                 console.log('index at volume', element.index);
                 validate = false;
-                break; // Exit the loop early since validation failed
+                break;
             }
-            // else if (element.price === '' || element.price === undefined || element.price === 0) {
-            //     this.showSuccess('Error', `Please Fill Price for Product ${element.prodName}`, 'Error');
-            //     console.log('index at price', element.index);
-            //     validate = false;
-            //     break; // Exit the loop early since validation failed
-            // }
 
         }
         return validate;

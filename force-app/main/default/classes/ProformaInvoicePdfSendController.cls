@@ -2,7 +2,7 @@ public with sharing class ProformaInvoicePdfSendController {
 
     @AuraEnabled
     public static Proforma_Invoice__c getQuoteDetails(string recordId) {
-        Proforma_Invoice__c proformaInvoice = [SELECT Id, Name FROM Proforma_Invoice__c WHERE Id = :recordId];
+        Proforma_Invoice__c proformaInvoice = [SELECT Id, Name, Account_Name__r.Name FROM Proforma_Invoice__c WHERE Id = :recordId];
         
         if (proformaInvoice != null) {
             return proformaInvoice;

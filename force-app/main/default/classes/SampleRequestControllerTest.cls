@@ -1,17 +1,21 @@
 @isTest
 private class SampleRequestControllerTest {
-
+    
     @isTest
     static void testAllMethods() {
+        Country__c india = new Country__c(Name = 'India');
+        insert india;
+        
         Lead testLead = new Lead(
             FirstName = 'Test',
             LastName = 'Lead',
             Company = 'Test Company',
             Status = 'Open - Not Contacted',
-            CurrencyIsoCode = 'USD'
+            CurrencyIsoCode = 'USD',
+            MobilePhone = '1234567890'
         );
         insert testLead;
-
+        
         Product2 testProduct = new Product2(
             Name = 'Sample Product',
             ProductCode = 'SP001',
@@ -19,7 +23,7 @@ private class SampleRequestControllerTest {
             IsActive = true
         );
         insert testProduct;
-
+        
         Product_Interested__c productInterested = new Product_Interested__c(
             Lead__c = testLead.Id,
             Product__c = testProduct.Id,
@@ -27,43 +31,46 @@ private class SampleRequestControllerTest {
             New_Product__c = false
         );
         insert productInterested;
-
+        
         Plant__c plant = new Plant__c(Name = 'Plant 1', Plant_Name__c = 'Main Plant');
         insert plant;
-
+        
         String leadInfo = SampleRequestController.getLeadInfo(testLead.Id);
         List<Plant__c> plantOptions = SampleRequestController.getPlantOptions();
-
+        
         Map<String, Object> sampleMap = new Map<String, Object>{
             'Request_Date' => String.valueOf(Date.today()),
-            'Sample_Expected_Date' => String.valueOf(Date.today().addDays(5)),
-            'Consignee_Name' => 'Consignee',
-            'Send_Email_To_Plant' => true,
-            'Remark' => 'Test Remark',
-            'Sample_Follow_Up_Date' => String.valueOf(Date.today().addDays(10))
-        };
-        String sampleJs = JSON.serialize(sampleMap);
-
+                'Sample_Expected_Date' => String.valueOf(Date.today().addDays(5)),
+                'Consignee_Name' => 'Consignee',
+                'Send_Email_To_Plant' => true,
+                'Remark' => 'Test Remark',
+                'Sample_Follow_Up_Date' => String.valueOf(Date.today().addDays(10))
+                };
+                    String sampleJs = JSON.serialize(sampleMap);
+        
         List<Map<String, Object>> lineItems = new List<Map<String, Object>>{
             new Map<String, Object>{
                 'prodId' => testProduct.Id,
-                'Sample_Request_To_Plant' => plant.Id,
-                'Sample_Qty_in_Kgs' => 10
-            }
+                    'Sample_Request_To_Plant' => plant.Id,
+                    'Sample_Qty_in_Kgs' => 10
+                    }
         };
-        String sampleLine = JSON.serialize(lineItems);
-
+            String sampleLine = JSON.serialize(lineItems);
+        
         List<Object> attachments = new List<Object>{
             new Map<String, Object>{
-                'filename' => 'test.txt',
-                'base64' => EncodingUtil.base64Encode(Blob.valueOf('Test content for file attachment'))
-            }
+                'filename' => 'test_large.txt',
+                    'base64' => EncodingUtil.base64Encode(Blob.valueOf(
+                        'This is a longer test content to exceed 100 characters for base64 encoding coverage. ' +
+                        'Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.'
+                    ))
+                    }
         };
-
-        String sampleRequestId = SampleRequestController.saveSample(testLead.Id, sampleJs, attachments, sampleLine);
+            
+            String sampleRequestId = SampleRequestController.saveSample(testLead.Id, sampleJs, attachments, sampleLine);
         List<Sample_Request_Line_Item__c> existingItems = SampleRequestController.getExistingLineItems(sampleRequestId);
         List<String> picklistValues = SampleRequestController.getStatusPicklistValues();
-
+        
         List<String> validStatuses = SampleRequestController.getStatusPicklistValues();
         
         List<Map<String, Object>> upsertLineItemList = new List<Map<String, Object>>();
@@ -76,18 +83,21 @@ private class SampleRequestControllerTest {
                     'status' => validStatuses.isEmpty() ? 'In Progress' : validStatuses[0]
                         });
         }
-
+        
         String upsertLineItemsJson = JSON.serialize(upsertLineItemList);
         SampleRequestController.saveLineItems(sampleRequestId, upsertLineItemsJson);
-
+        
         Set<Id> lineItemIds = new Set<Id>();
         for (Sample_Request_Line_Item__c item : existingItems) {
             lineItemIds.add(item.Id);
         }
         SampleRequestController.updateParentStatus(lineItemIds);
-
+        
         for (Sample_Request_Line_Item__c item : existingItems) {
             SampleRequestController.deleteLineItem(item.Id);
         }
+        
+        Map<String, List<String>> picklistDeps = SampleRequestController.getPicklistDependencies();
+        String userZone = SampleRequestController.getCurrentUserZone();
     }
 }

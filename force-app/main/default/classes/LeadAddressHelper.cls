@@ -65,17 +65,50 @@ public with sharing class LeadAddressHelper {
         Id stateId,
         Id countryId,
         String region,
-        String zone
+        String zone,
+        Boolean copyBillingToShipping,
+        String street1,
+        String street2,
+        String street3,
+        Id shippingPinCodeId,
+        Id shippingCityId,
+        Id shippingStateId,
+        Id shippingCountryId,
+        String shippingRegion,
+        String shippingZone,
+        String shippingStreet1,
+        String shippingStreet2,
+        String shippingStreet3
     ) {
         Lead leadToUpdate = new Lead(Id = leadId);
+        
+        // Billing
         leadToUpdate.Pin_Code__c = pinCodeId;
         leadToUpdate.City__c = cityId;
         leadToUpdate.State__c = stateId;
         leadToUpdate.Country__c = countryId;
         leadToUpdate.Region__c = region;
         leadToUpdate.Zone__c = zone;
+        leadToUpdate.Street_1__c = street1;
+        leadToUpdate.Street_2__c = street2;
+        leadToUpdate.Street_3__c = street3;
+        
+        leadToUpdate.Copy_Bill_to_To_Ship_to__c = copyBillingToShipping;
+        
+        // Always set shipping fields (copied or manually entered)
+        leadToUpdate.Shipping_Pin_Code__c = shippingPinCodeId;
+        leadToUpdate.Shipping_City__c = shippingCityId;
+        leadToUpdate.Shipping_State__c = shippingStateId;
+        leadToUpdate.Shipping_Country__c = shippingCountryId;
+        leadToUpdate.Shipping_Region__c = shippingRegion;
+        leadToUpdate.Shipping_Zone__c = shippingZone;
+        leadToUpdate.Shipping_Street_1__c = shippingStreet1;
+        leadToUpdate.Shipping_Street_2__c = shippingStreet2;
+        leadToUpdate.Shipping_Street_3__c = shippingStreet3;
+        
         update leadToUpdate;
     }
+
     
     @AuraEnabled
     public static List<String> getUnqualifiedReasons() {

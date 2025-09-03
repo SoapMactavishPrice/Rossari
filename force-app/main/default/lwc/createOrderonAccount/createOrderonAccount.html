@@ -1,8 +1,13 @@
 <template>
     <!-- Mode selection -->
     <div class="slds-modal__content slds-p-around_medium" style="height: 600px;">
+
+        <div class="slds-text-align_center slds-p-around_medium header-container" style="margin-top: -32px;">
+            <h2 class="slds-text-heading_medium header-title">Create New Order</h2>
+            <div class="header-divider slds-m-top_small"></div>
+        </div>
         <!-- Mode Selection -->
-        <template if:true={showModeSelection}>
+        <!-- <template if:true={showModeSelection}>
             <lightning-card>
                 <div class="slds-p-around_medium slds-align_absolute-center">
                     <lightning-combobox name="orderMode" label="Select Order Type" value={selectedMode}
@@ -15,7 +20,7 @@
             </lightning-card>
         </template>
 
-        <!-- Existing Order Selection -->
+       
         <template if:true={showOrderSelection}>
             <lightning-card>
 
@@ -29,134 +34,150 @@
                     <lightning-button label="Back" onclick={handleBack}></lightning-button>
                 </div>
             </lightning-card>
-        </template>
+        </template> -->
+        <lightning-layout>
+            <!-- Always show order type -->
+            <lightning-layout-item size="3" class="slds-p-around_medium">
+                <lightning-combobox name="ordertype" label="Order Type" value={selectedMode}
+                    placeholder="Select Order Type" options={modeOptions} onchange={handleModeChange}>
+                </lightning-combobox>
+            </lightning-layout-item>
 
+            <!-- Show existing order combobox when mode is "existing" -->
+            <template if:true={isExistingMode}>
+                <lightning-layout-item size="3" class="slds-p-around_medium">
+                    <lightning-combobox name="existingOrder" label="Existing Order" value={selectedOrderId}
+                        options={existingOrders} onchange={handleOrderSelection} class="slds-m-bottom_medium"
+                        placeholder="Select an order...">
+                    </lightning-combobox>
+                </lightning-layout-item>
+            </template>
+        </lightning-layout>
 
 
         <!-- Main order form -->
-        <template if:true={showForm}>
-            <lightning-card>
-                <div class="slds-text-align_center slds-p-around_medium">
+        <!-- <template if:true={showForm}> -->
+        <lightning-card>
+            <!-- <div class="slds-text-align_center slds-p-around_medium">
                     <h2 class="slds-text-heading_medium" style="margin-top:-40px;">Create Order</h2>
+                </div> -->
+            <!-- Header Fields -->
+            <div class="slds-p-horizontal_medium slds-grid slds-wrap">
+                <div class="slds-col slds-size_1-of-4 slds-p-right_x-small">
+                    <lightning-combobox label="Status" value={orderFields.status} options={statusOptions}
+                        data-field="status" onchange={handleFieldChange} disabled="true">
+                    </lightning-combobox>
                 </div>
-                <!-- Header Fields -->
-                <div class="slds-p-horizontal_medium slds-grid slds-wrap">
-                    <div class="slds-col slds-size_1-of-4 slds-p-right_x-small">
-                        <lightning-combobox label="Status" value={orderFields.status} options={statusOptions}
-                            data-field="status" onchange={handleFieldChange} disabled="true">
-                        </lightning-combobox>
-                    </div>
-                    <div class="slds-col slds-size_1-of-4 slds-p-horizontal_x-small">
-                        <lightning-input type="date" label="Order Start Date" value={orderFields.effectiveDate}
-                            data-field="effectiveDate" onchange={handleFieldChange}>
-                        </lightning-input>
-                    </div>
-                    <div class="slds-col slds-size_1-of-4 slds-p-horizontal_x-small">
-                        <lightning-combobox label="Contact" value={orderFields.customerAuthorizedById}
-                            options={contacts} data-field="customerAuthorizedById" onchange={handleFieldChange}>
-                        </lightning-combobox>
-                    </div>
-                    <div class="slds-col slds-size_1-of-4 slds-p-left_x-small">
-                        <lightning-combobox label="Currency" value={orderFields.currencyCode} options={currencyOptions}
-                            data-field="currencyCode" onchange={handleFieldChange}>
-                        </lightning-combobox>
-
-                    </div>
+                <div class="slds-col slds-size_1-of-4 slds-p-horizontal_x-small">
+                    <lightning-input type="date" label="Order Start Date" value={orderFields.effectiveDate}
+                        data-field="effectiveDate" onchange={handleFieldChange}>
+                    </lightning-input>
                 </div>
+                <div class="slds-col slds-size_1-of-4 slds-p-horizontal_x-small">
+                    <lightning-combobox label="Contact" value={orderFields.customerAuthorizedById} options={contacts}
+                        data-field="customerAuthorizedById" onchange={handleFieldChange}>
+                    </lightning-combobox>
+                </div>
+                <div class="slds-col slds-size_1-of-4 slds-p-left_x-small">
+                    <lightning-combobox label="Currency" value={orderFields.currencyCode} options={currencyOptions}
+                        data-field="currencyCode" onchange={handleFieldChange}>
+                    </lightning-combobox>
 
-                <!-- Order Items Table -->
-                <div class="slds-p-horizontal_medium slds-m-top_medium" style="margin-top: 30px;">
-                    <table class="slds-table slds-table_cell-buffer slds-table_bordered slds-table_col-bordered">
-                        <thead>
-                            <tr>
-                                <th
-                                    style="text-align: center; font-size: 13px; background-color: #9d0b0f; font-weight: bold; padding: 4px 6px; color: white;">
-                                    Select</th>
-                                <th
-                                    style="text-align: center; font-size: 13px; background-color: #9d0b0f; font-weight: bold; padding: 4px 6px; color: white;">
-                                    Product</th>
-                                <th
-                                    style="text-align: center; font-size: 13px; background-color: #9d0b0f; font-weight: bold; padding: 4px 6px; color: white;">
-                                    List Price</th>
-                                <th
-                                    style="text-align: center; font-size: 13px; background-color: #9d0b0f; font-weight: bold; padding: 4px 6px; color: white;">
-                                    Unit Price</th>
-                                <th
-                                    style="text-align: center; font-size: 13px; background-color: #9d0b0f; font-weight: bold; padding: 4px 6px; color: white;">
-                                    Quantity</th>
-                                <th
-                                    style="text-align: center; font-size: 13px; background-color: #9d0b0f; font-weight: bold; padding: 4px 6px; color: white;">
-                                    Discount %</th>
-                                <th
-                                    style="text-align: center; font-size: 13px; background-color: #9d0b0f; font-weight: bold; padding: 4px 6px; color: white;">
-                                    Actions</th>
+                </div>
+            </div>
+
+            <!-- Order Items Table -->
+            <div class="slds-p-horizontal_medium slds-m-top_medium" style="margin-top: 30px;">
+                <table class="slds-table slds-table_cell-buffer slds-table_bordered slds-table_col-bordered">
+                    <thead>
+                        <tr>
+                            <th
+                                style="text-align: center; font-size: 13px; background-color: #9d0b0f; font-weight: bold; padding: 4px 6px; color: white;">
+                                Select</th>
+                            <th
+                                style="text-align: center; font-size: 13px; background-color: #9d0b0f; font-weight: bold; padding: 4px 6px; color: white;">
+                                Product</th>
+                            <th
+                                style="text-align: center; font-size: 13px; background-color: #9d0b0f; font-weight: bold; padding: 4px 6px; color: white;">
+                                List Price</th>
+                            <th
+                                style="text-align: center; font-size: 13px; background-color: #9d0b0f; font-weight: bold; padding: 4px 6px; color: white;">
+                                Unit Price</th>
+                            <th
+                                style="text-align: center; font-size: 13px; background-color: #9d0b0f; font-weight: bold; padding: 4px 6px; color: white;">
+                                Quantity</th>
+                            <th
+                                style="text-align: center; font-size: 13px; background-color: #9d0b0f; font-weight: bold; padding: 4px 6px; color: white;">
+                                Discount %</th>
+                            <th
+                                style="text-align: center; font-size: 13px; background-color: #9d0b0f; font-weight: bold; padding: 4px 6px; color: white;">
+                                Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <template for:each={orderLineItems} for:item="item">
+                            <tr key={item.tempId} class="slds-hint-parent">
+                                <td class="slds-text-align_center" data-label="Select">
+                                    <lightning-input type="checkbox" data-index={item.index} checked={item.selected}
+                                        onchange={handleCheckboxChange}>
+                                    </lightning-input>
+
+                                </td>
+                                <td data-label="Product Name">
+                                    <c-reusable-lookup selected-record-id={item.PricebookEntryId}
+                                        currency-code={orderFields.currencyCode} data-index={item.index}
+                                        selected-icon-name="standard:product" object-label="Product"
+                                        object-api-name="PricebookEntry" onvalueselected={handleValueSelectedOnAccount}
+                                        value={item.prodName}>
+                                    </c-reusable-lookup>
+                                </td>
+                                <td class="slds-text-align_center" data-label="List Price">
+                                    <lightning-formatted-number value={item.listPrice} format-style="currency"
+                                        currency-code={orderFields.currencyCode}>
+                                    </lightning-formatted-number>
+                                </td>
+                                <td>
+                                    <lightning-input type="number" value={item.UnitPrice} step="0.01"
+                                        data-index={item.index} onchange={handleUnitPriceChange}
+                                        style="margin-top: -12px;">
+                                    </lightning-input>
+                                </td>
+                                <td>
+                                    <lightning-input type="number" value={item.Quantity} data-index={item.index}
+                                        onchange={handleQuantityChange} style="margin-top: -12px;">
+                                    </lightning-input>
+                                </td>
+                                <td>
+                                    <lightning-input type="number" value={item.Discount} data-index={item.index}
+                                        onchange={handleDiscountChange} style="margin-top: -12px;">
+                                    </lightning-input>
+                                </td>
+                                <td class="slds-text-align_center">
+                                    <lightning-button-icon icon-name="utility:add" alternative-text="Add"
+                                        title="Add Product" onclick={addAnswerItem} data-index={item.index}>
+                                    </lightning-button-icon>
+                                    <lightning-button-icon icon-name="utility:delete" alternative-text="Remove"
+                                        onclick={removeLineItem} data-index={item.index} class="slds-m-left_xx-small">
+                                    </lightning-button-icon>
+                                </td>
                             </tr>
-                        </thead>
-                        <tbody>
-                            <template for:each={orderLineItems} for:item="item">
-                                <tr key={item.tempId} class="slds-hint-parent">
-                                    <td class="slds-text-align_center" data-label="Select">
-                                        <lightning-input type="checkbox" data-index={item.index} checked={item.selected}
-                                            onchange={handleCheckboxChange}>
-                                        </lightning-input>
+                        </template>
+                    </tbody>
 
-                                    </td>
-                                    <td data-label="Product Name">
-                                        <c-reusable-lookup selected-record-id={item.PricebookEntryId}
-                                            currency-code={orderFields.currencyCode} data-index={item.index}
-                                            selected-icon-name="standard:product" object-label="Product"
-                                            object-api-name="PricebookEntry"
-                                            onvalueselected={handleValueSelectedOnAccount} value={item.prodName}>
-                                        </c-reusable-lookup>
-                                    </td>
-                                    <td class="slds-text-align_center" data-label="List Price">
-                                        <lightning-formatted-number value={item.listPrice} format-style="currency"
-                                            currency-code={orderFields.currencyCode}>
-                                        </lightning-formatted-number>
-                                    </td>
-                                    <td>
-                                        <lightning-input type="number" value={item.UnitPrice} step="0.01"
-                                            data-index={item.index} onchange={handleUnitPriceChange}
-                                            style="margin-top: -12px;">
-                                        </lightning-input>
-                                    </td>
-                                    <td>
-                                        <lightning-input type="number" value={item.Quantity} data-index={item.index}
-                                            onchange={handleQuantityChange} style="margin-top: -12px;">
-                                        </lightning-input>
-                                    </td>
-                                    <td>
-                                        <lightning-input type="number" value={item.Discount} data-index={item.index}
-                                            onchange={handleDiscountChange} style="margin-top: -12px;">
-                                        </lightning-input>
-                                    </td>
-                                    <td class="slds-text-align_center">
-                                        <lightning-button-icon icon-name="utility:add" alternative-text="Add"
-                                            title="Add Product" onclick={addAnswerItem} data-index={item.index}>
-                                        </lightning-button-icon>
-                                        <lightning-button-icon icon-name="utility:delete" alternative-text="Remove"
-                                            onclick={removeLineItem} data-index={item.index}
-                                            class="slds-m-left_xx-small">
-                                        </lightning-button-icon>
-                                    </td>
-                                </tr>
-                            </template>
-                        </tbody>
+                </table>
+            </div>
 
-                    </table>
-                </div>
+            <!-- Footer -->
+            <div class="slds-m-top_large slds-align_absolute-center">
+                <lightning-button label="Create Order" variant="brand" onclick={createOrder}
+                    style="margin-right: 10px;"></lightning-button>
+                <!-- <lightning-button label="Back" variant="neutral" onclick={handleBack}
+                    style="margin-right: 10px;"></lightning-button> -->
 
-                <!-- Footer -->
-                <div class="slds-m-top_large slds-align_absolute-center">
-                    <lightning-button label="Save" variant="brand" onclick={createOrder}
-                        style="margin-right: 10px;"></lightning-button>
-                    <lightning-button label="Back" variant="neutral" onclick={handleBack}
-                        style="margin-right: 10px;"></lightning-button>
+                <lightning-button label="Cancel" variant="neutral" onclick={handleCancel}></lightning-button>
 
-                    <lightning-button label="Cancel" variant="neutral" onclick={handleCancel}></lightning-button>
-
-                </div>
-            </lightning-card>
-        </template>
+            </div>
+        </lightning-card>
+        <!-- </template> -->
     </div>
 </template>

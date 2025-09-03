@@ -5,8 +5,12 @@ import { NavigationMixin } from 'lightning/navigation';
 import getAccountInfo from '@salesforce/apex/AccountSampleRequestController.getAccountInfo';
 import getPlantOptions from '@salesforce/apex/AccountSampleRequestController.getPlantOptions';
 import saveSampleRequest from '@salesforce/apex/AccountSampleRequestController.saveSample';
+import getPicklistDependencies from '@salesforce/apex/AccountSampleRequestController.getPicklistDependencies';
+import getUnitPrice from '@salesforce/apex/AccountSampleRequestController.getUnitPrice';
+import getCurrentUserZone from '@salesforce/apex/SampleRequestController.getCurrentUserZone';
 
-const ACCOUNT_FIELDS = ['Account.Name', 'Account.CurrencyIsoCode'];
+
+const ACCOUNT_FIELDS = ['Account.Name', 'Account.CurrencyIsoCode', 'Account.SAP_Customer_Code__c'];
 
 export default class AccountSampleRequest extends NavigationMixin(LightningElement) {
     @api recordId; // Account ID
@@ -18,6 +22,16 @@ export default class AccountSampleRequest extends NavigationMixin(LightningEleme
     @track isViewFile = false;
     @track filesData = [];
     @track sendEmailToPlant = true;
+    @track sampleCategoryOptions = [];
+    @track allSAPDocTypeOptions = {
+        Paid: [],
+        Unpaid: []
+    };
+    @track filteredSAPDocTypeOptions = [];
+    @track zone = '';
+    @track accountNumber = '';
+
+
 
     todayDate = new Date().toISOString().split('T')[0];
 
@@ -26,6 +40,7 @@ export default class AccountSampleRequest extends NavigationMixin(LightningEleme
         if (data) {
             this.accountName = data.fields.Name.value;
             this.currencyIsoCode = data.fields.CurrencyIsoCode.value;
+            this.accountNumber = data.fields.SAP_Customer_Code__c?.value || '';
         } else if (error) {
             this.showError('Error loading account', error.body.message);
         }
@@ -33,6 +48,15 @@ export default class AccountSampleRequest extends NavigationMixin(LightningEleme
 
     connectedCallback() {
         this.loadInitialData();
+        this.loadPicklists();
+
+        getCurrentUserZone()
+            .then(result => {
+                this.zone = result;
+            })
+            .catch(error => {
+                this.showError('Error fetching user zone', error.body?.message || error.message);
+            });
     }
 
     async loadInitialData() {
@@ -51,17 +75,81 @@ export default class AccountSampleRequest extends NavigationMixin(LightningEleme
         }
     }
 
+    async loadPicklists() {
+        try {
+            const result = await getPicklistDependencies();
+
+            this.sampleCategoryOptions = result['Sample_Category__c'].map(val => ({
+                label: val,
+                value: val
+            }));
+
+            // Initialize SAP options manually
+            const allSAPOptions = result['SAP_Sample_Document_Type__c'];
+
+            // Example logic: match values based on hard-coded dependency
+            this.allSAPDocTypeOptions = {
+                Paid: allSAPOptions.filter(v => v === 'ZDOM' || v === 'ZDEM').map(val => ({ label: val, value: val })),
+                Unpaid: allSAPOptions.filter(v => v === 'ZFOC').map(val => ({ label: val, value: val }))
+            };
+
+        } catch (error) {
+            console.error('Error loading picklists', error);
+        }
+    }
+
+    handlePriceChange(event) {
+        const index = event.target.dataset.index;
+        const value = event.detail.value;
+        this.SampleLine[index].Sales_Price = value;
+        this.SampleLine = [...this.SampleLine];
+    }
+
+    get isUnpaidSampleCategory() {
+        return this.selectedSampleCategory === 'Unpaid';
+    }
+
+    handleSampleCategoryChange(event) {
+        this.selectedSampleCategory = event.detail.value;
+        this.selectedSAPDocType = '';
+        this.filteredSAPDocTypeOptions = this.allSAPDocTypeOptions[this.selectedSampleCategory] || [];
+
+        if (this.selectedSampleCategory === 'Unpaid') {
+            this.SampleLine = this.SampleLine.map(item => ({
+                ...item,
+                Sales_Price: 0
+            }));
+        }
+    }
+
+    handleSAPDocTypeChange(event) {
+        if (!this.selectedSampleCategory) {
+            this.showError('Validation Error', 'Please select Sample Category first');
+            this.selectedSAPDocType = ''; // Clear any accidental selection
+            return;
+        }
+
+        this.selectedSAPDocType = event.detail.value;
+    }
+
+
     handleSendEmailCheckbox(event) {
         this.sendEmailToPlant = event.target.checked;
     }
 
-    handleProductSelection(event) {
+    async handleProductSelection(event) {
         const selectedRecord = event.detail;
         const index = parseInt(event.target.dataset.index, 10);
 
-        if (!selectedRecord) {
-            console.log("No record selected");
-            return;
+        if (!selectedRecord) return;
+
+        const productId = selectedRecord.id;
+        let unitPrice = 0;
+
+        try {
+            unitPrice = await getUnitPrice({ productId });
+        } catch (error) {
+            console.error('Failed to fetch UnitPrice:', error);
         }
 
         this.SampleLine = this.SampleLine.map((item, idx) => {
@@ -72,7 +160,8 @@ export default class AccountSampleRequest extends NavigationMixin(LightningEleme
                     Product: selectedRecord.mainField,
                     Product_Code: selectedRecord.subField || '',
                     Description: selectedRecord.description || '',
-                    Sample_Request_To_Plant: selectedRecord.productPlant || ''
+                    Sample_Request_To_Plant: selectedRecord.productPlant || '',
+                    Sales_Price: unitPrice
                 };
             }
             return item;
@@ -80,7 +169,6 @@ export default class AccountSampleRequest extends NavigationMixin(LightningEleme
 
         this.SampleLine = [...this.SampleLine];
     }
-
     addEmptyRow() {
         this.SampleLine = [...this.SampleLine, {
             sqNo: this.generateId(),
@@ -89,7 +177,8 @@ export default class AccountSampleRequest extends NavigationMixin(LightningEleme
             Product_Code: '',
             Description: '',
             Sample_Request_To_Plant: '',
-            Sample_Qty_in_Kgs: 0
+            Sample_Qty_in_Kgs: 0,
+            Sales_Price: 0
         }];
     }
 
@@ -233,13 +322,13 @@ export default class AccountSampleRequest extends NavigationMixin(LightningEleme
 
     validateEmails(input) {
         const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-        
+
         const emails = input
             .split(/[,;]/)        // Split by comma or semicolon
             .map(e => e.trim())   // Trim each entry
             .filter(e => e);      // Remove empty strings
-        
-        let validate = true; 
+
+        let validate = true;
         emails.forEach(email => {
             if (emailPattern.test(email)) {
 
@@ -253,11 +342,20 @@ export default class AccountSampleRequest extends NavigationMixin(LightningEleme
 
 
     validateForm() {
-        const requestDate = this.template.querySelector("[data-name='Sample_Request_Date__c']")?.value;
-        const expectedDate = this.template.querySelector("[data-name='Sample_Expected_Date__c']")?.value;
+        const today = new Date();
+        today.setHours(0, 0, 0, 0); // Set time to 00:00:00 for accurate comparison
+
+        const requestDate = new Date(this.template.querySelector("[data-name='Sample_Request_Date__c']")?.value);
+        const expectedDate = new Date(this.template.querySelector("[data-name='Sample_Expected_Date__c']")?.value);
+        const followUpDate = new Date(this.template.querySelector("[data-name='Sample_Follow_Up_Date__c']")?.value);
         const email = this.template.querySelector("[data-name='Email__c']")?.value;
 
         console.log('email', email);
+
+        if (requestDate < today) {
+            this.showError('Validation Error', "Sample Request Date cannot be earlier than today's date.");
+            return false;
+        }
 
         if (!requestDate) {
             this.showError('Validation Error', 'Sample Request Date is required');
@@ -269,10 +367,32 @@ export default class AccountSampleRequest extends NavigationMixin(LightningEleme
             return false;
         }
 
+        if (expectedDate < today) {
+            this.showError('Validation Error', "Sample Expected Date cannot be earlier than today's date.");
+            return false;
+        }
+
         if (new Date(expectedDate) < new Date(requestDate)) {
             this.showError('Validation Error', 'Sample Expected Date cannot be earlier than Sample Request Date');
             return false;
         }
+
+        if (followUpDate && followUpDate < today) {
+            this.showError('Validation Error', "Follow Up Date cannot be earlier than today's date.");
+            return false;
+        }
+
+        if (!this.selectedSampleCategory) {
+            this.showError('Validation Error', 'Please select a Sample Category');
+            return false;
+        }
+
+
+        if (!this.selectedSAPDocType) {
+            this.showError('Validation Error', 'Please select an SAP Document Type');
+            return false;
+        }
+
 
         if (email && !this.validateEmails(email)) {
             this.showError('Validation Error', 'Enter valid emails separated by comma or semicolon');
@@ -290,7 +410,11 @@ export default class AccountSampleRequest extends NavigationMixin(LightningEleme
             Email: this.template.querySelector("[data-name='Email__c']")?.value,
             Consignee_Name: this.accountName,
             Send_Email_To_Plant: this.sendEmailToPlant,
-            Remark: this.template.querySelector("[data-name='Remark__c']")?.value
+            Remark: this.template.querySelector("[data-name='Remark__c']")?.value,
+            Sample_Category: this.selectedSampleCategory,
+            SAP_Doc_Type: this.selectedSAPDocType,
+            Zone__c: this.zone,
+            Customer_Code__c: this.accountNumber,
         };
     }
 

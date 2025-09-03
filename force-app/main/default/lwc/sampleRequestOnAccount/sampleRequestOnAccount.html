@@ -7,21 +7,50 @@
 
             <div class="slds-p-around_medium">
                 <div class="slds-grid slds-wrap">
+
+                    <div class="slds-col slds-size_1-of-4 slds-p-around_x-small">
+                        <lightning-input type="text" label="Zone" value={zone} disabled
+                            data-name="Zone__c"></lightning-input>
+                    </div>
+
                     <div class="slds-col slds-size_1-of-4 slds-p-around_x-small">
                         <lightning-input type="date" label="Sample Request Date" value={todayDate}
-                            data-name="Sample_Request_Date__c" required></lightning-input>
+                            data-name="Sample_Request_Date__c" required min={todayDate}>
+                        </lightning-input>
                     </div>
                     <div class="slds-col slds-size_1-of-4 slds-p-around_x-small">
                         <lightning-input type="date" label="Sample Expected Date" data-name="Sample_Expected_Date__c"
-                            required></lightning-input>
+                            required min={todayDate}>
+                        </lightning-input>
                     </div>
                     <div class="slds-col slds-size_1-of-4 slds-p-around_x-small">
-                        <lightning-input type="date" label="Follow Up Date"
-                            data-name="Sample_Follow_Up_Date__c"></lightning-input>
+                        <lightning-input type="date" label="Follow Up Date" data-name="Sample_Follow_Up_Date__c"
+                            min={todayDate}>
+                        </lightning-input>
                     </div>
                     <div class="slds-col slds-size_1-of-4 slds-p-around_x-small">
-                        <lightning-input type="text" label="Consignee Name" value={accountName}
+                        <lightning-input type="text" label="Customer Name" value={accountName}
                             disabled></lightning-input>
+                    </div>
+
+                    <div class="slds-col slds-size_1-of-4 slds-p-around_x-small">
+                        <lightning-input type="text" label="Customer Code" value={accountNumber}
+                            disabled></lightning-input>
+                    </div>
+
+
+                    <div class="slds-col slds-size_1-of-4 slds-p-around_x-small">
+                        <lightning-combobox name="Sample_Category" label="Sample Category"
+                            value={selectedSampleCategory} options={sampleCategoryOptions}
+                            onchange={handleSampleCategoryChange} data-name="Sample_Category__c" required>
+                        </lightning-combobox>
+                    </div>
+
+                    <div class="slds-col slds-size_1-of-4 slds-p-around_x-small">
+                        <lightning-combobox name="SAP_Doc_Type" label="SAP Document Type" value={selectedSAPDocType}
+                            options={filteredSAPDocTypeOptions} onchange={handleSAPDocTypeChange}
+                            data-name="SAP_Doc_Type__c" required>
+                        </lightning-combobox>
                     </div>
 
                     <div class="slds-col slds-size_1-of-4 slds-p-around_x-small">
@@ -34,8 +63,7 @@
 
                     <template if:true={sendEmailToPlant}>
                         <div class="slds-col slds-size_1-of-4 slds-p-around_x-small">
-                            <lightning-textarea label="Additional Email"
-                                data-name="Email__c"
+                            <lightning-textarea label="Additional Email" data-name="Email__c"
                                 placeholder="Enter one or more email addresses"
                                 field-level-help="Enter one or more email addresses separated by commas (,) or semicolons (;)."
                                 rows="3"></lightning-textarea>
@@ -62,8 +90,10 @@
                         </lightning-icon>
                     </lightning-layout-item>
 
-                </div>
 
+
+                </div>
+                </br>
                 <div class="slds-m-top_large">
                     <table class="slds-table slds-table_bordered slds-table_cell-buffer" style="margin-top: -25px;">
                         <thead>
@@ -80,6 +110,10 @@
                                 <th
                                     style="text-align: center; font-size: 13px; background-color: #9d0b0f; font-weight: bold; padding: 4px 6px; color: white;">
                                     Sample Request To Plant</th>
+
+                                <th
+                                    style="text-align: center; font-size: 13px; background-color: #9d0b0f; font-weight: bold; padding: 4px 6px; color: white;">
+                                    Rate({currencyIsoCode})</th>
                                 <th
                                     style="text-align: center; font-size: 13px; background-color: #9d0b0f; font-weight: bold; padding: 4px 6px; color: white;">
                                     Qty (in Kgs)</th>
@@ -112,6 +146,13 @@
                                             value={item.Sample_Request_To_Plant} onchange={handlePlantChange}
                                             data-index={index} variant="label-hidden"></lightning-combobox>
                                     </td>
+                                    <td>
+                                        <lightning-input type="number" value={item.Sales_Price}
+                                            onchange={handlePriceChange} data-index={index} variant="label-hidden"
+                                            step="any" disabled={isUnpaidSampleCategory}>
+                                        </lightning-input>
+                                    </td>
+
                                     <td>
                                         <lightning-input type="number" required value={item.Sample_Qty_in_Kgs}
                                             onchange={handleQtyChange} data-index={index} variant="label-hidden"

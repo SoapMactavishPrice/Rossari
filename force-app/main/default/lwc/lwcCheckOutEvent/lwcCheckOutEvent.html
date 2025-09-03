@@ -1,0 +1,30 @@
+<template>
+    <lightning-card>
+        <!--  -->
+        <div class="wrapper">
+
+            <div class="form">
+                <div style="text-align: center; padding: 10px;">
+                    <h1 class="slds-p-bottom_large" style="text-align: center;font-weight:800; font-size:medium">
+                        <u>Check-Out
+                            Details</u>
+                    </h1>
+                </div>
+
+                <div class="inputfield">
+                    <label>Visit Description</label>
+                    <lightning-textarea type="Text" class="slds-p-around_medium input" value={Description} data-id="Description"
+                        onchange={handleInputChange} variant="label-hidden">
+                    </lightning-textarea>
+                </div>
+                <div style="text-align: center; padding: 10px;">
+                    <lightning-button class="slds-p-left_large" label="Cancel" onclick={handleReset}></lightning-button>
+                    <lightning-button class="slds-p-left_large" variant="brand" label="Check Out"
+                        onclick={handleSave}></lightning-button>
+                </div>
+                
+            </div>
+        </div>
+       
+    </lightning-card>
+</template>

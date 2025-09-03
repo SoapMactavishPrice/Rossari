@@ -1,0 +1,276 @@
+<template>
+    <lightning-card title="Budget Summary by Customer" icon-name="standard:account">
+        <template if:true={showSpinner}>
+            <lightning-spinner alternative-text="Loading" size="small" variant="base"></lightning-spinner>
+        </template>
+        <lightning-layout multiple-rows>
+            <lightning-layout-item size="2" padding="around-small">
+                <lightning-record-edit-form object-api-name="Budget__c">
+                    <lightning-input-field field-name="FY__c" onchange={handleFiscalChange}
+                        value={fiscalId}></lightning-input-field>
+                </lightning-record-edit-form>
+            </lightning-layout-item>
+
+            <lightning-layout-item size="2" padding="around-small">
+                <lightning-record-edit-form object-api-name="Budget__c">
+                    <lightning-input-field field-name="Sales_Employee__c" onchange={handleSalesEmpChange}>
+                    </lightning-input-field>
+                </lightning-record-edit-form>
+            </lightning-layout-item>
+
+
+            <lightning-layout-item size="2" padding="around-small">
+                <lightning-record-edit-form object-api-name="Budget__c">
+                    <lightning-input-field field-name="Month__c" onchange={handleSearchChange} data-type="month">
+                    </lightning-input-field>
+                </lightning-record-edit-form>
+            </lightning-layout-item>
+
+            <lightning-layout-item size="2" padding="around-small">
+                <lightning-record-edit-form object-api-name="Budget__c">
+                    <lightning-input label="Customer Name" onchange={handleSearchChange} data-type="customerName">
+                    </lightning-input>
+                </lightning-record-edit-form>
+            </lightning-layout-item>
+
+
+        </lightning-layout>
+
+        <div class="slds-scrollable" style="padding: 1px 5px;">
+            <table class="slds-table slds-table_bordered slds-table_cell-buffer">
+                <thead>
+                    <tr class="slds-line-height_reset">
+                        <th style="width: 1%;"></th>
+                        <th>Customer Name</th>
+                        <th>Customer Code</th>
+                        <th>Sales Organisation</th>
+                        <th>Distribution Channel</th>
+
+                        <th style="white-space: normal; overflow-wrap: anywhere; word-break: break-word;">
+                            Division</th>
+                        <th>Sales Quantity</th>
+                        <th> Price</th>
+                        <th>Sales Value</th>
+
+                        <th>COGS/Kg </th>
+                        <th> COGS Value</th>
+                        <th>GM/Kg</th>
+                        <th>GM Value</th>
+                    </tr>
+                    <tr class="slds-line-height_reset">
+                        <th></th>
+                        <th><b>Total</b></th>
+                        <th></th>
+                        <th></th>
+                        <th></th>
+                        <th></th>
+
+                        <th><b>{displayTotals.Total_Sales_Quantity}</b></th>
+                        <th><b>{displayTotals.Total_Price}</b></th>
+                        <th><b>{displayTotals.Total_Sales_Value}</b></th>
+                        <th><b>{displayTotals.Total_COGS_Kg}</b></th>
+                        <th><b>{displayTotals.Total_COGS_Value}</b></th>
+                        <th><b>{displayTotals.Total_GM_Kg}</b></th>
+                        <th><b>{displayTotals.Total_GM_Value}</b></th>
+
+                    </tr>
+                </thead>
+                <tbody>
+                    <template for:each={vData} for:item="group">
+                        <!-- PARENT ROW -->
+                        <tr key={group.customerId}>
+                            <td>
+                                <lightning-button-icon icon-name={group.iconName} data-key={group.customerId}
+                                    onclick={toggleRow} alternative-text="Toggle Details" variant="bare" size="small">
+                                </lightning-button-icon>
+                            </td>
+                            <td data-key={group.customerName} onclick={toggleRow}><strong>{group.customerName}</strong>
+                            </td>
+                            <td>{group.Customer_Code}</td>
+                            <td>{group.Sales_Organisations}</td>
+                            <td>{group.Distribution_Channel}</td>
+                            <td>{group.Division}</td>
+                            <td colspan="7"></td>
+
+                        </tr>
+                        <template if:true={group.isExpanded}>
+                            <tr key={group.customerId}>
+                                <td></td>
+                                <td colspan="12">
+                                    <table class="slds-table slds-table_bordered ">
+                                        <tbody>
+                                            <template for:each={group.monthWiseGroupedCustomers} for:item="rec">
+                                                <tr key={rec.month}>
+                                                    <td style="width: 4%;">
+                                                        <lightning-button-icon icon-name={rec.iconName}
+                                                            data-key={group.customerId} data-month={rec.month}
+                                                            onclick={toggleRowMonth} alternative-text="Toggle Details"
+                                                            variant="bare" size="small">
+                                                        </lightning-button-icon>
+                                                    </td>
+                                                    <td data-key={group.customerId} onclick={toggleRowMonth}
+                                                        data-month={rec.month}><strong>{rec.month}</strong></td>
+                                                    <td colspan="13"></td>
+                                                </tr>
+
+
+                                                <template if:true={rec.isExpanded}>
+                                                    <tr key={rec.month}>
+                                                        
+                                                        <td colspan="12">
+                                                            <table class="slds-table slds-table_bordered ">
+                                                                <thead>
+                                                                    <tr class="slds-line-height_reset">
+                                                                        <th>Product Code</th>
+                                                                        <th>Product Name</th>
+                                                                        <th>Product Description</th>
+                                                                        <th>Sales Quantity</th>
+                                                                        <th>Price</th>
+                                                                        <th>Sales Value</th>
+                                                                        <th>COGS/Kg</th>
+                                                                        <th>COGS Value</th>
+
+                                                                        <th>GM/Kg</th>
+                                                                        <th>GM Value</th>
+                                                                    </tr>
+                                                                </thead>
+
+                                                                <tbody>
+                                                                    <template for:each={rec.Material} for:item="pro">
+                                                                        <tr key={pro.Product_Description__c}>
+                                                                            <td>{pro.Product_code__c}</td>
+                                                                            <td
+                                                                                style="white-space: normal; overflow-wrap: anywhere; word-break: break-word;">
+                                                                                {pro.Material_Group_Desc__c}</td>
+                                                                            <td
+                                                                                style="white-space: normal; overflow-wrap: anywhere; word-break: break-word;">
+                                                                                {pro.Product_Description}</td>
+                                                                            <td>{pro.Sales_Quantity__c}</td>
+                                                                            <td><lightning-formatted-number
+                                                                                    value={pro.Price__c}
+                                                                                    format-style="currency"
+                                                                                    currency-code="INR"
+                                                                                    minimum-fraction-digits="2"></lightning-formatted-number>
+                                                                            </td>
+
+                                                                            <td><lightning-formatted-number
+                                                                                    value={pro.Sales_Value__c}
+                                                                                    format-style="currency"
+                                                                                    currency-code="INR"
+                                                                                    minimum-fraction-digits="2"></lightning-formatted-number>
+                                                                            </td>
+
+                                                                            <td>{pro.COGS_Kg__c}</td>
+                                                                            <td><lightning-formatted-number
+                                                                                    value={pro.COGS_Value__c}
+                                                                                    format-style="currency"
+                                                                                    currency-code="INR"
+                                                                                    minimum-fraction-digits="2"></lightning-formatted-number>
+                                                                            </td>
+
+                                                                            <td>{pro.GM_Kg__c}</td>
+                                                                            <td><lightning-formatted-number
+                                                                                    value={pro.GM_Value__c}
+                                                                                    format-style="currency"
+                                                                                    currency-code="INR"
+                                                                                    minimum-fraction-digits="2"></lightning-formatted-number>
+                                                                            </td>
+
+                                                                        </tr>
+                                                                    </template>
+
+                                                                </tbody>
+                                                                <tr>
+                                                                    <td colspan="3"><b>Sub Total</b></td>
+
+                                                                    <td><b>{rec.totalQuantity}</b></td>
+                                                                    <td><b>
+
+                                                                            <lightning-formatted-number
+                                                                                value={rec.totalPrice}
+                                                                                format-style="currency"
+                                                                                currency-code="INR"
+                                                                                minimum-fraction-digits="2"></lightning-formatted-number>
+                                                                        </b></td>
+                                                                    <td><b>
+                                                                            <lightning-formatted-number
+                                                                                value={rec.totalSalesVal}
+                                                                                format-style="currency"
+                                                                                currency-code="INR"
+                                                                                minimum-fraction-digits="2"></lightning-formatted-number>
+                                                                        </b></td>
+                                                                    <td><b>{rec.totalCOGSKg}</b></td>
+                                                                    <td><b>
+                                                                            <lightning-formatted-number
+                                                                                value={rec.totalCOGSVal}
+                                                                                format-style="currency"
+                                                                                currency-code="INR"
+                                                                                minimum-fraction-digits="2"></lightning-formatted-number>
+                                                                        </b>
+
+                                                                        </b></td>
+                                                                    <td><b>{rec.totalGMKg}</b></td>
+                                                                    <td><b>
+
+                                                                            <lightning-formatted-number
+                                                                                value={rec.totalGMVal}
+                                                                                format-style="currency"
+                                                                                currency-code="INR"
+                                                                                minimum-fraction-digits="2"></lightning-formatted-number>
+                                                                        </b>
+                                                                        </b></td>
+
+                                                                </tr>
+                                                            </table>
+                                                        </td>
+
+                                                    </tr>
+                                                </template>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+                                            </template>
+                                            <!-- subtotal row -->
+                                            <!-- <tr key={rec.Id} class="slds-theme_shade slds-text-title_bold">
+                                                    <td colspan="4">Subtotal</td>
+                                                    <td><lightning-formatted-number value={group.subtotal.Bill_Amount__c} format-style="currency" currency-code="INR"></lightning-formatted-number></td>
+                                                    <td><lightning-formatted-number value={group.subtotal.Allocated_Amount__c} format-style="currency" currency-code="INR"></lightning-formatted-number></td>
+                                                    <td><lightning-formatted-number value={group.subtotal.On_Account__c} format-style="currency" currency-code="INR"></lightning-formatted-number></td>
+                                                    <td><lightning-formatted-number value={group.subtotal.Balance_Outstanding__c} format-style="currency" currency-code="INR"></lightning-formatted-number></td>
+                                                    <td><lightning-formatted-number value={group.subtotal.X30_DAYS__c} format-style="currency" currency-code="INR"></lightning-formatted-number></td>
+                                                    <td><lightning-formatted-number value={group.subtotal.X30_AND_60__c} format-style="currency" currency-code="INR"></lightning-formatted-number></td>
+                                                    <td><lightning-formatted-number value={group.subtotal.X60_AND_90__c} format-style="currency" currency-code="INR"></lightning-formatted-number></td>
+                                                    <td><lightning-formatted-number value={group.subtotal.X90_AND_120__c} format-style="currency" currency-code="INR"></lightning-formatted-number></td>
+                                                    <td><lightning-formatted-number value={group.subtotal.X120_AND_150__c} format-style="currency" currency-code="INR"></lightning-formatted-number></td>
+                                                    <td><lightning-formatted-number value={group.subtotal.X150_AND_180__c} format-style="currency" currency-code="INR"></lightning-formatted-number></td>
+                                                    <td><lightning-formatted-number value={group.subtotal.X180_AND_210__c} format-style="currency" currency-code="INR"></lightning-formatted-number></td>
+                                                    <td><lightning-formatted-number value={group.subtotal.X210_AND_240__c} format-style="currency" currency-code="INR"></lightning-formatted-number></td>
+                                                    <td><lightning-formatted-number value={group.subtotal.X240_AND_270__c} format-style="currency" currency-code="INR"></lightning-formatted-number></td>
+                                                    <td><lightning-formatted-number value={group.subtotal.X270_AND_365__c} format-style="currency" currency-code="INR"></lightning-formatted-number></td>
+                                                    <td><lightning-formatted-number value={group.subtotal.Above_1_Year__c} format-style="currency" currency-code="INR"></lightning-formatted-number></td>
+                                                    <td><lightning-formatted-number value={group.subtotal.Above_2_Year__c} format-style="currency" currency-code="INR"></lightning-formatted-number></td>
+                                                </tr> -->
+                                        </tbody>
+                                    </table>
+                                </td>
+                            </tr>
+                        </template>
+                    </template>
+                </tbody>
+            </table>
+        </div>
+
+    </lightning-card>
+
+</template>

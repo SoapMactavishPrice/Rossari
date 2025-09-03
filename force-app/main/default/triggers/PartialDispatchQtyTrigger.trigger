@@ -1,4 +1,3 @@
-
 trigger PartialDispatchQtyTrigger on Partial_Disptach_Qty__c (after insert, after update, after delete) {
     if (Trigger.isAfter) {
         if (Trigger.isInsert) {

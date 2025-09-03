@@ -5,8 +5,11 @@ import { NavigationMixin } from 'lightning/navigation';
 import getLeadInfo from '@salesforce/apex/SampleRequestController.getLeadInfo';
 import getPlantOptions from '@salesforce/apex/SampleRequestController.getPlantOptions';
 import saveSampleRequest from '@salesforce/apex/SampleRequestController.saveSample';
+import getPicklistDependencies from '@salesforce/apex/SampleRequestController.getPicklistDependencies';
+import getUnitPrice from '@salesforce/apex/SampleRequestController.getUnitPrice';
+import getCurrentUserZone from '@salesforce/apex/SampleRequestController.getCurrentUserZone';
 
-const LEAD_FIELDS = ['Lead.Company', 'Lead.CurrencyIsoCode'];
+const LEAD_FIELDS = ['Lead.Company', 'Lead.CurrencyIsoCode', 'Lead.Lead_Number__c'];
 
 export default class SampleRequestForm extends NavigationMixin(LightningElement) {
     @api recordId; // Lead ID
@@ -18,22 +21,49 @@ export default class SampleRequestForm extends NavigationMixin(LightningElement)
     @track isViewFile = false;
     @track filesData = [];
     @track sendEmailToPlant = true;
+    @track sampleCategoryOptions = [];
+    @track allSAPDocTypeOptions = {
+        Paid: [],
+        Unpaid: []
+    };
+    @track filteredSAPDocTypeOptions = [];
 
     todayDate = new Date().toISOString().split('T')[0];
+    @track leadNumber = '';
+    @track zone = '';
+
+
 
     @wire(getRecord, { recordId: '$recordId', fields: LEAD_FIELDS })
     wiredLead({ error, data }) {
         if (data) {
             this.leadCompany = data.fields.Company.value;
             this.currencyIsoCode = data.fields.CurrencyIsoCode.value;
+            this.leadNumber = data.fields.Lead_Number__c?.value || '';
+
         } else if (error) {
             this.showError('Error loading lead', error.body.message);
         }
     }
 
+
     connectedCallback() {
         this.loadInitialData();
+        this.loadPicklists();
+
+        getCurrentUserZone()
+            .then(result => {
+                this.zone = result;
+            })
+            .catch(error => {
+                this.showError('Error fetching user zone', error.body?.message || error.message);
+            });
     }
+
+    get isUnpaidSampleCategory() {
+        return this.selectedSampleCategory === 'Unpaid';
+    }
+
 
     async loadInitialData() {
         try {
@@ -57,7 +87,8 @@ export default class SampleRequestForm extends NavigationMixin(LightningElement)
                     Description: product.Description || '',
                     Sample_Request_To_Plant: product.productPlant || '',
                     //    Sample_Qty_in_Kgs: product.Sample_Qty_in_Kgs || 0,
-                    Sample_Qty_in_Kgs: 0
+                    Sample_Qty_in_Kgs: 0,
+                    Sales_Price: product.Sales_Price || 0
                 }));
                 console.log('Initialized SampleLine:', JSON.stringify(this.SampleLine, null, 2));
             } else {
@@ -68,18 +99,88 @@ export default class SampleRequestForm extends NavigationMixin(LightningElement)
         }
     }
 
+    async loadPicklists() {
+        try {
+            const result = await getPicklistDependencies();
+
+            this.sampleCategoryOptions = result['Sample_Category__c'].map(val => ({
+                label: val,
+                value: val
+            }));
+
+            // Initialize SAP options manually
+            const allSAPOptions = result['SAP_Sample_Document_Type__c'];
+
+            // Example logic: match values based on hard-coded dependency
+            this.allSAPDocTypeOptions = {
+                Paid: allSAPOptions.filter(v => v === 'ZDOM' || v === 'ZDEM').map(val => ({ label: val, value: val })),
+                Unpaid: allSAPOptions.filter(v => v === 'ZFOC').map(val => ({ label: val, value: val }))
+            };
+
+        } catch (error) {
+            console.error('Error loading picklists', error);
+        }
+    }
+
+    // handleSampleCategoryChange(event) {
+    //     this.selectedSampleCategory = event.detail.value;
+    //     this.selectedSAPDocType = '';
+    //     this.filteredSAPDocTypeOptions = this.allSAPDocTypeOptions[this.selectedSampleCategory] || [];
+    // }
+
+    handleSampleCategoryChange(event) {
+        this.selectedSampleCategory = event.detail.value;
+        this.selectedSAPDocType = '';
+        this.filteredSAPDocTypeOptions = this.allSAPDocTypeOptions[this.selectedSampleCategory] || [];
+
+        if (this.selectedSampleCategory === 'Unpaid') {
+            this.SampleLine = this.SampleLine.map(item => ({
+                ...item,
+                Sales_Price: 0
+            }));
+        }
+    }
+
+
+    handleSAPDocTypeChange(event) {
+        if (!this.selectedSampleCategory) {
+            this.showError('Validation Error', 'Please select Sample Category first');
+
+            // Clear the combobox selection both in JS and UI
+            this.selectedSAPDocType = '';
+
+            // Reset UI selection explicitly
+            const input = this.template.querySelector("[data-name='SAP_Doc_Type__c']");
+            if (input) {
+                input.value = '';  // This helps reflect empty value on UI
+            }
+
+            return;
+        }
+
+        this.selectedSAPDocType = event.detail.value;
+    }
+
+
+
     handleSendEmailCheckbox(event) {
         this.sendEmailToPlant = event.target.checked;
     }
 
 
-    handleProductSelection(event) {
+    async handleProductSelection(event) {
         const selectedRecord = event.detail;
         const index = parseInt(event.target.dataset.index, 10);
 
-        if (!selectedRecord) {
-            console.log("No record selected");
-            return;
+        if (!selectedRecord) return;
+
+        const productId = selectedRecord.id;
+        let unitPrice = 0;
+
+        try {
+            unitPrice = await getUnitPrice({ productId });
+        } catch (error) {
+            console.error('Failed to fetch UnitPrice:', error);
         }
 
         this.SampleLine = this.SampleLine.map((item, idx) => {
@@ -87,18 +188,20 @@ export default class SampleRequestForm extends NavigationMixin(LightningElement)
                 return {
                     ...item,
                     prodId: selectedRecord.id,
-                    Product: selectedRecord.mainField, // Product Name
-                    Product_Code: selectedRecord.subField || '', // ProductCode
-                    Description: selectedRecord.description || selectedRecord.Description || '',
-                    Sample_Request_To_Plant: selectedRecord.productPlant || '' // Plant_Name__c
+                    Product: selectedRecord.mainField,
+                    Product_Code: selectedRecord.subField || '',
+                    Description: selectedRecord.description || '',
+                    Sample_Request_To_Plant: selectedRecord.productPlant || '',
+                    Sales_Price: unitPrice
                 };
             }
             return item;
         });
 
         this.SampleLine = [...this.SampleLine];
-        console.log('Updated SampleLine:', JSON.stringify(this.SampleLine, null, 2));
     }
+
+
     addEmptyRow() {
         this.SampleLine = [...this.SampleLine, {
             sqNo: this.generateId(),
@@ -107,9 +210,18 @@ export default class SampleRequestForm extends NavigationMixin(LightningElement)
             Product_Code: '',
             Description: '',
             Sample_Request_To_Plant: '',
-            Sample_Qty_in_Kgs: 0
+            Sample_Qty_in_Kgs: 0,
+            Sales_Price: 0
         }];
     }
+
+    handlePriceChange(event) {
+        const index = event.target.dataset.index;
+        const value = event.detail.value;
+        this.SampleLine[index].Sales_Price = value;
+        this.SampleLine = [...this.SampleLine];
+    }
+
 
     handleAddProduct() {
         this.addEmptyRow();
@@ -250,13 +362,42 @@ export default class SampleRequestForm extends NavigationMixin(LightningElement)
         }
     }
 
-    validateForm() {
-        // First validate Sample Expected Date
-        const requestDate = this.template.querySelector("[data-name='Sample_Request_Date__c']")?.value;
-        const expectedDate = this.template.querySelector("[data-name='Sample_Expected_Date__c']")?.value;
+    validateEmails(input) {
+        const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-        if (!expectedDate) {
-            this.showError('Validation Error', 'Sample Expected Date is required');
+        const emails = input
+            .split(/[,;]/)        // Split by comma or semicolon
+            .map(e => e.trim())   // Trim each entry
+            .filter(e => e);      // Remove empty strings
+
+        let validate = true;
+        emails.forEach(email => {
+            if (emailPattern.test(email)) {
+
+            } else {
+                validate = false;
+            }
+        });
+
+        return validate;
+    }
+
+    validateForm() {
+        const today = new Date();
+        today.setHours(0, 0, 0, 0); // Set time to 00:00:00 for accurate comparison
+
+        const requestDate = new Date(this.template.querySelector("[data-name='Sample_Request_Date__c']")?.value);
+        const expectedDate = new Date(this.template.querySelector("[data-name='Sample_Expected_Date__c']")?.value);
+        const followUpDate = new Date(this.template.querySelector("[data-name='Sample_Follow_Up_Date__c']")?.value);
+        const email = this.template.querySelector("[data-name='Email__c']")?.value;
+
+        if (requestDate < today) {
+            this.showError('Validation Error', "Sample Request Date cannot be earlier than today's date.");
+            return false;
+        }
+
+        if (expectedDate < today) {
+            this.showError('Validation Error', "Sample Expected Date cannot be earlier than today's date.");
             return false;
         }
 
@@ -265,7 +406,33 @@ export default class SampleRequestForm extends NavigationMixin(LightningElement)
             return false;
         }
 
-        // Now validate each product line item one by one
+        if (!expectedDate) {
+            this.showError('Validation Error', 'Sample Expected Date is required');
+            return false;
+        }
+
+        if (followUpDate && followUpDate < today) {
+            this.showError('Validation Error', "Follow Up Date cannot be earlier than today's date.");
+            return false;
+        }
+
+        if (!this.selectedSampleCategory) {
+            this.showError('Validation Error', 'Please select a Sample Category');
+            return false;
+        }
+
+
+        if (!this.selectedSAPDocType) {
+            this.showError('Validation Error', 'Please select an SAP Document Type');
+            return false;
+        }
+
+        if (email && !this.validateEmails(email)) {
+            this.showError('Validation Error', 'Enter valid emails separated by comma or semicolon');
+            return false;
+        }
+
+
         for (let i = 0; i < this.SampleLine.length; i++) {
             const item = this.SampleLine[i];
 
@@ -288,17 +455,28 @@ export default class SampleRequestForm extends NavigationMixin(LightningElement)
         return true;
     }
 
+
     getFormData() {
-        return {
+        const data = {
             Request_Date: this.template.querySelector("[data-name='Sample_Request_Date__c']")?.value,
             Sample_Expected_Date: this.template.querySelector("[data-name='Sample_Expected_Date__c']")?.value,
             Sample_Follow_Up_Date: this.template.querySelector("[data-name='Sample_Follow_Up_Date__c']")?.value,
+            Email: this.template.querySelector("[data-name='Email__c']")?.value,
             Consignee_Name: this.leadCompany,
             CC_Email: this.template.querySelector("[data-name='CC_Email__c']")?.value,
             Send_Email_To_Plant: this.template.querySelector("[data-name='Send_Email_To_Plant__c']")?.checked,
-            Remark: this.template.querySelector("[data-name='Remark__c']")?.value
+            Remark: this.template.querySelector("[data-name='Remark__c']")?.value,
+            Sample_Category: this.selectedSampleCategory,
+            SAP_Doc_Type: this.selectedSAPDocType,
+            Customer_Code__c: this.leadNumber,
+            Zone__c: this.zone
         };
+
+        console.log('Form Data being sent to Apex:', JSON.stringify(data, null, 2));
+        return data;
     }
+
+
 
 
 

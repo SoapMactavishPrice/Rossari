@@ -1,0 +1,7 @@
+<aura:component implements="lightning:isUrlAddressable,forceCommunity:availableForAllPageTypes">
+    <aura:attribute name="refRecordId" type="String" />
+    <!-- <aura:attribute name="refsObjectName" type="String" /> -->
+    <aura:handler name="init" value="{!this}" action="{!c.init}" />
+    <aura:handler name="change" value="{!v.pageReference}" action="{!c.reInit}" />
+    <c:lwcEventCheckIn recordId="{!v.refRecordId}" />
+</aura:component>

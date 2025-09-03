@@ -3,28 +3,43 @@ private class CreateOrderonQuoteTest {
     
     @testSetup
     static void setupData() {
+        // Setup standard pricebook first
+        Pricebook2 standardPb = new Pricebook2(
+            Id = Test.getStandardPricebookId(),
+            IsActive = true
+        );
+        update standardPb;
+        
         Account acc = new Account(Name = 'Test Account');
         insert acc;
         
         Contact con = new Contact(FirstName = 'Test', LastName = 'Contact', Email = 'test@example.com', AccountId = acc.Id);
         insert con;
         
-        Opportunity opp = new Opportunity(Name = 'Test Opp', StageName = 'Quotation', CloseDate = Date.today(), AccountId = acc.Id);
+        Opportunity opp = new Opportunity(
+            Name = 'Test Opp', 
+            StageName = 'Quotation', 
+            CloseDate = Date.today(), 
+            AccountId = acc.Id,
+            Pricebook2Id = standardPb.Id
+        );
         insert opp;
-
-        Pricebook2 pb = new Pricebook2(Name = 'Standard Pricebook', IsActive = true);
-        insert pb;
 
         Product2 prod = new Product2(Name = 'Test Product', IsActive = true);
         insert prod;
 
-        PricebookEntry pbe = new PricebookEntry(Product2Id = prod.Id, Pricebook2Id = pb.Id, UnitPrice = 100, IsActive = true, UseStandardPrice = false);
+        PricebookEntry pbe = new PricebookEntry(
+            Product2Id = prod.Id, 
+            Pricebook2Id = standardPb.Id, 
+            UnitPrice = 100, 
+            IsActive = true
+        );
         insert pbe;
 
         Quote qt = new Quote(
             Name = 'Test Quote',
             OpportunityId = opp.Id,
-            Pricebook2Id = pb.Id,
+            Pricebook2Id = standardPb.Id,
             BillingStreet = '123 St',
             BillingCity = 'City',
             BillingState = 'State',
@@ -57,8 +72,9 @@ private class CreateOrderonQuoteTest {
 
     @isTest
     static void testCreateOrderFromQuote() {
-        Quote qt = [SELECT Id, Pricebook2Id, Opportunity.AccountId FROM Quote LIMIT 1];
+        Quote qt = [SELECT Id, Pricebook2Id, Opportunity.AccountId, CurrencyIsoCode FROM Quote LIMIT 1];
         QuoteLineItem qli = [SELECT Id, Product2Id, PricebookEntryId, UnitPrice, Quantity FROM QuoteLineItem LIMIT 1];
+        Contact con = [SELECT Id FROM Contact LIMIT 1];
 
         Map<String, Object> item = new Map<String, Object>{
             'UnitPrice' => qli.UnitPrice,
@@ -75,7 +91,7 @@ private class CreateOrderonQuoteTest {
             lineItems,
             'Draft',
             Date.today(),
-            UserInfo.getUserId(),
+            con.Id,
             qt.CurrencyIsoCode,
             qt.Pricebook2Id
         );

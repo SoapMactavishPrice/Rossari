@@ -3,6 +3,12 @@ private class ManagerEmailSenderTest {
 
     @testSetup
     static void setupTestData() {
+        Pricebook2 standardPricebook = new Pricebook2(
+            Id = Test.getStandardPricebookId(),
+            IsActive = true
+        );
+        update standardPricebook;
+        
         User testManager = new User(
             Alias = 'testmgr', 
             Email = 'manager@example.com', 
@@ -34,8 +40,6 @@ private class ManagerEmailSenderTest {
         );
         insert testOwner;
         
-        Id standardPricebookId = Test.getStandardPricebookId();
-        
         Pricebook2 testPricebook = new Pricebook2(
             Name = 'Test Pricebook',
             IsActive = true
@@ -49,7 +53,7 @@ private class ManagerEmailSenderTest {
         insert prod;
         
         PricebookEntry standardPbe = new PricebookEntry(
-            Pricebook2Id = standardPricebookId, 
+            Pricebook2Id = standardPricebook.Id, 
             Product2Id = prod.Id, 
             UnitPrice = 100, 
             IsActive = true, 
@@ -66,7 +70,6 @@ private class ManagerEmailSenderTest {
         );
         insert customPbe;
         
-        // Create Opportunity and assign Pricebook2
         Opportunity testOpportunity = new Opportunity(
             Name = 'Test Opportunity', 
             StageName = 'Prospecting', 
@@ -74,36 +77,32 @@ private class ManagerEmailSenderTest {
             AccountId = testAccount.Id, 
             OwnerId = testOwner.Id,
             Pricebook2Id = testPricebook.Id
-           
         );
         insert testOpportunity;
 
-        // Create OpportunityLineItem after the Opportunity is inserted
         OpportunityLineItem oppLineItem = new OpportunityLineItem(
             OpportunityId = testOpportunity.Id, 
             Product2Id = prod.Id, 
             Quantity = 1, 
             UnitPrice = 50, 
-            PricebookEntryId = customPbe.Id // Associate with the custom pricebook entry
+            PricebookEntryId = customPbe.Id
         );
         insert oppLineItem;
 
-        // Create Quote and assign Pricebook2
         Quote testQuote = new Quote(
             OpportunityId = testOpportunity.Id, 
             Name = 'Test Quote', 
             Status = 'Draft',
-            Pricebook2Id = testPricebook.Id // Assigning the Pricebook to the Quote
+            Pricebook2Id = testPricebook.Id
         );
         insert testQuote;
 
-        // Create QuoteLineItem after the Quote is inserted
         QuoteLineItem quoteLineItem = new QuoteLineItem(
             QuoteId = testQuote.Id, 
             Product2Id = prod.Id, 
             Quantity = 1, 
             UnitPrice = 50, 
-            PricebookEntryId = customPbe.Id // Associate with the custom pricebook entry
+            PricebookEntryId = customPbe.Id
         );
         insert quoteLineItem;
     }
@@ -111,11 +110,59 @@ private class ManagerEmailSenderTest {
     @isTest
     static void testSendEmailToManagerForQuote() {
         Quote testQuote = [SELECT Id FROM Quote LIMIT 1];
-        Opportunity testOpportunity = [SELECT Id FROM Opportunity LIMIT 1];
+        QuoteLineItem qli = [SELECT Id FROM QuoteLineItem WHERE QuoteId = :testQuote.Id LIMIT 1];
+        qli.UnitPrice = 50;
+        update qli;
         
         Test.startTest();
         ManagerEmailSender.sendEmailToManagerForQuote(testQuote.Id);
+        Test.stopTest();
+    }
+
+    @isTest
+    static void testSendEmailToManagerForQuoteWithNull() {
+        Test.startTest();
+        ManagerEmailSender.sendEmailToManagerForQuote(null);
+        Test.stopTest();
+    }
+
+    @isTest
+    static void testSendEmailToManagerForQuoteNoDiscount() {
+        Quote testQuote = [SELECT Id FROM Quote LIMIT 1];
+        QuoteLineItem qli = [SELECT Id FROM QuoteLineItem WHERE QuoteId = :testQuote.Id LIMIT 1];
+        qli.UnitPrice = 100;
+        update qli;
         
+        Test.startTest();
+        ManagerEmailSender.sendEmailToManagerForQuote(testQuote.Id);
+        Test.stopTest();
+    }
+
+    @isTest
+    static void testSendEmailToManagerForQuoteNoManager() {
+        User testOwner = [SELECT Id FROM User WHERE Username = 'managermnkj2015@example.com' LIMIT 1];
+        testOwner.ManagerId = null;
+        update testOwner;
+        
+        Quote testQuote = [SELECT Id FROM Quote LIMIT 1];
+        QuoteLineItem qli = [SELECT Id FROM QuoteLineItem WHERE QuoteId = :testQuote.Id LIMIT 1];
+        qli.UnitPrice = 50;
+        update qli;
+        
+        Test.startTest();
+        ManagerEmailSender.sendEmailToManagerForQuote(testQuote.Id);
+        Test.stopTest();
+    }
+
+    @isTest
+    static void testSendEmailToManagerForQuoteNoNotificationType() {
+        Quote testQuote = [SELECT Id FROM Quote LIMIT 1];
+        QuoteLineItem qli = [SELECT Id FROM QuoteLineItem WHERE QuoteId = :testQuote.Id LIMIT 1];
+        qli.UnitPrice = 50;
+        update qli;
+        
+        Test.startTest();
+        ManagerEmailSender.sendEmailToManagerForQuote(testQuote.Id);
         Test.stopTest();
     }
 }

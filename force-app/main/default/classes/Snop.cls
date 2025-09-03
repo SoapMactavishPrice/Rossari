@@ -182,6 +182,9 @@ public without sharing class Snop {
         if (String.isNotBlank(filter.orderNumberFilter)) {
             conditions.add('OrderNumber = \'' + String.escapeSingleQuotes(filter.orderNumberFilter) + '\'');
         }
+        // if (filter.orderDateFilter != null) {
+        //     conditions.add('EffectiveDate = ' + filter.orderDateFilter.format('yyyy-mm-dd'));
+        // }
         if (String.isNotBlank(filter.plantFilter)) {
             conditions.add('Plant_Code__c = \'' + String.escapeSingleQuotes(filter.plantFilter) + '\'');
         }
@@ -205,86 +208,184 @@ public without sharing class Snop {
     }
 
     @AuraEnabled
-    public static void saveCustomerSchedules(List<CustomerScheduleWrapper> wrapperList) {
-        List<Customer_Order_Schedule_Line_Item__c> recordsToUpsert = new List<Customer_Order_Schedule_Line_Item__c>();
+    public static string saveline(String lineItem){
+        system.debug('lineItem >> ' +lineItem);
 
-        for (CustomerScheduleWrapper wrap : wrapperList) {
-            Customer_Order_Schedule_Line_Item__c rec = new Customer_Order_Schedule_Line_Item__c();
+        Savepoint sp = Database.setSavepoint();
 
-            if (wrap.recordId != null) {
-                rec.Id = wrap.recordId; // ensures update instead of insert
+        Map<String,Object> mp=new Map<String,Object>();
+        // try
+        // {
+            List<Object> lineListdata = (List<Object>) JSON.deserializeUntyped(lineItem);
+            System.debug('lst_data -> ' + lineListdata );
+            Set<Id> orderIds=new Set<Id>();
+            Set<Id> orderItemIds=new Set<Id>();
+            for (Object asnline : lineListdata) {
+                Map<String, Object> mapdata = (Map<String, Object>)asnline;
+                orderIds.add((String)mapdata.get('OrderId'));
+                orderItemIds.add((String)mapdata.get('Id'));
+            }
+            List<Partial_Disptach_Qty__c> partiaList=new List<Partial_Disptach_Qty__c>();
+            partiaList=[SELECT Id,Name , Disptach_Qty__c,Order__c,Order_Product__c,Planning_Dispatch_Remark__c,Planning_Ready_by_Date__c,Deviation_Reason__c 
+                    FROM Partial_Disptach_Qty__c
+                    WHERE Order__c IN :orderIds
+                    AND Order_Product__c IN:orderItemIds];
+            Map<String,String> mpPartialList=new Map<String,String>();
+            for(Partial_Disptach_Qty__c row:partiaList){
+                mpPartialList.put(row.Order__c+'-'+row.Order_Product__c,row.Id);
             }
 
-            rec.Name = wrap.name;
-            rec.Customer_Scheduled_Quantity__c = wrap.customerScheduledQuantity;
-            rec.Customer_Scheduled_Date__c = wrap.customerScheduledDate;
-            rec.Production_Revised_Date__c = wrap.productionRevisedDate;
-            rec.Production_Scheduled_Date__c = wrap.productionScheduledDate;
-            rec.Remarks_for_Production_Planner__c = wrap.remarksForProductionPlanner;
-            rec.Order__c = wrap.orderId;
-            rec.Order_Product__c = wrap.orderProductId;
-            rec.Order_Scheduling_Line_Item__c = wrap.orderSchedulingLineItemId;
+            List<Partial_Disptach_Qty__c> linelist_partial = new List<Partial_Disptach_Qty__c>();
+            List<OrderItem> linelist = new List<OrderItem>();
+            for (Object asnline : lineListdata) {
+                Map<String, Object> mapdata = (Map<String, Object>)asnline;
+                System.debug('mp_data -> ' + mapdata );
 
-            recordsToUpsert.add(rec);
-        }
+                OrderItem t  = new OrderItem();
+                t.Id  = (String)mapdata.get('Id');
+                t.Lead_time__c = (String)mapdata.get('Lead_time__c');
+                linelist.add(t);
+            }
 
-        if (!recordsToUpsert.isEmpty()) {
-            upsert recordsToUpsert;
-        }
+            Boolean valiadateCheck = false;
+            if(linelist.size() > 0) {
+                UPDATE linelist;
+                List<Order> ord=[SELECT Id,Status FROM  Order WHERE Id IN: orderIds];
+                for(Order row:ord){
+                    row.Status='Dispatch Planned';
+                }
+                UPDATE ord; 
+            }
+            UPSERT linelist_partial;
+            valiadateCheck = true;
+
+            mp.put('status', true);
+            mp.put('msg','Insert Succesfully');
+            mp.put('ReceiptIssued', valiadateCheck);
+        // } catch (Exception e) {
+        //     Database.RollBack(sp);
+        //     //ErrorLogCls.saveLog(e.getStackTraceString(),e.getMessage(),lineItem, '');
+        //     mp.put('status', false);
+        //     mp.put('msg', e.getMessage());
+        // }
+        return JSON.serialize(mp);
     }
 
-
-    @AuraEnabled
-    public static List<CustomerScheduleWrapper> getScheduledOrder(String orderId, String orderLineItemId, String orderSchedulingLineItemId){
-        List<Customer_Order_Schedule_Line_Item__c> customerScheduleLineItem = 
-        [
-            SELECT 
-                Id, 
-                Name, 
-                Customer_Scheduled_Quantity__c,
-                Customer_Scheduled_Date__c,
-                Production_Revised_Date__c,
-                Production_Scheduled_Date__c,
-                Remarks_for_Production_Planner__c,
-                Order__c,
-                Order_Product__c,
-                Order_Scheduling_Line_Item__c
-            FROM Customer_Order_Schedule_Line_Item__c
-            WHERE Order__c = :orderId
-            AND Order_Product__c = :orderLineItemId
-            AND Order_Scheduling_Line_Item__c = :orderSchedulingLineItemId
-            ORDER By CreatedDate
-        ];
-
-        List<CustomerScheduleWrapper> customerScheduleObjs = new List<CustomerScheduleWrapper>();
-
-        for (Customer_Order_Schedule_Line_Item__c eachCustomerScheduleLineItem : customerScheduleLineItem) {
-            customerScheduleObjs.add(new CustomerScheduleWrapper(eachCustomerScheduleLineItem));
+    public static String replacer(Object obj) {
+        if (obj == null) {
+            return '';
+        } else {
+            return String.valueOf(obj);
         }
-
-        return customerScheduleObjs;
     }
-
     @AuraEnabled
-    public static Boolean removeAllCustomerSchedules(String orderId, String orderLineItemId, String orderSchedulingLineItemId){
-        List<Customer_Order_Schedule_Line_Item__c>  partialData = new List<Customer_Order_Schedule_Line_Item__c>();
-        partialData =[SELECT Id
-            FROM Customer_Order_Schedule_Line_Item__c
-            WHERE Order__c=:orderId
-            AND Order_Product__c=:orderLineItemId
-            AND Order_Scheduling_Line_Item__c = :orderSchedulingLineItemId];
-        DELETE partialData;
-        return true;
-    }
+    public static Boolean savePartialDisptach(String orderId,String orderLineItemId,String dataList){
+        try {
+            List<Object> lineListdata = (List<Object>) JSON.deserializeUntyped(dataList);
+            System.debug('lst_data -> ' + lineListdata );
 
-    @AuraEnabled
-    public static Boolean removeRowCustomerSchedule(String scheduleId){
-        List<Customer_Order_Schedule_Line_Item__c>  partialData=new List<Customer_Order_Schedule_Line_Item__c>();
-        partialData =[SELECT Id
-            FROM Customer_Order_Schedule_Line_Item__c
-            WHERE Id=:scheduleId];
-            DELETE partialData;
+            // List<Order> linelist = new List<Order>();
+            List<Partial_Disptach_Qty__c> linelist = new List<Partial_Disptach_Qty__c>();
+            for (Object asnline : lineListdata) {
+                Map<String, Object> mapdata = (Map<String, Object>)asnline;
+                System.debug('mp_data -> ' + mapdata );
+                Partial_Disptach_Qty__c t=new Partial_Disptach_Qty__c();
+                String id= (String)mapdata.get('Id');
+                t.Order__c=orderId;
+                t.Order_Product__c=orderLineItemId;
+                if(!id.Contains('create')){
+                    t.Id=(String)mapdata.get('Id');
+                }
+                if ((String)mapdata.get('Planning_Ready_by_Date__c') != null) {
+                    t.Planning_Ready_by_Date__c = Date.valueOf((String)mapdata.get('Planning_Ready_by_Date__c'));
+                    t.Name=Decimal.valueOf(String.valueOf(mapdata.get('Disptach_Qty__c')))+'qty Will be dispacthed on '+Date.valueOf((String)mapdata.get('Planning_Ready_by_Date__c'));
+                    // t.Name=(String)mapdata.get('Planning_Ready_by_Date__c')+'-'+(String)mapdata.get('Disptach_Qty__c');
+                   
+                }
+                System.debug('==> '+mapdata.get('Disptach_Qty__c') );
+                // if (mapdata.get('Disptach_Qty__c') != null) {
+                    t.Disptach_Qty__c = Decimal.valueOf(String.valueOf(mapdata.get('Disptach_Qty__c')));
+                    // t.Disptach_Qty__c = (Decimal)mapdata.get('Disptach_Qty__c');
+                // }
+                t.Planning_Dispatch_Remark__c= (String)mapdata.get('Planning_Dispatch_Remark__c');
+                t.Deviation_Reason__c= (String)mapdata.get('Deviation_Reason__c');
+                linelist.add(t);
+            }
+            UPSERT linelist;
             return true;
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+    @AuraEnabled
+    public static List<Partial_Disptach_Qty__c> getPartialData(String orderId,String orderLineItemId){
+        try {
+            return [SELECT Id,Name , Disptach_Qty__c,Order__c,Order_Product__c,Planning_Dispatch_Remark__c,Planning_Ready_by_Date__c,Deviation_Reason__c 
+                    FROM Partial_Disptach_Qty__c
+                    WHERE Order__c=:orderId
+                    AND Order_Product__c=:orderLineItemId
+                    ORDER By CreatedDate];
+        } catch (Exception e) {
+            throw new AuraHandledException(e.getMessage());
+        }
+    }
+
+    @AuraEnabled
+    public static List<Partial_Disptach_Qty__c> getDisptachList(String lineItem){
+        Set<Id> sitem = new Set<Id>();
+        try{
+            List<Object> lineListdata = (List<Object>) JSON.deserializeUntyped(lineItem);
+            System.debug('lst_data -> ' + lineListdata );
+            Set<Id> orderIds=new Set<Id>();
+            Set<Id> orderItemIds=new Set<Id>();
+            for (Object asnline : lineListdata) {
+                Map<String, Object> mapdata = (Map<String, Object>)asnline;
+                orderIds.add((String)mapdata.get('OrderId'));
+                orderItemIds.add((String)mapdata.get('Id'));
+            }
+
+            List<Partial_Disptach_Qty__c> partiaList=new List<Partial_Disptach_Qty__c>();
+            partiaList=[SELECT Id,Name , Disptach_Qty__c,Order__c,Order_Product__c,Planning_Dispatch_Remark__c,Planning_Ready_by_Date__c,Deviation_Reason__c 
+                    FROM Partial_Disptach_Qty__c
+                    WHERE Order__c IN :orderIds
+                    AND Order_Product__c IN:orderItemIds];
+
+            return partiaList;
+        }
+        catch(Exception e){
+            //ErrorLogCls.saveLog(e.getStackTraceString(),e.getMessage(),pdata,'');
+            return null;
+        }
+    }
+
+    @AuraEnabled
+    public static Boolean removeALlPartialData(String orderId,String orderLineItemId){
+        try {
+             List<Partial_Disptach_Qty__c>  partialData=new List<Partial_Disptach_Qty__c>();
+             partialData =[SELECT Id,Name , Disptach_Qty__c,Order__c,Order_Product__c,Planning_Dispatch_Remark__c,Planning_Ready_by_Date__c,Deviation_Reason__c 
+                    FROM Partial_Disptach_Qty__c
+                    WHERE Order__c=:orderId
+                    AND Order_Product__c=:orderLineItemId];
+                    DELETE partialData;
+                    return true;
+        } catch (Exception e) {
+            throw new AuraHandledException(e.getMessage());
+        }
+    }
+
+    @AuraEnabled
+    public static Boolean removeRowPartialData(String dispatchId){
+        try {
+             List<Partial_Disptach_Qty__c>  partialData=new List<Partial_Disptach_Qty__c>();
+             partialData =[SELECT Id,Name , Disptach_Qty__c,Order__c,Order_Product__c,Planning_Dispatch_Remark__c,Planning_Ready_by_Date__c,Deviation_Reason__c 
+                    FROM Partial_Disptach_Qty__c
+                    WHERE Id=:dispatchId];
+                    DELETE partialData;
+                    return true;
+        } catch (Exception e) {
+            throw new AuraHandledException(e.getMessage());
+        }
     }
 
     public class HeaderWrapper {
@@ -326,135 +427,15 @@ public without sharing class Snop {
         @AuraEnabled public String shipToFilter { get; set; }
     }
 
-    public class OrderMaster {
-        @AuraEnabled public String orderId;
-        @AuraEnabled public String accountId;
-        @AuraEnabled public String accountName;
-        @AuraEnabled public String sbu;
-        @AuraEnabled public String plantCode;
-        @AuraEnabled public String plantCodeName;
-        @AuraEnabled public String blockStatus;
-        @AuraEnabled public String shipToPartyId;
-        @AuraEnabled public String shipToPartyName;
-        @AuraEnabled public String billToPartyId;
-        @AuraEnabled public String billToPartyName;
-        @AuraEnabled public String pricingStatus;
-        @AuraEnabled public String cogsStatus;
-        @AuraEnabled public String creditStatus;
-        @AuraEnabled public Date effectiveDate;
-        @AuraEnabled public String status;
-        @AuraEnabled public String orderNumber;
-        @AuraEnabled public String documentNo;
-        @AuraEnabled public String name;
-        @AuraEnabled public Datetime createdDate;
-        @AuraEnabled public Boolean isExpanded = false;
-        @AuraEnabled public List<OrderSchedulingLine> orderSchedulingLine;
+    public class OrderWrapper {
+        @AuraEnabled public Order orderRec { get; set; }
+        @AuraEnabled public List<Order_Scheduling_Line_Item_wise__c> lineItems { get; set; }
 
-        public OrderMaster(Order order, List<OrderSchedulingLine> lineItems) {
-            this.orderId          = order.Id;
-            this.accountId        = order.AccountId;
-            this.accountName      = (order.Account != null) ? order.Account.Name : null;
-            this.sbu              = order.SBU__c;
-            this.plantCode        = order.Plant_Code__c;
-            this.plantCodeName    = (order.Plant_Code__r != null) ? order.Plant_Code__r.Name : null;
-            this.blockStatus      = order.Block_Status__c;
-            this.shipToPartyId    = order.Ship_to_party__c;
-            this.shipToPartyName  = (order.Ship_to_party__r != null) ? order.Ship_to_party__r.Name : null;
-            this.billToPartyId    = order.Bill_to_party__c;
-            this.billToPartyName  = (order.Bill_to_party__r != null) ? order.Bill_to_party__r.Name : null;
-            this.pricingStatus    = order.Pricing_Status__c;
-            this.cogsStatus       = order.COGS_Status__c;
-            this.creditStatus     = order.Credit_Status__c;
-            this.effectiveDate    = order.EffectiveDate;
-            this.status           = order.Status;
-            this.orderNumber      = order.OrderNumber;
-            this.documentNo       = order.Document_No__c;
-            this.name             = order.Name;
-            this.createdDate      = order.CreatedDate;
-            this.orderSchedulingLine = lineItems;
+        public OrderWrapper(Order o, List<Order_Scheduling_Line_Item_wise__c> li) {
+            this.orderRec = o;
+            this.lineItems = li;
         }
     }
-
-    public class OrderSchedulingLine {
-        @AuraEnabled public Id id;
-        @AuraEnabled public String name;
-        @AuraEnabled public Decimal confirmedQuantity;
-        @AuraEnabled public Decimal scheduledQuantity;
-        @AuraEnabled public Decimal balanceQuantity;
-        @AuraEnabled public Date deliveryDate;
-        @AuraEnabled public Id orderId;
-        @AuraEnabled public Id orderProductId;
-        @AuraEnabled public String plantCode;
-        @AuraEnabled public String productName;
-        @AuraEnabled public String productCode;
-        @AuraEnabled public String baseUOMName;
-        @AuraEnabled public String productDescription;
-        @AuraEnabled public String salesUOM;
-        @AuraEnabled public String salesUOMName;
-        @AuraEnabled public List<CustomerOrderSchedulingLine> customerSchedules;
-
-        public OrderSchedulingLine(Order_Scheduling_Line_Item_wise__c orderSchedulingLine, List<Customer_Order_Schedule_Line_Item__c> customerSchedules) {
-            this.id                 = orderSchedulingLine.Id;
-            this.name               = orderSchedulingLine.Name;
-            this.confirmedQuantity  = orderSchedulingLine.Confirmed_Quantity__c;
-            this.scheduledQuantity  = orderSchedulingLine.Scheduled_Quantity__c;
-            this.balanceQuantity    = orderSchedulingLine.Balance_Quantity__c;
-            this.deliveryDate       = orderSchedulingLine.Delivery_Date__c;
-            this.orderId            = orderSchedulingLine.Order__c;
-            this.orderProductId     = orderSchedulingLine.Order_Product__c;
-            this.plantCode          = (orderSchedulingLine.Order_Product__r != null) ? orderSchedulingLine.Order_Product__r.Plant_Code__c : null;
-            this.productName        = (orderSchedulingLine.Order_Product__r != null && orderSchedulingLine.Order_Product__r.Product2 != null) 
-                                    ? orderSchedulingLine.Order_Product__r.Product2.Name : null;
-            this.productCode        = (orderSchedulingLine.Order_Product__r != null && orderSchedulingLine.Order_Product__r.Product2 != null) 
-                                    ? orderSchedulingLine.Order_Product__r.Product2.ProductCode : null;
-            this.baseUOMName        = (orderSchedulingLine.Order_Product__r != null && orderSchedulingLine.Order_Product__r.Product2 != null && orderSchedulingLine.Order_Product__r.Product2.Base_UOM__r != null) 
-                                    ? orderSchedulingLine.Order_Product__r.Product2.Base_UOM__r.Name : null;
-            this.productDescription = (orderSchedulingLine.Order_Product__r != null && orderSchedulingLine.Order_Product__r.Product2 != null) 
-                                    ? orderSchedulingLine.Order_Product__r.Product2.Description : null;
-            this.salesUOM           = (orderSchedulingLine.Order_Product__r != null && orderSchedulingLine.Order_Product__r.Product2 != null) 
-                                    ? orderSchedulingLine.Order_Product__r.Product2.Sales_UOM__c : null;
-            this.salesUOMName       = (orderSchedulingLine.Order_Product__r != null && orderSchedulingLine.Order_Product__r.Product2 != null && orderSchedulingLine.Order_Product__r.Product2.Sales_UOM__r != null) 
-                                    ? orderSchedulingLine.Order_Product__r.Product2.Sales_UOM__r.Name : null;
-
-            for (Customer_Order_Schedule_Line_Item__c custSchedule : customerSchedules) {
-                for (Customer_Order_Schedule_Line_Item__c custSchedule : customerSchedules) {
-                    if (custSchedule.Order__c == this.orderId && custSchedule.Order_Product__c == this.orderProductId && custSchedule.Order_Scheduling_Line_Item__c == this.id) {
-                        if (this.customerSchedules == null) {
-                            this.customerSchedules = new List<CustomerOrderSchedulingLine>();
-                        }
-                        this.customerSchedules.add(new CustomerOrderSchedulingLine(custSchedule));
-                    }
-                }
-            }
-        }
-    }
-
-    public class CustomerOrderSchedulingLine {
-        public String recordId { get; set; }
-        public String name { get; set; }
-        public Decimal customerScheduledQuantity { get; set; }
-        public Date customerScheduledDate { get; set; }
-        public Date productionRevisedDate { get; set; }
-        public Date productionScheduledDate { get; set; }
-        public String remarksForProductionPlanner { get; set; }
-        public String orderId { get; set; }
-        public String orderProductId { get; set; }
-        public String orderSchedulingLineItemId { get; set; }
-
-        public CustomerOrderSchedulingLine(Customer_Order_Schedule_Line_Item__c rec) {
-            this.recordId = rec.Id;
-            this.name = rec.Name;
-            this.customerScheduledQuantity = rec.Customer_Scheduled_Quantity__c;
-            this.customerScheduledDate = rec.Customer_Scheduled_Date__c;
-            this.productionRevisedDate = rec.Production_Revised_Date__c;
-            this.productionScheduledDate = rec.Production_Scheduled_Date__c;
-            this.remarksForProductionPlanner = rec.Remarks_for_Production_Planner__c;
-            this.orderId = rec.Order__c;
-            this.orderProductId = rec.Order_Product__c;
-            this.orderSchedulingLineItemId = rec.Order_Scheduling_Line_Item__c;
-        }
-    }
-
 
  
 }

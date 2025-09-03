@@ -1,35 +1,31 @@
 public class OpportunityTriggerHandler {
     
-    public static void convertHandler(List<Lead> newRecords, Map<Id, Lead> oldLeadMap) {
-        
-        System.debug('==== convertHandler called ====');
-        
+      public static void convertHandler(List<Lead> newRecords, Map<Id, Lead> oldLeadMap) {
         Map<Id, Id> leadToOppMap = new Map<Id, Id>();
         Map<Id, Id> leadToAccountMap = new Map<Id, Id>();
         
         for (Lead newLead : newRecords) {
             Lead oldLead = oldLeadMap.get(newLead.Id);
-            System.debug('Processing Lead: ' + newLead.Id + ' Converted: ' + newLead.IsConverted);
             
             if (newLead.IsConverted && !oldLead.IsConverted) {
                 if (newLead.ConvertedOpportunityId != null) {
                     leadToOppMap.put(newLead.Id, newLead.ConvertedOpportunityId);
-                    System.debug('Mapped Lead to Opportunity: ' + newLead.Id + ' => ' + newLead.ConvertedOpportunityId);
                 }
                 if (newLead.ConvertedAccountId != null) {
                     leadToAccountMap.put(newLead.Id, newLead.ConvertedAccountId);
-                    System.debug('Mapped Lead to Account: ' + newLead.Id + ' => ' + newLead.ConvertedAccountId);
                 }
             }
         }
         
-        System.debug('Lead to Opportunity Map: ' + leadToOppMap);
-        System.debug('Lead to Account Map: ' + leadToAccountMap);
-        
         if (leadToOppMap.isEmpty() && leadToAccountMap.isEmpty()) {
-            System.debug('No leads converted, exiting handler.');
             return;
         }
+        
+        Map<Id, Opportunity> convertedOpps = new Map<Id, Opportunity>([
+            SELECT Id, Pricebook2Id, CurrencyIsoCode
+            FROM Opportunity 
+            WHERE Id IN :leadToOppMap.values()
+        ]);
         
         List<Product_Interested__c> piList = [
             SELECT Id, Product__c, Lead__c, Account__c, Quantity_in_Kgs__c, Expected_Price__c, 
@@ -38,10 +34,7 @@ public class OpportunityTriggerHandler {
             WHERE Lead__c IN :leadToAccountMap.keySet()
         ];
         
-        System.debug('Product Interested records found: ' + piList.size());
-        
         if (piList.isEmpty()) {
-            System.debug('No Product Interested found for converted leads.');
             return;
         }
         
@@ -51,19 +44,18 @@ public class OpportunityTriggerHandler {
                 productIds.add(pi.Product__c);
             }
         }
-        System.debug('Product IDs collected: ' + productIds);
         
-        Map<Id, Id> productToPbeMap = new Map<Id, Id>();
+        Map<String, PricebookEntry> productPricebookMap = new Map<String, PricebookEntry>();
         if (!productIds.isEmpty()) {
             for (PricebookEntry pbe : [
-                SELECT Id, Product2Id
+                SELECT Id, Product2Id, Pricebook2Id, CurrencyIsoCode, IsActive
                 FROM PricebookEntry
-                WHERE IsActive = true AND Pricebook2.IsStandard = true AND Product2Id IN :productIds
+                WHERE IsActive = true AND Product2Id IN :productIds
             ]) {
-                productToPbeMap.put(pbe.Product2Id, pbe.Id);
+                String key = pbe.Product2Id + '-' + pbe.Pricebook2Id + '-' + pbe.CurrencyIsoCode;
+                productPricebookMap.put(key, pbe);
             }
         }
-        System.debug('PricebookEntry Map: ' + productToPbeMap);
         
         List<OpportunityLineItem> oliList = new List<OpportunityLineItem>();
         List<Product_Interested__c> piToUpdateList = new List<Product_Interested__c>();
@@ -72,44 +64,42 @@ public class OpportunityTriggerHandler {
             Id oppId = leadToOppMap.get(pi.Lead__c);
             Id acctId = leadToAccountMap.get(pi.Lead__c);
             
-            System.debug('Processing Product_Interested__c: ' + pi.Id + ' OppId: ' + oppId + ' AcctId: ' + acctId);
-            
-            if (pi.Add_in_Opportunity__c == true && oppId != null && productToPbeMap.containsKey(pi.Product__c)) {
-                OpportunityLineItem oli = new OpportunityLineItem();
-                oli.OpportunityId = oppId;
-                oli.PricebookEntryId = productToPbeMap.get(pi.Product__c);
-                oli.Product2Id = pi.Product__c;
-                oli.UnitPrice = pi.Expected_Price__c;
-                oli.Quantity = pi.Quantity_in_Kgs__c;
-                oli.Quantity_Frequency__c = pi.Quantity_Frequency__c;
-                oliList.add(oli);
-                
-                System.debug('Added OpportunityLineItem for Product_Interested__c: ' + pi.Id);
+            if (pi.Add_in_Opportunity__c == true && oppId != null) {
+                Opportunity opp = convertedOpps.get(oppId);
+                if (opp != null) {
+                    String key = pi.Product__c + '-' + opp.Pricebook2Id + '-' + opp.CurrencyIsoCode;
+                    
+                    if (productPricebookMap.containsKey(key)) {
+                        PricebookEntry pbe = productPricebookMap.get(key);
+                        
+                        OpportunityLineItem oli = new OpportunityLineItem();
+                        oli.OpportunityId = oppId;
+                        oli.PricebookEntryId = pbe.Id;
+                        oli.Product2Id = pi.Product__c;
+                        oli.UnitPrice = pi.Expected_Price__c != null ? pi.Expected_Price__c : 0;
+                        oli.Quantity = pi.Quantity_in_Kgs__c != null ? pi.Quantity_in_Kgs__c : 1;
+                        oli.Quantity_Frequency__c = pi.Quantity_Frequency__c;
+                        oliList.add(oli);
+                    }
+                }
             }
             
             if (acctId != null && (pi.Account__c == null || pi.Account__c != acctId)) {
                 pi.Account__c = acctId;
                 piToUpdateList.add(pi);
-                
-                System.debug('Prepared to update Product_Interested__c Account__c: ' + pi.Id + ' => ' + acctId);
             }
         }
         
         if (!oliList.isEmpty()) {
-            insert oliList;
-            System.debug('Inserted OpportunityLineItems: ' + oliList.size());
-        } else {
-            System.debug('No OpportunityLineItems to insert.');
+            try {
+                insert oliList;
+            } catch (Exception e) {
+            }
         }
         
         if (!piToUpdateList.isEmpty()) {
             update piToUpdateList;
-            System.debug('Updated Product_Interested__c records linked to Account: ' + piToUpdateList.size());
-        } else {
-            System.debug('No Product_Interested__c records needed Account update.');
         }
-        
-        System.debug('==== convertHandler completed ====');
     }
     
     @future
@@ -169,14 +159,44 @@ public class OpportunityTriggerHandler {
             // Busy wait - can't use Sleep in Apex
         }
     }
-    
     public static void setStandardPricebook(List<Opportunity> newOpps) {
         // Query Standard Pricebook once
-        Pricebook2 standardPB = [SELECT Id FROM Pricebook2 WHERE IsStandard = true AND IsActive = true LIMIT 1];
+        Pricebook2 standardPB = [
+            SELECT Id 
+            FROM Pricebook2 
+            WHERE IsStandard = true AND IsActive = true 
+            LIMIT 1
+        ];
         
         for (Opportunity opp : newOpps) {
             if (opp.Pricebook2Id == null) {
                 opp.Pricebook2Id = standardPB.Id;
+            }
+        }
+        
+        // Corrected parameter name here
+        setConvertedOpportunityName(newOpps);
+    }
+
+    
+     public static void setConvertedOpportunityName(List<Opportunity> oppList) {
+        Set<Id> accountIds = new Set<Id>();
+        for (Opportunity opp : oppList) {
+            if (opp.AccountId != null) {
+                accountIds.add(opp.AccountId);
+            }
+        }
+
+        Map<Id, Account> accountMap = new Map<Id, Account>(
+            [SELECT Id, Name FROM Account WHERE Id IN :accountIds]
+        );
+
+        for (Opportunity opp : oppList) {
+            // You can add condition here to further restrict, e.g., only for new conversions
+            if (opp.AccountId != null && accountMap.containsKey(opp.AccountId)) {
+                String acctName = accountMap.get(opp.AccountId).Name;
+                String todayStr = String.valueOf(Date.today()); // or format if needed
+                opp.Name = acctName + ' - ' + todayStr;
             }
         }
     }

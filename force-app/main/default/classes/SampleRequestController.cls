@@ -70,17 +70,28 @@ public with sharing class SampleRequestController {
                                             // Optional fields
                                             sampleRequest.Consignee_Name__c = (String)sampleData.get('Consignee_Name');
                                             sampleRequest.Send_Email_To_Plant__c = (Boolean)sampleData.get('Send_Email_To_Plant');
+                                            sampleRequest.Additional_Email__c = (String)sampleData.get('Email');
                                             sampleRequest.Remark__c = (String)sampleData.get('Remark');
                                             sampleRequest.Status__c = 'Pending';
+                                            sampleRequest.Customer_Code__c = (String)sampleData.get('Customer_Code__c');
+    									//	sampleRequest.Zone__c = (String)sampleData.get('Zone__c');
                                             
                                             String followUpDateStr = (String)sampleData.get('Sample_Follow_Up_Date');
                                             if (sampleData.containsKey('Sample_Follow_Up_Date') && String.isNotBlank(followUpDateStr)) {
                                                 sampleRequest.Sample_Follow_Up_Date__c = Date.valueOf(followUpDateStr);
                                             }
                                             
-                                            System.debug('Sample Request before insert: ' + sampleRequest);
+                                            if (sampleData.containsKey('Sample_Category')) {
+                                                sampleRequest.Sample_Category__c = (String)sampleData.get('Sample_Category');
+                                            }
+                                            if (sampleData.containsKey('SAP_Doc_Type')) {
+                                                sampleRequest.SAP_Sample_Document_Type__c = (String)sampleData.get('SAP_Doc_Type');
+                                            }
+                                            
                                             insert sampleRequest;
-                                            System.debug('Sample Request ID after insert: ' + sampleRequest.Id);
+                                            System.debug('Sample_Category: ' + sampleData.get('Sample_Category'));
+                                            System.debug('SAP_Doc_Type: ' + sampleData.get('SAP_Doc_Type'));
+                                            
                                             
                                             // Process line items
                                             List<Sample_Request_Line_Item__c> lineItems = new List<Sample_Request_Line_Item__c>();
@@ -99,7 +110,11 @@ public with sharing class SampleRequestController {
                                                             Sample_Qty_in_Kgs__c = line.containsKey('Sample_Qty_in_Kgs') && String.isNotEmpty(String.valueOf(line.get('Sample_Qty_in_Kgs')))
                                                             ? Decimal.valueOf(String.valueOf(line.get('Sample_Qty_in_Kgs')))
                                                             : 0,
-                                                            CurrencyIsoCode = lead.CurrencyIsoCode
+                                                            CurrencyIsoCode = lead.CurrencyIsoCode,
+                                                            Sales_Price__c = line.containsKey('Sales_Price') && String.isNotEmpty(String.valueOf(line.get('Sales_Price')))
+                                                            ? Decimal.valueOf(String.valueOf(line.get('Sales_Price')))
+                                                            : null
+                                                            
                                                         ));
                                                     }
                                                 }
@@ -213,6 +228,34 @@ public with sharing class SampleRequestController {
         return statusValues;
     }
     
+    @AuraEnabled(cacheable=true)
+    public static Map<String, List<String>> getPicklistDependencies() {
+        Map<String, List<String>> result = new Map<String, List<String>>();
+        
+        // Sample Category Picklist
+        Schema.DescribeFieldResult categoryField = Sample_Request__c.Sample_Category__c.getDescribe();
+        List<String> categoryOptions = new List<String>();
+        for (Schema.PicklistEntry entry : categoryField.getPicklistValues()) {
+            if (entry.isActive()) {
+                categoryOptions.add(entry.getValue());
+            }
+        }
+        result.put('Sample_Category__c', categoryOptions);
+        
+        // SAP Sample Document Type Picklist
+        Schema.DescribeFieldResult docTypeField = Sample_Request__c.SAP_Sample_Document_Type__c.getDescribe();
+        List<String> docTypeOptions = new List<String>();
+        for (Schema.PicklistEntry entry : docTypeField.getPicklistValues()) {
+            if (entry.isActive()) {
+                docTypeOptions.add(entry.getValue());
+            }
+        }
+        result.put('SAP_Sample_Document_Type__c', docTypeOptions);
+        
+        return result;
+    }
+    
+    
     
     @AuraEnabled
     public static void saveLineItems(String recordId, String lineItems) {
@@ -303,6 +346,20 @@ public with sharing class SampleRequestController {
         }
     }
     
+    @AuraEnabled
+    public static Decimal getUnitPrice(Id productId) {
+        List<PricebookEntry> entries = [
+            SELECT UnitPrice
+            FROM PricebookEntry
+            WHERE Product2Id = :productId
+            AND IsActive = true
+            AND Pricebook2.IsStandard = true
+            LIMIT 1
+        ];
+        
+        return entries.isEmpty() ? 0 : entries[0].UnitPrice;
+    }
+    
     
     @AuraEnabled
     public static void deleteLineItem(String lineItemId) {
@@ -313,5 +370,12 @@ public with sharing class SampleRequestController {
             throw new AuraHandledException('Error deleting line item: ' + e.getMessage());
         }
     }
+    
+    
+    @AuraEnabled(cacheable=true)
+    public static String getCurrentUserZone() {
+        return [SELECT Zone__c FROM User WHERE Id = :UserInfo.getUserId()].Zone__c;
+    }
+
     
 }

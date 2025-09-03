@@ -3,13 +3,13 @@ public with sharing class QuoteController {
     @AuraEnabled(cacheable=true)
     public static List<OpportunityLineItem> getOppLineItems(String opportunityId) {
         return [
-            SELECT Id, Product2Id, Product2.Name, UnitPrice, Quantity, 
-                   PricebookEntryId, PricebookEntry.UnitPrice, Description, Discount
+            SELECT Id, Product2Id, Product2.Name, UnitPrice, Quantity,Product2.Description,
+            PricebookEntryId, PricebookEntry.UnitPrice, Description, Discount
             FROM OpportunityLineItem
             WHERE OpportunityId = :opportunityId
             ORDER BY SortOrder
         ];
-    }
+    }		
     
     @AuraEnabled(cacheable=true)
     public static Map<String, Object> getQuoteInitialData(String opportunityId) {
@@ -17,8 +17,8 @@ public with sharing class QuoteController {
         
         // Get opportunity details
         Opportunity opp = [SELECT Id, AccountId, Name, CurrencyIsoCode, Pricebook2Id 
-                          FROM Opportunity 
-                          WHERE Id = :opportunityId LIMIT 1];
+                           FROM Opportunity 
+                           WHERE Id = :opportunityId LIMIT 1];
         
         // Get status picklist values
         Schema.DescribeFieldResult statusField = Quote.Status.getDescribe();
@@ -27,8 +27,8 @@ public with sharing class QuoteController {
             if (pe.isActive()) {
                 statusOptions.add(new Map<String, String>{
                     'label' => pe.getLabel(),
-                    'value' => pe.getValue()
-                });
+                        'value' => pe.getValue()
+                        });
             }
         }
         
@@ -39,8 +39,8 @@ public with sharing class QuoteController {
             if (pe.isActive()) {
                 currencyOptions.add(new Map<String, String>{
                     'label' => pe.getValue(),
-                    'value' => pe.getValue()
-                });
+                        'value' => pe.getValue()
+                        });
             }
         }
         
@@ -79,7 +79,7 @@ public with sharing class QuoteController {
         }
         
         // Get opportunity
-        Opportunity opp = [SELECT Id, AccountId, Name FROM Opportunity WHERE Id = :opportunityId];
+        Opportunity opp = [SELECT Id,Pricebook2Id,CurrencyIsoCode, AccountId, Name FROM Opportunity WHERE Id = :opportunityId];
         
         // Create the quote with all fields
         Quote quote = new Quote(
@@ -89,7 +89,12 @@ public with sharing class QuoteController {
             ExpirationDate = expirationDate,
             Pricebook2Id = String.isNotBlank(pricebookId) ? pricebookId : opp.Pricebook2Id,
             CurrencyIsoCode = String.isNotBlank(currencyCode) ? currencyCode : opp.CurrencyIsoCode,
-            ContactId = String.isNotBlank(contactId) ? contactId : null
+            ContactId = String.isNotBlank(contactId) ? contactId : null,
+            Terms_and_Conditions__c =
+            'All bank charges outside India will be borne by the customer and such charges should not be deducted from our payment.\n' +
+            'We should receive full invoice amount in our bank account and you are liable to pay the bank charges which are applicable in India only.\n' +
+            'After finalization of order if there is any change in Statutory Govt. levies than it will be in your scope.',
+            Declaration__c = 'We declare that this quotation shows the actual price of goods and that all particulars are true and correct'
         );
         insert quote;
         
@@ -146,5 +151,53 @@ public with sharing class QuoteController {
         String pInName = piList[0].Name;
         delete piList[0]; 
         return 'Opportunity Line Item record deleted: ' + pInName;
+    }
+    
+    public static void validateQuoteApprovalStatus(List<Quote> quotes, Map<Id, Quote> oldMap) {
+        Set<Id> quoteIdsToCheck = new Set<Id>();
+        
+        // Identify quotes changing to 'Accepted'
+        for (Quote q : quotes) {
+            Quote oldQ = oldMap != null ? oldMap.get(q.Id) : null;
+            if (q.Status == 'Accepted' && (oldQ == null || oldQ.Status != 'Accepted')) {
+                quoteIdsToCheck.add(q.Id);
+            }
+        }
+        if (quoteIdsToCheck.isEmpty()) return;
+        
+        // Query QuoteLineItems with needed fields
+        List<QuoteLineItem> qliList = [
+            SELECT Id, QuoteId, ListPrice, UnitPrice, Product2.Name, Approval_Status__c
+            FROM QuoteLineItem
+            WHERE QuoteId IN :quoteIdsToCheck
+        ];
+        
+        Map<Id, Set<String>> quoteToProblemProducts = new Map<Id, Set<String>>();
+        
+        for (QuoteLineItem qli : qliList) {
+            // Check both conditions: price below list price AND not approved
+            if (qli.ListPrice != null && 
+                qli.UnitPrice != null && 
+                qli.UnitPrice < qli.ListPrice && 
+                qli.Approval_Status__c != 'Approved' && qli.Approval_Status__c != 'Rejected' ) {
+                    
+                    if (!quoteToProblemProducts.containsKey(qli.QuoteId)) {
+                        quoteToProblemProducts.put(qli.QuoteId, new Set<String>());
+                    }
+                    quoteToProblemProducts.get(qli.QuoteId).add(qli.Product2.Name);
+                }
+        }
+        
+        // Add errors to quotes with problematic products
+        for (Quote q : quotes) {
+            if (quoteToProblemProducts.containsKey(q.Id)) {
+                List<String> productNames = new List<String>(quoteToProblemProducts.get(q.Id));
+                q.addError(
+                    'Quote cannot be set to Accepted. The following products have a Sales Price less than List Price ' +
+                    'and Approval Status "Pending":' +
+                    String.join(productNames, ', ')
+                );
+            }
+        }
     }
 }

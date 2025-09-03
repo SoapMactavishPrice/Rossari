@@ -1,0 +1,70 @@
+<template>
+    <lightning-card>
+        <div class="slds-p-around_medium">
+            <lightning-record-edit-form object-api-name="Target__c">
+                <lightning-layout multiple-rows>
+                    <lightning-layout-item size="12" medium-device-size="4" large-device-size="4"
+                        class="slds-p-around_x-small">
+                        <lightning-input-field field-name="FY__c" variant="label-stacked"
+                            onchange={handleFYChange}></lightning-input-field>
+                    </lightning-layout-item>
+                    <lightning-layout-item size="12" medium-device-size="4" large-device-size="4"
+                        class="slds-p-around_x-small">
+                        <lightning-input-field field-name="Sales_Employee__c" variant="label-stacked"
+                            onchange={handleEmployeeChange}></lightning-input-field>
+                    </lightning-layout-item>
+                </lightning-layout>
+            </lightning-record-edit-form>
+        </div>
+
+        <template if:true={showTable}>
+            <div class="slds-p-around_medium">
+                <table class="slds-table slds-table_cell-buffer slds-table_bordered">
+                    <thead>
+                        <tr>
+                            <th>Product</th>
+                            <th>Month</th>
+                            <th>Year</th>
+                            <th>Quantity (KGS)</th>
+                            <th>Amount</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <template for:each={tableData} for:item="product">
+                            <tr key={product.id}>
+                                <td>{product.ProductName}</td>
+                                <td>
+                                    <lightning-combobox name="Month" value={product.Month__c} options={monthOptions}
+                                        data-id={product.id} data-field="Month__c" onchange={handleFieldChange}>
+                                    </lightning-combobox>
+                                </td>
+                                <td>
+                                    <lightning-combobox name="Year" value={product.Year__c} options={yearOptions}
+                                        data-id={product.id} data-field="Year__c" onchange={handleFieldChange}>
+                                    </lightning-combobox>
+                                </td>
+
+                                <td>
+                                    <lightning-input type="number" min="0" step="0.01" value={product.Quantity__c}
+                                        data-id={product.id} data-field="Quantity__c" onchange={handleFieldChange}>
+                                    </lightning-input>
+                                </td>
+                                <td>
+                                    <lightning-input type="number" min="0" step="0.01" value={product.Amount__c}
+                                        data-id={product.id} data-field="Amount__c" onchange={handleFieldChange}>
+                                    </lightning-input>
+                                </td>
+                            </tr>
+                        </template>
+                    </tbody>
+                </table>
+
+                <div class="slds-align_absolute-center slds-m-top_medium">
+                    <lightning-button variant="brand" label="Save" onclick={handleSaveClick}></lightning-button>
+                    <lightning-button variant="neutral" label="Cancel" onclick={handleCancel}
+                        class="slds-m-left_medium"></lightning-button>
+                </div>
+            </div>
+        </template>
+    </lightning-card>
+</template>

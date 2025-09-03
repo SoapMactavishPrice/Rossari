@@ -6,14 +6,15 @@ public with sharing class SampleOutController {
         
         try {
             Sample_Request__c request = [
-                SELECT Id, Name, CurrencyIsoCode, Lead__c,
+                SELECT Id, Name, CurrencyIsoCode, Lead__c, Customer_Name__c,
                 Lead__r.Street_1__c,
                 Lead__r.Street_2__c,
                 Lead__r.Street_3__c,
                 Lead__r.Pin_Code__c,
                 Lead__r.City__c,
                 Lead__r.State__c,
-                Lead__r.Country__c
+                Lead__r.Country__c,
+                Customer_Name__r.Name
                 FROM Sample_Request__c
                 WHERE Id = :sampleRequestId
                 LIMIT 1
@@ -22,7 +23,7 @@ public with sharing class SampleOutController {
             response.requestNumber = request.Name;
             response.currencyCode = request.CurrencyIsoCode;
             
-            // Map address from Lead if present
+            // Map address from Lead if present, otherwise check Account address
             if (request.Lead__c != null) {
                 response.address = new Map<String, String>{
                     'Street1' => request.Lead__r.Street_1__c,
@@ -31,8 +32,33 @@ public with sharing class SampleOutController {
                         'PinCodeId' => request.Lead__r.Pin_Code__c,
                         'CityId' => request.Lead__r.City__c,
                         'StateId' => request.Lead__r.State__c,
-                        'CountryId' => request.Lead__r.Country__c
+                        'CountryId' => request.Lead__r.Country__c,
+                        'Source' => 'Lead'
                         };
+                            } else if (request.Customer_Name__c != null) {
+                                // Query the Address_Information__c object for the account
+                                List<Address_Information__c> accountAddresses = [
+                                    SELECT Id, Street_1__c, Street_2__c, Street_3__c, 
+                                    Pin_Code__c, City__c, State__c, Country__c
+                                    FROM Address_Information__c 
+                                    WHERE Account__c = :request.Customer_Name__c 
+                                    ORDER BY CreatedDate DESC 
+                                    LIMIT 1
+                                ];
+                                
+                                if (!accountAddresses.isEmpty()) {
+                                    Address_Information__c accountAddress = accountAddresses[0];
+                                    response.address = new Map<String, String>{
+                                        'Street1' => accountAddress.Street_1__c,
+                                            'Street2' => accountAddress.Street_2__c,
+                                            'Street3' => accountAddress.Street_3__c,
+                                            'PinCodeId' => accountAddress.Pin_Code__c,
+                                            'CityId' => accountAddress.City__c,
+                                            'StateId' => accountAddress.State__c,
+                                            'CountryId' => accountAddress.Country__c,
+                                            'Source' => 'Account'
+                                            };
+                                                }
                             }
             
             response.lineItems = [
@@ -47,11 +73,12 @@ public with sharing class SampleOutController {
                 Sales_Price__c
                 FROM Sample_Request_Line_Item__c
                 WHERE Sample_Request__c = :sampleRequestId
+                AND Status__c = 'Ready' 
                 ORDER BY CreatedDate
             ];
             
             response.plants = [
-                SELECT Id, Name,Plant_Name__c 
+                SELECT Id, Name, Plant_Name__c 
                 FROM Plant__c 
                 ORDER BY Name
             ];

@@ -23,6 +23,7 @@ export default class CreateQuoteFromOpportunity extends NavigationMixin(Lightnin
     @track error;
     @track generatedIds = new Set();
     @track isLoading = false;
+    @track hasProducts = false;
 
     connectedCallback() {
         this.loadInitialData();
@@ -35,22 +36,20 @@ export default class CreateQuoteFromOpportunity extends NavigationMixin(Lightnin
                 this.quoteFields = {
                     ...this.quoteFields,
                     name: result.opportunityName,
-                    currencyCode: result.defaultCurrency, // Set from opportunity's currency
+                    currencyCode: result.defaultCurrency,
                     pricebookId: result.pricebookId
                 };
                 this.statusOptions = result.statusOptions;
-                this.currencyOptions = result.currencyOptions; // Set currency options
+                this.currencyOptions = result.currencyOptions;
                 this.contacts = result.contacts.map(contact => ({
                     label: contact.Name,
                     value: contact.Id
                 }));
 
-                // Set default status to first active status
                 if (this.statusOptions.length > 0) {
                     this.quoteFields.status = this.statusOptions[0].value;
                 }
 
-                // Set default expiration date (30 days from now)
                 const date = new Date();
                 date.setDate(date.getDate() + 30);
                 this.quoteFields.expirationDate = date.toISOString().split('T')[0];
@@ -63,6 +62,7 @@ export default class CreateQuoteFromOpportunity extends NavigationMixin(Lightnin
                 this.isLoading = false;
             });
     }
+
 
     handleDiscountChange(event) {
         const index = parseInt(event.target.dataset.index, 10);
@@ -87,26 +87,37 @@ export default class CreateQuoteFromOpportunity extends NavigationMixin(Lightnin
     loadOppLineItems() {
         getOppLineItems({ opportunityId: this.recordId })
             .then(result => {
-                this.oppLineItems = result.map(item => ({
-                    ...item,
-                    index: this.generateRandomNum(),
-                    tempId: Date.now().toString() + Math.random().toString(16).slice(2),
-                    isEdit: !!item.Id,
-                    isNew: !item.Id,
-                    salesPrice: item.UnitPrice,
-                    listPrice: item.PricebookEntry?.UnitPrice || item.UnitPrice,
-                    pbeId: item.PricebookEntryId,
-                    prodId: item.Product2Id,
-                    prodName: item.Product2?.Name || '',
-                    prodCode: item.Product2?.ProductCode || '',
-                    Discount: item.Discount || 0,
-                    selected: true,
-                    Product2: {
-                        Id: item.Product2Id,
-                        Name: item.Product2?.Name || '',
-                        ProductCode: item.Product2?.ProductCode || ''
-                    }
-                }));
+                console.log('>>> Opp Line Items Raw Result:', result);
+                if (result && result.length > 0) {
+                    this.hasProducts = true;
+                    this.oppLineItems = result.map(item => ({
+                        ...item,
+                        index: this.generateRandomNum(),
+                        tempId: Date.now().toString() + Math.random().toString(16).slice(2),
+                        isEdit: !!item.Id,
+                        isNew: !item.Id,
+                        salesPrice: item.UnitPrice,
+                        listPrice: item.PricebookEntry?.UnitPrice || item.UnitPrice,
+                        pbeId: item.PricebookEntryId,
+                        prodId: item.Product2Id,
+                        prodName: item.Product2?.Name || '',
+                        prodCode: item.Product2?.ProductCode || '',
+                        Description: item.Product2?.Description,
+                        Discount: item.Discount || 0,
+                        selected: true,
+                        Product2: {
+                            Id: item.Product2Id,
+                            Name: item.Product2?.Name || '',
+                            ProductCode: item.Product2?.ProductCode || '',
+                            Description: item.Description || '',
+                        }
+                    }));
+                } else {
+                    this.hasProducts = false;
+                    this.showToast('Warning',
+                        'No products available in Opportunity. Please add products before creating a Quote.',
+                        'warning');
+                }
             })
             .catch(error => {
                 this.error = error.body.message;
@@ -115,6 +126,11 @@ export default class CreateQuoteFromOpportunity extends NavigationMixin(Lightnin
             .finally(() => {
                 this.isLoading = false;
             });
+    }
+
+    get disableCreateButton() {
+
+        return this.isLoading || this.oppLineItems.length === 0 || !this.hasProducts;
     }
 
     generateRandomNum() {
@@ -139,6 +155,9 @@ export default class CreateQuoteFromOpportunity extends NavigationMixin(Lightnin
     }
 
     handleValueSelectedOnAccount(event) {
+        console.log('=== DEBUG: handleValueSelectedOnAccount triggered ===');
+        console.log('Event detail:', JSON.stringify(event.detail));
+
         const selectedRecord = event.detail;
         const index = parseInt(event.target.dataset.index, 10);
 
@@ -147,9 +166,11 @@ export default class CreateQuoteFromOpportunity extends NavigationMixin(Lightnin
             return;
         }
 
+        console.log('Selected record description:', selectedRecord.description);
+
         this.oppLineItems = this.oppLineItems.map((item) => {
             if (item.index === index) {
-                return {
+                const updatedItem = {
                     ...item,
                     PricebookEntryId: selectedRecord.id,
                     pbeId: selectedRecord.id,
@@ -158,21 +179,28 @@ export default class CreateQuoteFromOpportunity extends NavigationMixin(Lightnin
                     listPrice: selectedRecord.unitPrice || 0,
                     Product2Id: selectedRecord.proId,
                     prodId: selectedRecord.proId,
+                    Description: selectedRecord.description || '', // Get description from selected product
                     Product2: {
                         Id: selectedRecord.proId,
                         Name: selectedRecord.mainField,
-                        ProductCode: selectedRecord.subField || ''
+                        ProductCode: selectedRecord.subField || '',
+                        Description: selectedRecord.description || '' // Get description from selected product
                     },
                     prodName: selectedRecord.mainField,
                     prodCode: selectedRecord.subField || '',
                     isEdit: true
                 };
+
+                console.log('Updated item description:', updatedItem.Description);
+                return updatedItem;
             }
             return item;
         });
 
         this.oppLineItems = [...this.oppLineItems];
     }
+
+
 
     handlePriceChange(event) {
         const index = parseInt(event.target.dataset.index, 10);
@@ -289,17 +317,7 @@ export default class CreateQuoteFromOpportunity extends NavigationMixin(Lightnin
             contactId: this.quoteFields.contactId,
             pricebookId: this.quoteFields.pricebookId
         })
-            // .then(quoteId => {
-            //     this.showToast('Success', 'Quote created successfully', 'success');
-            //     this[NavigationMixin.Navigate]({
-            //         type: 'standard__recordPage',
-            //         attributes: {
-            //             recordId: quoteId,
-            //             objectApiName: 'Quote',
-            //             actionName: 'view'
-            //         }
-            //     });
-            // })
+
 
             .then(quoteId => {
                 // First show success toast
@@ -352,7 +370,8 @@ export default class CreateQuoteFromOpportunity extends NavigationMixin(Lightnin
             isNew: true,
             Quantity: 1,
             salesPrice: originalItem.salesPrice,
-            UnitPrice: originalItem.salesPrice
+            UnitPrice: originalItem.salesPrice,
+            Description: originalItem.Description
         };
 
         const originalIndex = this.oppLineItems.findIndex(item => item.index === index);

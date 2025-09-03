@@ -5,45 +5,48 @@ public class LeadTriggerHandler {
         Set<Id> cityIds = new Set<Id>();
         Set<Id> stateIds = new Set<Id>();
         
+        Set<Id> shippingPostalCodeIds = new Set<Id>();
+        Set<Id> shippingCityIds = new Set<Id>();
+        Set<Id> shippingStateIds = new Set<Id>();
+        
         for (Lead lead : newLeads) {
-            if (lead.Pin_Code__c != null) {
-                postalCodeIds.add(lead.Pin_Code__c);
-            }
-            if (lead.City__c != null) {
-                cityIds.add(lead.City__c);
-            }
-            if (lead.State__c != null) {
-                stateIds.add(lead.State__c);
-            }
+            if (lead.Pin_Code__c != null) postalCodeIds.add(lead.Pin_Code__c);
+            if (lead.City__c != null) cityIds.add(lead.City__c);
+            if (lead.State__c != null) stateIds.add(lead.State__c);
+            
+            if (lead.Shipping_Pin_Code__c != null) shippingPostalCodeIds.add(lead.Shipping_Pin_Code__c);
+            if (lead.Shipping_City__c != null) shippingCityIds.add(lead.Shipping_City__c);
+            if (lead.Shipping_State__c != null) shippingStateIds.add(lead.Shipping_State__c);
         }
         
-        Map<Id, Pin_Code__c> postalCodeMap = new Map<Id, Pin_Code__c>(
-            [SELECT Id, City__c, City__r.State__c, 
-             City__r.State__r.Country__c,
-             City__r.State__r.Zone__c,
-             City__r.State__r.Country__r.Region__c
-             FROM Pin_Code__c
-             WHERE Id IN :postalCodeIds]
-        );
+        Map<Id, Pin_Code__c> postalCodeMap = new Map<Id, Pin_Code__c>([
+            SELECT Id, City__c, City__r.State__c, 
+            City__r.State__r.Country__c,
+            City__r.State__r.Zone__c,
+            City__r.State__r.Country__r.Region__c
+            FROM Pin_Code__c
+            WHERE Id IN :postalCodeIds OR Id IN :shippingPostalCodeIds
+        ]);
         
-        Map<Id, City__c> cityMap = new Map<Id, City__c>(
-            [SELECT Id, State__c,
-             State__r.Country__c,
-             State__r.Zone__c,
-             State__r.Country__r.Region__c
-             FROM City__c
-             WHERE Id IN :cityIds]
-        );
+        Map<Id, City__c> cityMap = new Map<Id, City__c>([
+            SELECT Id, State__c,
+            State__r.Country__c,
+            State__r.Zone__c,
+            State__r.Country__r.Region__c
+            FROM City__c
+            WHERE Id IN :cityIds OR Id IN :shippingCityIds
+        ]);
         
-        Map<Id, State__c> stateMap = new Map<Id, State__c>(
-            [SELECT Id, Country__c,
-             Zone__c,
-             Country__r.Region__c
-             FROM State__c
-             WHERE Id IN :stateIds]
-        );
+        Map<Id, State__c> stateMap = new Map<Id, State__c>([
+            SELECT Id, Country__c,
+            Zone__c,
+            Country__r.Region__c
+            FROM State__c
+            WHERE Id IN :stateIds OR Id IN :shippingStateIds
+        ]);
         
         for (Lead lead : newLeads) {
+            
             if (lead.Pin_Code__c != null && postalCodeMap.containsKey(lead.Pin_Code__c)) {
                 Pin_Code__c postalCode = postalCodeMap.get(lead.Pin_Code__c);
                 lead.City__c = postalCode.City__c;
@@ -51,22 +54,54 @@ public class LeadTriggerHandler {
                 lead.Country__c = postalCode.City__r.State__r.Country__c;
                 lead.Zone__c = postalCode.City__r.State__r.Zone__c;
                 lead.Region__c = postalCode.City__r.State__r.Country__r.Region__c;
-                
             } else if (lead.City__c != null && cityMap.containsKey(lead.City__c)) {
                 City__c city = cityMap.get(lead.City__c);
                 lead.State__c = city.State__c;
                 lead.Country__c = city.State__r.Country__c;
                 lead.Zone__c = city.State__r.Zone__c;
                 lead.Region__c = city.State__r.Country__r.Region__c;
-                
             } else if (lead.State__c != null && stateMap.containsKey(lead.State__c)) {
                 State__c state = stateMap.get(lead.State__c);
                 lead.Country__c = state.Country__c;
                 lead.Zone__c = state.Zone__c;
                 lead.Region__c = state.Country__r.Region__c;
             }
+            
+            
+            if (lead.Shipping_Pin_Code__c != null && postalCodeMap.containsKey(lead.Shipping_Pin_Code__c)) {
+                Pin_Code__c postalCode = postalCodeMap.get(lead.Shipping_Pin_Code__c);
+                lead.Shipping_City__c = postalCode.City__c;
+                lead.Shipping_State__c = postalCode.City__r.State__c;
+                lead.Shipping_Country__c = postalCode.City__r.State__r.Country__c;
+                lead.Shipping_Zone__c = postalCode.City__r.State__r.Zone__c;
+                lead.Shipping_Region__c = postalCode.City__r.State__r.Country__r.Region__c;
+            } else if (lead.Shipping_City__c != null && cityMap.containsKey(lead.Shipping_City__c)) {
+                City__c city = cityMap.get(lead.Shipping_City__c);
+                lead.Shipping_State__c = city.State__c;
+                lead.Shipping_Country__c = city.State__r.Country__c;
+                lead.Shipping_Zone__c = city.State__r.Zone__c;
+                lead.Shipping_Region__c = city.State__r.Country__r.Region__c;
+            } else if (lead.Shipping_State__c != null && stateMap.containsKey(lead.Shipping_State__c)) {
+                State__c state = stateMap.get(lead.Shipping_State__c);
+                lead.Shipping_Country__c = state.Country__c;
+                lead.Shipping_Zone__c = state.Zone__c;
+                lead.Shipping_Region__c = state.Country__r.Region__c;
+            }
+        }
+        
+        
+        Country__c india = [SELECT Id FROM Country__c WHERE Name = 'India' LIMIT 1];
+        
+        for (Lead lead : newLeads) {
+            if (lead.Country__c == null &&
+                (lead.Business_Type__c == 'Domestic' ||
+                 lead.Business_Type__c == 'SEZ' ||
+                 lead.Business_Type__c == 'Deemed Export')) {
+                     lead.Country__c = india.Id;
+                 }
         }
     }
+    
     
     public static void setDefaultLeadStatus(List<Lead> leads) {
         /*   for (Lead l : leads) {
@@ -138,8 +173,9 @@ l.Status = 'Working';
                         Email__c = lead.Email,
                         Mobile__c = lead.MobilePhone,
                         Designation__c = lead.Title,
-                        Is_Primary__c = true
-                        //Department__c = lead.Department__c
+                        Is_Primary__c = true,
+                        Department__c = lead.Department__c,
+                        Hierarchy__c = lead.Hierarchy__c
                     );
                     // Add to the list to insert
                     contactInfoToInsert.add(contactInfo);
@@ -161,6 +197,46 @@ l.Status = 'Working';
                 // Catch any errors during the insert and log them
                 System.debug('Error inserting Contact Information records: ' + e.getMessage());
             }
+        }
+    }
+    
+    
+    public static void updateContactInformationOnLeadChange(List<Lead> newLeads, Map<Id, Lead> oldLeadMap) {
+        Set<Id> leadIdsWithChanges = new Set<Id>();
+        
+        // Identify leads where Department or Hierarchy changed
+        for (Lead lead : newLeads) {
+            Lead oldLead = oldLeadMap.get(lead.Id);
+            if (lead.Department__c != oldLead.Department__c || lead.Hierarchy__c != oldLead.Hierarchy__c) {
+                leadIdsWithChanges.add(lead.Id);
+            }
+        }
+        
+        if (leadIdsWithChanges.isEmpty()) return;
+        
+        // Get related Contact Information records
+        Map<Id, Contact_Information__c> contactInfoMap = new Map<Id, Contact_Information__c>();
+        for (Contact_Information__c ci : [
+            SELECT Id, Lead__c, Department__c, Hierarchy__c 
+            FROM Contact_Information__c 
+            WHERE Lead__c IN :leadIdsWithChanges AND Is_Primary__c = true
+        ]) {
+            contactInfoMap.put(ci.Lead__c, ci);
+        }
+        
+        // Update Contact Information records
+        List<Contact_Information__c> contactInfoToUpdate = new List<Contact_Information__c>();
+        for (Lead lead : newLeads) {
+            if (leadIdsWithChanges.contains(lead.Id) && contactInfoMap.containsKey(lead.Id)) {
+                Contact_Information__c ci = contactInfoMap.get(lead.Id);
+                ci.Department__c = lead.Department__c;
+             //   ci.Hierarchy__c = lead.Hierarchy__c;
+                contactInfoToUpdate.add(ci);
+            }
+        }
+        
+        if (!contactInfoToUpdate.isEmpty()) {
+            update contactInfoToUpdate;
         }
     }
     
@@ -406,18 +482,30 @@ l.Status = 'Working';
     }
     
     
-    
     public static void createQuotesForConvertedLeads(List<Id> convertedLeadIds) {
-        // Query converted leads
+        // Query converted leads with required fields
         List<Lead> convertedLeads = [
             SELECT Id, ConvertedOpportunityId, ConvertedOpportunity.Name, 
-            ConvertedAccountId, ConvertedContactId
+            ConvertedAccountId, ConvertedContactId,
+            Create_Quote_upon_Conversion__c,
+            Inco_Terms__c, Payment_Term__c, Bill_to__c, Ship_to__c,
+            Loading_Port__c, Destination_Port__c,
+            Quote_Valid_From__c, Quote_Valid_To__c,
+            Bank__c, Destination__c,
+            Country_of_Origin__c, Country_of_Destination__c,
+            Pre_Carriage_Mode__c, Place_of_Supplier__c,
+            Partial_Shipment__c, Vessel_Flight_No__c,
+            Street_1__c,Street_2__c,Street_3__c,Pin_Code__c,Pin_Code__r.Name,City__c,City__r.Name,Zone__c,State__c,
+            State__r.Name,Region__c,Country__c,Country__r.Name,
+            Shipping_Street_1__c,Shipping_Street_2__c,Shipping_Street_3__c,Shipping_Pin_Code__c,Shipping_Pin_Code__r.Name,
+            Shipping_City__c,Shipping_City__r.Name,Shipping_State__r.Name,Shipping_Country__r.Name,
+            Shipping_Zone__c,Shipping_State__c,Shipping_Region__c,Shipping_Country__c,Company,Email,MobilePhone
             FROM Lead 
             WHERE Id IN :convertedLeadIds 
             AND ConvertedOpportunityId != NULL
         ];
         
-        // Query related opportunities with line items
+        
         List<Opportunity> opportunities = [
             SELECT Id, Name, Pricebook2Id, StageName,
             (SELECT Id, PricebookEntryId, Quantity, UnitPrice FROM OpportunityLineItems)
@@ -425,32 +513,84 @@ l.Status = 'Working';
             WHERE Id IN (SELECT ConvertedOpportunityId FROM Lead WHERE Id IN :convertedLeadIds)
         ];
         
-        // Map opportunities for quick access
+        
         Map<Id, Opportunity> oppMap = new Map<Id, Opportunity>();
         for (Opportunity opp : opportunities) {
             oppMap.put(opp.Id, opp);
         }
         
-        // Create Quotes
+        
         List<Quote> quotesToInsert = new List<Quote>();
-        Map<Id, Id> quoteToOpportunityMap = new Map<Id, Id>(); // To use later for line items
+        Map<Id, Id> quoteToOpportunityMap = new Map<Id, Id>(); // For later use
         Set<Id> oppIdsToUpdateStage = new Set<Id>();
         
         for (Lead lead : convertedLeads) {
-            if (lead.ConvertedOpportunityId != null && oppMap.containsKey(lead.ConvertedOpportunityId)) {
-                Opportunity opp = oppMap.get(lead.ConvertedOpportunityId);
-                
-                Quote quote = new Quote(
-                    Name = opp.Name,
-                    OpportunityId = opp.Id,
-                    Pricebook2Id = opp.Pricebook2Id,
-                    ContactId = lead.ConvertedContactId,
-                    ExpirationDate = System.today().addDays(30)
-                );
-                quotesToInsert.add(quote);
-                quoteToOpportunityMap.put(opp.Id, opp.Id);
-                oppIdsToUpdateStage.add(opp.Id);
-            }
+            if (lead.Create_Quote_upon_Conversion__c == true && 
+                lead.ConvertedOpportunityId != null && 
+                oppMap.containsKey(lead.ConvertedOpportunityId)) {
+                    
+                    Opportunity opp = oppMap.get(lead.ConvertedOpportunityId);
+                    
+                    Quote quote = new Quote(
+                        Name = opp.Name,
+                        OpportunityId = opp.Id,
+                        Pricebook2Id = opp.Pricebook2Id,
+                        ContactId = lead.ConvertedContactId,
+                        
+                        // Mapped fields from Lead to Quote
+                        Inco_Terms__c = lead.Inco_Terms__c,
+                        Payment_Terms__c = lead.Payment_Term__c,
+                        Loading_Port__c = lead.Loading_Port__c,
+                        Destination_Port__c = lead.Destination_Port__c,
+                        Quote_Valid_From__c = lead.Quote_Valid_From__c,
+                        ExpirationDate = lead.Quote_Valid_To__c,
+                        Bank__c = lead.Bank__c,
+                        Destination__c = lead.Destination__c,
+                        Country_of_Origin__c = lead.Country_of_Origin__c,
+                        Country_of_Destination__c = lead.Country_of_Destination__c,
+                        Pre_Carriage_Mode__c = lead.Pre_Carriage_Mode__c,
+                        Place_of_Supplier__c = lead.Place_of_Supplier__c,
+                        Partial_Shipment__c = lead.Partial_Shipment__c,
+                        Vessel_Flight_No__c = lead.Vessel_Flight_No__c,
+                        Email	= lead.Email,
+                        Phone	= lead.MobilePhone,
+                        
+                        BillingStreet = 
+                        (lead.Street_1__c != null ? lead.Street_1__c + '\n' : '') +
+                        (lead.Street_2__c != null ? lead.Street_2__c + '\n' : '') +
+                        (lead.Street_3__c != null ? lead.Street_3__c : ''),
+                        
+                        BillingPostalCode = lead.Pin_Code__r != null ? lead.Pin_Code__r.Name : null,
+                        BillingCity = lead.City__r != null ? lead.City__r.Name : null,
+                        BillingState = lead.State__r != null ? lead.State__r.Name : null,
+                        BillingCountry = lead.Country__r != null ? lead.Country__r.Name : null,
+                        
+                        ShippingStreet = 
+                        (lead.Shipping_Street_1__c != null ? lead.Shipping_Street_1__c + '\n' : '') +
+                        (lead.Shipping_Street_2__c != null ? lead.Shipping_Street_2__c + '\n' : '') +
+                        (lead.Shipping_Street_3__c != null ? lead.Shipping_Street_3__c : ''),
+                        
+                        ShippingPostalCode = lead.Shipping_Pin_Code__r != null ? lead.Shipping_Pin_Code__r.Name : null,
+                        ShippingCity = lead.Shipping_City__r != null ? lead.Shipping_City__r.Name : null,
+                        ShippingState = lead.Shipping_State__r != null ? lead.Shipping_State__r.Name : null,
+                        ShippingCountry = lead.Shipping_Country__r != null ? lead.Shipping_Country__r.Name : null,
+                        
+                        BillingName = lead.Company,
+                        ShippingName = lead.Company,
+                        
+                        Terms_and_Conditions__c =
+                        'All bank charges outside India will be borne by the customer and such charges should not be deducted from our payment.\n' +
+                        'We should receive full invoice amount in our bank account and you are liable to pay the bank charges which are applicable in India only.\n' +
+                        'After finalization of order if there is any change in Statutory Govt. levies than it will be in your scope.',
+                        
+                        Declaration__c = 'We declare that this quotation shows the actual price of goods and that all particulars are true and correct'
+                    );
+                    
+                    
+                    quotesToInsert.add(quote);
+                    quoteToOpportunityMap.put(opp.Id, opp.Id);
+                    oppIdsToUpdateStage.add(opp.Id);
+                }
         }
         
         // Insert Quotes
@@ -519,8 +659,6 @@ l.Status = 'Working';
                     }
                 }
             }
-            
-            
         }
         
         // Update Opportunity stage to 'Quotation'
@@ -537,6 +675,7 @@ l.Status = 'Working';
     }
     
     
+    
     private static Id getOpportunityPricebook(List<Opportunity> opportunities, Id opportunityId) {
         for (Opportunity opp : opportunities) {
             if (opp.Id == opportunityId) {
@@ -547,5 +686,55 @@ l.Status = 'Working';
     }
     
     
+    public static void setRossariCompanyOnAccount(List<Lead> newLeads, Map<Id, Lead> oldLeadMap) {
+        // Map to store Lead Record Type to Company Name mapping
+        Map<String, String> recordTypeToCompanyName = new Map<String, String>{
+            'RBL' => 'Rossari Biotech Limited',
+                'Tristar' => 'Tristar Intermediates Private Limited', 
+                'Unitop' => 'Unitop Chemicals Private Limited'
+                };
+                    
+                    // Create a map of Lead IDs to Lead records for easy access
+                    Map<Id, Lead> newLeadsMap = new Map<Id, Lead>(newLeads);
+        
+        Set<Id> convertedLeadIds = new Set<Id>();
+        Map<Id, String> leadIdToRecordType = new Map<Id, String>();
+        
+        // Identify converted leads and their record types
+        for (Lead lead : newLeads) {
+            Lead oldLead = oldLeadMap.get(lead.Id);
+            if (lead.IsConverted && !oldLead.IsConverted && lead.ConvertedAccountId != null) {
+                convertedLeadIds.add(lead.Id);
+                leadIdToRecordType.put(lead.Id, lead.RecordType.DeveloperName);
+            }
+        }
+        
+        if (convertedLeadIds.isEmpty()) return;
+        
+        // Get all company records
+        Map<String, Id> companyNameToId = new Map<String, Id>();
+        for (Company__c company : [SELECT Id, Name FROM Company__c WHERE Name IN :recordTypeToCompanyName.values()]) {
+            companyNameToId.put(company.Name, company.Id);
+        }
+        
+        // Update accounts with the appropriate Rossari Company
+        List<Account> accountsToUpdate = new List<Account>();
+        for (Id leadId : convertedLeadIds) {
+            String recordTypeDevName = leadIdToRecordType.get(leadId);
+            String companyName = recordTypeToCompanyName.get(recordTypeDevName);
+            
+            if (companyName != null && companyNameToId.containsKey(companyName)) {
+                Lead convertedLead = newLeadsMap.get(leadId);
+                accountsToUpdate.add(new Account(
+                    Id = convertedLead.ConvertedAccountId,
+                    Rossari_Company__c = companyNameToId.get(companyName)
+                ));
+            }
+        }
+        
+        if (!accountsToUpdate.isEmpty()) {
+            update accountsToUpdate;
+        }
+    }
     
 }

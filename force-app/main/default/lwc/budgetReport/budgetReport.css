@@ -1,0 +1,26 @@
+table.slds-table.bordered {
+    border-collapse: collapse;
+    border: 1px solid #000000; /* dark blue border around whole table */
+}
+
+/* Borders and padding for all table cells */
+table.slds-table.bordered th,
+table.slds-table.bordered td {
+    border: 1px solid #000000; /* lighter blue border on cells */
+    padding: 0.5rem 0.75rem;
+    vertical-align: baseline;
+}
+
+/* Header background and text color */
+table.slds-table.bordered th {
+    background-color:#999999;; /* Salesforce blue */
+    color: rgb(255, 255, 255);
+    font-weight: 600;
+}
+
+.wrap-word {
+  white-space: normal;       /* Allow wrapping */
+  word-wrap: break-word;     /* Break long words */
+  overflow-wrap: anywhere;   /* For modern browsers */
+  word-break: break-word;    /* Break words if needed */
+}

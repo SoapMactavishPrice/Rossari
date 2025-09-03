@@ -38,9 +38,9 @@ trigger LeadAutoSubmitApproval on Lead (after update) {
         // --- Condition 3: Both Levels ---
         else if (l.COA_Approval_Level_1__c != null &&
                  l.COA_Approval_Level_2__c != null &&
-                 level1JustSubmitted &&
-                 level2JustSubmitted) {
-
+                // level1JustSubmitted &&
+                // level2JustSubmitted) {
+                 level1JustSubmitted){
             Approval.ProcessSubmitRequest req = new Approval.ProcessSubmitRequest();
             req.setObjectId(l.Id);
             req.setSubmitterId(UserInfo.getUserId());

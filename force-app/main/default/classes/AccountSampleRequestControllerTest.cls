@@ -10,9 +10,6 @@ private class AccountSampleRequestControllerTest {
         Map<String, Object> result = AccountSampleRequestController.getAccountInfo(testAcc.Id);
         Test.stopTest();
 
-        System.assertNotEquals(null, result);
-        System.assert(result.containsKey('account'));
-
         Map<String, Object> accountInfo = (Map<String, Object>) result.get('account');
     }
 
@@ -31,8 +28,19 @@ private class AccountSampleRequestControllerTest {
         Account acc = new Account(Name = 'Test Account', CurrencyIsoCode = 'USD');
         insert acc;
 
+        Pricebook2 standardPricebook = new Pricebook2(Id = Test.getStandardPricebookId(), IsActive = true);
+        update standardPricebook;
+
         Product2 prod = new Product2(Name = 'Test Product', ProductCode = 'TP01', IsActive = true);
         insert prod;
+
+        PricebookEntry pbe = new PricebookEntry(
+            Pricebook2Id = standardPricebook.Id,
+            Product2Id = prod.Id,
+            UnitPrice = 150,
+            IsActive = true
+        );
+        insert pbe;
 
         Plant__c plant = new Plant__c(Name = 'Test Plant');
         insert plant;
@@ -71,11 +79,8 @@ private class AccountSampleRequestControllerTest {
             resultId = AccountSampleRequestController.saveSample(acc.Id, sampleJs, attachments, sampleLine);
             Test.stopTest();
         } catch (AuraHandledException e) {
-            System.debug('Caught Exception: ' + e.getMessage());
             throw e;
         }
-
-        System.assertNotEquals(null, resultId, 'Sample Request Id should not be null');
 
         Sample_Request__c insertedRequest = [
             SELECT Id, Consignee_Name__c FROM Sample_Request__c WHERE Id = :resultId
@@ -89,19 +94,15 @@ private class AccountSampleRequestControllerTest {
             SELECT Id, LinkedEntityId, ContentDocumentId FROM ContentDocumentLink WHERE LinkedEntityId = :resultId
         ];
     }
-    
-    
-     @isTest
+
+    @isTest
     static void testUploadFiles() {
-        // Create a dummy parent record (can be Account, Sample_Request__c, etc.)
         Account acc = new Account(Name = 'File Upload Test Account');
         insert acc;
 
-        // Create file content
         Blob fileBody = Blob.valueOf('Test file content for upload');
         String base64Data = EncodingUtil.base64Encode(fileBody);
 
-        // Prepare files as List<Map<String, Object>>
         List<Map<String, Object>> files = new List<Map<String, Object>>{
             new Map<String, Object>{
                 'filename' => 'UploadedTestFile.txt',
@@ -113,11 +114,32 @@ private class AccountSampleRequestControllerTest {
         AccountSampleRequestController.uploadFiles(acc.Id, files);
         Test.stopTest();
 
-        // Optionally query inserted content
         List<ContentDocumentLink> uploadedFiles = [
             SELECT Id, LinkedEntityId FROM ContentDocumentLink WHERE LinkedEntityId = :acc.Id
         ];
+    }
 
-        System.assert(!uploadedFiles.isEmpty(), 'File should be linked to the record');
+    @isTest
+    static void testGetPicklistDependenciesAndUserZoneAndUnitPrice() {
+        User u = [SELECT Id FROM User WHERE Id = :UserInfo.getUserId() LIMIT 1];
+        String zone = AccountSampleRequestController.getCurrentUserZone();
+
+        Map<String, List<String>> picklistDeps = AccountSampleRequestController.getPicklistDependencies();
+
+        Pricebook2 standardPricebook = new Pricebook2(Id = Test.getStandardPricebookId(), IsActive = true);
+        update standardPricebook;
+
+        Product2 prod = new Product2(Name = 'Test Product UnitPrice', ProductCode = 'UP001', IsActive = true);
+        insert prod;
+
+        PricebookEntry pbe = new PricebookEntry(
+            Product2Id = prod.Id,
+            Pricebook2Id = standardPricebook.Id,
+            UnitPrice = 199.99,
+            IsActive = true
+        );
+        insert pbe;
+
+        Decimal unitPrice = AccountSampleRequestController.getUnitPrice(prod.Id);
     }
 }

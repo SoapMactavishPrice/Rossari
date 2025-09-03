@@ -1,0 +1,21 @@
+/* In your parent component's CSS */
+.custom-scroll {
+    overflow-x: auto;
+}
+
+/* Ensure table cells don't clip absolutely positioned children */
+.slds-table td {
+    position: static;
+    overflow: visible;
+}
+
+/* Make sure the lookup containers work properly */
+c-custom-sales-area-lookup {
+    display: block;
+    position: static;
+}
+
+/* Force the table cells to have proper positioning context */
+.slds-table tr {
+    position: relative;
+}

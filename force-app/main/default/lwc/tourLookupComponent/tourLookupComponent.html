@@ -1,0 +1,43 @@
+<template>
+    <lightning-card>
+        <div class="slds-p-around_small" style="margin-top: -44px;">
+
+            <!-- Search box -->
+            <lightning-input type="search" 
+                             label="Search or Create Tour"
+                             value={searchKey}
+                             onchange={handleSearchChange}
+                             placeholder="Search Tour or type new...">
+            </lightning-input>
+
+            <!-- Show dropdown results -->
+            <template if:true={showDropdown}>
+                <ul class="slds-box slds-m-top_x-small slds-list_vertical slds-list_dotted">
+                    <template for:each={searchResults} for:item="record">
+                        <li key={record.Id}
+                            class="slds-p-around_x-small slds-var-m-around_xx-small slds-box slds-box_xx-small"
+                            onclick={handleSelect}>
+                            {record.Name}
+                        </li>
+                    </template>
+
+                    <!-- If no match, option to create -->
+                    <template if:true={allowCreate}>
+                        <li class="slds-p-around_x-small slds-var-m-around_xx-small slds-box slds-theme_alert-texture"
+                            onclick={handleCreate}>
+                            ➕ Create new "{searchKey}"
+                        </li>
+                    </template>
+                </ul>
+            </template>
+
+            <!-- Selected tour display -->
+            <template if:true={selectedTour}>
+                <p class="slds-m-top_small">
+                    ✅ Selected Tour: <strong>{selectedTour.Name}</strong>
+                </p>
+            </template>
+
+        </div>
+    </lightning-card>
+</template>

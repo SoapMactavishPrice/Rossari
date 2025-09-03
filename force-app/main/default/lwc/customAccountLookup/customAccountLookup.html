@@ -1,0 +1,47 @@
+<template>
+    <div class="lookup-container">
+        <!-- Search Input -->
+        <lightning-input
+            label="Search Account"
+            value={searchKey}
+            placeholder={placeholder}
+            onchange={handleInputChange}
+            disabled={selectedRecord}
+        ></lightning-input>
+
+        <!-- Dropdown Results -->
+        <template if:true={isDropdownVisible}>
+            <ul class="dropdown">
+                <template for:each={searchResults} for:item="record">
+                    <li key={record.Id} class="dropdown-item" data-id={record.Id} onclick={handleSelect}>
+                        <strong>{record.Name}</strong><br />
+                        <template if:true={record.sapCode}>
+                            <small>SAP Code: {record.sapCode}</small>
+                        </template>
+                        <template if:true={record.billingPinCodeName}>
+                            <lightning-helptext content={record.billingPinCodeName}></lightning-helptext>
+                        </template>
+                        <template if:true={record.billingCityName}>
+                            <lightning-helptext content={record.billingCityName}></lightning-helptext>
+                        </template>
+                        <template if:true={record.billingCountryName}>
+                            <lightning-helptext content={record.billingCountryName}></lightning-helptext>
+                        </template>
+                    </li>
+                </template>
+            </ul>
+        </template>
+
+        <!-- Selected Record Display -->
+        <template if:true={selectedRecord}>
+            <div class="selected-record">
+                Selected: {selectedRecord.Name}
+                <lightning-button-icon
+                    icon-name="utility:close"
+                    alternative-text="Clear"
+                    onclick={clearSelection}
+                ></lightning-button-icon>
+            </div>
+        </template>
+    </div>
+</template>

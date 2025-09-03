@@ -130,21 +130,79 @@ export default class SampleOutForm extends NavigationMixin(LightningElement) {
 
 
 
+    // loadData() {
+    //     this.showSpinner = true;
+    //     getSampleRequestData({ sampleRequestId: this.recordId })
+    //         .then(result => {
+    //             if (result) {
+    //                 this.plants = result.plants.map(plant => ({
+    //                     //  label: plant.Name,
+    //                     label: `${plant.Name} - ${plant.Plant_Name__c}`,
+    //                     value: plant.Id
+    //                 }));
+
+    //                 this.sampleOut.CurrencyIsoCode = result.currencyCode;
+
+    //                 // 🆕 Autofill address from lead if available
+    //                 if (result.address) {
+    //                     this.sampleOut = {
+    //                         ...this.sampleOut,
+    //                         Street1: result.address.Street1 || '',
+    //                         Street2: result.address.Street2 || '',
+    //                         Street3: result.address.Street3 || '',
+    //                         PinCode: result.address.PinCodeId || '',
+    //                         City: result.address.CityId || '',
+    //                         State: result.address.StateId || '',
+    //                         Country: result.address.CountryId || ''
+    //                     };
+
+    //                     this.selectedPinCode = result.address.PinCodeId || '';
+    //                 }
+
+    //                 if (result.lineItems && result.lineItems.length > 0) {
+    //                     this.sampleOutLines = result.lineItems.map(item => ({
+    //                         Id: this.generateId(),
+    //                         Selected: true,
+    //                         Product: item.Product__c,
+    //                         Product_Name: item.Product__r.Name,
+    //                         Product_Code: item.Product__r.ProductCode,
+    //                         Description: item.Description__c || '',
+    //                         SampleRequestLine: item.Id,
+    //                         SampleQtyInKgs: item.Sample_Qty_in_Kgs__c || 0,
+    //                         SampleOutPlant: item.Sample_Request_To_Plant__c,
+    //                         Price: item.Sales_Price__c || 0
+    //                     }));
+    //                 } else {
+    //                     this.showError('No Products', 'No line items found for this Sample Request');
+    //                     this.addEmptyRow();
+    //                 }
+    //             }
+    //         })
+    //         .catch(error => {
+    //             console.error('Error loading data:', error);
+    //             this.showError('Error Loading Data', error.body?.message || error.message);
+    //         })
+    //         .finally(() => {
+    //             this.showSpinner = false;
+    //         });
+    // }
+
     loadData() {
         this.showSpinner = true;
         getSampleRequestData({ sampleRequestId: this.recordId })
             .then(result => {
                 if (result) {
                     this.plants = result.plants.map(plant => ({
-                        //  label: plant.Name,
                         label: `${plant.Name} - ${plant.Plant_Name__c}`,
                         value: plant.Id
                     }));
 
                     this.sampleOut.CurrencyIsoCode = result.currencyCode;
 
-                    // 🆕 Autofill address from lead if available
+                    // 🆕 Autofill address from lead or account if available
                     if (result.address) {
+                        console.log('Address source:', result.address.Source); // Debug info
+
                         this.sampleOut = {
                             ...this.sampleOut,
                             Street1: result.address.Street1 || '',
@@ -173,7 +231,7 @@ export default class SampleOutForm extends NavigationMixin(LightningElement) {
                             Price: item.Sales_Price__c || 0
                         }));
                     } else {
-                        this.showError('No Products', 'No line items found for this Sample Request');
+                        this.showError('No Products Available', 'Please ensure products status are marked as "Ready" in the Sample Request Line Item.');
                         this.addEmptyRow();
                     }
                 }
@@ -186,7 +244,6 @@ export default class SampleOutForm extends NavigationMixin(LightningElement) {
                 this.showSpinner = false;
             });
     }
-
 
     addEmptyRow() {
         this.sampleOutLines = [{
@@ -384,11 +441,17 @@ export default class SampleOutForm extends NavigationMixin(LightningElement) {
     }
 
     validateForm() {
-        // Validate Sample Out main fields
-        if (!this.sampleOut.SAPSampleDocumentType) {
-            this.showError('Missing Required Field', 'Please select SAP Sample Document Type');
+
+        if (!this.sampleOut.SampleSentByFactoryToHO) {
+            this.showError('Missing Required Field', 'Please select Sample Sent By Factory To HO');
             return false;
         }
+
+        // Validate Sample Out main fields
+        // if (!this.sampleOut.SAPSampleDocumentType) {
+        //     this.showError('Missing Required Field', 'Please select SAP Sample Document Type');
+        //     return false;
+        // }
 
         if (!this.sampleOut.IncoTerms) {
             this.showError('Missing Required Field', 'Please select Inco Term');

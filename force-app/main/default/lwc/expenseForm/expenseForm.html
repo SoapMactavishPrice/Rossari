@@ -1,0 +1,68 @@
+<template>
+    <lightning-card title="New Expense Claim" icon-name="custom:custom63">
+        <div class="slds-p-around_medium">
+
+            <!-- Header Section -->
+            <div class="slds-grid slds-wrap slds-m-bottom_medium">
+                <div class="slds-col slds-size_1-of-3 slds-p-horizontal_x-small">
+                    <lightning-input label="Voucher No" value={expenseName} onchange={handleNameChange} required></lightning-input>
+                </div>
+                <div class="slds-col slds-size_1-of-3 slds-p-horizontal_x-small">
+                    <lightning-input type="date" label="Expense Date" value={todayDate} onchange={handleDateChange} required></lightning-input>
+                </div>
+                <div class="slds-col slds-size_1-of-3 slds-p-horizontal_x-small">
+                    <lightning-combobox label="Employee Name" value={selectedEmployeeId} options={employeeOptions}
+                                        onchange={handleEmployeeChange} onkeyup={handleEmployeeSearch} required>
+                    </lightning-combobox>
+                </div>
+                <div class="slds-col slds-size_1-of-3 slds-p-horizontal_x-small">
+                    <lightning-input label="Division" value={division} disabled></lightning-input>
+                </div>
+                <div class="slds-col slds-size_1-of-3 slds-p-horizontal_x-small">
+                    <lightning-input label="Zone" value={zone} disabled></lightning-input>
+                </div>
+                <div class="slds-col slds-size_1-of-3 slds-p-horizontal_x-small">
+                    <lightning-combobox label="Type of Voucher" value={selectedVoucherType} options={voucherOptions} onchange={handleVoucherTypeChange} required></lightning-combobox>
+                </div>
+            </div>
+
+            <!-- Line Items -->
+            <template for:each={lineItems} for:item="item" for:index="index">
+                <div key={item.key} class="slds-grid slds-wrap slds-p-vertical_x-small slds-border_bottom">
+                    <div class="slds-col slds-size_1-of-3 slds-p-horizontal_x-small">
+                        <lightning-combobox label="Type of Expense" placeholder="Select" options={typeOfExpenseOptions} value={item.typeOfExpenseId}
+                                            data-index={index} onchange={handleTypeOfExpenseChange} onkeyup={handleTypeOfExpenseSearch}>
+                        </lightning-combobox>
+                    </div>
+                    <div class="slds-col slds-size_1-of-3 slds-p-horizontal_x-small">
+                        <lightning-input type="number" label="Amount Claimed" value={item.amountClaimed} step="0.01" data-index={index}
+                                         onchange={handleAmountClaimedChange}></lightning-input>
+                    </div>
+                    <div class="slds-col slds-size_1-of-3 slds-p-horizontal_x-small">
+                        <lightning-file-upload label="Upload Files" name="fileUploader" multiple
+                                               data-index={index} accept={acceptedFormats} onchange={handleFileUpload}>
+                        </lightning-file-upload>
+                        <template if:true={item.filesCount}>
+                            <p class="slds-text-body_small slds-m-top_xx-small">
+                                {item.filesCount} file(s) uploaded
+                            </p>
+                        </template>
+
+
+                    </div>
+                    <div class="slds-col slds-size_1-of-12 slds-p-horizontal_x-small slds-align_absolute-center">
+                        <lightning-button-icon icon-name="utility:add" alternative-text="Add" data-index={index} onclick={addLineItem}></lightning-button-icon>
+                        <lightning-button-icon icon-name="utility:delete" alternative-text="Delete" data-index={index} onclick={deleteLineItem}></lightning-button-icon>
+                    </div>
+                </div>
+            </template> 
+        </div>
+
+            <!-- Action Buttons -->
+            <div class="slds-m-top_medium slds-text-align_right">
+                <lightning-button label="Submit" variant="brand" onclick={handleSubmit}></lightning-button>
+                <lightning-button label="Cancel" onclick={handleCancel} class="slds-m-left_small"></lightning-button>
+            </div>
+
+    </lightning-card>
+</template>

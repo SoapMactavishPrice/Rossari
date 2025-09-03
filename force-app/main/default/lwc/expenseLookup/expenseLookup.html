@@ -1,0 +1,44 @@
+<template>
+    <div class="slds-combobox_container" style="position: relative;">
+        <div class="slds-combobox slds-dropdown-trigger slds-dropdown-trigger_click">
+            <div class="slds-combobox__form-element slds-input-has-icon slds-input-has-icon_right">
+                <input type="text"
+                       class="slds-input slds-combobox__input"
+                       placeholder={placeholder}
+                       value={displayValue}
+                       onchange={handleSearchChange}
+                       onclick={handleInputClick}
+                       onblur={handleInputBlur}
+                       aria-controls="listbox-id-1"
+                       aria-autocomplete="list"
+                       role="combobox"
+                       autocomplete="off"/>
+
+                <span class="slds-icon_container slds-icon-utility-search slds-input__icon slds-input__icon_right">
+                    <lightning-icon icon-name="utility:search" size="x-small"></lightning-icon>
+                </span>
+            </div>
+
+            <!-- Dropdown - Conditionally shown -->
+            <template if:true={showDropdown}>
+                <div class="slds-dropdown slds-dropdown_fluid" role="listbox" style="position: absolute; z-index: 9000; width: 100%; max-height: 200px; overflow-y: auto;">
+                    <ul class="slds-listbox slds-listbox_vertical" role="presentation">
+                        <template for:each={searchResults} for:item="record">
+                            <li key={record.Id} role="presentation" class="slds-listbox__item">
+                                <div role="option" tabindex="0"
+                                    class="slds-media slds-listbox__option slds-listbox__option_plain slds-listbox__option_entity"
+                                    data-id={record.Id}
+                                    data-name={record.Name}
+                                    onmousedown={handleResultSelect}>
+                                    <span class="slds-media__body">
+                                        <span class="slds-truncate" title={record.Name}>{record.Name}</span>
+                                    </span>
+                                </div>
+                            </li>
+                        </template>
+                    </ul>
+                </div>
+            </template>
+        </div>
+    </div>
+</template>

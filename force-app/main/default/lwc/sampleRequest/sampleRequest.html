@@ -8,40 +8,77 @@
             <div class="slds-p-around_medium" style="margin-top: 0px;">
 
                 <div class="slds-grid slds-wrap" style="margin-bottom:-46px">
+
+                    <div class="slds-col slds-size_1-of-4 slds-p-around_x-small">
+                        <lightning-input type="text" label="Zone" value={zone} disabled
+                            data-name="Zone__c"></lightning-input>
+                    </div>
+
+
                     <div class="slds-col slds-size_1-of-4 slds-p-around_x-small">
                         <lightning-input type="date" label="Sample Request Date" value={todayDate}
-                            data-name="Sample_Request_Date__c" required></lightning-input>
+                            data-name="Sample_Request_Date__c" required min={todayDate}>
+                        </lightning-input>
                     </div>
                     <div class="slds-col slds-size_1-of-4 slds-p-around_x-small">
                         <lightning-input type="date" label="Sample Expected Date" data-name="Sample_Expected_Date__c"
-                            required></lightning-input>
+                            required min={todayDate}>
+                        </lightning-input>
                     </div>
                     <div class="slds-col slds-size_1-of-4 slds-p-around_x-small">
-                        <lightning-input type="date" label="Follow Up Date"
-                            data-name="Sample_Follow_Up_Date__c"></lightning-input>
+                        <lightning-input type="date" label="Follow Up Date" data-name="Sample_Follow_Up_Date__c"
+                            min={todayDate}>
+                        </lightning-input>
                     </div>
                     <div class="slds-col slds-size_1-of-4 slds-p-around_x-small">
-                        <lightning-input type="text" label="Consignee Name" value={leadCompany}
+                        <lightning-input type="text" label="Customer Name" value={leadCompany}
                             disabled></lightning-input>
                     </div>
-                    <!-- <template if:false={sendEmailToPlant}>
+
                     <div class="slds-col slds-size_1-of-4 slds-p-around_x-small">
-                        <lightning-input type="email" label="CC Email" data-name="CC_Email__c"></lightning-input>
+                        <lightning-input type="text" label="Customer Code" value={leadNumber}
+                            disabled></lightning-input>
                     </div>
-                </template> -->
+
+
+                    <div class="slds-col slds-size_1-of-4 slds-p-around_x-small">
+                        <lightning-combobox name="Sample_Category" label="Sample Category"
+                            value={selectedSampleCategory} options={sampleCategoryOptions}
+                            onchange={handleSampleCategoryChange} data-name="Sample_Category__c" required>
+                        </lightning-combobox>
+                    </div>
+
+                    <div class="slds-col slds-size_1-of-4 slds-p-around_x-small">
+                        <lightning-combobox name="SAP_Doc_Type" label="SAP Document Type" value={selectedSAPDocType}
+                            options={filteredSAPDocTypeOptions} onchange={handleSAPDocTypeChange}
+                            data-name="SAP_Doc_Type__c" required>
+                        </lightning-combobox>
+                    </div>
 
                     <div class="slds-col slds-size_1-of-4 slds-p-around_x-small">
                         <label style="font-size:13px;">Send Email To Plant?</label>
 
                         <lightning-input type="checkbox" variant="label-hidden" data-name="Send_Email_To_Plant__c"
-                            checked={sendEmailToPlant} onchange={handleSendEmailCheckbox}
-                            style="margin-left: 86px; margin-bottom: -24px">
+                            checked={sendEmailToPlant} onchange={handleSendEmailCheckbox}>
                         </lightning-input>
                     </div>
+
+                    <template if:true={sendEmailToPlant}>
+                        <div class="slds-col slds-size_1-of-4 slds-p-around_x-small">
+                            <lightning-textarea label="Additional Email" data-name="Email__c"
+                                placeholder="Enter one or more email addresses"
+                                field-level-help="Enter one or more email addresses separated by commas (,) or semicolons (;)."
+                                rows="3"></lightning-textarea>
+                        </div>
+                    </template>
 
                     <div class="slds-col slds-size_1-of-4 slds-p-around_x-small">
                         <lightning-textarea label="Remark" data-name="Remark__c"></lightning-textarea>
                     </div>
+
+
+
+
                     <lightning-layout-item size="12" large-device-size="2" padding="around-small"
                         style="margin-bottom: 22px;padding: 28px;">
                         <div class="slds-m-around_small" style="display: flex; align-items: center;">
@@ -81,6 +118,10 @@
                                     Sample Request To Plant</th>
                                 <th
                                     style="text-align: center; font-size: 13px; background-color: #9d0b0f; font-weight: bold; padding: 4px 6px; color: white;">
+                                    Rate({currencyIsoCode})</th>
+
+                                <th
+                                    style="text-align: center; font-size: 13px; background-color: #9d0b0f; font-weight: bold; padding: 4px 6px; color: white;">
                                     Qty (in Kgs)</th>
                                 <th
                                     style="text-align: center; font-size: 13px; background-color: #9d0b0f; font-weight: bold; padding: 4px 6px; color: white;Width:0px">
@@ -94,7 +135,7 @@
                                         <c-reusable-lookup selected-record-id={item.prodId} data-index={index}
                                             index={index} selected-icon-name="standard:product" object-label="Product"
                                             object-api-name="Product2" field-api-name="Name"
-                                            other-field-api-name="ProductCode,Description,Plant_Name__c"
+                                            other-field-api-name="ProductCode,Description,Plant_Name__c,UnitPrice"
                                             onvalueselected={handleProductSelection}
                                             style="width: 375px;"></c-reusable-lookup>
                                     </td>
@@ -111,6 +152,18 @@
                                             value={item.Sample_Request_To_Plant} onchange={handlePlantChange}
                                             data-index={index} variant="label-hidden"></lightning-combobox>
                                     </td>
+                                    <td>
+                                        <!-- <lightning-input type="number" value={item.Sales_Price}
+                                            onchange={handlePriceChange} data-index={index} variant="label-hidden"
+                                            step="any">
+                                        </lightning-input> -->
+                                        <lightning-input type="number" value={item.Sales_Price}
+                                            onchange={handlePriceChange} data-index={index} variant="label-hidden"
+                                            step="any" disabled={isUnpaidSampleCategory}>
+                                        </lightning-input>
+
+                                    </td>
+
                                     <td>
                                         <lightning-input type="number" required value={item.Sample_Qty_in_Kgs}
                                             onchange={handleQtyChange} data-index={index} variant="label-hidden"
@@ -130,9 +183,10 @@
                 </div>
 
                 <div class="slds-align_absolute-center slds-m-top_medium">
-                    <lightning-button label="Cancel" onclick={handleCancel}></lightning-button>
-                    <lightning-button label="Save" variant="brand" onclick={handleSave}
+                    <lightning-button label="Save" variant="brand" onclick={handleSave}></lightning-button>
+                    <lightning-button label="Cancel" onclick={handleCancel}
                         class="slds-m-left_medium"></lightning-button>
+
                 </div>
             </div>
         </div>

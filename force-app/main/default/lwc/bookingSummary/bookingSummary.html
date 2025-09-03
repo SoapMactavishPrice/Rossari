@@ -1,0 +1,269 @@
+<template>
+
+    <lightning-card title="Booking Target Summary
+    " icon-name="standard:account">
+
+        <template if:true={showSpinner}>
+            <label>hello spinner</label>
+            <div class="spinner-container">
+                <lightning-spinner alternative-text="Loading" size="small"></lightning-spinner>
+            </div>
+        </template>
+
+        <lightning-layout multiple-rows>
+            <lightning-layout-item size="2" padding="around-small">
+                <lightning-record-edit-form object-api-name="Budget__c">
+                    <lightning-input-field field-name="FY__c" disabled onchange={handleFiscalChange} value={fiscalId}>
+                    </lightning-input-field>
+                </lightning-record-edit-form>
+            </lightning-layout-item>
+
+            <lightning-layout-item size="2" padding="around-small">
+                <lightning-record-edit-form object-api-name="Budget__c">
+                    <lightning-input-field field-name="Sales_Employee__c" onchange={handleSalesEmpChange}>
+                    </lightning-input-field>
+                </lightning-record-edit-form>
+            </lightning-layout-item>
+
+
+            <lightning-layout-item size="2" padding="around-small">
+                <lightning-record-edit-form object-api-name="Budget__c">
+                    <lightning-input-field field-name="Month__c" onchange={handleSearchChange} data-type="month">
+                        <!-- value={monthVal} -->
+                    </lightning-input-field>
+                </lightning-record-edit-form>
+            </lightning-layout-item>
+
+            <lightning-layout-item size="2" padding="around-small">
+                <lightning-record-edit-form object-api-name="Budget__c">
+                    <lightning-input label="Product Name" onchange={handleSearchChange} data-type="customerName">
+                    </lightning-input>
+                </lightning-record-edit-form>
+            </lightning-layout-item>
+
+
+        </lightning-layout>
+
+        <div class="slds-scrollable" style="padding: 1px 5px;" if:true={hasDataInTable}>
+            <table class="slds-table slds-table_bordered slds-table_cell-buffer">
+                <thead>
+                    <tr class="slds-line-height_reset">
+                        <th style="width: 1%;"></th>
+                        <th>Customer Name</th>
+                        <th>Sales Quantity</th>
+                        <th>Sales Value</th>
+                        <th>COGS Value</th>
+                        <th>GM/Kg</th>
+
+                    </tr>
+                </thead>
+                <tbody>
+                    <template for:each={vData} for:item="group">
+                        <!-- PARENT ROW -->
+                        <tr key={group.Id}>
+                            <td>
+                                <lightning-button-icon icon-name={group.iconName} data-key={group.Id}
+                                    onclick={toggleRow} alternative-text="Toggle Details" variant="bare" size="small">
+                                </lightning-button-icon>
+                            </td>
+                            <td class="n_weight"><b>
+                                                    {group.Name}</b></td>
+                                          
+                                           <td class="n_weight"><b>
+                                                    {group.subTotal.quantity}</b></td>
+                                          
+                                            <td class="n_weight"><b>
+                                                    <lightning-formatted-number value={group.subTotal.salesValue}
+                                                        format-style="currency" currency-code="INR"
+                                                        minimum-fraction-digits="2"></lightning-formatted-number>
+                                                </b></td>
+                                          
+                                            <td class="n_weight"><b>
+                                                    <lightning-formatted-number value={group.subTotal.cogsValue}
+                                                        format-style="currency" currency-code="INR"
+                                                        minimum-fraction-digits="2"></lightning-formatted-number>
+                                                </b></td>
+                                            <td class="n_weight"><b>
+                                                    <lightning-formatted-number value={group.subTotal.gmKg}
+                                                        format-style="currency" currency-code="INR"
+                                                        minimum-fraction-digits="2"></lightning-formatted-number>
+                                                </b></td> 
+                                           
+                        </tr>
+
+
+                        <template if:true={group.isExpanded}>
+                            <tr key={group.Id}>
+                                <td></td>
+                                <td colspan="5">
+                                    <table class="slds-table slds-table_bordered ">
+                                        <thead>
+                                            <tr class="slds-line-height_reset">
+                                                <th></th>
+                                                <th>Product Name</th>
+                                                <th>Product Code</th>
+                                                <th>Product Description</th>
+
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <template for:each={group.Products} for:item="pro">
+                                                <tr key={pro.Id}>
+                                                    <td style="width: 4%;">
+                                                        <lightning-button-icon icon-name={pro.iconName} data-parent-id={group.Id}
+                                                            data-key={pro.Id} onclick={toggleRowProduct}
+                                                            alternative-text="Toggle Details" variant="bare"
+                                                            size="small">
+                                                        </lightning-button-icon>
+                                                    </td>
+                                                    <td>{pro.Name}</td>
+                                                    <td>{pro.ProductCode}</td>
+                                                    <td>{pro.Description}</td>
+                                                </tr>
+
+                                                <template if:true={pro.isExpanded}>
+                            <tr key={pro.Id}>
+                                <td></td>
+                                <td colspan="12">
+                                    <table class="slds-table slds-table_bordered ">
+                                        <thead>
+                                            <tr class="slds-line-height_reset">
+                                                <th>Month Name</th>
+                                                <th>Sales Quantity</th>
+                                                <th>Budget Rate</th>
+                                                <th>Sales Value</th>
+                                                <th>COGS Rate</th>
+                                                <th>COGS Value</th>
+                                                <th>GM/Kg</th>
+                                                <th>Gross Margin</th>
+                                            </tr>
+                                        </thead>
+                                         <tbody>
+                                            <template for:each={pro.MonthList} for:item="rec">
+
+                                                <tr key={rec.index}>
+                                                    <td>{rec.MonthName}</td>
+                                                    <td>
+                                                        <lightning-input variant="label-hidden" data-val-id={rec.uId}
+                                                            step="0.01" type="Number" data-id={pro.Id}
+                                                            data-index={rec.index} onchange={ValChange} data-parent-id={group.Id}
+                                                            data-label="Sales_Qauntity__c" disabled={rec.disabled}
+                                                            value={rec.Sales_Qauntity__c}></lightning-input>
+                                                    </td>
+                                                    <td>
+                                                        <lightning-input variant="label-hidden" data-val-id={rec.uId}
+                                                            step="0.01" type="Number" data-id={pro.Id}
+                                                            data-index={rec.index} onchange={ValChange} data-parent-id={group.Id}
+                                                            data-label="Price__c" disabled={rec.disabled}
+                                                            value={rec.Price__c}></lightning-input>
+                                                    </td>
+                                                    <td>
+                                                        <lightning-input variant="label-hidden" data-val-id={rec.uId}
+                                                            step="0.01" type="Number" data-id={pro.Id}
+                                                            data-index={rec.index} onchange={ValChange} data-parent-id={group.Id}
+                                                            data-label="Sales_Value__c" disabled
+                                                            value={rec.Sales_Value__c}></lightning-input>
+                                                    </td>
+                                                    <td>
+                                                        <lightning-input variant="label-hidden" data-val-id={rec.uId}
+                                                            step="0.01" type="Number" data-id={pro.Id}
+                                                            data-index={rec.index} onchange={ValChange} data-parent-id={group.Id}
+                                                            data-label="COGS_Kg__c" disabled={rec.disabled}
+                                                            value={rec.COGS_Kg__c}></lightning-input>
+                                                    </td>
+                                                    <td>
+                                                        <lightning-input variant="label-hidden" data-val-id={rec.uId}
+                                                            step="0.01" type="Number" data-id={pro.Id}
+                                                            data-index={rec.index} onchange={ValChange} data-parent-id={group.Id}
+                                                            data-label="COGS_Value__c" disabled
+                                                            value={rec.COGS_Value__c}></lightning-input>
+                                                    </td>
+                                                    <td>
+                                                        <lightning-input variant="label-hidden" data-val-id={rec.uId}
+                                                            step="0.01" type="Number" data-id={pro.Id} data-parent-id={group.Id}
+                                                            data-index={rec.index} onchange={ValChange}
+                                                            data-label="GM_Kg__c" disabled value={rec.GM_Kg__c}>
+                                                        </lightning-input>
+                                                    </td>
+                                                    <td>
+                                                        <lightning-input variant="label-hidden" data-val-id={rec.uId}
+                                                            step="0.01" type="Number" data-id={pro.Id}
+                                                            data-index={rec.index} onchange={ValChange}
+                                                            data-label="GM_Value__c" disabled value={rec.GM_Value__c}>
+                                                        </lightning-input>
+                                                    </td>
+                                                </tr>
+                                                
+                                            </template>
+                                           <tr class="" if:true={pro.subTotal}> 
+                                            <td><strong>Sub total</strong></td>
+                                            <td class="n_weight"><b>
+                                                    {pro.subTotal.quantity}</b></td>
+                                            <td>-</td>
+                                            <td class="n_weight"><b>
+                                                    <lightning-formatted-number value={pro.subTotal.salesValue}
+                                                        format-style="currency" currency-code="INR"
+                                                        minimum-fraction-digits="2"></lightning-formatted-number>
+                                                </b></td>
+                                            <td>-</td>
+                                            <td class="n_weight"><b>
+                                                    <lightning-formatted-number value={pro.subTotal.cogsValue}
+                                                        format-style="currency" currency-code="INR"
+                                                        minimum-fraction-digits="2"></lightning-formatted-number>
+                                                </b></td>
+                                            <td class="n_weight"><b>
+                                                    <lightning-formatted-number value={pro.subTotal.gmValue}
+                                                        format-style="currency" currency-code="INR"
+                                                        minimum-fraction-digits="2"></lightning-formatted-number>
+                                                </b></td>
+                                            <td>-</td>
+                                        </tr> 
+
+
+
+                                        </tbody>
+                                        </table>
+                                        </td>
+                                        </tr>
+                                        </template>
+                                            </template>
+                                        </tbody>
+                                    </table>
+                                </td>
+                            </tr>
+                        </template>
+
+                    </template>
+                </tbody>
+            </table>
+        </div>
+
+
+        <template if:true={shouldShowFooter}>
+
+
+            <div class="slds-docked-form-footer">
+                <div class="slds-grid slds-grid_align-end">
+                    <lightning-button variant="neutral" label="Cancel" onclick={handleCancel}>
+                    </lightning-button>
+
+                    <lightning-button class="slds-m-left_small" variant="brand" label="Save" disabled={saveDisabled}
+                        onclick={saveRecords}>
+                    </lightning-button>
+                </div>
+            </div>
+        </template>
+
+
+        <div if:false={hasDataInTable} style="width: 95%">
+            <div
+                class="slds-grid slds-gutters slds-wrap slds-p-horizontal_small slds-m-top_xx-small slds-m-bottom_xx-small">
+                <div class="slds-col slds-size_3-of-12"></div>
+                <div class="slds-col slds-size_6-of-12"><img src="/img/chatter/OpenRoad.svg"
+                        class="slds-illustration__svg">
+                </div>
+            </div>
+            <div class="slds-col slds-size_3-of-12"></div>
+        </div>
+    </lightning-card>
+</template>

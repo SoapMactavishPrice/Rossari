@@ -108,7 +108,7 @@ public class SendEmail {
         
         
         // Send email to Opportunity Owner's Manager if UnitPrice is less than ListPrice
-        Boolean sendManagerEmail = false; // Flag for sending email to manager
+   /*     Boolean sendManagerEmail = false; // Flag for sending email to manager
         
         for (OpportunityLineItem item : opp.OpportunityLineItems) {
             if (item.UnitPrice < item.ListPrice) {
@@ -163,10 +163,10 @@ public class SendEmail {
             }
             // Send Salesforce notification to users
             sendNotificationToUsers(opp);
-        }
+        }  */
     }
     
-    private static void sendNotificationToUsers(Opportunity opp) {
+  /*  private static void sendNotificationToUsers(Opportunity opp) {
         try {
             // Fetch custom notification type ID
             Id notificationTypeId = [
@@ -195,7 +195,7 @@ public class SendEmail {
         } catch (Exception e) {
             System.debug('Error sending custom notification: ' + e.getMessage());
         }
-    }
+    } */
     
     
     private static void sendCustomNotification(Opportunity opp) {

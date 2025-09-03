@@ -1,0 +1,9 @@
+.color{
+    color:'black'
+}
+
+@media only screen and (max-width: 768px) {
+    .color {
+        padding: 0 1rem;
+    }
+}
