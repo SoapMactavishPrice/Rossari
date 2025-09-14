@@ -16,7 +16,7 @@ public class BookingSummaryController {
       
         List<Booking_Target__c> targetList = new List<Booking_Target__c>();
         targetList = [Select Id, FY__c, Product__c,Sales_Employee__c,Sales_Value__c, Month__c,Account__c,Year__c,Sales_Quantity__c,COGS_Value__c,GM_Kg__c,Gross_Margin__c,
-                      COGS_Rate__c,Budget_Rate__c,Product_Code__c from Booking_Target__c where 
+                      COGS_Rate__c,Budget_Rate__c,Product_Code__c,Product_Catgeory__c from Booking_Target__c where 
                       Sales_Employee__c=:usId AND FY__c=:fyId ];
         
         system.debug('targetList-->'+targetList.size());
@@ -30,7 +30,7 @@ public class BookingSummaryController {
         
         List<Booking_Target__c> targetList = new List<Booking_Target__c>();
         targetList = [Select Id, FY__c, Product__c,Sales_Employee__c, Month__c,Account__c,Year__c,Sales_Quantity__c,COGS_Value__c,GM_Kg__c,Gross_Margin__c,
-                      COGS_Rate__c,Budget_Rate__c,Product_Code__c from Booking_Target__c where 
+                      COGS_Rate__c,Budget_Rate__c,Product_Code__c,Product_Catgeory__c from Booking_Target__c where 
                       Sales_Employee__c=:usId AND FY__c=:fyId AND Account__c=:accId];
         
         system.debug('targetList-->'+targetList.size());
@@ -70,14 +70,18 @@ public class BookingSummaryController {
     }
     
     
-     @AuraEnabled
+    @AuraEnabled
     public static List<Product2> getProductList() {
         List<Product2> prodList = [
-            SELECT Id, Name, ProductCode, Description 
+            SELECT Id, Name, ProductCode, Description, 
+            Item_Group__c, 
+            Item_Group__r.Name,      // Item Group Name
+            Item_Group__r.Id         // Item Group ID
             FROM Product2 
             WHERE IsActive = true 
-            ORDER BY CreatedDate ASC
-            LIMIT 1
+            AND Item_Group__c !=null
+            ORDER BY Item_Group__r.Name NULLS LAST, Name
+            LIMIT 50
         ];
         
         // Use a Map to avoid duplicates by ProductCode

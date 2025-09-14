@@ -1,0 +1,92 @@
+<template>
+    <div class="slds-form-element">
+        <label class="slds-form-element__label" for="combobox-id-2">
+            Search and Select Accounts
+        </label>
+        <div class="slds-form-element__control">
+            <div class="slds-combobox_container">
+                <!-- Apply slds-is-open dynamically -->
+                <div class={comboboxClass}
+                    aria-expanded={isDropdownVisible} 
+                    aria-haspopup="listbox" 
+                    role="combobox">
+                
+                    <!-- Search Input -->
+                    <div class="slds-combobox__form-element slds-input-has-icon slds-input-has-icon_right">
+                        <input type="text" value={searchKey}
+                            onkeyup={handleKeyChange} onchange={handleKeyChange}
+                            onfocusout={onLeave}
+                            class="slds-input slds-combobox__input"
+                            placeholder="Search accounts..." />
+
+                        <lightning-icon icon-name="utility:search"
+                            class="slds-input__icon slds-input__icon_right"
+                            size="xx-small">
+                        </lightning-icon>
+                    </div>
+
+                    <!-- Dropdown -->
+                    <template if:true={isDropdownVisible}>
+                        <div class="slds-combobox_container slds-is-relative"></div>
+                        <div class="slds-dropdown slds-dropdown_fluid slds-is-absolute"
+                            style="z-index: 9999; width: 100%;">
+                            <ul class="slds-listbox slds-listbox_vertical" role="presentation">
+                                <template if:true={message}>
+                                    <li class="slds-listbox__item">
+                                        <span class="slds-listbox__option-text">{message}</span>
+                                    </li>
+                                </template>
+
+                                <template for:each={searchResults} for:item="record">
+                                    <li key={record.Id} class="slds-listbox__item">
+                                        <div data-id={record.Id} data-name={record.Name}
+                                            onclick={handleSelect}
+                                            class="slds-media slds-listbox__option slds-listbox__option_entity"
+                                            role="option">
+                                            <span class="slds-media__figure">
+                                                <lightning-icon icon-name="standard:account" size="small"></lightning-icon>
+                                            </span>
+                                            <span class="slds-media__body">
+                                                <span class="slds-listbox__option-text slds-listbox__option-text_entity">
+                                                    {record.Name}
+                                                </span>
+                                                <template if:true={record.sapCode}>
+                                                    <span class="slds-listbox__option-meta">
+                                                        SAP Code: {record.sapCode}
+                                                    </span>
+                                                </template>
+                                            </span>
+                                            <span class="slds-media__figure">
+                                                <lightning-icon icon-name={record.iconName} 
+                                                    size="x-small" class={record.iconClass}>
+                                                </lightning-icon>
+                                            </span>
+                                        </div>
+                                    </li>
+                                </template>
+                            </ul>
+                        </div>
+                    </template>
+                </div>
+            </div>
+
+            <!-- Pills -->
+                    <template if:true={selectedRecords.length}>
+                        <div class="slds-pill_container">
+                            <template for:each={selectedRecords} for:item="record">
+                                <span key={record.Id} class="slds-pill">
+                                    <span class="slds-pill__label">
+                                        <lightning-icon icon-name="standard:account" size="xx-small"></lightning-icon>
+                                        {record.Name}
+                                    </span>
+                                    <button class="slds-button slds-button_icon slds-pill__remove"
+                                        onclick={handleRemoveRecord} data-id={record.Id}>
+                                        <lightning-icon icon-name="utility:close" size="xx-small"></lightning-icon>
+                                    </button>
+                                </span>
+                            </template>
+                        </div>
+                    </template>
+        </div>
+    </div>
+</template>

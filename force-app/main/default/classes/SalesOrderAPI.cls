@@ -63,7 +63,7 @@ global class SalesOrderAPI {
             }
 
             Map < String, Product2 > product2Map_v1 = new Map < String, Product2 > ();
-            for (Product2 product: [SELECT Id, ProductCode, Material_Group_1__c FROM Product2 WHERE ProductCode IN: ProductCodeSet]) {
+            for (Product2 product: [SELECT Id, ProductCode FROM Product2 WHERE ProductCode IN: ProductCodeSet]) {
                 product2Map_v1.put(product.ProductCode, product);
             }
 
@@ -417,7 +417,7 @@ global class SalesOrderAPI {
                         }
 
                         Map < String, Product2 > product2Map = new Map < String, Product2 > ();
-                        for (Product2 product: [SELECT Id, ProductCode, Material_Group_1__c FROM Product2 WHERE ProductCode IN: productCodes]) {
+                        for (Product2 product: [SELECT Id, ProductCode FROM Product2 WHERE ProductCode IN: productCodes]) {
                             product2Map.put(product.ProductCode, product);
                         }
 

@@ -16,7 +16,7 @@ public class BudgetReport {
                          
                          Sales_Organisations__r.Name,Distribution_Channel__r.Name,Product_Description__r.Name,
                         Sales_Quantity__c,Sales_Value__c,SAP_Id_Manager__c,SAP_Id_Salesperson__c,Sub_Zone__c,Sub_Zone_Description__c FROM Budget__c where
-                        Fy__c=:fiscId];
+                        Fy__c=:fiscId AND Sales_Employee__c = :userId];
        system.debug('BudgetReport-->'+listOfBudget.size());
         return listOfBudget;
       }

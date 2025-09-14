@@ -27,7 +27,7 @@ export default class QuotePdfSend extends NavigationMixin(LightningElement) {
     @track ownerEmail = '';
     @track ownerName = '';
     customerType = '';
-    @track isAttachPdf = false;
+    @track isAttachPdf = true;
 
     get subject() {
         if (this.type == 'quote') {
@@ -37,13 +37,14 @@ export default class QuotePdfSend extends NavigationMixin(LightningElement) {
         }
     }
     connectedCallback() {
-        console.log('Type -->', this.type)
+        console.log('Type -->', this.type);
+        console.log('isAttachPdf -->', this.isAttachPdf);
         if (this.type == 'quote') {
             this.body = 'Dear Sir/Madam, <br/><br/> Please find attached Quotation.<br/><br/><br/><br/>';
         } else if (this.type == 'invoice') {
             this.body = 'Dear Sir/Madam, <br/><br/> Please find attached Proforma Invoice.<br/><br/><br/><br/>';
         }
-        validateQuote({quoteId: this.recordId}).then((result)=>{
+        validateQuote({ quoteId: this.recordId }).then((result) => {
             this.customerType = result;
             if (this.customerType != null) {
                 this.getLineItems();
@@ -56,14 +57,14 @@ export default class QuotePdfSend extends NavigationMixin(LightningElement) {
                 this.showSuccess('Error', 'Customer type is not defined', 'Error');
                 this.handleCancel();
             }
-        }).catch((error)=>{
+        }).catch((error) => {
             this.showSuccess('Error', error.body.message, 'Error');
             this.returnBack();
         })
     }
 
     getLineItems() {
-        isQuoteLineItemsExist({quoteId: this.recordId}).then((result)=>{
+        isQuoteLineItemsExist({ quoteId: this.recordId }).then((result) => {
             if (!result) {
                 this.showSuccess('Error', 'No Quote line items found', 'Error');
             }
@@ -87,9 +88,9 @@ export default class QuotePdfSend extends NavigationMixin(LightningElement) {
     }
 
     fetchEmailBody() {
-        getEmailBody({ quoteId: this.recordId, type: this.type }).then((result)=>{
+        getEmailBody({ quoteId: this.recordId, type: this.type }).then((result) => {
             this.body += result;
-        }).catch((error)=>{
+        }).catch((error) => {
             this.showSuccess('Error', error.body.message, 'error');
         })
     }

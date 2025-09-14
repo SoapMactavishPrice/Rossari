@@ -1,13 +1,8 @@
 <template>
     <div class="lookup-container">
         <!-- Search Input -->
-        <lightning-input
-            label="Search Account"
-            value={searchKey}
-            placeholder={placeholder}
-            onchange={handleInputChange}
-            disabled={selectedRecord}
-        ></lightning-input>
+        <lightning-input label="Search Account" value={searchKey} placeholder={placeholder} onchange={handleInputChange}
+            disabled={selectedRecord} style="margin-top: -19px;"></lightning-input>
 
         <!-- Dropdown Results -->
         <template if:true={isDropdownVisible}>
@@ -36,11 +31,8 @@
         <template if:true={selectedRecord}>
             <div class="selected-record">
                 Selected: {selectedRecord.Name}
-                <lightning-button-icon
-                    icon-name="utility:close"
-                    alternative-text="Clear"
-                    onclick={clearSelection}
-                ></lightning-button-icon>
+                <lightning-button-icon icon-name="utility:close" alternative-text="Clear"
+                    onclick={clearSelection}></lightning-button-icon>
             </div>
         </template>
     </div>

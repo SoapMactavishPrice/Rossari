@@ -2,7 +2,7 @@
 public class ProformaInvoicePdfControllerTest {
 
     @isTest
-    static void testDefaultConstructor() {
+    static void testAllMethods() {
         Id standardPbId = Test.getStandardPricebookId();
         Pricebook2 stdPb = new Pricebook2(Id = standardPbId, IsActive = true);
         update stdPb;
@@ -13,11 +13,39 @@ public class ProformaInvoicePdfControllerTest {
         Bank__c bank = new Bank__c(Name = 'Test Bank', Bank_Account_No__c = '123456', Branch__c = 'Main', SWIFT_Code__c = 'SWFT123');
         insert bank;
 
-        Opportunity opp = new Opportunity(Name = 'Test Opp', CloseDate = Date.today(), StageName = 'Prospecting', AccountId = acc.Id);
+        Opportunity opp = new Opportunity(
+            Name = 'Test Opp',
+            CloseDate = Date.today(),
+            StageName = 'Prospecting',
+            AccountId = acc.Id
+        );
         insert opp;
 
         Quote quote = new Quote(Name = 'Test Quote', OpportunityId = opp.Id);
         insert quote;
+
+        // HSN Master record
+        HSN_Master__c hsn = new HSN_Master__c(Name = 'HSN 123');
+        insert hsn;
+
+        // Product with HSN Code lookup
+        Product2 prod = new Product2(
+            Name = 'Prod A',
+            ProductCode = 'PA001',
+            IsActive = true,
+            HSN_Code__c = hsn.Id,
+            Pack_Size__c = '10kg'
+          //  Base_UOM__c = 'KG'
+        );
+        insert prod;
+
+        PricebookEntry pbe = new PricebookEntry(
+            Product2Id = prod.Id,
+            Pricebook2Id = standardPbId,
+            UnitPrice = 100,
+            IsActive = true
+        );
+        insert pbe;
 
         Proforma_Invoice__c pi = new Proforma_Invoice__c(
             Quote__c = quote.Id,
@@ -28,6 +56,8 @@ public class ProformaInvoicePdfControllerTest {
             Pre_Carriage_Mode__c = 'Sea',
             Country_of_Origin__c = 'India',
             Country_of_Destination__c = 'USA',
+            Vessel_Flight_No__c = 'V123',
+            Pre_Carriage_Destination__c = 'Mumbai',
             Destination__c = 'New York',
             Loading_Port__c = 'Mumbai',
             Destination_Port__c = 'NY Port',
@@ -53,12 +83,6 @@ public class ProformaInvoicePdfControllerTest {
         );
         insert pi;
 
-        Product2 prod = new Product2(Name = 'Prod A', ProductCode = 'PA001', IsActive = true);
-        insert prod;
-
-        PricebookEntry pbe = new PricebookEntry(Product2Id = prod.Id, Pricebook2Id = standardPbId, UnitPrice = 100, IsActive = true);
-        insert pbe;
-
         Proforma_Invoice_Line_Item__c li = new Proforma_Invoice_Line_Item__c(
             Proforma_Invoice_Name__c = pi.Id,
             Product__c = prod.Id,
@@ -73,63 +97,34 @@ public class ProformaInvoicePdfControllerTest {
         Test.setCurrentPage(Page.ProformaInvoicePdf);
         ApexPages.currentPage().getParameters().put('id', pi.Id);
 
-        ProformaInvoicePdfController controller = new ProformaInvoicePdfController();
-     //   controller.buildEmailContent();
-    }
+        // Test default constructor
+        ProformaInvoicePdfController controller1 = new ProformaInvoicePdfController();
+        String billingAddress = controller1.getFormattedBillingAddress(pi);
+        String shippingAddress = controller1.getFormattedShippingAddress(pi);
+        String emailContent1 = controller1.buildEmailContent();
 
-    @isTest
-    static void testParamConstructorAndEmailBody() {
-        Id standardPbId = Test.getStandardPricebookId();
-        Pricebook2 stdPb = new Pricebook2(Id = standardPbId, IsActive = true);
-        update stdPb;
+        // Test constructor with parameters
+        ProformaInvoicePdfController controller2 = new ProformaInvoicePdfController(pi.Id, 'invoice');
+        String emailContent2 = controller2.buildEmailContent();
 
-        Account acc = new Account(Name = 'Test Account 2');
-        insert acc;
+        // Static method test
+        String emailBody = ProformaInvoicePdfController.getEmailBody(pi.Id, 'invoice');
 
-        Bank__c bank = new Bank__c(Name = 'Test Bank 2', Bank_Account_No__c = '654321', Branch__c = 'BranchX', SWIFT_Code__c = 'SWFT999');
-        insert bank;
+        // Additional test with clone
+        Proforma_Invoice__c pi2 = pi.clone(false, false, false, false);
+        pi2.Name = 'PI-002';
+        insert pi2;
 
-        Opportunity opp = new Opportunity(Name = 'Test Opp 2', CloseDate = Date.today(), StageName = 'Qualification', AccountId = acc.Id);
-        insert opp;
+        ProformaInvoicePdfController controller3 = new ProformaInvoicePdfController(pi2.Id, 'quotation');
+        String emailContent3 = controller3.buildEmailContent();
 
-        Quote quote = new Quote(Name = 'Test Quote 2', OpportunityId = opp.Id);
-        insert quote;
+        // USD currency test
+        Proforma_Invoice__c pi3 = pi.clone(false, false, false, false);
+        pi3.Name = 'PI-003';
+        pi3.CurrencyIsoCode = 'USD';
+        insert pi3;
 
-        Proforma_Invoice__c pi = new Proforma_Invoice__c(
-            Quote__c = quote.Id,
-            Name = 'PI-002',
-            Account_Name__c = acc.Id,
-            Payment_Terms__c = 'Advance',
-            Inco_Terms__c = 'CIF',
-            Destination__c = 'California',
-            CurrencyIsoCode = 'USD',
-            Grand_Total__c = 5000,
-            Bank__c = bank.Id,
-            Terms_and_Conditions__c = 'Terms 2',
-            Declaration__c = 'Declaration 2'
-        );
-        insert pi;
-
-        Product2 prod = new Product2(Name = 'Prod B', ProductCode = 'PB002', IsActive = true);
-        insert prod;
-
-        PricebookEntry pbe = new PricebookEntry(Product2Id = prod.Id, Pricebook2Id = standardPbId, UnitPrice = 200, IsActive = true);
-        insert pbe;
-
-        Proforma_Invoice_Line_Item__c li = new Proforma_Invoice_Line_Item__c(
-            Proforma_Invoice_Name__c = pi.Id,
-            Product__c = prod.Id,
-            Line_Item_Description__c = 'Item Desc 2',
-            Quantity__c = 5,
-            Sales_Price__c = 200,
-            List_Price__c = 220,
-            Total_Price__c = 1000
-        );
-        insert li;
-
-    //    ProformaInvoicePdfController controller = new ProformaInvoicePdfController(pi.Id, 'invoice');
-     //   controller.buildEmailContent();
-
-      //  String body = ProformaInvoicePdfController.getEmailBody(pi.Id, 'invoice');
+        ProformaInvoicePdfController controller4 = new ProformaInvoicePdfController(pi3.Id, 'invoice');
+        String emailContent4 = controller4.buildEmailContent();
     }
 }

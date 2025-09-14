@@ -16,9 +16,9 @@ export default class CustomSalesAreaLookup extends LightningElement {
     @track hasSearched = false;
     @track recordSelectedFromList = false;
     @track showNoRecords = false;
-    @track isInitialLoad = true;
 
     connectedCallback() {
+        // Load selected record only if a value exists
         if (this.value) {
             this.loadSelectedRecord();
         }
@@ -48,6 +48,7 @@ export default class CustomSalesAreaLookup extends LightningElement {
         this.hasSearched = true;
         this.recordSelectedFromList = false;
         this.showNoRecords = false;
+
         clearTimeout(this.searchTimeout);
         this.searchTimeout = setTimeout(() => {
             this.searchRecords();
@@ -119,20 +120,13 @@ export default class CustomSalesAreaLookup extends LightningElement {
     }
 
     handleFocus() {
-        // Always load records when input is focused
-        if (this.isInitialLoad) {
-            this.isInitialLoad = false;
+        // If already selected record exists, do nothing (don’t open dropdown)
+        if (this.selectedRecord && this.selectedRecord.Id) {
+            return;
         }
 
-        // Load records based on current state
-        if (this.searchTerm && this.searchTerm.length >= 2) {
-            // If we have a search term, search normally
-            this.searchRecords();
-        } else {
-            // If no search term or short search term, show available records
-            this.searchTerm = '';
-            this.searchRecords();
-        }
+        // If field is empty, show dropdown on click
+        this.searchRecords();
     }
 
     handleBlur() {

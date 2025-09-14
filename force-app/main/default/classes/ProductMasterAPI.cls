@@ -28,6 +28,9 @@ global class ProductMasterAPI {
             response = RestContext.response;
             String jSONRequestBody = request.requestBody.toString().trim();
             System.debug('IjSONRequestBody=' + jSONRequestBody);
+            if (jSONRequestBody.contains('KGM')) {
+                jSONRequestBody = jSONRequestBody.replace('KGM', 'KG');
+            }
             //apiLog.Request__c=jSONRequestBody;
             List < ProductMasterJson > jData = parse(jSONRequestBody);
             System.debug('Json--' + jData);
@@ -79,7 +82,7 @@ global class ProductMasterAPI {
                 uomCodeSet.add(jd.BASE_UOM);
                 // slorgList.add(jd.SALES_ORGANISATION);
                 // disChlList.add(jd.DISTRIBUTION_CHANNEL);
-                // divList.add(jd.DIVISION);
+                divList.add(jd.DIVISION);
                 prHierarSet.add(jd.PROD_HIERACHY);
 
                 // for (cls_PLANT_EXTENTION data: jd.PLANT_EXTENTION) {
@@ -224,7 +227,7 @@ global class ProductMasterAPI {
                     }
                 }
                 pr.Name = jd.DISPLAY_NAME;
-                pr.ProductCode = String.valueOf(Long.valueOf(jd.ITEM_NUMBER));
+                pr.ProductCode = String.valueOf(jd.ITEM_NUMBER);
                 pr.Display_Name__c = jd.DISPLAY_NAME;
                 pr.Description = jd.ITEM_DESCRIPTION;
                 pr.IsActive = true;
@@ -254,17 +257,18 @@ global class ProductMasterAPI {
                     pr.Family = jd.ITEM_TYPE; //Pick
                 }
                 pr.V_Text__c = jd.V_TEXT;
-                // pr.Material_Group_1__c = jd.MATERIAL_GROUP_1;
-                // pr.Material_Group_2__c = jd.MATERIAL_GROUP_2;
-                // pr.Material_Group_3__c = jd.MATERIAL_GROUP_3;
-                // pr.Material_Group_4__c = jd.MATERIAL_GROUP_4;
-                // pr.Material_Group_5__c = jd.MATERIAL_GROUP_5;
+                pr.Material_Group_1__c = jd.MATERIAL_GROUP_1;
+                pr.Material_Group_2__c = jd.MATERIAL_GROUP_2;
+                pr.Material_Group_3__c = jd.MATERIAL_GROUP_3;
+                pr.Material_Group_4__c = jd.MATERIAL_GROUP_4;
+                pr.Material_Group_5__c = jd.MATERIAL_GROUP_5;
                 if (String.isNotBlank(jd.LIST_PRICE_MRP_PRICE)) {
                     pr.List_Price_MRP_Price__c = Decimal.valueOf(jd.LIST_PRICE_MRP_PRICE);
                 }
-                if (hsnMap.containsKey(jd.HSN_CODE)) {
-                    pr.HSN_Code__c = hsnMap.get(jd.HSN_CODE).id;
-                }
+                // if (hsnMap.containsKey(jd.HSN_CODE)) {
+                //     pr.HSN_Code__c = hsnMap.get(jd.HSN_CODE).id;
+                // }
+                pr.HSN__c = jd.HSN_CODE;
                 pr.Lead_Time__c = jd.LEAD_TIME;
                 if (String.isNotBlank(jd.GENITEMCATGROUP)) {
                     pr.GenItemCatGroup__c = jd.GENITEMCATGROUP;
@@ -276,9 +280,9 @@ global class ProductMasterAPI {
                 // if (dcMap.containsKey(jd.DISTRIBUTION_CHANNEL)) {
                 //     pr.Distribution_Channel__c = dcMap.get(jd.DISTRIBUTION_CHANNEL).id;
                 // }
-                // if (diMap.containsKey(jd.DIVISION)) {
-                //     pr.Division__c = diMap.get(jd.DIVISION).id;
-                // }
+                 if (diMap.containsKey(jd.DIVISION)) {
+                     pr.Division__c = diMap.get(jd.DIVISION).id;
+                 }
 
                 if (pltMap.containsKey(jd.PLANT_CODE)) {
                     pr.Plant_Code__c = pltMap.get(jd.PLANT_CODE).id;
@@ -554,6 +558,7 @@ global class ProductMasterAPI {
         public String WT_UOM; //KG
         public String BASE_UOM; //L
         public String V_TEXT;
+        public String DIVISION;
         public String PROD_HIERACHY;
         public String ITEM_TYPE; //FERT
         public String MATERIAL_GROUP_1; //AD

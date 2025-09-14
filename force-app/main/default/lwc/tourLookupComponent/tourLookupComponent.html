@@ -1,43 +1,77 @@
 <template>
-    <lightning-card>
-        <div class="slds-p-around_small" style="margin-top: -44px;">
+    <div class="slds-form-element">
+        <label class="slds-form-element__label">Tour</label>
 
-            <!-- Search box -->
-            <lightning-input type="search" 
-                             label="Search or Create Tour"
-                             value={searchKey}
-                             onchange={handleSearchChange}
-                             placeholder="Search Tour or type new...">
-            </lightning-input>
+        <div class="slds-form-element__control">
+            <!-- When tour is selected -->
+            <template if:true={selectedTourName}>
+                <div class="slds-combobox_container">
+                    <div class="slds-combobox slds-dropdown-trigger slds-dropdown-trigger_click slds-is-open"
+                        aria-expanded="true" aria-haspopup="listbox" role="combobox">
+                        <div class="slds-combobox__form-element slds-input-has-icon slds-input-has-icon_left-right"
+                            role="none">
+                            <span
+                                class="slds-icon_container slds-icon-standard-account slds-combobox__input-entity-icon"
+                                title="Tour">
+                                <lightning-icon icon-name="standard:campaign" size="small"></lightning-icon>
+                                <span class="slds-assistive-text">Selected Tour</span>
+                            </span>
 
-            <!-- Show dropdown results -->
-            <template if:true={showDropdown}>
-                <ul class="slds-box slds-m-top_x-small slds-list_vertical slds-list_dotted">
-                    <template for:each={searchResults} for:item="record">
-                        <li key={record.Id}
-                            class="slds-p-around_x-small slds-var-m-around_xx-small slds-box slds-box_xx-small"
-                            onclick={handleSelect}>
-                            {record.Name}
-                        </li>
-                    </template>
+                            <input type="text" class="slds-input slds-combobox__input slds-combobox__input-value"
+                                readonly value={selectedTourName} role="textbox" />
 
-                    <!-- If no match, option to create -->
-                    <template if:true={allowCreate}>
-                        <li class="slds-p-around_x-small slds-var-m-around_xx-small slds-box slds-theme_alert-texture"
-                            onclick={handleCreate}>
-                            ➕ Create new "{searchKey}"
-                        </li>
-                    </template>
-                </ul>
+                            <button class="slds-button slds-button_icon slds-input__icon slds-input__icon_right"
+                                onclick={handleRemove} title="Remove selected tour">
+                                <lightning-icon icon-name="utility:close" size="x-small"
+                                    alternative-text="Remove"></lightning-icon>
+                            </button>
+                        </div>
+                    </div>
+                </div>
             </template>
 
-            <!-- Selected tour display -->
-            <template if:true={selectedTour}>
-                <p class="slds-m-top_small">
-                    ✅ Selected Tour: <strong>{selectedTour.Name}</strong>
-                </p>
-            </template>
+            <!-- When no tour is selected -->
+            <template if:false={selectedTourName}>
+                <div class="slds-combobox_container">
+                    <div class="slds-combobox slds-dropdown-trigger slds-dropdown-trigger_click slds-is-open">
+                        <div class="slds-combobox__form-element slds-input-has-icon slds-input-has-icon_right">
+                            <input type="text" class="slds-input slds-combobox__input" placeholder="Search Tour..."
+                                value={searchKey} oninput={handleSearchChange} />
 
+                            <span
+                                class="slds-icon_container slds-icon-utility-search slds-input__icon slds-input__icon_right">
+                                <lightning-icon icon-name="utility:search" size="x-small"></lightning-icon>
+                            </span>
+                        </div>
+
+                        <!-- Dropdown results -->
+                        <template if:true={showDropdown}>
+                            <div class="slds-dropdown slds-dropdown_fluid slds-dropdown_length-5" role="listbox">
+                                <ul class="slds-listbox slds-listbox_vertical" role="presentation">
+                                    <template for:each={searchResults} for:item="tour">
+                                        <li key={tour.Id} class="slds-listbox__item" role="presentation">
+                                            <div class="slds-media slds-listbox__option slds-listbox__option_entity slds-listbox__option_has-meta"
+                                                data-tour-id={tour.Id} data-tour-name={tour.Name}
+                                                onclick={handleTourSelect} role="option">
+                                                <span class="slds-media__figure slds-listbox__option-icon">
+                                                    <lightning-icon icon-name="standard:campaign"
+                                                        size="small"></lightning-icon>
+                                                </span>
+                                                <span class="slds-media__body">
+                                                    <span
+                                                        class="slds-listbox__option-text slds-listbox__option-text_entity">
+                                                        {tour.Name}
+                                                    </span>
+                                                </span>
+                                            </div>
+                                        </li>
+                                    </template>
+                                </ul>
+                            </div>
+                        </template>
+                    </div>
+                </div>
+            </template>
         </div>
-    </lightning-card>
+    </div>
 </template>

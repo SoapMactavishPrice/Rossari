@@ -1,0 +1,188 @@
+/* Updated CSS for proper column spacing */
+.line-items-table th {
+    background-color: #9d0b0f;
+    color: white;
+    font-weight: bold;
+    padding: 8px 6px;
+    text-align: center;
+    white-space: nowrap;
+}
+
+.line-items-table td {
+    vertical-align: middle;
+    padding: 8px 6px;
+}
+
+/* Adjusted column widths for better spacing */
+.expense-type {
+    width: 12%;
+    min-width: 120px;
+}
+
+.transport-mode, .from-location, .to-location {
+    width: 10%;
+    min-width: 100px;
+}
+
+.start-km, .end-km, .km-rate, .toll-parking {
+    width: 8%;
+    min-width: 80px;
+}
+
+.amount {
+    width: 10%;
+    min-width: 110px;
+}
+
+.reason {
+    width: 12%;
+    min-width: 130px;
+}
+
+.files {
+    width: 14%;
+    min-width: 140px;
+}
+
+.actions {
+    width: 8%;
+    min-width: 90px;
+}
+
+/* Ensure consistent spacing between all columns */
+/* .line-items-table th:not(:last-child),
+.line-items-table td:not(:last-child) {
+    border-right: 1px solid #dddbda;
+} */
+
+/* File upload styling */
+.file-cell {
+    text-align: center;
+    vertical-align: middle !important;
+    padding: 6px;
+}
+
+.file-uploader {
+    display: block;
+    margin: 0 auto;
+}
+
+/* Responsive adjustments */
+@media (max-width: 1600px) {
+    .expense-type {
+        width: 14%;
+        min-width: 110px;
+    }
+    
+    .transport-mode, .from-location, .to-location {
+        width: 8%;
+        min-width: 70px;
+    }
+    
+    .start-km, .end-km, .km-rate, .toll-parking {
+        width: 9%;
+        min-width: 70px;
+    }
+    
+    .amount {
+        width: 11%;
+        min-width: 100px;
+    }
+    
+    .reason {
+        width: 13%;
+        min-width: 120px;
+    }
+    
+    .files {
+        width: 15%;
+        min-width: 130px;
+    }
+}
+
+@media (max-width: 1400px) {
+    .line-items-table {
+        overflow-x: auto;
+        display: block;
+        width: 100%;
+    }
+    
+    .line-items-table th, 
+    .line-items-table td {
+        padding: 6px 4px;
+        font-size: 12px;
+    }
+}
+
+/* Keep the rest of your existing CSS */
+.container {
+    height: 700px;
+    overflow-y: auto;
+}
+
+.header-section {
+    background-color: #9d0b0f;
+    color: white;
+}
+
+.form-section {
+    background-color: #f3f3f3;
+    border-radius: 0.25rem;
+}
+
+.line-item-row:hover {
+    background-color: #fafaf9;
+}
+
+.total-section {
+    border-top: 2px solid #dddbda;
+    padding-top: 16px;
+    text-align: right;
+}
+
+.submit-button {
+    min-width: 120px;
+}
+
+.line-item-row lightning-textarea {
+    min-height: 80px;
+}
+
+/* Add to your existing CSS */
+.date, .from-location-outstation, .to-location-outstation,
+.transport-mode-outstation, .company-ticket, .description,
+.reason-outstation {
+    width: 10%;
+    min-width: 100px;
+}
+
+.company-ticket {
+    width: 8%;
+    min-width: 80px;
+}
+
+/* Adjust other column widths to accommodate new columns */
+.expense-type {
+    width: 10%;
+    min-width: 110px;
+}
+
+.amount {
+    width: 9%;
+    min-width: 100px;
+}
+
+.files {
+    width: 12%;
+    min-width: 130px;
+}
+
+.actions {
+    width: 7%;
+    min-width: 80px;
+}
+
+.description-cash {
+    width: 10%;
+    min-width: 100px;
+}

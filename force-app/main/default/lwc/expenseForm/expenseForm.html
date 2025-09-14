@@ -1,68 +1,350 @@
 <template>
-    <lightning-card title="New Expense Claim" icon-name="custom:custom63">
-        <div class="slds-p-around_medium">
-
+    <lightning-quick-action-panel>
+        <div class="container" if:true={isNotLoading}>
             <!-- Header Section -->
-            <div class="slds-grid slds-wrap slds-m-bottom_medium">
-                <div class="slds-col slds-size_1-of-3 slds-p-horizontal_x-small">
-                    <lightning-input label="Voucher No" value={expenseName} onchange={handleNameChange} required></lightning-input>
-                </div>
-                <div class="slds-col slds-size_1-of-3 slds-p-horizontal_x-small">
-                    <lightning-input type="date" label="Expense Date" value={todayDate} onchange={handleDateChange} required></lightning-input>
-                </div>
-                <div class="slds-col slds-size_1-of-3 slds-p-horizontal_x-small">
-                    <lightning-combobox label="Employee Name" value={selectedEmployeeId} options={employeeOptions}
-                                        onchange={handleEmployeeChange} onkeyup={handleEmployeeSearch} required>
-                    </lightning-combobox>
-                </div>
-                <div class="slds-col slds-size_1-of-3 slds-p-horizontal_x-small">
-                    <lightning-input label="Division" value={division} disabled></lightning-input>
-                </div>
-                <div class="slds-col slds-size_1-of-3 slds-p-horizontal_x-small">
-                    <lightning-input label="Zone" value={zone} disabled></lightning-input>
-                </div>
-                <div class="slds-col slds-size_1-of-3 slds-p-horizontal_x-small">
-                    <lightning-combobox label="Type of Voucher" value={selectedVoucherType} options={voucherOptions} onchange={handleVoucherTypeChange} required></lightning-combobox>
-                </div>
+            <!-- <div class="slds-p-around_small slds-text-align_center header-section">
+                <h1 class="slds-text-heading_medium slds-text-color_inverse">EXPENSE REQUEST</h1>
+            </div> -->
+
+            <div class="slds-scrollable_x custom-scroll">
+                <table class="slds-table slds-table_cell-buffer slds-table_bordered slds-table_col-bordered">
+                    <thead>
+                        <tr>
+                            <th
+                                style="text-align: center;font-size: 15px;font-weight: bold;background-color: #9d0b0f;padding: 4px 6px;color: white;">
+                                Expense Request
+                            </th>
+                        </tr>
+                    </thead>
+                </table>
             </div>
 
-            <!-- Line Items -->
-            <template for:each={lineItems} for:item="item" for:index="index">
-                <div key={item.key} class="slds-grid slds-wrap slds-p-vertical_x-small slds-border_bottom">
-                    <div class="slds-col slds-size_1-of-3 slds-p-horizontal_x-small">
-                        <lightning-combobox label="Type of Expense" placeholder="Select" options={typeOfExpenseOptions} value={item.typeOfExpenseId}
-                                            data-index={index} onchange={handleTypeOfExpenseChange} onkeyup={handleTypeOfExpenseSearch}>
+            <!-- Main Form -->
+            <div class="slds-p-around_medium form-section">
+                <!-- Basic Information -->
+                <div class="slds-grid slds-wrap slds-gutters">
+
+                    <div class="slds-col slds-size_1-of-2 slds-medium-size_1-of-4">
+                        <c-visit-report-lookup 
+                            label="Visit Report" 
+                            onselected={handleVisitReportSelected}
+                            selected-record-id={visitReportId}
+                            selected-record-name={visitReportName}>
+                        </c-visit-report-lookup>
+                    </div>
+
+                    <div class="slds-col slds-size_1-of-2 slds-medium-size_1-of-4">
+                        <lightning-input type="text" label="Voucher No" value={expenseName} data-name="Name"
+                            onchange={handleNameChange} required variant="label-stacked">
+                        </lightning-input>
+                    </div>
+
+                    <div class="slds-col slds-size_1-of-2 slds-medium-size_1-of-4">
+                        <lightning-input type="date" label="Expense Date" value={todayDate} data-name="Date__c" required
+                            onchange={handleDateChange} variant="label-stacked">
+                        </lightning-input>
+                    </div>
+
+                    <div class="slds-col slds-size_1-of-2 slds-medium-size_1-of-4">
+                        <lightning-combobox name="voucherType" label="Type of Voucher" value={selectedVoucherType}
+                            options={voucherOptions} onchange={handleVoucherTypeChange} variant="label-stacked"
+                            required>
                         </lightning-combobox>
                     </div>
-                    <div class="slds-col slds-size_1-of-3 slds-p-horizontal_x-small">
-                        <lightning-input type="number" label="Amount Claimed" value={item.amountClaimed} step="0.01" data-index={index}
-                                         onchange={handleAmountClaimedChange}></lightning-input>
+
+                    <div class="slds-col slds-size_1-of-2 slds-medium-size_1-of-4">
+                        <lightning-combobox label="Employee Name" value={selectedEmployeeId}
+                            placeholder="Select Employee" options={employeeOptions} onchange={handleEmployeeChange}
+                            variant="label-stacked" required>
+                        </lightning-combobox>
                     </div>
-                    <div class="slds-col slds-size_1-of-3 slds-p-horizontal_x-small">
-                        <lightning-file-upload label="Upload Files" name="fileUploader" multiple
-                                               data-index={index} accept={acceptedFormats} onchange={handleFileUpload}>
-                        </lightning-file-upload>
-                        <template if:true={item.filesCount}>
-                            <p class="slds-text-body_small slds-m-top_xx-small">
-                                {item.filesCount} file(s) uploaded
-                            </p>
+
+                    <div class="slds-col slds-size_1-of-2 slds-medium-size_1-of-4">
+                        <lightning-input type="text" label="Division" value={division} disabled
+                            variant="label-stacked"></lightning-input>
+                    </div>
+
+                    <div class="slds-col slds-size_1-of-2 slds-medium-size_1-of-4">
+                        <lightning-input type="text" label="Zone" value={zone} disabled
+                            variant="label-stacked"></lightning-input>
+                    </div>
+
+                    <!-- Tour Lookup Field (Visible only for Outstation) -->
+                    <div class="slds-col slds-size_1-of-2 slds-medium-size_1-of-4" if:true={showTourLookup}>
+                        <c-tour-lookup-component label="Tour" onselected={handleTourSelected}></c-tour-lookup-component>
+                    </div>
+
+                    <!-- <div class="slds-col slds-size_1-of-2 slds-medium-size_1-of-4"></div> -->
+
+                    <div class="slds-col slds-size_1-of-2 slds-medium-size_1-of-4">
+                        <template if:true={selectedTourId}>
+                            <c-account-lookup-component label="Customer Visited" tour-id={selectedTourId}
+                                onselected={handleAccountSelected} onremoved={handleAccountRemoved}>
+                            </c-account-lookup-component>
                         </template>
-
-
                     </div>
-                    <div class="slds-col slds-size_1-of-12 slds-p-horizontal_x-small slds-align_absolute-center">
-                        <lightning-button-icon icon-name="utility:add" alternative-text="Add" data-index={index} onclick={addLineItem}></lightning-button-icon>
-                        <lightning-button-icon icon-name="utility:delete" alternative-text="Delete" data-index={index} onclick={deleteLineItem}></lightning-button-icon>
-                    </div>
+
                 </div>
-            </template> 
+
+                <!-- Line Items Section -->
+                <div class="slds-m-top_large">
+                    <!-- <div class="slds-text-heading_small slds-m-bottom_small">Expense Line Items</div> -->
+
+                    <table class="slds-table slds-table_bordered slds-table_cell-buffer line-items-table">
+                        <thead>
+                            <tr class="slds-text-title">
+                                <th class="expense-type"
+                                    style="text-align: center; font-size: 13px; background-color: #9d0b0f; font-weight: bold; padding: 4px 6px; color: white;">
+                                    Type of Expense
+                                </th>
+                                <th class="date" if:true={showOutstationFields}
+                                    style="text-align: center; font-size: 13px; background-color: #9d0b0f; font-weight: bold; padding: 4px 6px; color: white;">
+                                    Date
+                                </th>
+                                <th class="transport-mode" if:true={showLocalFields}
+                                    style="text-align: center; font-size: 13px; background-color: #9d0b0f; font-weight: bold; padding: 4px 6px; color: white;">
+                                    Mode
+                                </th>
+                                <th class="transport-mode-outstation" if:true={showOutstationFields}
+                                    style="text-align: center; font-size: 13px; background-color: #9d0b0f; font-weight: bold; padding: 4px 6px; color: white;">
+                                    Mode
+                                </th>
+                                <th class="from-location" if:true={showLocalFields}
+                                    style="text-align: center; font-size: 13px; background-color: #9d0b0f; font-weight: bold; padding: 4px 6px; color: white;">
+                                    From Location
+                                </th>
+                                <th class="to-location" if:true={showLocalFields}
+                                    style="text-align: center; font-size: 13px; background-color: #9d0b0f; font-weight: bold; padding: 4px 6px; color: white;">
+                                    To Location
+                                </th>
+                                <th class="from-location-outstation" if:true={showOutstationFields}
+                                    style="text-align: center; font-size: 13px; background-color: #9d0b0f; font-weight: bold; padding: 4px 6px; color: white;">
+                                    From Location
+                                </th>
+                                <th class="to-location-outstation" if:true={showOutstationFields}
+                                    style="text-align: center; font-size: 13px; background-color: #9d0b0f; font-weight: bold; padding: 4px 6px; color: white;">
+                                    To Location
+                                </th>
+                                <th class="start-km" if:true={showKMFields}
+                                    style="text-align: center; font-size: 13px; background-color: #9d0b0f; font-weight: bold; padding: 4px 6px; color: white;">
+                                    Start KM
+                                </th>
+                                <th class="end-km" if:true={showKMFields}
+                                    style="text-align: center; font-size: 13px; background-color: #9d0b0f; font-weight: bold; padding: 4px 6px; color: white;">
+                                    End KM
+                                </th>
+                                <th class="km-rate" if:true={showKMFields}
+                                    style="text-align: center; font-size: 13px; background-color: #9d0b0f; font-weight: bold; padding: 4px 6px; color: white;">
+                                    KM Rate/Fare
+                                </th>
+                                <th class="toll-parking" if:true={showTollParkingField}
+                                    style="text-align: center; font-size: 13px; background-color: #9d0b0f; font-weight: bold; padding: 4px 6px; color: white;">
+                                    Toll/Parking
+                                </th>
+                                <th class="company-ticket" if:true={showOutstationFields}
+                                    style="text-align: center; font-size: 13px; background-color: #9d0b0f; font-weight: bold; padding: 4px 6px; color: white;">
+                                    Company Ticket?
+                                </th>
+                                <th class="description" if:true={showOutstationFields}
+                                    style="text-align: center; font-size: 13px; background-color: #9d0b0f; font-weight: bold; padding: 4px 6px; color: white;">
+                                    Description
+                                </th>
+                                
+                                <th class="amount"
+                                    style="text-align: center; font-size: 13px; background-color: #9d0b0f; font-weight: bold; padding: 4px 6px; color: white;">
+                                    Amount Claimed
+                                </th>
+                                <th class="reason" if:true={showReasonColumn}
+                                    style="text-align: center; font-size: 13px; background-color: #9d0b0f; font-weight: bold; padding: 4px 6px; color: white;">
+                                    Reason
+                                </th>
+                                <th class="reason-outstation" if:true={showOutstationFields}
+                                    style="text-align: center; font-size: 13px; background-color: #9d0b0f; font-weight: bold; padding: 4px 6px; color: white;">
+                                    Reason
+                                </th>
+                                <th class="description-cash" if:true={showCashFields}
+                                    style="text-align: center; font-size: 13px; background-color: #9d0b0f; font-weight: bold; padding: 4px 6px; color: white;">
+                                    Particulars
+                                </th>
+                                <th class="files"
+                                    style="text-align: center; font-size: 13px; background-color: #9d0b0f; font-weight: bold; padding: 4px 6px; color: white;">
+                                    Upload Files
+                                </th>
+                                <th class="actions"
+                                    style="text-align: center; font-size: 13px; background-color: #9d0b0f; font-weight: bold; padding: 4px 6px; color: white;">
+                                    Actions
+                                </th>
+                            </tr>
+                        </thead>
+
+                        <tbody>
+                            <template for:each={lineItems} for:item="item" for:index="index">
+                                <tr key={item.key} class="line-item-row">
+                                    <td>
+                                        <lightning-combobox name="typeOfExpense" data-index={index}
+                                            options={typeOfExpenseOptions} value={item.typeOfExpenseId}
+                                            onchange={handleTypeOfExpenseChange} variant="label-hidden" required>
+                                        </lightning-combobox>
+                                    </td>
+                                    <td if:true={showOutstationFields}>
+                                        <lightning-input type="date" value={item.outstationDate} data-index={index}
+                                            onchange={handleOutstationDateChange} variant="label-hidden"
+                                            required={showOutstationFields}>
+                                        </lightning-input>
+                                    </td>
+                                    <td if:true={showLocalFields}>
+                                        <lightning-combobox name="transportMode" value={item.transportMode}
+                                            data-index={index} options={item.transportOptions}
+                                            onchange={handleTransportModeChange} variant="label-hidden"
+                                            required={showLocalFields}>
+                                        </lightning-combobox>
+                                    </td>
+                                    <td if:true={showOutstationFields}>
+                                        <lightning-combobox name="outstationTransportMode" value={item.outstationTransportMode}
+                                            data-index={index} options={allTransportModeOptions}
+                                            onchange={handleOutstationTransportModeChange} variant="label-hidden"
+                                            required={showOutstationFields}>
+                                        </lightning-combobox>
+                                    </td>
+                                    <td if:true={showLocalFields}>
+                                        <lightning-input type="text" value={item.fromLocation} data-index={index}
+                                            onchange={handleFromLocationChange} variant="label-hidden"
+                                            required={showLocalFields}>
+                                        </lightning-input>
+                                    </td>
+                                    <td if:true={showLocalFields}>
+                                        <lightning-input type="text" value={item.toLocation} data-index={index}
+                                            onchange={handleToLocationChange} variant="label-hidden"
+                                            required={showLocalFields}>
+                                        </lightning-input>
+                                    </td>
+                                    <td if:true={showOutstationFields}>
+                                        <lightning-input type="text" value={item.outstationFromLocation} data-index={index}
+                                            onchange={handleOutstationFromLocationChange} variant="label-hidden"
+                                            required={showOutstationFields}>
+                                        </lightning-input>
+                                    </td>
+                                    <td if:true={showOutstationFields}>
+                                        <lightning-input type="text" value={item.outstationToLocation} data-index={index}
+                                            onchange={handleOutstationToLocationChange} variant="label-hidden"
+                                            required={showOutstationFields}>
+                                        </lightning-input>
+                                    </td>
+
+                                    <td if:true={showKMFields}>
+                                        <lightning-input type="number" value={item.startKM} data-index={index}
+                                            onchange={handleStartKMChange} variant="label-hidden" step="0.1"
+                                            required={item.isPrivate} disabled={item.disableKMFields}>
+                                        </lightning-input>
+                                    </td>
+                                    <td if:true={showKMFields}>
+                                        <lightning-input type="number" value={item.endKM} data-index={index}
+                                            onchange={handleEndKMChange} variant="label-hidden" step="0.1"
+                                            required={item.isPrivate} disabled={item.disableKMFields}>
+                                        </lightning-input>
+                                    </td>
+                                    <td if:true={showKMFields}>
+                                        <lightning-input type="number" value={item.kmRate} data-index={index}
+                                            onchange={handleKMRateChange} variant="label-hidden" step="0.01"
+                                            formatter="currency" required={showKMFields}>
+                                        </lightning-input>
+                                    </td>
+                                    <td if:true={showTollParkingField}>
+                                        <lightning-input type="number" value={item.tollParking} data-index={index}
+                                            onchange={handleTollParkingChange} variant="label-hidden" step="0.01"
+                                            formatter="currency" disabled={item.disableTollParking}>
+                                        </lightning-input>
+                                    </td>
+                                    <td if:true={showOutstationFields} class="slds-text-align_center">
+                                        <lightning-input type="checkbox" checked={item.ticketBookedByCompany} data-index={index}
+                                            onchange={handleTicketBookedChange} variant="label-hidden">
+                                        </lightning-input>
+                                    </td>
+                                    <td if:true={showOutstationFields}>
+                                        <lightning-textarea value={item.outstationDescription}
+                                            placeholder="Enter description" data-index={index}
+                                            onchange={handleOutstationDescriptionChange} variant="label-hidden">
+                                        </lightning-textarea>
+                                    </td>
+                                    
+                                    <td>
+                                        <lightning-input type="number" value={item.amountClaimed} data-index={index}
+                                            onchange={handleAmountClaimedChange} variant="label-hidden" step="0.01"
+                                            required formatter="currency">
+                                        </lightning-input>
+                                    </td>
+                                    <td if:true={showReasonColumn}>
+                                        <lightning-textarea value={item.reason}
+                                            placeholder="Enter reason for Misc expense" data-index={index}
+                                            onchange={handleReasonChange} variant="label-hidden"
+                                            required={showReasonColumn}>
+                                        </lightning-textarea>
+                                    </td>
+                                    <td if:true={showOutstationFields}>
+                                        <lightning-textarea value={item.outstationReason}
+                                            placeholder="Enter reason" data-index={index}
+                                            onchange={handleOutstationReasonChange} variant="label-hidden">
+                                        </lightning-textarea>
+                                    </td>
+                                    <td if:true={showCashFields}>
+                                        <lightning-textarea value={item.cashDescription}
+                                            placeholder="Enter description" data-index={index}
+                                            onchange={handleCashDescriptionChange} variant="label-hidden">
+                                        </lightning-textarea>
+                                    </td>
+
+                                    <td class="file-cell" style="margin-top: -23px;">
+                                        <lightning-file-upload name="fileUploader" accept={acceptedFormats} multiple
+                                            onuploadfinished={handleFileUpload} data-index={index} class="file-uploader"
+                                            variant="label-hidden" style="margin-top: -23px;">
+                                        </lightning-file-upload>
+
+                                        <template if:true={item.fileCount}>
+                                            <div class="slds-text-color_weak slds-m-top_xx-small">
+                                                {item.fileCount} file(s) attached
+                                            </div>
+                                        </template>
+                                    </td>
+
+                                    <td class="slds-text-align_center">
+                                        <lightning-button-icon icon-name="utility:add" alternative-text="Add"
+                                            onclick={addLineItem} class="slds-m-right_x-small" variant="border-filled">
+                                        </lightning-button-icon>
+                                        <lightning-button-icon icon-name="utility:delete" alternative-text="Delete"
+                                            onclick={deleteLineItem} data-index={index} variant="destructive">
+                                        </lightning-button-icon>
+                                    </td>
+                                </tr>
+                            </template>
+                        </tbody>
+                    </table>
+
+                    <!-- Total Amount -->
+                    <!-- <div class="slds-m-top_medium total-section">
+                        <div class="slds-text-heading_small">
+                            Total Amount: <lightning-formatted-number value={totalAmount} style="currency"
+                                currency-code="USD"></lightning-formatted-number>
+                        </div>
+                    </div> -->
+                </div>
+
+                <!-- Action Buttons -->
+                <div class="slds-m-top_large slds-text-align_center">
+                    <lightning-button label="Submit" variant="brand" onclick={handleSubmit} class="submit-button"
+                        disabled={isLoading}>
+                    </lightning-button>
+                    <lightning-button label="Cancel" onclick={handleCancel} variant="neutral" class="slds-m-left_medium"
+                        disabled={isLoading}>
+                    </lightning-button>
+                </div>
+            </div>
         </div>
 
-            <!-- Action Buttons -->
-            <div class="slds-m-top_medium slds-text-align_right">
-                <lightning-button label="Submit" variant="brand" onclick={handleSubmit}></lightning-button>
-                <lightning-button label="Cancel" onclick={handleCancel} class="slds-m-left_small"></lightning-button>
+        <!-- Loading Spinner -->
+        <template if:true={isLoading}>
+            <div class="slds-align_absolute-center slds-m-around_x-large">
+                <lightning-spinner alternative-text="Loading" size="large"></lightning-spinner>
             </div>
-
-    </lightning-card>
+        </template>
+    </lightning-quick-action-panel>
 </template>

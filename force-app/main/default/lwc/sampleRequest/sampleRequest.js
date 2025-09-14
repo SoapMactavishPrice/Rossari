@@ -362,26 +362,6 @@ export default class SampleRequestForm extends NavigationMixin(LightningElement)
         }
     }
 
-    validateEmails(input) {
-        const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-
-        const emails = input
-            .split(/[,;]/)        // Split by comma or semicolon
-            .map(e => e.trim())   // Trim each entry
-            .filter(e => e);      // Remove empty strings
-
-        let validate = true;
-        emails.forEach(email => {
-            if (emailPattern.test(email)) {
-
-            } else {
-                validate = false;
-            }
-        });
-
-        return validate;
-    }
-
     validateForm() {
         const today = new Date();
         today.setHours(0, 0, 0, 0); // Set time to 00:00:00 for accurate comparison
@@ -389,7 +369,6 @@ export default class SampleRequestForm extends NavigationMixin(LightningElement)
         const requestDate = new Date(this.template.querySelector("[data-name='Sample_Request_Date__c']")?.value);
         const expectedDate = new Date(this.template.querySelector("[data-name='Sample_Expected_Date__c']")?.value);
         const followUpDate = new Date(this.template.querySelector("[data-name='Sample_Follow_Up_Date__c']")?.value);
-        const email = this.template.querySelector("[data-name='Email__c']")?.value;
 
         if (requestDate < today) {
             this.showError('Validation Error', "Sample Request Date cannot be earlier than today's date.");
@@ -427,11 +406,6 @@ export default class SampleRequestForm extends NavigationMixin(LightningElement)
             return false;
         }
 
-        if (email && !this.validateEmails(email)) {
-            this.showError('Validation Error', 'Enter valid emails separated by comma or semicolon');
-            return false;
-        }
-
 
         for (let i = 0; i < this.SampleLine.length; i++) {
             const item = this.SampleLine[i];
@@ -461,7 +435,6 @@ export default class SampleRequestForm extends NavigationMixin(LightningElement)
             Request_Date: this.template.querySelector("[data-name='Sample_Request_Date__c']")?.value,
             Sample_Expected_Date: this.template.querySelector("[data-name='Sample_Expected_Date__c']")?.value,
             Sample_Follow_Up_Date: this.template.querySelector("[data-name='Sample_Follow_Up_Date__c']")?.value,
-            Email: this.template.querySelector("[data-name='Email__c']")?.value,
             Consignee_Name: this.leadCompany,
             CC_Email: this.template.querySelector("[data-name='CC_Email__c']")?.value,
             Send_Email_To_Plant: this.template.querySelector("[data-name='Send_Email_To_Plant__c']")?.checked,

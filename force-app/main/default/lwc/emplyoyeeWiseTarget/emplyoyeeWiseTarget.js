@@ -18,6 +18,7 @@ export default class EmplyoyeeWiseTarget extends LightningElement {
     @track fiscalEndDate = [];
     @track salesEmployeeId = '';
     @track hasDataInTable;
+    @track itemGroupId = '';
     connectedCallback() {
 
         this.getDefualtFiscsId();
@@ -30,40 +31,24 @@ export default class EmplyoyeeWiseTarget extends LightningElement {
         })
     }
 
-    getGetAllProduct() {
-        getProductList().then(result => {
-            console.log('result-->', JSON.stringify(result));
 
+    getGetAllProduct() {
+        getProductList({ itemGroupId: this.itemGroupId }).then(result => {
+            console.log('result-->', JSON.stringify(result));
             this.vData = this.generateProductMonthData(result, this.existingTarget);
             this.vAllData = this.vData;
-            console.log('all data ->', JSON.stringify(this.vAllData));
             this.updateTotals(this.vAllData);
-
-        })
+        }).catch(error => {
+            console.error('Error fetching products:', error);
+        });
     }
+
 
 
     handleSalesEmpChange(event) {
         this.salesEmployeeId = event.target.value;
-        this.showSpinner = true;
-        if (this.salesEmployeeId) {
-            if (this.refreshTimeout) {
-                clearTimeout(this.refreshTimeout);
-            }
-            this.getExistingTarget();
-
-            this.refreshTimeout = setTimeout(() => {
-                this.getGetAllProduct();
-            }, 1000);
-
-        } else {
-            this.showSpinner = false;
-            this.vData = [];
-            this.hasDataInTable = false;
-            this.vAllData = [];
-        }
+        this.refreshData();
     }
-
 
     @track existingTarget = [];
     getExistingTarget() {
@@ -122,7 +107,7 @@ export default class EmplyoyeeWiseTarget extends LightningElement {
                         uId: existing?.Id || null,
                         COGS_Kg__c: existing?.Budgeted_COGS__c?.toString() || "0.00",
                         GM_Kg__c: existing?.GM_Kg__c?.toString() || "0.00",
-                        GM_Value__c:existing?.Gross_Margin__c?.toString() || "0.00", // You can add if exists in `existing`
+                        GM_Value__c: existing?.Gross_Margin__c?.toString() || "0.00", // You can add if exists in `existing`
                         COGS_Value__c: existing?.COGS_Value__c?.toString() || "0.00",
                         Price__c: price.toFixed(2),
                         Sales_Qauntity__c: quantity,
@@ -142,51 +127,6 @@ export default class EmplyoyeeWiseTarget extends LightningElement {
     }
 
 
-    // generateProductMonthData(products) {
-    //     const startDate = new Date(this.fiscalStartDate);
-    //     const endDate = new Date(this.fiscalEndDate);
-    //     const today = new Date(); // Current date for comparison
-
-    //     const monthsInRange = [];
-    //     const current = new Date(startDate);
-
-    //     while (current <= endDate) {
-    //         const monthYear = `${current.toLocaleString('default', { month: 'long' })}-${current.getFullYear()}`;
-    //         monthsInRange.push({
-    //             monthYear,
-    //             isPast: new Date(current.getFullYear(), current.getMonth() + 1, 0) < today // end of the month < today
-    //         });
-    //         current.setMonth(current.getMonth() + 1);
-    //     }
-
-    //     const generateRandomIndex = () => {
-    //         return Math.floor(1000 + Math.random() * 9000).toString();
-    //     };
-
-    //     const finalData = products.map(product => {
-    //         return {
-    //             ...product,
-    //              iconName: 'utility:chevronright',
-    //              isExpanded:false,
-    //             MonthList: monthsInRange.map(monthObj => ({
-    //                 index: generateRandomIndex(),
-    //                 MonthName: monthObj.monthYear,
-    //                 disabled: monthObj.isPast,
-    //                 uId:null,
-    //                 month:monthObj,
-    //                 COGS_Kg__c: "0.00",
-    //                 COGS_Value__c: "0.00",
-    //                 GM_Kg__c: "0.00",
-    //                 GM_Value__c: "0.00",
-    //                 Price__c: "0.00",
-    //                 Sales_Value__c: "0.00",
-    //                 Sales_Qauntity__c: 0
-    //             }))
-    //         };
-    //     });
-
-    //     return finalData;
-    // }
 
     toggleRow(event) {
         if (event.currentTarget && event.currentTarget.dataset && event.currentTarget.dataset.key) {
@@ -210,85 +150,85 @@ export default class EmplyoyeeWiseTarget extends LightningElement {
 
 
 
-   ValChange(event) {
-    const pId = event.target.dataset.id;
-    const monthIndex = event.target.dataset.index;
-    const field = event.target.dataset.label;
-    const uId = event.target.dataset.valId;
-    const value = parseFloat(event.target.value) || 0;
+    ValChange(event) {
+        const pId = event.target.dataset.id;
+        const monthIndex = event.target.dataset.index;
+        const field = event.target.dataset.label;
+        const uId = event.target.dataset.valId;
+        const value = parseFloat(event.target.value) || 0;
 
-    const productIndex = this.vAllData.findIndex(p => p.Id === pId);
-    if (productIndex === -1) return;
+        const productIndex = this.vAllData.findIndex(p => p.Id === pId);
+        if (productIndex === -1) return;
 
-    const product = this.vAllData[productIndex];
-    const month = product.MonthList.find(m => m.index === monthIndex);
-    if (!month) return;
+        const product = this.vAllData[productIndex];
+        const month = product.MonthList.find(m => m.index === monthIndex);
+        if (!month) return;
 
-    if (!uId) {
-        product.isChanged = true;
-    }
-
-    // Update the changed field
-    month[field] = value;
-
-    const quantity = parseFloat(month.Sales_Qauntity__c) || 0;
-    const price = parseFloat(month.Price__c) || 0;
-    const cogsKg = parseFloat(month.COGS_Kg__c) || 0;
-    const gmKg = price - cogsKg;
-
-    // Update calculated fields
-    month.GM_Kg__c = gmKg.toFixed(2);
-    month.Sales_Value__c = (quantity * price).toFixed(2);
-    month.COGS_Value__c = (quantity * cogsKg).toFixed(2);
-    month.GM_Value__c = gmKg !== 0 ? (quantity / gmKg).toFixed(2) : "0.00";
-
-    // Debounced Apex update if record already exists
-    if (this.valChangeTimeout) {
-        clearTimeout(this.valChangeTimeout);
-    }
-
-    this.valChangeTimeout = setTimeout(() => {
-        if (uId) {
-            updateOnDemand({ Id: uId, feild: field, value: value })
-                .then(result => {
-                    console.log('Update result:', result);
-                })
-                .catch(error => {
-                    console.error('Update error:', error);
-                });
+        if (!uId) {
+            product.isChanged = true;
         }
-    }, 500);
 
-    // 🧠 Recalculate subtotal based on visible months (filtered)
-    let totalQty = 0, totalSales = 0, totalGM = 0, totalCOGS = 0;
+        // Update the changed field
+        month[field] = value;
 
-    const monthFilter = this.searchCriteria?.month?.toLowerCase();
+        const quantity = parseFloat(month.Sales_Qauntity__c) || 0;
+        const price = parseFloat(month.Price__c) || 0;
+        const cogsKg = parseFloat(month.COGS_Kg__c) || 0;
+        const gmKg = price - cogsKg;
 
-    const monthsToConsider = monthFilter
-        ? product.MonthList.filter(m => m.MonthName?.toLowerCase().includes(monthFilter))
-        : product.MonthList;
+        // Update calculated fields
+        month.GM_Kg__c = gmKg.toFixed(2);
+        month.Sales_Value__c = (quantity * price).toFixed(2);
+        month.COGS_Value__c = (quantity * cogsKg).toFixed(2);
+        month.GM_Value__c = gmKg !== 0 ? (quantity / gmKg).toFixed(2) : "0.00";
 
-    for (let m of monthsToConsider) {
-        totalQty += parseFloat(m.Sales_Qauntity__c) || 0;
-        totalSales += parseFloat(m.Sales_Value__c) || 0;
-        totalGM += parseFloat(m.GM_Kg__c) || 0;
-        totalCOGS += parseFloat(m.COGS_Value__c) || 0;
+        // Debounced Apex update if record already exists
+        if (this.valChangeTimeout) {
+            clearTimeout(this.valChangeTimeout);
+        }
+
+        this.valChangeTimeout = setTimeout(() => {
+            if (uId) {
+                updateOnDemand({ Id: uId, feild: field, value: value })
+                    .then(result => {
+                        console.log('Update result:', result);
+                    })
+                    .catch(error => {
+                        console.error('Update error:', error);
+                    });
+            }
+        }, 500);
+
+        // 🧠 Recalculate subtotal based on visible months (filtered)
+        let totalQty = 0, totalSales = 0, totalGM = 0, totalCOGS = 0;
+
+        const monthFilter = this.searchCriteria?.month?.toLowerCase();
+
+        const monthsToConsider = monthFilter
+            ? product.MonthList.filter(m => m.MonthName?.toLowerCase().includes(monthFilter))
+            : product.MonthList;
+
+        for (let m of monthsToConsider) {
+            totalQty += parseFloat(m.Sales_Qauntity__c) || 0;
+            totalSales += parseFloat(m.Sales_Value__c) || 0;
+            totalGM += parseFloat(m.GM_Kg__c) || 0;
+            totalCOGS += parseFloat(m.COGS_Value__c) || 0;
+        }
+
+        product.subTotal = {
+            quantity: totalQty.toFixed(2),
+            salesValue: totalSales.toFixed(2),
+            gmValue: totalGM.toFixed(2),
+            cogsValue: totalCOGS.toFixed(2)
+        };
+
+        // Update the corresponding product in filtered data as well
+        const vDataIndex = this.vData.findIndex(p => p.Id === pId);
+        if (vDataIndex !== -1) {
+            this.vData[vDataIndex].subTotal = product.subTotal;
+        }
+        this.computeGrandTotals();
     }
-
-    product.subTotal = {
-        quantity: totalQty.toFixed(2),
-        salesValue: totalSales.toFixed(2),
-        gmValue: totalGM.toFixed(2),
-        cogsValue: totalCOGS.toFixed(2)
-    };
-
-    // Update the corresponding product in filtered data as well
-    const vDataIndex = this.vData.findIndex(p => p.Id === pId);
-    if (vDataIndex !== -1) {
-        this.vData[vDataIndex].subTotal = product.subTotal;
-    }
-    this.computeGrandTotals();
-}
 
 
 
@@ -313,7 +253,7 @@ export default class EmplyoyeeWiseTarget extends LightningElement {
             }
 
             // Attach subtotal fields to the product directly
-                product.subTotal = {
+            product.subTotal = {
                 quantity: quantity.toFixed(2),
                 salesValue: salesValue.toFixed(2),
                 gmValue: gmValue.toFixed(2),
@@ -327,58 +267,59 @@ export default class EmplyoyeeWiseTarget extends LightningElement {
     }
 
     @track displayTotals = {
-    Total_Sales_Quantity: 0,
-    Total_Price: '₹0',
-    Total_GM_Kg: 0,
-    Total_COGS_Value: '₹0',
-    Total_COGS_Kg: 0,
-    Total_GM_Value: '₹0',
-    Total_Sales_Value: '₹0'
-};
+        Total_Sales_Quantity: 0,
+        Total_Price: '₹0',
+        Total_GM_Kg: 0,
+        Total_COGS_Value: '₹0',
+        Total_COGS_Kg: 0,
+        Total_GM_Value: '₹0',
+        Total_Sales_Value: '₹0'
+    };
 
-computeGrandTotals() {
-    let totalQty = 0;
-    let totalPrice = 0;
-    let totalGMKg = 0;
-    let totalCOGSKg = 0;
-    let totalSalesVal = 0;
-    let totalGMVal = 0;
-    let totalCOGSVal = 0;
+    computeGrandTotals() {
+        let totalQty = 0;
+        let totalPrice = 0;
+        let totalGMKg = 0;
+        let totalCOGSKg = 0;
+        let totalSalesVal = 0;
+        let totalGMVal = 0;
+        let totalCOGSVal = 0;
 
-    for (let product of this.vAllData) {
-        for (let month of product.MonthList) {
-            totalQty += parseFloat(month.Sales_Qauntity__c) || 0;
-            totalGMKg += parseFloat(month.GM_Kg__c) || 0;
-            totalSalesVal += parseFloat(month.Sales_Value__c) || 0;
-            totalCOGSVal += parseFloat(month.COGS_Value__c) || 0;
+        for (let product of this.vAllData) {
+            for (let month of product.MonthList) {
+                totalQty += parseFloat(month.Sales_Qauntity__c) || 0;
+                totalGMKg += parseFloat(month.GM_Kg__c) || 0;
+                totalSalesVal += parseFloat(month.Sales_Value__c) || 0;
+                totalCOGSVal += parseFloat(month.COGS_Value__c) || 0;
+            }
         }
+
+        this.displayTotals = {
+            Total_Sales_Quantity: totalQty.toFixed(2),
+            Total_Price: `₹${totalPrice.toFixed(2)}`,
+            Total_GM_Kg: totalGMKg.toFixed(2),
+            Total_COGS_Kg: totalCOGSKg.toFixed(2),
+            Total_Sales_Value: `₹${totalSalesVal.toFixed(2)}`,
+            Total_GM_Value: `₹${totalGMVal.toFixed(2)}`,
+            Total_COGS_Value: `₹${totalCOGSVal.toFixed(2)}`
+        };
     }
 
-    this.displayTotals = {
-        Total_Sales_Quantity: totalQty.toFixed(2),
-        Total_Price: `₹${totalPrice.toFixed(2)}`,
-        Total_GM_Kg: totalGMKg.toFixed(2),
-        Total_COGS_Kg: totalCOGSKg.toFixed(2),
-        Total_Sales_Value: `₹${totalSalesVal.toFixed(2)}`,
-        Total_GM_Value: `₹${totalGMVal.toFixed(2)}`,
-        Total_COGS_Value: `₹${totalCOGSVal.toFixed(2)}`
-    };
-}
 
-    
     searchCriteria = {
         customerName: '',
-        month: ''
+        month: '',
+        itemGroup: ''
     };
 
-    //@track monthVal = null;
+
+
 
     handleSearchChange(event) {
         const searchType = event.target.dataset.type;
         const searchValue = event.target.value?.toLowerCase() || '';
 
         this.searchCriteria[searchType] = searchValue;
-        //this.monthVal = this.searchCriteria.month;
 
         this.vData = this.vAllData
             .filter(customer => {
@@ -390,7 +331,12 @@ computeGrandTotals() {
                     ? customer.MonthList?.some(m => m.MonthName?.toLowerCase().includes(this.searchCriteria.month))
                     : true;
 
-                return matchesCustomer && matchesMonth;
+                // FIX: Use the stored itemGroupId instead of searchCriteria.itemGroup
+                const matchesItemGroup = this.itemGroupId
+                    ? customer.Item_Group__c === this.itemGroupId
+                    : true;
+
+                return matchesCustomer && matchesMonth && matchesItemGroup;
             })
             .map(customer => {
                 const newCustomer = { ...customer };
@@ -403,15 +349,31 @@ computeGrandTotals() {
                 return newCustomer;
             });
 
-        // Optionally update totals or view here
         this.updateTotals(this.vData);
     }
 
+    refreshData() {
+        if (this.salesEmployeeId) {
+            this.showSpinner = true;
+            if (this.refreshTimeout) {
+                clearTimeout(this.refreshTimeout);
+            }
+
+            this.getExistingTarget();
+
+            this.refreshTimeout = setTimeout(() => {
+                this.getGetAllProduct();
+            }, 1000);
+        }
+    }
 
 
-
-
-
+    handleItemGroupChange(event) {
+        this.itemGroupId = event.target.value;
+        // Clear any previous search criteria for itemGroup
+        this.searchCriteria.itemGroup = '';
+        this.refreshData();
+    }
 
 
     @track saveDisabled = false;
@@ -444,7 +406,7 @@ computeGrandTotals() {
                             Sales_Qauntity__c: Number(month.Sales_Qauntity__c),
                             Price__c: Number(month.Price__c),
                             Sales_Value__c: Number(month.Sales_Value__c),
-                            COGS_Kg__c:Number(month.COGS_Kg__c)
+                            COGS_Kg__c: Number(month.COGS_Kg__c)
                         });
                     }
                 });

@@ -1,0 +1,19 @@
+.slds-dropdown {
+    position: absolute;
+    z-index: 9999; /* instead of 7000 */
+    width: 100%;
+    display: block;
+}
+
+
+.slds-dropdown-trigger {
+    position: relative;
+}
+
+.slds-combobox_container {
+    width: 100%;
+}
+
+:host {
+    overflow: visible !important;
+}

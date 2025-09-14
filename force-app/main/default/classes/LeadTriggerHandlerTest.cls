@@ -40,7 +40,7 @@ public class LeadTriggerHandlerTest {
             FirstName = 'Test',
             LastName = 'Lead',
             Company = 'TestCo',
-            MobilePhone = '9999999999',
+            MobilePhone = '9876564320',
             Pin_Code__c = pin.Id
         );
         insert l;
@@ -53,7 +53,10 @@ public class LeadTriggerHandlerTest {
             State__c,
             Country__c,
             Zone__c, 
-            Region__c
+            Region__c,
+            Shipping_Pin_Code__c,
+            Shipping_City__c,
+            Shipping_State__c
             FROM Lead
             WHERE Id = :l.Id
         ];
@@ -66,7 +69,7 @@ public class LeadTriggerHandlerTest {
         Lead l = new Lead(
             FirstName = 'Rossari', 
             LastName = 'Test',
-            MobilePhone = '9999999999',
+            MobilePhone = '9876532170',
             Company = 'Test'
         );
         insert l;
@@ -87,7 +90,7 @@ public class LeadTriggerHandlerTest {
             LastName = 'Doe',
             Company = 'Company',
             Email = 'john@x.com', 
-            MobilePhone = '9999999999', 
+            MobilePhone = '9876598123', 
             Title = 'Manager'
         );
         insert l;
@@ -155,7 +158,7 @@ public class LeadTriggerHandlerTest {
             LastName = 'Me',
             Company = 'Comp',
             Department__c = 'Sales',
-            MobilePhone = '9999999999',
+            MobilePhone = '9098766851',
             City__c = testCity.Id    
         );
         insert l;
@@ -216,7 +219,7 @@ public class LeadTriggerHandlerTest {
             FirstName = 'Follow',
             LastName = 'Up', 
             Company = 'Test Co',
-            MobilePhone = '9999999999'
+            MobilePhone = '9876554389'
             
         );
         insert l;
@@ -237,7 +240,7 @@ public class LeadTriggerHandlerTest {
             LastName = 'Test', 
             Company = 'Addr Inc', 
             IsConverted = false,
-            MobilePhone = '9999999999'
+            MobilePhone = '9876587842'
         );
         insert l;
         
@@ -259,7 +262,7 @@ public class LeadTriggerHandlerTest {
     
     @isTest
     static void testHandleAfterUpdate() {
-        Lead l = new Lead(FirstName = 'Updt', LastName = 'Lead', Company = 'Lead Ltd',MobilePhone = '9999999999');
+        Lead l = new Lead(FirstName = 'Updt', LastName = 'Lead', Company = 'Lead Ltd',MobilePhone = '7787546916');
         insert l;
         
         Account a = new Account(Name = 'Acct');

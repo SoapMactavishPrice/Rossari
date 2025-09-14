@@ -1,0 +1,88 @@
+.slds-pill_container {
+    margin-bottom: 0.5rem;
+    min-height: 2.5rem;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.25rem;
+    align-items: center;
+}
+
+.slds-pill {
+    background-color: #f3f3f3;
+    border: 1px solid #dddbda;
+    border-radius: 15px;
+    padding: 0.25rem 0.5rem;
+    display: inline-flex;
+    align-items: center;
+    margin: 0.125rem;
+}
+
+.slds-pill__label {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    font-size: 0.8125rem;
+}
+
+.slds-pill__remove {
+    margin-left: 0.25rem;
+}
+
+.slds-listbox__option-meta {
+    font-size: 0.75rem;
+    color: #706e6b;
+    display: block;
+    margin-top: 0.125rem;
+}
+
+.slds-dropdown {
+    max-height: 300px;
+    overflow-y: auto;
+    border: 1px solid #dddbda;
+    border-radius: 0.25rem;
+    box-shadow: 0 2px 3px 0 rgba(0, 0, 0, 0.16);
+    background: white;
+}
+
+.slds-listbox__option_entity {
+    padding: 0.5rem;
+}
+
+.slds-listbox__option-text_entity {
+    font-weight: 600;
+}
+
+.slds-icon-text-success {
+    color: #04844b;
+}
+
+.lookup-container {
+    position: relative;
+}
+
+.slds-listbox__item {
+    border-bottom: 1px solid #f3f3f3;
+}
+
+.slds-listbox__item:last-child {
+    border-bottom: none;
+}
+
+.slds-listbox__option_entity:hover {
+    background-color: #f3f2f2;
+}
+
+/* Ensure the combobox container has proper positioning */
+.slds-combobox_container {
+    position: relative;
+}
+
+/* Style for the search input container */
+.slds-combobox__form-element {
+    position: relative;
+}
+
+/* Ensure dropdown appears above other content */
+.slds-dropdown {
+    z-index: 9000;
+}

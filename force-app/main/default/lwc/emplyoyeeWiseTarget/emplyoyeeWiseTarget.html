@@ -41,6 +41,14 @@
                 </lightning-record-edit-form>
             </lightning-layout-item>
 
+            <lightning-layout-item size="2" padding="around-small">
+                <lightning-record-edit-form object-api-name="Product2">
+                    <lightning-input-field field-name="Item_Group__c" label="Product Category"
+                        onchange={handleItemGroupChange} data-type="itemGroup">
+                    </lightning-input-field>
+                </lightning-record-edit-form>
+            </lightning-layout-item>
+
 
         </lightning-layout>
 
@@ -71,7 +79,7 @@
                         <th><b>Total</b></th>
                         <th></th>
                         <th></th>
-                        <th ><b>{displayTotals.Total_Sales_Quantity}</b></th>
+                        <th><b>{displayTotals.Total_Sales_Quantity}</b></th>
                         <th><b>{displayTotals.Total_Sales_Value}</b></th>
                         <th><b>{displayTotals.Total_COGS_Value}</b></th>
                         <th><b>{displayTotals.Total_GM_Kg}</b></th>

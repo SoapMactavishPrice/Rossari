@@ -13,12 +13,13 @@ public class CaseTriggerHandler {
                 User rndUser = [SELECT Id, Email, Name FROM User WHERE Id = :c.RND_User__c LIMIT 1];
 
                 String emailBody = 'Hello ' + rndUser.Name + ',\n\n'
-                    + 'The Sample IN for Case ' + c.CaseNumber + ' has been sent.\n\n'
+                    + 'The Sample IN for Case ' + c.CaseNumber + ' has been received.\n\n'
                     + 'Below are the Details:-\n\n'
-                    + 'Subject: ' + c.Subject + '\n'
-                    + 'Description: ' + c.Description + '\n'
+                    
                     + 'Nature of Complaint: ' + c.Nature_of_Complaint__c + '\n'
                     + 'Rejection (%): ' + String.valueOf(c.Rejection__c) + '\n\n'
+                    + 'Subject: ' + c.Subject + '\n'
+                    + 'Description: ' + c.Description + '\n'
                     + 'Regards,\nSalesforce Automation';
 
                 Messaging.SingleEmailMessage mail = new Messaging.SingleEmailMessage();

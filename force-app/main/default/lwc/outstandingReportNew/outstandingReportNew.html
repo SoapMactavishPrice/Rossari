@@ -33,6 +33,13 @@
                 </lightning-record-edit-form>
             </lightning-layout-item>
 
+            <lightning-layout-item size="2" padding="around-small">
+                <lightning-record-edit-form object-api-name="Product2">
+                    <lightning-input-field field-name="Item_Group__c" data-type="materialGroupDesc"
+                        onchange={handleSearchChange}></lightning-input-field>
+                </lightning-record-edit-form>
+            </lightning-layout-item>
+
 
         </lightning-layout>
 
@@ -116,14 +123,14 @@
 
                                                 <template if:true={rec.isExpanded}>
                                                     <tr key={rec.month}>
-                                                        
+
                                                         <td colspan="12">
                                                             <table class="slds-table slds-table_bordered ">
                                                                 <thead>
                                                                     <tr class="slds-line-height_reset">
                                                                         <th>Product Code</th>
+                                                                        <th>Item Group</th>
                                                                         <th>Product Name</th>
-                                                                        <th>Product Description</th>
                                                                         <th>Sales Quantity</th>
                                                                         <th>Price</th>
                                                                         <th>Sales Value</th>

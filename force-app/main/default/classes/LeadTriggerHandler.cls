@@ -687,29 +687,26 @@ l.Status = 'Working';
     
     
     public static void setRossariCompanyOnAccount(List<Lead> newLeads, Map<Id, Lead> oldLeadMap) {
-        // Map to store Lead Record Type to Company Name mapping
         Map<String, String> recordTypeToCompanyName = new Map<String, String>{
             'RBL' => 'Rossari Biotech Limited',
                 'Tristar' => 'Tristar Intermediates Private Limited', 
                 'Unitop' => 'Unitop Chemicals Private Limited'
                 };
                     
-                    // Create a map of Lead IDs to Lead records for easy access
-                    Map<Id, Lead> newLeadsMap = new Map<Id, Lead>(newLeads);
-        
-        Set<Id> convertedLeadIds = new Set<Id>();
-        Map<Id, String> leadIdToRecordType = new Map<Id, String>();
-        
-        // Identify converted leads and their record types
+                    Set<Id> convertedLeadIds = new Set<Id>();
         for (Lead lead : newLeads) {
             Lead oldLead = oldLeadMap.get(lead.Id);
             if (lead.IsConverted && !oldLead.IsConverted && lead.ConvertedAccountId != null) {
                 convertedLeadIds.add(lead.Id);
-                leadIdToRecordType.put(lead.Id, lead.RecordType.DeveloperName);
             }
         }
         
         if (convertedLeadIds.isEmpty()) return;
+        
+        // Query leads with RecordType DeveloperName
+        Map<Id, Lead> convertedLeadsWithRT = new Map<Id, Lead>(
+            [SELECT Id, ConvertedAccountId, RecordType.DeveloperName FROM Lead WHERE Id IN :convertedLeadIds]
+        );
         
         // Get all company records
         Map<String, Id> companyNameToId = new Map<String, Id>();
@@ -717,14 +714,13 @@ l.Status = 'Working';
             companyNameToId.put(company.Name, company.Id);
         }
         
-        // Update accounts with the appropriate Rossari Company
         List<Account> accountsToUpdate = new List<Account>();
         for (Id leadId : convertedLeadIds) {
-            String recordTypeDevName = leadIdToRecordType.get(leadId);
+            Lead convertedLead = convertedLeadsWithRT.get(leadId);
+            String recordTypeDevName = convertedLead.RecordType.DeveloperName;
             String companyName = recordTypeToCompanyName.get(recordTypeDevName);
             
             if (companyName != null && companyNameToId.containsKey(companyName)) {
-                Lead convertedLead = newLeadsMap.get(leadId);
                 accountsToUpdate.add(new Account(
                     Id = convertedLead.ConvertedAccountId,
                     Rossari_Company__c = companyNameToId.get(companyName)
@@ -736,5 +732,6 @@ l.Status = 'Working';
             update accountsToUpdate;
         }
     }
+
     
 }

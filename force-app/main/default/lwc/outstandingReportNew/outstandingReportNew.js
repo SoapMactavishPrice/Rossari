@@ -251,13 +251,14 @@ export default class OutstandingReportNew extends LightningElement {
 
     searchCriteria = {
         customerName: '',
-        month: ''
+        month: '',
+        materialGroupDesc: ''
     };
 
 
     handleSearchChange(event) {
         const searchType = event.target.dataset.type;
-        const searchValue = event.target.value.toLowerCase();
+        const searchValue = event.target.value?.toLowerCase() || '';
 
         // Update search criteria
         this.searchCriteria[searchType] = searchValue;
@@ -271,14 +272,16 @@ export default class OutstandingReportNew extends LightningElement {
                     ? customer.monthWiseGroupedCustomers?.some(m => m.month?.toLowerCase().includes(this.searchCriteria.month))
                     : true;
 
-                return matchesCustomer && matchesMonth;
+                const matchesItemGroup = this.searchCriteria.materialGroupDesc
+                    ? customer.itemGroup?.toLowerCase().includes(this.searchCriteria.materialGroupDesc)
+                    : true;
+
+                return matchesCustomer && matchesMonth && matchesItemGroup;
             })
             .map(customer => {
-                // Clone the customer object
                 const newCustomer = { ...customer };
 
                 if (this.searchCriteria.month) {
-                    // Filter monthWiseGroupedCustomers to include only the matching month
                     newCustomer.monthWiseGroupedCustomers = customer.monthWiseGroupedCustomers
                         ?.filter(m => m.month?.toLowerCase().includes(this.searchCriteria.month));
                 }
@@ -288,6 +291,7 @@ export default class OutstandingReportNew extends LightningElement {
 
         this.updateDisplayTotals(this.vData);
     }
+
 
     updateDisplayTotals(data) {
         let totalSalesQty = 0;

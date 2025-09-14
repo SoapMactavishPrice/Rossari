@@ -53,25 +53,31 @@ public class TargetNewController {
     }
     
     @AuraEnabled
-public static List<Product2> getProductList() {
-    List<Product2> prodList = [
-        SELECT Id, Name, ProductCode, Description 
-        FROM Product2 
-        WHERE IsActive = true 
-        ORDER BY CreatedDate ASC
-        LIMIT 50
-    ];
-
-    // Use a Map to avoid duplicates by ProductCode
-    Map<String, Product2> uniqueProducts = new Map<String, Product2>();
-    for (Product2 p : prodList) {
-        if (String.isNotBlank(p.ProductCode) && !uniqueProducts.containsKey(p.ProductCode)) {
-            uniqueProducts.put(p.ProductCode, p);
+    public static List<Product2> getProductList(String itemGroupId) {
+        
+        String query = 'SELECT Id, Name, ProductCode, Description, Item_Group__c, Item_Group__r.Name FROM Product2 WHERE IsActive = true';
+        
+       
+        if (itemGroupId != null && itemGroupId != '') {
+            query += ' AND Item_Group__c = :itemGroupId';
         }
+        
+        query += ' ORDER BY CreatedDate ASC LIMIT 50';
+        
+       
+        List<Product2> results = Database.query(query);
+        
+        
+        Map<String, Product2> uniqueProducts = new Map<String, Product2>();
+        for (Product2 p : results) {
+            if (String.isNotBlank(p.ProductCode) && !uniqueProducts.containsKey(p.ProductCode)) {
+                uniqueProducts.put(p.ProductCode, p);
+            }
+        }
+        
+        return new List<Product2>(uniqueProducts.values());
     }
 
-    return new List<Product2>(uniqueProducts.values());
-}
 
     
     @AuraEnabled 

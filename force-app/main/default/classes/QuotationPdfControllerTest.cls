@@ -1,20 +1,25 @@
 @isTest
 public class QuotationPdfControllerTest {
-
-    @testSetup
-    static void setupTestData() {
-        // Setup standard pricebook first
+    @isTest
+    static void testAllControllerScenarios() {
         Pricebook2 standardPricebook = new Pricebook2(
             Id = Test.getStandardPricebookId(),
             IsActive = true
         );
         update standardPricebook;
-        
-        // Create test products
-        Product2 prod = new Product2(Name = 'Test Product', ProductCode = 'TP001',Pack_Size__c = '10kg', Base_UOM__c = '', IsActive = true);
+
+        Base_UoM_Master__c baseUom = new Base_UoM_Master__c(Name = 'Kilogram');
+        insert baseUom;
+
+        Product2 prod = new Product2(
+            Name = 'Test Product',
+            ProductCode = 'TP001',
+            Pack_Size__c = '10kg',
+            Base_UOM__c = baseUom.Id,
+            IsActive = true
+        );
         insert prod;
-        
-        // Create pricebook entry
+
         PricebookEntry pbe = new PricebookEntry(
             Pricebook2Id = standardPricebook.Id,
             Product2Id = prod.Id,
@@ -22,30 +27,24 @@ public class QuotationPdfControllerTest {
             IsActive = true
         );
         insert pbe;
-    }
 
-    @isTest
-    static void testControllerDefaultConstructor() {
-        // Get the standard pricebook that was set up in testSetup
-        Pricebook2 pb = [SELECT Id FROM Pricebook2 WHERE IsStandard = true LIMIT 1];
-        
         Account acc = new Account(Name = 'Test Account');
         insert acc;
 
-        Bank__c bank = new Bank__c(Name = 'Test Bank', Bank_Account_No__c = '123456', Branch__c = 'Main', SWIFT_Code__c = 'SWFT123');
-        insert bank;
+        Bank__c bank1 = new Bank__c(Name = 'Test Bank', Bank_Account_No__c = '123456', Branch__c = 'Main', SWIFT_Code__c = 'SWFT123');
+        insert bank1;
 
-        Opportunity opp = new Opportunity(
+        Opportunity opp1 = new Opportunity(
             Name = 'Test Opportunity', 
             CloseDate = Date.today(), 
             StageName = 'Prospecting',
-            Pricebook2Id = pb.Id
+            Pricebook2Id = standardPricebook.Id
         );
-        insert opp;
+        insert opp1;
 
-        Quote quote = new Quote(
+        Quote quote1 = new Quote(
             Name = 'Test Quote',
-            OpportunityId = opp.Id,
+            OpportunityId = opp1.Id,
             Payment_Terms__c = 'Advance',
             BillingName = 'Billing Contact',
             BillingStreet = '123 Billing St',
@@ -71,52 +70,40 @@ public class QuotationPdfControllerTest {
             Terms_and_Conditions__c = 'Standard terms',
             Declaration__c = 'This is a declaration.',
             CurrencyIsoCode = 'INR',
-            Bank__c = bank.Id,
-            Pricebook2Id = pb.Id
+            Bank__c = bank1.Id,
+            Pricebook2Id = standardPricebook.Id
         );
-        insert quote;
+        insert quote1;
 
-        Product2 prod = [SELECT Id FROM Product2 WHERE Name = 'Test Product' LIMIT 1];
-        PricebookEntry pbe = [SELECT Id FROM PricebookEntry WHERE Product2Id = :prod.Id LIMIT 1];
-
-        QuoteLineItem qli = new QuoteLineItem(
-            QuoteId = quote.Id, 
+        QuoteLineItem qli1 = new QuoteLineItem(
+            QuoteId = quote1.Id, 
             Quantity = 2, 
             UnitPrice = 100, 
             PricebookEntryId = pbe.Id,
             Product2Id = prod.Id
         );
-        insert qli;
+        insert qli1;
 
         Test.setCurrentPage(Page.QuotationPdf);
-        ApexPages.currentPage().getParameters().put('id', quote.Id);
+        ApexPages.currentPage().getParameters().put('id', quote1.Id);
 
-        QuotationPdfController controller = new QuotationPdfController();
-        controller.buildEmailContent();
-    }
+        QuotationPdfController controller1 = new QuotationPdfController();
+        controller1.buildEmailContent();
 
-    @isTest
-    static void testControllerParamConstructorAndEmailBody() {
-        // Get the standard pricebook that was set up in testSetup
-        Pricebook2 pb = [SELECT Id FROM Pricebook2 WHERE IsStandard = true LIMIT 1];
-        
-        Account acc = new Account(Name = 'Test Account');
-        insert acc;
+        Bank__c bank2 = new Bank__c(Name = 'Test Bank 2', Bank_Account_No__c = '654321', Branch__c = 'BranchX', SWIFT_Code__c = 'SWFT999');
+        insert bank2;
 
-        Bank__c bank = new Bank__c(Name = 'Test Bank', Bank_Account_No__c = '654321', Branch__c = 'BranchX', SWIFT_Code__c = 'SWFT999');
-        insert bank;
-
-        Opportunity opp = new Opportunity(
+        Opportunity opp2 = new Opportunity(
             Name = 'Test Opp 2', 
             CloseDate = Date.today(), 
             StageName = 'Qualification',
-            Pricebook2Id = pb.Id
+            Pricebook2Id = standardPricebook.Id
         );
-        insert opp;
+        insert opp2;
 
-        Quote quote = new Quote(
+        Quote quote2 = new Quote(
             Name = 'Quote Two',
-            OpportunityId = opp.Id,
+            OpportunityId = opp2.Id,
             Payment_Terms__c = 'Advance',
             BillingName = 'Billing Contact 2',
             BillingStreet = 'Street 2',
@@ -135,26 +122,23 @@ public class QuotationPdfControllerTest {
             Terms_and_Conditions__c = 'Test terms 2',
             Declaration__c = 'Test declaration 2',
             CurrencyIsoCode = 'USD',
-            Bank__c = bank.Id,
-            Pricebook2Id = pb.Id
+            Bank__c = bank2.Id,
+            Pricebook2Id = standardPricebook.Id
         );
-        insert quote;
+        insert quote2;
 
-        Product2 prod = [SELECT Id FROM Product2 WHERE Name = 'Test Product' LIMIT 1];
-        PricebookEntry pbe = [SELECT Id FROM PricebookEntry WHERE Product2Id = :prod.Id LIMIT 1];
-
-        QuoteLineItem qli = new QuoteLineItem(
-            QuoteId = quote.Id, 
+        QuoteLineItem qli2 = new QuoteLineItem(
+            QuoteId = quote2.Id, 
             Quantity = 1, 
             UnitPrice = 200, 
             PricebookEntryId = pbe.Id,
             Product2Id = prod.Id
         );
-        insert qli;
+        insert qli2;
 
-        QuotationPdfController controller = new QuotationPdfController(quote.Id, 'quotation');
-        controller.buildEmailContent();
+        QuotationPdfController controller2 = new QuotationPdfController(quote2.Id, 'quotation');
+        controller2.buildEmailContent();
 
-        String emailBody = QuotationPdfController.getEmailBody(quote.Id, 'quotation');
+        String emailBody = QuotationPdfController.getEmailBody(quote2.Id, 'quotation');
     }
 }

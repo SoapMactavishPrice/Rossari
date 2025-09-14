@@ -1,19 +1,16 @@
 import { LightningElement, track } from 'lwc';
 import searchTours from '@salesforce/apex/TourLookupController.searchTours';
-import createTour from '@salesforce/apex/TourLookupController.createTour';
 
 export default class TourLookupComponent extends LightningElement {
     @track searchKey = '';
     @track searchResults = [];
-    @track selectedTour;
     @track showDropdown = false;
-
-    get allowCreate() {
-        return this.searchKey && this.searchResults.length === 0;
-    }
+    @track selectedTourName = '';
+    @track selectedTourId = '';
 
     handleSearchChange(event) {
         this.searchKey = event.target.value;
+
         if (this.searchKey.length >= 2) {
             searchTours({ searchKey: this.searchKey })
                 .then(result => {
@@ -22,6 +19,7 @@ export default class TourLookupComponent extends LightningElement {
                 })
                 .catch(error => {
                     console.error('Error fetching tours:', error);
+                    this.showDropdown = false;
                 });
         } else {
             this.searchResults = [];
@@ -29,27 +27,35 @@ export default class TourLookupComponent extends LightningElement {
         }
     }
 
-    handleSelect(event) {
-        const selectedName = event.currentTarget.textContent.trim();
-        this.selectedTour = this.searchResults.find(r => r.Name === selectedName);
+    handleTourSelect(event) {
+        const tourId = event.currentTarget.dataset.tourId;
+        const tourName = event.currentTarget.dataset.tourName;
 
+        this.selectedTourName = tourName;
+        this.selectedTourId = tourId;
         this.showDropdown = false;
-        this.dispatchEvent(new CustomEvent('tourselected', { 
-            detail: { recordId: this.selectedTour.Id, recordName: this.selectedTour.Name }
+        this.searchKey = '';
+
+        this.dispatchEvent(new CustomEvent('selected', {
+            detail: {
+                recordId: tourId,
+                recordName: tourName
+            }
         }));
     }
 
-    handleCreate() {
-        createTour({ tourName: this.searchKey })
-            .then(newTour => {
-                this.selectedTour = newTour;
-                this.showDropdown = false;
-                this.dispatchEvent(new CustomEvent('tourselected', { 
-                    detail: { recordId: newTour.Id, recordName: newTour.Name }
-                }));
-            })
-            .catch(error => {
-                console.error('Error creating tour:', error);
-            });
+    handleRemove() {
+        this.selectedTourId = '';
+        this.selectedTourName = '';
+        this.searchKey = '';
+        this.searchResults = [];
+        this.showDropdown = false;
+
+        this.dispatchEvent(new CustomEvent('selected', {
+            detail: {
+                recordId: '',
+                recordName: ''
+            }
+        }));
     }
 }

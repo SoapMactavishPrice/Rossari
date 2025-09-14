@@ -7,7 +7,12 @@ import getCustomerDetails from '@salesforce/apex/VisitReportController.getCustom
 import getCompetitorDetails from '@salesforce/apex/VisitReportController.getCompetitorDetails';
 import getTours from '@salesforce/apex/VisitReportController.getTours';
 import createTourRecord from '@salesforce/apex/VisitReportController.createTour';
+import getVisitReportDetails from '@salesforce/apex/VisitReportController.getVisitReportDetails';
+import getVisitReportAttendees from '@salesforce/apex/VisitReportController.getVisitReportAttendees';
 import { ShowToastEvent } from 'lightning/platformShowToastEvent';
+import { getRecord } from 'lightning/uiRecordApi';
+import USER_ID from '@salesforce/user/Id';
+import NAME_FIELD from '@salesforce/schema/User.Name';
 
 
 export default class VisitReport extends LightningElement {
@@ -20,13 +25,12 @@ export default class VisitReport extends LightningElement {
         Category: '',
         Nature: ''
     };
-    @track continentName = '';
     @track accId = '';
     @track contactSearchBy = 'Lead';
-     @track currencyCode = '';
-     @track location = '';
-     @track tourId = '';
-     @track sapCustomerCode = '';
+    @track currencyCode = '';
+    @track location = '';
+    @track tourId = '';
+    @track sapCustomerCode = '';
     @track recordTypeDevName = '';
     @track customerId;
     @track competitorId;
@@ -39,16 +43,31 @@ export default class VisitReport extends LightningElement {
     @track newTourStart = '';
     @track newTourEnd = '';
     isTourDisabled = true; // default disabled
+    @track selectedTourAccounts = [];
+    @track currentUserId = USER_ID;
+    @track currentUserName;
 
     // ✅ Initialize all lists
     @track Attendees = [];
     @track ProductInterestPoint = [];
     @track ActionPoint = [];
 
-     @track isLead = true;
-     @track selectedType = 'Lead'
+    @track visitReportTypeOptions = [
+        { label: 'New', value: 'New' },
+        { label: 'Existing', value: 'Existing' }
+    ];
+    @track disableExistingVisitReport = true;
+    @track selectedVisitReportType = 'New';
+    @track selectedExistingVisitReportId;
+    @track isExistingVisitReport = false;
+    @track isFormDisabled = false;
+    @track showRemainingSections = false;
+    @track customer_Attendees = []
 
-     userTypeOptions = [
+    @track isLead = true;
+    @track selectedType = 'Lead'
+
+    userTypeOptions = [
         { label: 'New', value: 'New' },
         { label: 'Existing', value: 'Existing' }
     ];
@@ -73,7 +92,7 @@ export default class VisitReport extends LightningElement {
                 .catch(error => {
                     console.error('Error fetching customer details:', error);
                 });
-                
+
             // Fetch contacts for selected account
             getContactsByAccount({ accId: this.customerId })
                 .then(contactList => {
@@ -97,36 +116,36 @@ export default class VisitReport extends LightningElement {
         const fieldName = event.target.dataset.label;
         const fieldValue = event.detail.recordId;
         const fieldlocation = event.detail.recordName;
-        this.location =event.detail.address;
-        this.location += ' '+fieldlocation.split('-')[1]?.trim();
+        this.location = event.detail.address;
+        this.location += ' ' + fieldlocation.split('-')[1]?.trim();
 
         this.dataMap[fieldName] = fieldValue;
-        console.log('OUTPUT : fieldName',fieldlocation,fieldValue);
+        console.log('OUTPUT : fieldName', fieldlocation, fieldValue);
         if (fieldName == 'lead_Name') {
             if (fieldValue == '') {
                 this.continentName = '';
             }
         }
-       
+
     }
 
-//    handleTourChange(event) {
-//         this.tourId = event.detail.recordId;   
-//         this.dataMap['tourId'] = this.tourId;  // ✅ push into dataMap
-//     }
+    //    handleTourChange(event) {
+    //         this.tourId = event.detail.recordId;   
+    //         this.dataMap['tourId'] = this.tourId;  // ✅ push into dataMap
+    //     }
 
-//     handleNewTour() {
-//     // Option A: Open new record page
-//     this[NavigationMixin.Navigate]({
-//         type: 'standard__objectPage',
-//         attributes: {
-//             objectApiName: 'Tour__c',
-//             actionName: 'new'
-//         }
-//     });
+    //     handleNewTour() {
+    //     // Option A: Open new record page
+    //     this[NavigationMixin.Navigate]({
+    //         type: 'standard__objectPage',
+    //         attributes: {
+    //             objectApiName: 'Tour__c',
+    //             actionName: 'new'
+    //         }
+    //     });
 
-//     // Option B: Open custom modal with lightning-record-edit-form
-// }
+    //     // Option B: Open custom modal with lightning-record-edit-form
+    // }
 
 
     //Load existing Tours
@@ -160,13 +179,39 @@ export default class VisitReport extends LightningElement {
         this.newTourStart = event.target.value;
     }
 
+    // handleTourEndChange(event) {
+    //     this.newTourEnd = event.target.value;
+    // }
+
     handleTourEndChange(event) {
-        this.newTourEnd = event.target.value;
+        const selectedEndDate = event.target.value;
+
+        if (this.newTourStart && selectedEndDate < this.newTourStart) {
+            // Show error message
+            this.dispatchEvent(
+                new ShowToastEvent({
+                    title: 'Invalid Date',
+                    message: 'Tour end date cannot be before the start date.',
+                    variant: 'error',
+                    mode: 'dismissable'
+                })
+            );
+
+            // Clear the invalid date
+            this.newTourEnd = '';
+            event.target.value = '';
+        } else {
+            this.newTourEnd = selectedEndDate;
+        }
     }
 
     closeModal() {
         this.isModalOpen = false;
         this.newTourName = '';
+    }
+
+    handleAccountSelection(event) {
+        this.selectedTourAccounts = event.detail.selectedRecords;
     }
 
     async createTour() {
@@ -178,13 +223,14 @@ export default class VisitReport extends LightningElement {
             const newTour = await createTourRecord({
                 tourName: this.newTourName,
                 startDate: this.newTourStart,
-                endDate: this.newTourEnd
+                endDate: this.newTourEnd,
+                accountIds: this.selectedTourAccounts.map(acc => acc.Id)
             });
 
             // Add new option to combobox
-            this.tourOptions.splice(this.tourOptions.length - 1, 0, { 
-                label: newTour.Name, 
-                value: newTour.Id 
+            this.tourOptions.splice(this.tourOptions.length - 1, 0, {
+                label: newTour.Name,
+                value: newTour.Id
             });
 
             // Select newly created
@@ -198,7 +244,7 @@ export default class VisitReport extends LightningElement {
     }
 
     handleProjectChange(event) {
-        this.ProjectId = event.detail.recordId;   
+        this.ProjectId = event.detail.recordId;
         this.dataMap['ProjectId'] = this.ProjectId;  // ✅ push into dataMap
     }
 
@@ -257,8 +303,8 @@ export default class VisitReport extends LightningElement {
             }
         }
 
-            // ✅ Handle Type_of_Visit__c logic
-        if (fieldName === 'Mode') {  
+        // ✅ Handle Type_of_Visit__c logic
+        if (fieldName === 'Mode') {
             if (fieldValue === 'Tour') {
                 this.isTourDisabled = false;
             } else {
@@ -310,8 +356,6 @@ export default class VisitReport extends LightningElement {
         return this.visitCategory === 'Seminar/ Conferences';
     }
 
-
-
     usedCodes = new Set();
 
     generateUniqueCode() {
@@ -356,23 +400,93 @@ export default class VisitReport extends LightningElement {
             "First_Name": "",
             "Last_Name": "",
             "Email__c": "",
+            "Mobile_No__c": "",
             "Designation__c": "",
         };
         this.Attendees.push(temCon2);
     }
 
+    @wire(getRecord, { recordId: USER_ID, fields: [NAME_FIELD] })
+    wiredUser({ error, data }) {
+        if (data) {
+            this.currentUserName = data.fields.Name.value;
+        } else if (error) {
+            console.error('Error fetching user data', error);
+        }
+    }
+
+    // handleAttendeeChange(event) {
+    //     const recordIndex = parseInt(event.target.dataset.index, 10); // unique 4-digit code
+    //     const field = event.target.dataset.label;
+    //     const value = event.detail.value;
+
+    //     let updated = [...this.Attendees];
+    //     const idx = updated.findIndex(a => a.index === recordIndex);
+
+    //     if (idx !== -1) {
+    //         updated[idx][field] = value;
+
+    //         // compute flags for conditional rendering
+    //         const type = updated[idx].Attendee_Type__c;
+    //         const userType = updated[idx].User_Type__c;
+
+    //         updated[idx].isInternalNew = type === 'Internal Attendee' && userType === 'New';
+    //         updated[idx].isInternalExisting = type === 'Internal Attendee' && userType === 'Existing';
+    //         updated[idx].isExternalNew = type === 'External Attendee' && userType === 'New';
+    //         updated[idx].isExternalExisting = type === 'External Attendee' && userType === 'Existing';
+    //     }
+
+    //     this.Attendees = updated;
+    // }
+
+
     handleAttendeeChange(event) {
-        const recordIndex = parseInt(event.target.dataset.index, 10); // unique 4-digit code
+        const recordIndex = parseInt(event.target.dataset.index, 10);
         const field = event.target.dataset.label;
-        const value = event.detail.value;
+        let value = event.detail.value;
+
+        // For lookup fields, extract the ID if it's an array
+        if (field === 'User__c' && Array.isArray(value) && value.length > 0) {
+            value = value[0];
+        }
 
         let updated = [...this.Attendees];
         const idx = updated.findIndex(a => a.index === recordIndex);
 
         if (idx !== -1) {
+            // Check if user is trying to add themselves as an attendee
+            if (field === 'User__c' && value === this.currentUserId) {
+                this.dispatchEvent(
+                    new ShowToastEvent({
+                        title: 'Invalid Selection',
+                        message: 'You cannot add yourself as an attendee.',
+                        variant: 'error',
+                        mode: 'dismissable'
+                    })
+                );
+
+                // Clear the selection
+                updated[idx][field] = '';
+                this.Attendees = updated;
+
+                // Reset the lookup field
+                setTimeout(() => {
+                    const lookupField = this.template.querySelector(`[data-index="${recordIndex}"][data-label="User__c"]`);
+                    if (lookupField) {
+                        lookupField.value = '';
+                        // Dispatch change event to ensure the field is properly reset
+                        lookupField.dispatchEvent(new CustomEvent('change', {
+                            detail: { value: '' }
+                        }));
+                    }
+                }, 100);
+
+                return;
+            }
+
             updated[idx][field] = value;
 
-            // compute flags for conditional rendering
+            // Compute flags for conditional rendering
             const type = updated[idx].Attendee_Type__c;
             const userType = updated[idx].User_Type__c;
 
@@ -380,12 +494,43 @@ export default class VisitReport extends LightningElement {
             updated[idx].isInternalExisting = type === 'Internal Attendee' && userType === 'Existing';
             updated[idx].isExternalNew = type === 'External Attendee' && userType === 'New';
             updated[idx].isExternalExisting = type === 'External Attendee' && userType === 'Existing';
+
+            // Handle contact lookup for external attendees
+            if (field === 'Contact_Name__c' && value && type === 'External Attendee' && userType === 'Existing') {
+                // You might want to fetch contact details here if needed
+                console.log('Contact selected:', value);
+            }
+
+            // Handle user lookup for internal attendees
+            if (field === 'User__c' && value && type === 'Internal Attendee' && userType === 'Existing') {
+                console.log('User selected:', value);
+            }
+
+            // Reset fields when attendee type changes
+            if (field === 'Attendee_Type__c' || field === 'User_Type__c') {
+                if (field === 'Attendee_Type__c') {
+                    // Reset all fields when attendee type changes
+                    updated[idx].User__c = '';
+                    updated[idx].Contact_Name__c = '';
+                    updated[idx].First_Name__c = '';
+                    updated[idx].Last_Name__c = '';
+                    updated[idx].Email__c = '';
+                    updated[idx].Designation__c = '';
+                }
+
+                // Recompute flags after reset
+                const newType = updated[idx].Attendee_Type__c;
+                const newUserType = updated[idx].User_Type__c;
+
+                updated[idx].isInternalNew = newType === 'Internal Attendee' && newUserType === 'New';
+                updated[idx].isInternalExisting = newType === 'Internal Attendee' && newUserType === 'Existing';
+                updated[idx].isExternalNew = newType === 'External Attendee' && newUserType === 'New';
+                updated[idx].isExternalExisting = newType === 'External Attendee' && newUserType === 'Existing';
+            }
         }
 
         this.Attendees = updated;
     }
-
-
 
     handleCustomerAttenChange(event) {
         const fieldName = event.target.dataset.label;
@@ -578,6 +723,277 @@ export default class VisitReport extends LightningElement {
         }
     }
 
+    get isNewVisitReport() {
+        return this.selectedVisitReportType === 'New' && !this.selectedExistingVisitReportId;
+    }
+
+    // Handle Visit Report Type Change
+    handleVisitReportTypeChange(event) {
+        const previousType = this.selectedVisitReportType;
+        this.selectedVisitReportType = event.detail.value;
+
+        // Disable Existing Visit Report lookup if type = New
+        this.disableExistingVisitReport = (this.selectedVisitReportType === 'New');
+        this.showRemainingSections = (this.selectedVisitReportType === 'Existing');
+
+        if (this.selectedVisitReportType === 'Existing') {
+            // Clear form when switching to existing
+            this.clearForm();
+            this.isFormDisabled = true; // Disable basic fields initially
+        } else {
+            // 👉 If switching back from Existing → New, reload the page
+            if (previousType === 'Existing') {
+                window.location.reload();
+                return; // stop here, reload takes over
+            }
+
+            // Otherwise (first load or already New → New), just clear
+            this.clearForm();
+            this.isFormDisabled = false;
+            this.selectedExistingVisitReportId = null;
+            this.showRemainingSections = false;
+
+            const lookupCmp = this.template.querySelector('c-visit-report-lookup');
+            if (lookupCmp) {
+                lookupCmp.clearSelection();
+            }
+        }
+    }
+
+
+
+    // Handle Existing Visit Report Selection
+    async handleExistingVisitReportChange(event) {
+        this.selectedExistingVisitReportId = event.detail.recordId;
+        this.selectedExistingVisitReportName = event.detail.recordName;
+        
+        if (this.selectedExistingVisitReportId) {
+            await this.loadExistingVisitReportData();
+            this.isFormDisabled = false; // Keep basic fields disabled
+            this.showRemainingSections = true; // Show remaining sections
+        }
+
+    }
+
+    // Add this method to load attendees
+    async loadAttendees(visitReportId) {
+        try {
+            // You'll need to create an Apex method to get attendees
+            const attendees = await getVisitReportAttendees({ visitReportId });
+            
+            this.Attendees = attendees.map(att => ({
+                index: this.generateUniqueCode(),
+                Attendee_Type__c: att.Attendee_Type__c,
+                User_Type__c: att.User_Type__c,
+                User__c: att.User__c,
+                Contact_Name__c: att.Contact_Name__c,
+                First_Name__c: att.First_Name__c,
+                Last_Name__c: att.Last_Name__c,
+                Email__c: att.Email__c,
+                Mobile_No__c: att.Mobile_No__c,
+                Designation__c: att.Designation__c,
+                isInternalNew: att.Attendee_Type__c === 'Internal Attendee' && att.User_Type__c === 'New',
+                isInternalExisting: att.Attendee_Type__c === 'Internal Attendee' && att.User_Type__c === 'Existing',
+                isExternalNew: att.Attendee_Type__c === 'External Attendee' && att.User_Type__c === 'New',
+                isExternalExisting: att.Attendee_Type__c === 'External Attendee' && att.User_Type__c === 'Existing'
+            }));
+        } catch (error) {
+            console.error('Error loading attendees:', error);
+        }
+    }
+
+    // Add this method to load existing visit report data
+    async loadExistingVisitReportData() {
+        try {
+            this.showSpinner = true;
+            
+            // Query the existing visit report
+            const visitReport = await getVisitReportDetails({ 
+                visitReportId: this.selectedExistingVisitReportId 
+            });
+            console.log('Visit Report:', visitReport);
+            
+            // Populate the basic fields with existing data
+            this.populateBasicFields(visitReport);
+
+            // 👇 ensure accountContacts are loaded first
+            if (visitReport.Customer_Name__c) {
+                const contactList = await getContactsByAccount({ accId: visitReport.Customer_Name__c });
+                this.accountContacts = contactList.map(c => ({
+                    label: c.Name,
+                    value: c.Id
+                }));
+            }
+            
+            // Load attendees
+            await this.loadAttendees(this.selectedExistingVisitReportId);
+            
+            this.dispatchEvent(
+                new ShowToastEvent({
+                    title: 'Success',
+                    message: 'Visit Report data loaded successfully. Please complete the remaining sections.',
+                    variant: 'success'
+                })
+            );
+        } catch (error) {
+            console.error('Error loading visit report:', error);
+            this.dispatchEvent(
+                new ShowToastEvent({
+                    title: 'Error',
+                    message: 'Failed to load Visit Report data',
+                    variant: 'error'
+                })
+            );
+        } finally {
+            this.showSpinner = false;
+        }
+    }
+
+    formatLocalDateTime(dateString) {
+        if (!dateString) return '';
+        const dt = new Date(dateString);
+
+        // Format into yyyy-MM-ddThh:mm (local time, not UTC)
+        const year = dt.getFullYear();
+        const month = String(dt.getMonth() + 1).padStart(2, '0');
+        const day = String(dt.getDate()).padStart(2, '0');
+        const hours = String(dt.getHours()).padStart(2, '0');
+        const minutes = String(dt.getMinutes()).padStart(2, '0');
+
+        return `${year}-${month}-${day}T${hours}:${minutes}`;
+    }
+
+
+    // Populate Basic Fields
+    populateBasicFields(visitReport) {
+        // Convert DateTime fields to ISO string format for input fields
+        const startDateTime = this.formatLocalDateTime(visitReport.Start_Date_Time__c);
+        const endDateTime = this.formatLocalDateTime(visitReport.End_Date_Time__c);
+
+        this.dataMap = {
+        Mode: visitReport.Type_of_Visit__c || '',
+        Title_of_Meeting: visitReport.Title_of_Meeting__c || '',
+        Start_Date_Time: startDateTime,
+        End_Date_Time: endDateTime,
+        Category: visitReport.Visit_Category__c || '',
+        Nature: visitReport.Nature_of_Visit__c || '',
+        
+        // For lookups store both Id + Name
+        Customer_Name: visitReport.Customer_Name__c || '',
+        Customer_Name_Display: visitReport.Customer_Name__r ? visitReport.Customer_Name__r.Name : '',
+
+        Competition_Name: visitReport.Competition_Name__c || '',
+        Competition_Name_Display: visitReport.Competition_Name__r ? visitReport.Competition_Name__r.Name : '',
+
+        tourId: visitReport.Name_of_the_Tour__c || '',
+        ProjectId: visitReport.Name_of_the_Project__c || '',
+
+        Reason: visitReport.Reason__c || '',
+        Seminar: visitReport.Name_of_the_Conference_Seminar__c || '',
+        Discussion_Details_from_the_Meeting: visitReport.Discussion_Details_from_the_Meeting__c || '',
+        Next_Meeting_Date_agreed_with_Customer: visitReport.Next_Meeting_Date_agreed_with_Customer__c || ''
+        };
+
+        // Set other properties for UI display
+        this.visitCategory = visitReport.Visit_Category__c;
+        this.customerId = visitReport.Customer_Name__c;
+        console.log('Visit Category:', this.visitCategory);
+        console.log('Customer ID:', this.customerId);
+        
+        this.competitorId = visitReport.Competition_Name__c;
+        this.selectedTourId = visitReport.Name_of_the_Tour__c;
+        this.ProjectId = visitReport.Name_of_the_Project__c;
+        
+        // Update customer details if customer exists
+        if (visitReport.Customer_Name__c) {
+            this.sapCustomerCode = visitReport.Customer_Name__r?.SAP_Customer_Code__c || '';
+        }
+        
+        // Update competitor code if competitor exists
+        if (visitReport.Attendees__r && visitReport.Attendees__r.length > 0) {
+        this.Attendees = visitReport.Attendees__r.map((att, index) => {
+            console.log('Attendee contact Id:', att.Contact_Name__c); // ✅ correct scope
+            return {
+                index: index,
+                Id: att.Id,
+                isInternalExisting: att.Type__c === 'Internal',
+                isExternalExisting: att.Type__c === 'External',
+                User__c: att.User__c || '',
+                Contact_Name__c: att.Contact_Name__c || ''  // must match option.value
+            };
+        });
+    } else {
+        this.Attendees = [];
+    }
+        // Update UI fields manually since they might not react to dataMap changes
+        this.updateUIFields();
+    }
+
+    // Add this method to update UI fields
+    updateUIFields() {
+        // Use setTimeout to ensure DOM is rendered
+        setTimeout(() => {
+            // Update all input fields based on dataMap
+            Object.keys(this.dataMap).forEach(fieldName => {
+                const fieldElement = this.template.querySelector(`[data-label="${fieldName}"]`);
+                if (fieldElement && this.dataMap[fieldName]) {
+                    fieldElement.value = this.dataMap[fieldName];
+                }
+            });
+        }, 100);
+    }
+
+    // Add this method to clear the form
+    clearForm() {
+
+        this.dataMap = {
+            Mode: '',
+            Title_of_Meeting: '',
+            Start_Date_Time: '',
+            End_Date_Time: '',
+            Category: '',
+            Nature: '',
+            Customer_Name: '',
+            Competition_Name: '',
+            tourId: '',
+            ProjectId: '',
+            Reason: '',
+            Seminar: '',
+            Discussion_Details_from_the_Meeting: '',
+            Next_Meeting_Date_agreed_with_Customer: ''
+        };
+        this.Attendees = [{
+            index: this.generateUniqueCode(),
+            Attendee_Type__c: '',
+            User_Type__c: '',
+            User__c: '',
+            Contact_Name__c: '',
+            First_Name__c: '',
+            Last_Name__c: '',
+            Email__c: '',
+            Mobile_No__c: '',
+            Designation__c: '',
+            isInternalNew: false,
+            isInternalExisting: false,
+            isExternalNew: false,
+            isExternalExisting: false
+        }];
+        
+        // Clear other properties
+        this.customerId = '';
+        this.competitorId = '';
+        this.selectedTourId = '';
+        this.ProjectId = '';
+        this.sapCustomerCode = '';
+        this.recordTypeDevName = '';
+        this.competitorCode = '';
+        this.visitCategory = '';
+        this.accountContacts = [];
+        this.selectedExistingVisitReportId = null;
+    
+    }
+
+   
     validateVisitReport() {
         // mapping of your dataMap keys to user-friendly labels
         const fieldLabels = {
@@ -621,25 +1037,24 @@ export default class VisitReport extends LightningElement {
 
     @track showSpinner = false;
 
-    handleSave() {
-    // 🔎 First validate required fields
+    async handleSave() {
         if (!this.validateVisitReport()) {
-            return; // ⛔ Stop here if validation fails
+            return;
         }
 
         this.showSpinner = true;
 
-        saveVisitReport({
-            visit: JSON.stringify(this.dataMap),
-            Attendees: JSON.stringify(this.Attendees), // ✅ pass attendees list
-            ProductInterestPoint: JSON.stringify(this.ProductInterestPoint),
-            ActionPoint: JSON.stringify(this.ActionPoint),
-            location: this.location,
-            currencyCode: this.currencyCode,
-            visitType: this.selectedType
-        })
-        .then(result => {
-            this.showSpinner = false;
+        try {
+            const result = await saveVisitReport({
+                visit: JSON.stringify(this.dataMap),
+                Attendees: JSON.stringify(this.Attendees),
+                ProductInterestPoint: JSON.stringify(this.ProductInterestPoint),
+                ActionPoint: JSON.stringify(this.ActionPoint),
+                location: this.location,
+                currencyCode: this.currencyCode,
+                visitType: this.selectedVisitReportType,
+                existingVisitReportId: this.selectedExistingVisitReportId
+            });
 
             if (result.Message === 'Success') {
                 this.dispatchEvent(
@@ -650,34 +1065,24 @@ export default class VisitReport extends LightningElement {
                         mode: 'dismissable'
                     })
                 );
-                // open record in new tab
-                window.open('/' + result.Id, '_blank');
-                // refresh after delay
-                setTimeout(() => this.handleRefresh(), 3500);
-            } else {
-                this.dispatchEvent(
-                    new ShowToastEvent({
-                        title: 'Error',
-                        message: result.Message,
-                        variant: 'error',
-                        mode: 'dismissable'
-                    })
-                );
-            }
-        })
-        .catch(error => {
-            this.showSpinner = false;
-            console.error('Save error:', error);
 
-            this.dispatchEvent(
-                new ShowToastEvent({
-                    title: 'Error',
-                    message: error.body?.message || 'Unexpected error occurred',
-                    variant: 'error',
-                    mode: 'sticky'
-                })
-            );
-        });
+                window.open('/' + result.Id, '_blank');
+                
+                if (this.selectedVisitReportType === 'New') {
+                    // For new records, open in new tab and refresh
+                    
+                    setTimeout(() => this.handleRefresh(), 3500);
+                } else {
+                    // For existing records, just show success message
+                    this.showRemainingSections = true;
+                    setTimeout(() => this.handleRefresh(), 3500);
+                }
+            }
+        } catch (error) {
+            // Error handling
+        } finally {
+            this.showSpinner = false;
+        }
     }
 
 

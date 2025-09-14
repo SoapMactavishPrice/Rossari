@@ -294,9 +294,9 @@ export default class AddCompanyUser extends NavigationMixin(LightningElement) {
                 actionName: 'view'
             }
         });
-        setTimeout(() => {
-            window.location.reload();
-        }, 2000);
+        // setTimeout(() => {
+        //     window.location.reload();
+        // }, 2000);
     }
 
     showToast(title, msg, variant) {

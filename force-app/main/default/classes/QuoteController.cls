@@ -87,6 +87,7 @@ public with sharing class QuoteController {
             OpportunityId = opp.Id,
             Status = status,
             ExpirationDate = expirationDate,
+            Quote_Valid_From__c = Date.today(),
             Pricebook2Id = String.isNotBlank(pricebookId) ? pricebookId : opp.Pricebook2Id,
             CurrencyIsoCode = String.isNotBlank(currencyCode) ? currencyCode : opp.CurrencyIsoCode,
             ContactId = String.isNotBlank(contactId) ? contactId : null,
