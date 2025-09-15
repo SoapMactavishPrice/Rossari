@@ -17,7 +17,7 @@ public with sharing class QuotationPdfController {
                             Destination__c, Loading_Port__c, Destination_Port__c, Place_of_Supplier__c, Partial_Shipment__c, ShippingName,
                             BillingStreet, BillingCity, BillingState, BillingPostalCode, BillingCountry, Business_Type__c, Vessel_Flight_No__c, Pre_Carriage_Destination__c,
                             ShippingStreet, ShippingCity, ShippingCountry, ShippingPostalCode, ShippingState, Terms_and_Conditions__c, Declaration__c,
-                            Bank__r.Bank_Account_No__c, Bank__r.Name, Bank__r.Branch__c, Bank__r.SWIFT_Code__c,
+                            Bank__r.Bank_Account_No__c, Bank__r.Name, Bank__r.Branch__c, Bank__r.SWIFT_Code__c, Subtotal,
                             ShippingAddress, GrandTotal FROM Quote WHERE Id = :quotationId];
 
         this.isExport = quotation.Business_Type__c == 'Export';
@@ -36,7 +36,7 @@ public with sharing class QuotationPdfController {
         this.billingAddress = this.getFormattedBillingAddress(quotation);
         this.shippingAddress = this.getFormattedShippingAddress(quotation);
 
-        this.quoteLineItems = [SELECT Description, Quantity, UnitPrice, TotalPrice, ListPrice, Product2.ProductCode, Product2.HSN_Code__c, Product2.Pack_Size__c, Product2.Base_UOM__c FROM QuoteLineItem WHERE QuoteId = :quotationId AND (Status__c = 'Won' OR Status__c = null)];
+        this.quoteLineItems = [SELECT Description, Quantity, UnitPrice, TotalPrice, ListPrice, Product2.ProductCode, Product2.HSN__c, Product2.Pack_Size__c, Product2.Base_UOM__r.Name FROM QuoteLineItem WHERE QuoteId = :quotationId AND (Status__c = 'Won' OR Status__c = null)];
     }
 
     public QuotationPdfController(String quoteId, String type) {
@@ -49,7 +49,7 @@ public with sharing class QuotationPdfController {
                             Destination__c, Loading_Port__c, Destination_Port__c, Place_of_Supplier__c, Partial_Shipment__c, ShippingName,
                             BillingStreet, BillingCity, BillingState, BillingPostalCode, BillingCountry, Business_Type__c, Vessel_Flight_No__c, Pre_Carriage_Destination__c,
                             ShippingStreet, ShippingCity, ShippingCountry, ShippingPostalCode, ShippingState, Terms_and_Conditions__c, Declaration__c,
-                            Bank__r.Bank_Account_No__c, Bank__r.Name, Bank__r.Branch__c, Bank__r.SWIFT_Code__c,
+                            Bank__r.Bank_Account_No__c, Bank__r.Name, Bank__r.Branch__c, Bank__r.SWIFT_Code__c, Subtotal,
                             ShippingAddress, GrandTotal FROM Quote WHERE Id = :quotationId];
 
         this.isExport = quotation.Business_Type__c == 'Export';
@@ -68,7 +68,7 @@ public with sharing class QuotationPdfController {
         this.billingAddress = this.getFormattedBillingAddress(quotation);
         this.shippingAddress = this.getFormattedShippingAddress(quotation);
 
-        this.quoteLineItems = [SELECT Description, Quantity, UnitPrice, TotalPrice, ListPrice, Product2.ProductCode, Product2.HSN_Code__c, Product2.Pack_Size__c, Product2.Base_UOM__c FROM QuoteLineItem WHERE QuoteId = :quotationId AND (Status__c = 'Won' OR Status__c = null)];
+        this.quoteLineItems = [SELECT Description, Quantity, UnitPrice, TotalPrice, ListPrice, Product2.ProductCode, Product2.HSN__c, Product2.Pack_Size__c, Product2.Base_UOM__r.Name FROM QuoteLineItem WHERE QuoteId = :quotationId AND (Status__c = 'Won' OR Status__c = null)];
     }
 
     public String getFormattedBillingAddress(Quote quote) {
@@ -163,7 +163,7 @@ public with sharing class QuotationPdfController {
 
         html += '<tr>';
         html += '<td style="' + leftBorder + '">' + docLabel + ' Date: ' + (quotation.CreatedDate != null ? quotation.CreatedDate.format('dd/MM/yyyy') : '') + '</td>';
-        html += '<td style="' + borderless + '">Our Bankers: (HC)</td>';
+        html += '<td style="' + borderless + '">Our Bankers: </td>';
         html += '<td style="' + doubleBorder + '" colspan="2" rowspan="' + (isExport ? '5' : '4') + '">Address: ' + ns(billingAddress) + '</td>';
         html += '</tr>';
 
@@ -250,10 +250,10 @@ public with sharing class QuotationPdfController {
             html += '<tr>';
             html += '<td style="' + borderStyle + '">' + srNo + '</td>';
             html += '<td style="' + borderStyle + '">' + ns(item.Product2.ProductCode) + '</td>';
-            html += '<td style="' + borderStyle + '">' + ns(item.Product2.HSN_Code__c) + '</td>';
+            html += '<td style="' + borderStyle + '">' + ns(item.Product2.HSN__c) + '</td>';
             html += '<td style="' + borderStyle + '">' + ns(item.Description) + '</td>';
             html += '<td style="' + borderStyle + '">' + ns(item.Product2.Pack_Size__c) + '</td>';
-            html += '<td style="' + borderStyle + '">' + ns(item.Product2.Base_UOM__c) + '</td>';
+            html += '<td style="' + borderStyle + '">' + ns(item.Product2.Base_UOM__r.Name) + '</td>';
             html += '<td style="' + borderStyle + '">' + ns(item.Quantity) + '</td>';
             html += '<td style="' + borderStyle + '">' + ns(item.ListPrice) + '</td>';
             html += '<td style="' + borderStyle + '">' + ns(item.UnitPrice) + '</td>';
@@ -265,7 +265,7 @@ public with sharing class QuotationPdfController {
         // Terms & Totals
         html += '<tr>';
         html += '<td colspan="6" rowspan="5" style="' + borderStyle + 'white-space: pre-wrap; padding: 0px; margin: 0px;' + '"><b>Terms and Conditions:</b><br/>' + ns(quotation.Terms_and_Conditions__c) + '</td>';
-        html += '<td colspan="3" style="' + boldStyle + borderStyle + '">Amount Before Tax</td><td style="' + borderStyle + '">(HC)</td>';
+        html += '<td colspan="3" style="' + boldStyle + borderStyle + '">Amount Before Tax</td><td style="' + borderStyle + '">' + quotation.Subtotal + '</td>';
         html += '</tr>';
 
         html += '<tr><td colspan="2" style="' + boldStyle + borderStyle + '">CGST</td><td style="' + borderStyle + '">(HC)</td><td style="' + borderStyle + '">(HC)</td></tr>';

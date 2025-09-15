@@ -233,10 +233,10 @@
             <tr>
                 <td>{!srNo}</td>
                 <td>{!item.Product__r.ProductCode}</td>
-                <td>{!item.Product__r.HSN_Code__c}</td>
+                <td>{!item.Product__r.HSN__c}</td>
                 <td>{!item.Line_Item_Description__c}</td>
                 <td>{!item.Product__r.Pack_Size__c}</td>
-                <td>{!item.Product__r.Base_UOM__c}</td>
+                <td>{!item.Product__r.Base_UOM__r.Name}</td>
                 <td>{!item.Quantity__c}</td>
                 <td>{!item.List_Price__c}</td>
                 <td>{!item.Sales_Price__c}</td>
@@ -250,7 +250,7 @@
             <p style="white-space: pre-wrap; padding: 0px; margin: 0px;">{!proformaInvoice.Terms_and_Conditions__c}</p>
         </td>
         <td colspan="3" class="bold">Amount Before Tax</td>
-        <td>(HC)</td>
+        <td>{!proformaInvoice.Subtotal__c}</td>
     </tr>
     <tr>
         <td colspan="2" class="bold">CGST</td>

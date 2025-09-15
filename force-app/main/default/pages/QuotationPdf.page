@@ -233,10 +233,10 @@
             <tr>
                 <td>{!srNo}</td>
                 <td>{!item.Product2.ProductCode}</td>
-                <td>{!item.Product2.HSN_Code__c}</td>
+                <td>{!item.Product2.HSN__c}</td>
                 <td>{!item.Description}</td>
                 <td>{!item.Product2.Pack_Size__c}</td>
-                <td>{!item.Product2.Base_UOM__c}</td>
+                <td>{!item.Product2.Base_UOM__r.Name}</td>
                 <td>{!item.Quantity}</td>
                 <td>{!item.ListPrice}</td>
                 <td>{!item.UnitPrice}</td>
@@ -250,7 +250,7 @@
             <p style="white-space: pre-wrap; padding: 0px; margin: 0px;">{!quotation.Terms_and_Conditions__c}</p>
         </td>
         <td colspan="3" class="bold">Amount Before Tax</td>
-        <td>(HC)</td>
+        <td>{!quotation.Subtotal}</td>
     </tr>
     <tr>
         <td colspan="2" class="bold">CGST</td>

@@ -18,7 +18,7 @@ public with sharing class ProformaInvoicePdfController {
                             Bill_To_Name__c, Bill_To_Street__c, Bill_To_City__c, Bill_To_State__c, Bill_To_Zip_Postal_Code__c, Bill_To_Country__c,
                             Ship_To_Name__c, Ship_To_Street__c, Ship_To_City__c, Ship_To_Country__c, Ship_To_Zip_Postal_Code__c, Ship_To_State__c,
                             Bank__r.Bank_Account_No__c, Bank__r.Name, Bank__r.Branch__c, Bank__r.SWIFT_Code__c,
-                            Terms_and_Conditions__c, Declaration__c,
+                            Terms_and_Conditions__c, Declaration__c, Subtotal__c,
                             Grand_Total__c FROM Proforma_Invoice__c WHERE Id = :proformaInvoiceId];
 
         this.isExport = proformaInvoice.Business_Type__c == 'Export';
@@ -37,7 +37,7 @@ public with sharing class ProformaInvoicePdfController {
         this.billingAddress = this.getFormattedBillingAddress(proformaInvoice);
         this.shippingAddress = this.getFormattedShippingAddress(proformaInvoice);
 
-        this.proformaInvoiceLineItems = [SELECT Line_Item_Description__c, Quantity__c, Sales_Price__c, Total_Price__c, List_Price__c, Product__r.ProductCode, Product__r.HSN_Code__c, Product__r.Pack_Size__c, Product__r.Base_UOM__c FROM Proforma_Invoice_Line_Item__c WHERE Proforma_Invoice_Name__c = :proformaInvoiceId];
+        this.proformaInvoiceLineItems = [SELECT Line_Item_Description__c, Quantity__c, Sales_Price__c, Total_Price__c, List_Price__c, Product__r.ProductCode, Product__r.HSN__c, Product__r.Pack_Size__c, Product__r.Base_UOM__r.Name FROM Proforma_Invoice_Line_Item__c WHERE Proforma_Invoice_Name__c = :proformaInvoiceId];
     }
 
     public ProformaInvoicePdfController(String proformaInvoiceId, String type) {
@@ -51,7 +51,7 @@ public with sharing class ProformaInvoicePdfController {
                             Bill_To_Name__c, Bill_To_Street__c, Bill_To_City__c, Bill_To_State__c, Bill_To_Zip_Postal_Code__c, Bill_To_Country__c,
                             Ship_To_Name__c, Ship_To_Street__c, Ship_To_City__c, Ship_To_Country__c, Ship_To_Zip_Postal_Code__c, Ship_To_State__c,
                             Bank__r.Bank_Account_No__c, Bank__r.Name, Bank__r.Branch__c, Bank__r.SWIFT_Code__c,
-                            Terms_and_Conditions__c, Declaration__c,
+                            Terms_and_Conditions__c, Declaration__c, Subtotal__c,
                             Grand_Total__c FROM Proforma_Invoice__c WHERE Id = :proformaInvoiceId];
 
         this.isExport = proformaInvoice.Business_Type__c == 'Export';
@@ -70,7 +70,7 @@ public with sharing class ProformaInvoicePdfController {
         this.billingAddress = this.getFormattedBillingAddress(proformaInvoice);
         this.shippingAddress = this.getFormattedShippingAddress(proformaInvoice);
 
-        this.proformaInvoiceLineItems = [SELECT Line_Item_Description__c, Quantity__c, Sales_Price__c, Total_Price__c, List_Price__c, Product__r.ProductCode, Product__r.HSN_Code__c, Product__r.Pack_Size__c, Product__r.Base_UOM__c FROM Proforma_Invoice_Line_Item__c WHERE Proforma_Invoice_Name__c = :proformaInvoiceId];
+        this.proformaInvoiceLineItems = [SELECT Line_Item_Description__c, Quantity__c, Sales_Price__c, Total_Price__c, List_Price__c, Product__r.ProductCode, Product__r.HSN__c, Product__r.Pack_Size__c, Product__r.Base_UOM__r.Name FROM Proforma_Invoice_Line_Item__c WHERE Proforma_Invoice_Name__c = :proformaInvoiceId];
     }
 
     public String getFormattedBillingAddress(Proforma_Invoice__c proformaInvoice) {
@@ -252,10 +252,10 @@ public with sharing class ProformaInvoicePdfController {
             html += '<tr>';
             html += '<td style="' + borderStyle + '">' + srNo + '</td>';
             html += '<td style="' + borderStyle + '">' + ns(item.Product__r.ProductCode) + '</td>';
-            html += '<td style="' + borderStyle + '">' + ns(item.Product__r.HSN_Code__c) + '</td>';
+            html += '<td style="' + borderStyle + '">' + ns(item.Product__r.HSN__c) + '</td>';
             html += '<td style="' + borderStyle + '">' + ns(item.Line_Item_Description__c) + '</td>';
             html += '<td style="' + borderStyle + '">' + ns(item.Product__r.Pack_Size__c) + '</td>';
-            html += '<td style="' + borderStyle + '">' + ns(item.Product__r.Base_UOM__c) + '</td>';
+            html += '<td style="' + borderStyle + '">' + ns(item.Product__r.Base_UOM__r.Name) + '</td>';
             html += '<td style="' + borderStyle + '">' + ns(item.Quantity__c) + '</td>';
             html += '<td style="' + borderStyle + '">' + ns(item.List_Price__c) + '</td>';
             html += '<td style="' + borderStyle + '">' + ns(item.Sales_Price__c) + '</td>';
@@ -267,7 +267,7 @@ public with sharing class ProformaInvoicePdfController {
         // Terms & Totals
         html += '<tr>';
         html += '<td colspan="6" rowspan="5" style="' + borderStyle + 'white-space: pre-wrap; padding: 0px; margin: 0px;' + '"><b>Terms and Conditions:</b><br/>' + ns(proformaInvoice.Terms_and_Conditions__c) + '</td>';
-        html += '<td colspan="3" style="' + boldStyle + borderStyle + '">Amount Before Tax</td><td style="' + borderStyle + '">(HC)</td>';
+        html += '<td colspan="3" style="' + boldStyle + borderStyle + '">Amount Before Tax</td><td style="' + borderStyle + '">' + proformaInvoice.Subtotal__c + '</td>';
         html += '</tr>';
 
         html += '<tr><td colspan="2" style="' + boldStyle + borderStyle + '">CGST</td><td style="' + borderStyle + '">(HC)</td><td style="' + borderStyle + '">(HC)</td></tr>';

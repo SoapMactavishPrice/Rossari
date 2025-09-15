@@ -49,3 +49,38 @@ background-color: #007cc2;
 
         padding: 2px;
     }
+
+    .custom-header {
+        font-size: 1.25rem; /* bigger font */
+        font-weight: 700;   /* bolder */
+        text-align: center;
+        padding: 20px;      /* more spacing */
+    }
+
+
+    .custom-table {
+    width: 100%;
+    border-left: 2px solid #d8dde6;  /* left border */
+    border-right: 2px solid #d8dde6; /* right border */
+    border-collapse: separate;
+    border-spacing: 20px;
+    }
+
+    .custom-table th,
+    .custom-table td {
+        padding: 15px;
+        text-align: center;
+        vertical-align: middle;
+    }
+
+    .hidden-input {
+        display: none;
+    }
+
+    .file-row {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 5px;
+        margin: 4px 0;
+    }

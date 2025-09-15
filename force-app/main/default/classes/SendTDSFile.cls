@@ -1,14 +1,10 @@
 public without sharing class SendTDSFile {
     
     @AuraEnabled
-    public static String getEmailDetails(String leadId) {
-        Lead leadRecord = [SELECT Email FROM Lead WHERE Id = :leadId LIMIT 1];
+    public static Lead getEmailDetails(String leadId) {
+        Lead leadRecord = [SELECT Email, Owner.Email FROM Lead WHERE Id = :leadId LIMIT 1];
         
-        if (String.isNotBlank(leadRecord.Email)) {
-            return leadRecord.Email;
-        } else {
-            return null;
-        }
+        return leadRecord;
     }
 
     @AuraEnabled
