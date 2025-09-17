@@ -307,11 +307,6 @@ export default class AccountSampleRequest extends NavigationMixin(LightningEleme
                 return false;
             }
 
-            if (!item.Sample_Request_To_Plant) {
-                this.showError('Validation Error', `Please select a plant for product "${item.Product}"`);
-                return false;
-            }
-
             if (!item.Sample_Qty_in_Kgs || item.Sample_Qty_in_Kgs <= 0) {
                 this.showError('Validation Error', `Please enter a valid quantity (greater than 0) for product "${item.Product}"`);
                 return false;

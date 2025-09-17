@@ -54,23 +54,6 @@
                     </div>
 
                     <div class="slds-col slds-size_1-of-4 slds-p-around_x-small">
-                        <p style="padding: none; padding-bottom: 4px;"></p>
-                        <label style="font-size:13px;">Send Email To Plant?</label>
-                        <lightning-input type="checkbox" variant="label-hidden" data-name="Send_Email_To_Plant__c"
-                            checked={sendEmailToPlant} onchange={handleSendEmailCheckbox}>
-                        </lightning-input>
-                    </div>
-
-                    <template if:true={sendEmailToPlant}>
-                        <div class="slds-col slds-size_1-of-4 slds-p-around_x-small">
-                            <lightning-textarea label="Additional Email" data-name="Email__c"
-                                placeholder="Enter one or more email addresses"
-                                field-level-help="Enter one or more email addresses separated by commas (,) or semicolons (;)."
-                                rows="3"></lightning-textarea>
-                        </div>
-                    </template>
-
-                    <div class="slds-col slds-size_1-of-4 slds-p-around_x-small">
                         <lightning-textarea label="Remark" data-name="Remark__c"></lightning-textarea>
                     </div>
 
@@ -107,9 +90,6 @@
                                 <th
                                     style="text-align: center; font-size: 13px; background-color: #9d0b0f; font-weight: bold; padding: 4px 6px; color: white;">
                                     Description</th>
-                                <th
-                                    style="text-align: center; font-size: 13px; background-color: #9d0b0f; font-weight: bold; padding: 4px 6px; color: white;">
-                                    Sample Request To Plant</th>
 
                                 <th
                                     style="text-align: center; font-size: 13px; background-color: #9d0b0f; font-weight: bold; padding: 4px 6px; color: white;">
@@ -140,11 +120,6 @@
                                     <td>
                                         <lightning-input type="text" value={item.Description} disabled
                                             variant="label-hidden"></lightning-input>
-                                    </td>
-                                    <td>
-                                        <lightning-combobox name="plant" required options={plantOptions}
-                                            value={item.Sample_Request_To_Plant} onchange={handlePlantChange}
-                                            data-index={index} variant="label-hidden"></lightning-combobox>
                                     </td>
                                     <td>
                                         <lightning-input type="number" value={item.Sales_Price}

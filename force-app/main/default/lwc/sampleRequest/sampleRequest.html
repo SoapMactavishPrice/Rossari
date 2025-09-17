@@ -17,7 +17,7 @@
 
                     <div class="slds-col slds-size_1-of-4 slds-p-around_x-small">
                         <lightning-input type="date" label="Sample Request Date" value={todayDate}
-                            data-name="Sample_Request_Date__c" required min={todayDate}>
+                            data-name="Sample_Request_Date__c" required min={todayDate} date-style="short">
                         </lightning-input>
                     </div>
                     <div class="slds-col slds-size_1-of-4 slds-p-around_x-small">
@@ -56,20 +56,8 @@
                     </div>
 
                     <div class="slds-col slds-size_1-of-4 slds-p-around_x-small">
-                        <label style="font-size:13px;">Send Email To Plant?</label>
-
-                        <lightning-input type="checkbox" variant="label-hidden" data-name="Send_Email_To_Plant__c"
-                            checked={sendEmailToPlant} onchange={handleSendEmailCheckbox}
-                            style="margin-left: 86px; margin-bottom: -24px">
-                        </lightning-input>
-                    </div>
-
-                    <div class="slds-col slds-size_1-of-4 slds-p-around_x-small">
                         <lightning-textarea label="Remark" data-name="Remark__c"></lightning-textarea>
                     </div>
-
-
-
 
                     <lightning-layout-item size="12" large-device-size="2" padding="around-small"
                         style="margin-bottom: 22px;padding: 28px;">
@@ -107,9 +95,6 @@
                                     Description</th>
                                 <th
                                     style="text-align: center; font-size: 13px; background-color: #9d0b0f; font-weight: bold; padding: 4px 6px; color: white;">
-                                    Sample Request To Plant</th>
-                                <th
-                                    style="text-align: center; font-size: 13px; background-color: #9d0b0f; font-weight: bold; padding: 4px 6px; color: white;">
                                     Rate({currencyIsoCode})</th>
 
                                 <th
@@ -138,11 +123,6 @@
                                     <td>
                                         <lightning-input type="text" value={item.Description} disabled
                                             variant="label-hidden"></lightning-input>
-                                    </td>
-                                    <td>
-                                        <lightning-combobox name="plant" required options={plantOptions}
-                                            value={item.Sample_Request_To_Plant} onchange={handlePlantChange}
-                                            data-index={index} variant="label-hidden"></lightning-combobox>
                                     </td>
                                     <td>
                                         <!-- <lightning-input type="number" value={item.Sales_Price}

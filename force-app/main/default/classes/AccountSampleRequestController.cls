@@ -32,8 +32,6 @@ public with sharing class AccountSampleRequestController {
                                             Sample_Request_Date__c = Date.valueOf((String)sampleData.get('Request_Date')),
                                             Sample_Expected_Date__c = Date.valueOf((String)sampleData.get('Sample_Expected_Date')),
                                             Consignee_Name__c = (String)sampleData.get('Consignee_Name'),
-                                            Send_Email_To_Plant__c = (Boolean)sampleData.get('Send_Email_To_Plant'),
-                                            Additional_Email__c = (String)sampleData.get('Email'),
                                             Remark__c = (String)sampleData.get('Remark'),
                                             Customer_Code__c = String.valueOf(sampleData.get('Customer_Code__c'))
 
@@ -76,7 +74,6 @@ public with sharing class AccountSampleRequestController {
                                             srlItems.add(new Sample_Request_Line_Item__c(
                                                 Sample_Request__c = sampleRequest.Id,
                                                 Product__c = (String)item.get('prodId'),
-                                                Sample_Request_To_Plant__c = (String)item.get('Sample_Request_To_Plant'),
                                                 Sample_Qty_in_Kgs__c = sampleQty,
                                                 CurrencyIsoCode = (String)sampleData.get('CurrencyIsoCode'),
                                                  Sales_Price__c = item.containsKey('Sales_Price') && String.isNotEmpty(String.valueOf(item.get('Sales_Price')))

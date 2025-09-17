@@ -4,37 +4,53 @@ public with sharing class SampleRequestController {
     public static String getLeadInfo(String leadId) {
         Map<String, Object> result = new Map<String, Object>();
         
-        Lead ld = [SELECT Id, Name, Company, CurrencyIsoCode FROM Lead WHERE Id = :leadId LIMIT 1];
-        result.put('lead', new Map<String, Object>{
-            'Consignee_Name' => ld.Company,
-                'CurrencyIsoCode' => ld.CurrencyIsoCode
-                });
+        // Get Lead safely
+        Lead ld = [
+            SELECT Id, Name, Company, CurrencyIsoCode 
+            FROM Lead 
+            WHERE Id = :leadId 
+            LIMIT 1
+        ];
         
+        result.put('lead', new Map<String, Object>{
+            'Consignee_Name'   => ld.Company,
+            'CurrencyIsoCode'  => ld.CurrencyIsoCode
+        });
+        
+        // Fetch related Product Interested records
         List<Product_Interested__c> products = [
             SELECT Id, Product__c, Product__r.Name, 
-            Product__r.ProductCode, Product__r.Description,
-            Product__r.Plant_Name__c, Product_Code__c,
-            Quantity_in_Kgs__c
+                Product__r.ProductCode, Product__r.Description,
+                Product__r.Plant_Name__c, Product_Code__c,
+                Quantity_in_Kgs__c
             FROM Product_Interested__c 
             WHERE Lead__c = :leadId AND New_Product__c = false
             ORDER BY CreatedDate
         ];
         
         List<Map<String, Object>> productLines = new List<Map<String, Object>>();
-        for(Product_Interested__c prod : products) {
+        
+        for (Product_Interested__c prod : products) {
+            // Only keep valid Product Ids
+            String prodId = (prod.Product__c != null) ? String.valueOf(prod.Product__c) : null;
+            if (prodId != null && prodId.length() != 15 && prodId.length() != 18) {
+                prodId = null; // sanitize invalid Ids
+            }
+            
             productLines.add(new Map<String, Object>{
-                'prodId' => prod.Product__c,
-                    'Product' => prod.Product__r != null ? prod.Product__r.Name : '',
-                        'Product_Code' => prod.Product_Code__c,
-                        'Description' => prod.Product__r != null ? prod.Product__r.Description : '',
-                            'productPlant' => prod.Product__r != null ? prod.Product__r.Plant_Name__c : '',
-                                'Sample_Qty_in_Kgs' => prod.Quantity_in_Kgs__c
-                                });
+                'prodId'            => prodId,
+                'Product'           => (prod.Product__r != null ? prod.Product__r.Name : ''),
+                'Product_Code'      => prod.Product_Code__c,
+                'Description'       => (prod.Product__r != null ? prod.Product__r.Description : ''),
+                'Sample_Qty_in_Kgs' => prod.Quantity_in_Kgs__c
+            });
         }
+        
         result.put('piList', productLines);
         
         return JSON.serialize(result);
     }
+
     
     @AuraEnabled(cacheable=true)
     public static List<Plant__c> getPlantOptions() {
@@ -69,8 +85,6 @@ public with sharing class SampleRequestController {
                                             
                                             // Optional fields
                                             sampleRequest.Consignee_Name__c = (String)sampleData.get('Consignee_Name');
-                                            sampleRequest.Send_Email_To_Plant__c = (Boolean)sampleData.get('Send_Email_To_Plant');
-                                            sampleRequest.Additional_Email__c = (String)sampleData.get('Email');
                                             sampleRequest.Remark__c = (String)sampleData.get('Remark');
                                             sampleRequest.Status__c = 'Pending';
                                             sampleRequest.Customer_Code__c = (String)sampleData.get('Customer_Code__c');
@@ -106,7 +120,6 @@ public with sharing class SampleRequestController {
                                                         lineItems.add(new Sample_Request_Line_Item__c(
                                                             Sample_Request__c = sampleRequest.Id,
                                                             Product__c = (String)line.get('prodId'),
-                                                            Sample_Request_To_Plant__c = (String)line.get('Sample_Request_To_Plant'),
                                                             Sample_Qty_in_Kgs__c = line.containsKey('Sample_Qty_in_Kgs') && String.isNotEmpty(String.valueOf(line.get('Sample_Qty_in_Kgs')))
                                                             ? Decimal.valueOf(String.valueOf(line.get('Sample_Qty_in_Kgs')))
                                                             : 0,
