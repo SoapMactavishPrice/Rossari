@@ -323,14 +323,17 @@ export default class CreateQuoteFromOpportunity extends NavigationMixin(Lightnin
                 // First show success toast
                 this.showToast('Success', 'Quote created successfully', 'success');
 
-                // Then call Apex method to send email if needed
-                sendEmailToManagerForQuote({ quoteId: quoteId })
-                    .then(() => {
-                        console.log('Manager email check executed successfully.');
-                    })
-                    .catch(error => {
-                        console.error('Error sending manager email:', error);
-                    });
+                // Add slight delay before calling Apex method
+                setTimeout(() => {
+                    sendEmailToManagerForQuote({ quoteId: quoteId })
+                        .then(() => {
+                            console.log('Manager email check executed successfully.');
+                        })
+                        .catch(error => {
+                            console.error('Error sending manager email:', error);
+                        });
+                }, 1000); // 1-second delay
+
 
                 // Navigate to the new quote record
                 this[NavigationMixin.Navigate]({
@@ -341,6 +344,9 @@ export default class CreateQuoteFromOpportunity extends NavigationMixin(Lightnin
                         actionName: 'view'
                     }
                 });
+                setTimeout(() => {
+                    window.location.reload();
+                }, 2000);
             })
 
 

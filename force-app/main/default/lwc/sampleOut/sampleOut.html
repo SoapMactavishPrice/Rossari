@@ -44,14 +44,14 @@
                 <div class="slds-col slds-size_1-of-4  slds-p-around_x-small">
                     <lightning-record-picker label="Pin Code" object-api-name="Pin_Code__c"
                         placeholder="Search Pin Code..." value={selectedPinCode} onchange={handlePinCodeChange}
-                        disabled={isPinCodeLoading} required>
+                        disabled={isPinCodeLoading}>
                     </lightning-record-picker>
 
                 </div>
 
                 <div class="slds-col slds-size_1-of-4  slds-p-around_x-small">
                     <lightning-record-picker label="City" object-api-name="City__c" value={sampleOut.City}
-                        onchange={handleAddressChange} data-field="City" required>
+                        onchange={handleAddressChange} data-field="City">
                     </lightning-record-picker>
                 </div>
 
@@ -71,7 +71,7 @@
                 <!-- Street Address -->
                 <div class="slds-col slds-size_1-of-4  slds-p-around_x-small">
                     <lightning-textarea label="Street 1" data-field="Street1" value={sampleOut.Street1}
-                        onchange={handleFieldChange} required>
+                        onchange={handleFieldChange}>
                     </lightning-textarea>
                 </div>
 
@@ -111,10 +111,10 @@
                                 style="text-align: center; font-size: 13px; background-color: #9d0b0f; font-weight: bold; padding: 4px 6px; color: white;">
                                 Product Code
                             </th>
-                            <th
+                            <!-- <th
                                 style="text-align: center; font-size: 13px; background-color: #9d0b0f; font-weight: bold; padding: 4px 6px; color: white;">
                                 Sample Request To Plant
-                            </th>
+                            </th> -->
                             <th
                                 style="text-align: center; font-size: 13px; background-color: #9d0b0f; font-weight: bold; padding: 4px 6px; color: white;">
                                 Qty (in Kgs)
@@ -150,12 +150,6 @@
                                     <lightning-input type="text" value={item.Product_Code} disabled
                                         variant="label-hidden">
                                     </lightning-input>
-                                </td>
-                                <td>
-                                    <lightning-combobox data-index={index} data-field="SampleOutPlant"
-                                        value={item.SampleOutPlant} options={plants} onchange={handleLineChange}
-                                        required variant="label-hidden">
-                                    </lightning-combobox>
                                 </td>
                                 <td>
                                     <lightning-input type="number" data-index={index} data-field="SampleQtyInKgs"

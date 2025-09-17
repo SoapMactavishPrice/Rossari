@@ -32,16 +32,20 @@ public static void sendEmailToManagerForQuote(Id quoteId) {
             if (!qlisToUpdate.isEmpty()) {
                 update qlisToUpdate;
                 
+                quote.Status = 'Price Approval';
+        update quote;
+
+                
                 // Send approval email to manager
                 Messaging.SingleEmailMessage managerEmail = new Messaging.SingleEmailMessage();
-             //   managerEmail.setToAddresses(new String[]{quoteOwner.Manager.Email});
+                managerEmail.setToAddresses(new String[]{quoteOwner.Manager.Email});
                 managerEmail.setCCAddresses(new String[]{'sahil@finessedirect.com'});
                 managerEmail.setWhatId(quote.Id);
                 managerEmail.setSubject('Quote Price Approval Required - ' + quote.Name);
                 
                 // Build email body
                 String managerBody = 'Dear Sir,<br/><br/>';
-                managerBody += 'TPlease note that a quote has been identified where the Sales Price is less than the List Price:<br/><br/>';
+                managerBody += 'Please note that a quote has been identified where the Sales Price is less than the List Price:<br/><br/>';
                 managerBody += 'Please provide your approval to proceed with the Sales Price.<br/><br/>';
                 managerBody += '<strong>Quote:</strong> ' + quote.Name + '<br/>';
                 managerBody += '<strong>Link:</strong> ' + quote.Link__c + '<br/><br/>';

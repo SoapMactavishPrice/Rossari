@@ -733,5 +733,50 @@ l.Status = 'Working';
         }
     }
 
-    
+     public static void validateLeadConversion(List<Lead> newLeads, Map<Id, Lead> oldMap) {
+        Set<Id> accountIds = new Set<Id>();
+
+       
+        for (Lead ld : newLeads) {
+            Lead oldLead = oldMap.get(ld.Id);
+            if (ld.IsConverted && !oldLead.IsConverted) {
+                if (ld.ConvertedAccountId != null) {
+                    accountIds.add(ld.ConvertedAccountId);
+                }
+            }
+        }
+
+        if (accountIds.isEmpty()) return;
+
+
+        Map<Id, Account> accMap = new Map<Id, Account>([
+            SELECT Id, RecordTypeId FROM Account WHERE Id IN :accountIds
+        ]);
+
+        
+        Map<Id, RecordType> leadRecordTypes = new Map<Id, RecordType>(
+            [SELECT Id, DeveloperName FROM RecordType WHERE SObjectType = 'Lead']
+        );
+
+        
+        Map<Id, RecordType> accountRecordTypes = new Map<Id, RecordType>(
+            [SELECT Id, DeveloperName FROM RecordType WHERE SObjectType = 'Account']
+        );
+
+        for (Lead ld : newLeads) {
+            Lead oldLead = oldMap.get(ld.Id);
+            if (ld.IsConverted && !oldLead.IsConverted && ld.ConvertedAccountId != null) {
+                Account acc = accMap.get(ld.ConvertedAccountId);
+
+                String leadRecordTypeDevName = leadRecordTypes.get(ld.RecordTypeId)?.DeveloperName;
+                String accountRecordTypeDevName = accountRecordTypes.get(acc.RecordTypeId)?.DeveloperName;
+
+                
+                if ((leadRecordTypeDevName == 'Tristar' || leadRecordTypeDevName == 'Unitop') 
+                    && accountRecordTypeDevName == 'Secondary') {
+                    ld.addError('Leads with Record Type "' + leadRecordTypeDevName + '" must be converted to an Account with Record Type = "Primary", not "Secondary".');
+                }
+            }
+        }
+    }
 }

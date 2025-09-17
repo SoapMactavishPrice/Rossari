@@ -80,9 +80,39 @@ public with sharing class LeadAddressHelper {
         String shippingStreet2,
         String shippingStreet3
     ) {
-        Lead leadToUpdate = new Lead(Id = leadId);
+        Lead existingLead = [SELECT Id, Business_Type__c FROM Lead WHERE Id = :leadId LIMIT 1];
         
-        // Billing
+        // Validate country based on business type
+        if (existingLead.Business_Type__c == 'Export') {
+            if (countryId != null) {
+                Country__c c = [SELECT Name FROM Country__c WHERE Id = :countryId LIMIT 1];
+                if (c.Name == 'India') {
+                    throw new AuraHandledException('India is not allowed for Export.');
+                }
+            }
+            if (shippingCountryId != null) {
+                Country__c sc = [SELECT Name FROM Country__c WHERE Id = :shippingCountryId LIMIT 1];
+                if (sc.Name == 'India') {
+                    throw new AuraHandledException('Shipping Country cannot be India for Export.');
+                }
+            }
+        } else {
+            if (countryId != null) {
+                Country__c c = [SELECT Name FROM Country__c WHERE Id = :countryId LIMIT 1];
+                if (c.Name != 'India') {
+                    throw new AuraHandledException('Only India is allowed for non-Export business.');
+                }
+            }
+            if (shippingCountryId != null) {
+                Country__c sc = [SELECT Name FROM Country__c WHERE Id = :shippingCountryId LIMIT 1];
+                if (sc.Name != 'India') {
+                    throw new AuraHandledException('Only India is allowed for Shipping Country in non-Export business.');
+                }
+            }
+        }
+        
+        // Proceed with update
+        Lead leadToUpdate = new Lead(Id = leadId);
         leadToUpdate.Pin_Code__c = pinCodeId;
         leadToUpdate.City__c = cityId;
         leadToUpdate.State__c = stateId;
@@ -92,10 +122,7 @@ public with sharing class LeadAddressHelper {
         leadToUpdate.Street_1__c = street1;
         leadToUpdate.Street_2__c = street2;
         leadToUpdate.Street_3__c = street3;
-        
         leadToUpdate.Copy_Bill_to_To_Ship_to__c = copyBillingToShipping;
-        
-        // Always set shipping fields (copied or manually entered)
         leadToUpdate.Shipping_Pin_Code__c = shippingPinCodeId;
         leadToUpdate.Shipping_City__c = shippingCityId;
         leadToUpdate.Shipping_State__c = shippingStateId;
@@ -153,4 +180,25 @@ public with sharing class LeadAddressHelper {
             throw new AuraHandledException('Error updating lead status: ' + e.getMessage());
         }
     }
+    
+    @AuraEnabled(cacheable=true)
+    public static List<Country__c> getCountryById(Id countryId) {
+        return [
+            SELECT Id, Name
+            FROM Country__c
+            WHERE Id = :countryId
+            LIMIT 1
+        ];
+    }
+    
+    @AuraEnabled(cacheable=true)
+    public static List<Country__c> getFilteredCountries(String businessType) {
+        if (businessType == 'Export') {
+            return [SELECT Id, Name FROM Country__c WHERE Name != 'India' ORDER BY Name];
+        } else {
+            return [SELECT Id, Name FROM Country__c WHERE Name = 'India'];
+        }
+    }
+    
+
 }

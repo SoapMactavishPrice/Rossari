@@ -120,10 +120,7 @@ export default class SampleOutForm extends NavigationMixin(LightningElement) {
         } else {
             this.sampleOut = {
                 ...this.sampleOut,
-                PinCode: null,
-                City: null,
-                State: null,
-                Country: null
+                PinCode: null
             };
         }
     }
@@ -227,7 +224,6 @@ export default class SampleOutForm extends NavigationMixin(LightningElement) {
                             Description: item.Description__c || '',
                             SampleRequestLine: item.Id,
                             SampleQtyInKgs: item.Sample_Qty_in_Kgs__c || 0,
-                            SampleOutPlant: item.Sample_Request_To_Plant__c,
                             Price: item.Sales_Price__c || 0
                         }));
                     } else {
@@ -255,7 +251,6 @@ export default class SampleOutForm extends NavigationMixin(LightningElement) {
             Description: '',
             SampleRequestLine: null,
             SampleQtyInKgs: 0,
-            SampleOutPlant: null,
             Price: 0
         }];
     }
@@ -287,7 +282,6 @@ export default class SampleOutForm extends NavigationMixin(LightningElement) {
                         Product_Name: '',
                         Product_Code: '',
                         Description: '',
-                        SampleOutPlant: null
                     };
                 } else {
                     // Product selected
@@ -297,7 +291,6 @@ export default class SampleOutForm extends NavigationMixin(LightningElement) {
                         Product_Name: selectedRecord.mainField,
                         Product_Code: selectedRecord.subField || '',
                         Description: selectedRecord.description || '',
-                        SampleOutPlant: selectedRecord.productPlant || ''
                     };
                 }
             }
@@ -319,7 +312,6 @@ export default class SampleOutForm extends NavigationMixin(LightningElement) {
             Description: '',
             SampleRequestLine: null,
             SampleQtyInKgs: 0,
-            SampleOutPlant: null,
             Price: 0
         };
         this.sampleOutLines = [...this.sampleOutLines, newLine];
@@ -353,6 +345,8 @@ export default class SampleOutForm extends NavigationMixin(LightningElement) {
     handleAddressChange(event) {
         const field = event.target.dataset.field;
         const value = event.detail.recordId;
+
+        console.log('Field:', field, 'Value:', value);
         this.sampleOut = { ...this.sampleOut, [field]: value };
     }
 
@@ -406,7 +400,6 @@ export default class SampleOutForm extends NavigationMixin(LightningElement) {
             Product: line.Product,
             SampleRequestLine: line.SampleRequestLine,
             SampleQtyInKgs: line.SampleQtyInKgs,
-            SampleOutPlant: line.SampleOutPlant,
             Price: line.Price,
             Description: line.Description
         }));
@@ -462,17 +455,7 @@ export default class SampleOutForm extends NavigationMixin(LightningElement) {
             this.showError('Missing Required Field', 'Please select Delivery Date');
             return false;
         }
-
-        if (!this.sampleOut.PinCode) {
-            this.showError('Missing Required Field', 'Please select Pin Code');
-            return false;
-        }
-
-        if (!this.sampleOut.City) {
-            this.showError('Missing Required Field', 'Please select City');
-            return false;
-        }
-
+        console.log('State', this.sampleOut.State, 'Boolean State', !this.sampleOut.State);
         if (!this.sampleOut.State) {
             this.showError('Missing Required Field', 'Please select State');
             return false;
@@ -483,11 +466,6 @@ export default class SampleOutForm extends NavigationMixin(LightningElement) {
             return false;
         }
 
-        if (!this.sampleOut.Street1 || this.sampleOut.Street1.trim() === '') {
-            this.showError('Missing Required Field', 'Please enter Street 1');
-            return false;
-        }
-
         // Validate Sample Out Line Items
         for (let i = 0; i < this.sampleOutLines.length; i++) {
             const line = this.sampleOutLines[i];
@@ -495,11 +473,6 @@ export default class SampleOutForm extends NavigationMixin(LightningElement) {
 
             if (!line.Product || line.Product === '' || line.Product === null) {
                 this.showError('Validation Error', 'Please select a Product for all rows');
-                return false;
-            }
-
-            if (!line.SampleOutPlant || line.SampleOutPlant === '' || line.SampleOutPlant === null) {
-                this.showError('Validation Error', 'Please select Plant for all rows');
                 return false;
             }
 

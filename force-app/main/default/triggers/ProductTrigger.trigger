@@ -1,4 +1,4 @@
-trigger productTrigger on Product2 (before insert, before update) {
+trigger ProductTrigger on Product2 (before insert, before update, after insert, after update) {
     
     if (Trigger.isAfter && Trigger.isUpdate) {
         ProductTriggerHandler.updateQuoteLineItem(Trigger.new, Trigger.oldMap);
@@ -37,6 +37,42 @@ trigger productTrigger on Product2 (before insert, before update) {
                     }
                 }
             }
+        }
+    }
+    
+    if (Trigger.isAfter && (Trigger.isInsert || Trigger.isUpdate)) {
+        
+        // Get active standard pricebook
+        Pricebook2 standardPB = [SELECT Id FROM Pricebook2 WHERE IsStandard = true LIMIT 1];
+        
+        // Get all active currencies in the org
+        List<CurrencyType> activeCurrencies = [SELECT IsoCode FROM CurrencyType WHERE IsActive = true];
+        
+        List<PricebookEntry> entriesToInsert = new List<PricebookEntry>();
+        
+        for (Product2 prod : Trigger.New) {
+            // Get old value on update
+            Product2 oldProd = Trigger.isUpdate ? Trigger.oldMap.get(prod.Id) : null;
+            
+            // Run only if flag is true, and on update only when it changed from false → true
+            if (prod.Create_PricebookEntry__c == true &&
+                (!Trigger.isUpdate || oldProd.Create_PricebookEntry__c == false)) {
+                    
+                    for (CurrencyType curr : activeCurrencies) {
+                        entriesToInsert.add(new PricebookEntry(
+                            Pricebook2Id = standardPB.Id,
+                            Product2Id = prod.Id,
+                            UnitPrice = 1, // Customize this value as needed
+                            UseStandardPrice = false,
+                            CurrencyIsoCode = curr.IsoCode,
+                            IsActive = true
+                        ));
+                    }
+                }
+        }
+        
+        if (!entriesToInsert.isEmpty()) {
+            insert entriesToInsert;
         }
     }
 }

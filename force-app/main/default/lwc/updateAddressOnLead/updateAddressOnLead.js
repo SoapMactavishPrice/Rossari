@@ -7,6 +7,10 @@ import getCountriesByRegion from '@salesforce/apex/LeadAddressHelper.getCountrie
 import getRegionOptions from '@salesforce/apex/LeadAddressHelper.getRegionOptions';
 import getZoneOptions from '@salesforce/apex/LeadAddressHelper.getZoneOptions';
 import updateLeadAddressFields from '@salesforce/apex/LeadAddressHelper.updateLeadAddressFields';
+import getCountryById from '@salesforce/apex/LeadAddressHelper.getCountryById';
+import getFilteredCountries from '@salesforce/apex/LeadAddressHelper.getFilteredCountries';
+
+
 
 const FIELDS = [
     // Billing
@@ -32,7 +36,8 @@ const FIELDS = [
     'Lead.Shipping_Street_3__c',
 
     // Checkbox
-    'Lead.Copy_Bill_to_To_Ship_to__c'
+    'Lead.Copy_Bill_to_To_Ship_to__c',
+    'Lead.Business_Type__c'
 ];
 
 
@@ -72,7 +77,6 @@ export default class LeadAddressUpdater extends NavigationMixin(LightningElement
     // Checkbox
     @track copyBillingToShipping = false;
 
-    // Initial data load
     @wire(getRecord, { recordId: '$recordId', fields: FIELDS })
     wiredLead({ error, data }) {
         if (data) {
@@ -98,14 +102,32 @@ export default class LeadAddressUpdater extends NavigationMixin(LightningElement
             this.shippingStreet2 = getFieldValue(data, 'Lead.Shipping_Street_2__c') || '';
             this.shippingStreet3 = getFieldValue(data, 'Lead.Shipping_Street_3__c') || '';
 
-            // Load country options if region is available
+            // ✅ New logic: if region is available, load countries by region
             if (this.regionValue) {
                 this.loadCountriesByRegion(this.regionValue);
             }
+            // ✅ New fallback: if region is NOT present but country is, load that country manually
+            else {
+                const businessType = getFieldValue(data, 'Lead.Business_Type__c') || '';
+                this.businessType = businessType;
+
+                getFilteredCountries({ businessType })
+                    .then(result => {
+                        this.countryOptions = result.map(c => ({
+                            label: c.Name,
+                            value: c.Id
+                        }));
+                    })
+                    .catch(error => {
+                        console.error('Error loading filtered countries:', error);
+                    });
+            }
+
         } else if (error) {
             console.error('Error fetching Lead data:', error);
         }
     }
+
 
 
     connectedCallback() {
@@ -340,29 +362,37 @@ export default class LeadAddressUpdater extends NavigationMixin(LightningElement
                 break;
         }
     }
+
+    isValidId(id) {
+        return typeof id === 'string' && id.length === 18;
+    }
+
+
     handleSuccess() {
         const fieldsToUpdate = {
             leadId: this.recordId,
             // Billing fields
-            pinCodeId: this.currentPinCodeId,
-            cityId: this.cityId,
-            stateId: this.stateId,
-            countryId: this.countryId,
-            region: this.regionValue,
-            zone: this.zoneValue,
-            street1: this.street1,
-            street2: this.street2,
-            street3: this.street3,
-            // Shipping fields - explicitly pass null when empty
+            pinCodeId: this.isValidId(this.currentPinCodeId) ? this.currentPinCodeId : null,
+            cityId: this.isValidId(this.cityId) ? this.cityId : null,
+            stateId: this.isValidId(this.stateId) ? this.stateId : null,
+            countryId: this.isValidId(this.countryId) ? this.countryId : null,
+            region: this.regionValue || null,
+            zone: this.zoneValue || null,
+            street1: this.street1 || null,
+            street2: this.street2 || null,
+            street3: this.street3 || null,
+
+            // Shipping fields
+            shippingPinCodeId: this.isValidId(this.shippingPinCodeId) ? this.shippingPinCodeId : null,
+            shippingCityId: this.isValidId(this.shippingCityId) ? this.shippingCityId : null,
+            shippingStateId: this.isValidId(this.shippingStateId) ? this.shippingStateId : null,
+            shippingCountryId: this.isValidId(this.shippingCountryId) ? this.shippingCountryId : null,
+            shippingRegion: this.shippingRegionValue || null,
+            shippingZone: this.shippingZoneValue || null,
             shippingStreet1: this.shippingStreet1 || null,
             shippingStreet2: this.shippingStreet2 || null,
             shippingStreet3: this.shippingStreet3 || null,
-            shippingPinCodeId: this.shippingPinCodeId || null,
-            shippingCityId: this.shippingCityId || null,
-            shippingStateId: this.shippingStateId || null,
-            shippingCountryId: this.shippingCountryId || null,
-            shippingRegion: this.shippingRegionValue || null,
-            shippingZone: this.shippingZoneValue || null,
+
             copyBillingToShipping: this.copyBillingToShipping
         };
 
@@ -381,6 +411,7 @@ export default class LeadAddressUpdater extends NavigationMixin(LightningElement
                 console.error('Error updating lead fields:', error);
             });
     }
+
     handleCancel() {
         this[NavigationMixin.Navigate]({
             type: 'standard__recordPage',

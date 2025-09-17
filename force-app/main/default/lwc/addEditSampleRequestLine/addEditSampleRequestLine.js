@@ -50,7 +50,6 @@ export default class SampleRequestLineItems extends NavigationMixin(LightningEle
                         productName: item.Product__r.Name,
                         productCode: item.Product__r.ProductCode,
                         description: item.Product__r.Description,
-                        plantId: item.Sample_Request_To_Plant__c,
                         quantity: item.Sample_Qty_in_Kgs__c,
                         status: item.Status__c || ''
                     }));
@@ -90,7 +89,6 @@ export default class SampleRequestLineItems extends NavigationMixin(LightningEle
                     productName: selectedRecord.mainField,
                     productCode: selectedRecord.subField || '',
                     description: selectedRecord.description || selectedRecord.Description || '',
-                    plantId: selectedRecord.productPlant || ''
                 };
             }
             return item;
@@ -107,7 +105,6 @@ export default class SampleRequestLineItems extends NavigationMixin(LightningEle
             productName: null,
             productCode: null,
             description: null,
-            plantId: null,
             quantity: null,
             status: ''
         }];
@@ -171,7 +168,6 @@ export default class SampleRequestLineItems extends NavigationMixin(LightningEle
             const itemsToSave = this.lineItems.map(item => ({
                 id: item.id || null,
                 productId: item.prodId,
-                plantId: item.plantId,
                 quantity: Number(item.quantity),
                 status: item.status
             }));
@@ -221,12 +217,6 @@ export default class SampleRequestLineItems extends NavigationMixin(LightningEle
         this.lineItems.forEach((item, index) => {
             if (!item.prodId) {
                 errorMessage = `Please select a Product for row ${index + 1}`;
-                isValid = false;
-                return;
-            }
-
-            if (!item.plantId) {
-                errorMessage = `Please select a Plant for ${item.productName || 'product'} in row ${index + 1}`;
                 isValid = false;
                 return;
             }

@@ -9,6 +9,7 @@ trigger LeadTrigger on Lead (before insert, before update, after insert, after u
             
             if (Trigger.isUpdate) {
                 LeadTriggerHandler.updateContactInformationOnLeadChange(Trigger.new, Trigger.oldMap);
+                 LeadTriggerHandler.validateLeadConversion(Trigger.new, Trigger.oldMap);
             }
             
             // Rating based on Lead Score

@@ -13,7 +13,6 @@
                             <th scope="col">Product</th>
                             <th scope="col">Product Code</th>
                             <th scope="col">Description</th>
-                            <th scope="col">Plant</th>
                             <th scope="col">Quantity (Kgs)</th>
                             <th scope="col">Status</th>
                             <th scope="col">Actions</th>
@@ -39,11 +38,6 @@
                                     <lightning-input type="text" value={item.description} disabled
                                         variant="label-hidden">
                                     </lightning-input>
-                                </td>
-                                <td>
-                                    <lightning-combobox name="plant" value={item.plantId} options={plantOptions}
-                                        required onchange={handlePlantChange} data-index={index} variant="label-hidden">
-                                    </lightning-combobox>
                                 </td>
                                 <td>
                                     <lightning-input type="number" name="quantity" value={item.quantity} min="0"

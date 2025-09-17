@@ -225,7 +225,6 @@ public with sharing class SampleOutController {
                     Product__c = line.Product,
                     Sample_Request_Line__c = line.SampleRequestLine,
                     Sample_Qty_in_Kgs__c = line.SampleQtyInKgs,  // Changed from Sample_Qty_in_Kgs__c
-                    Sample_Out_Plant__c = line.SampleOutPlant,        // Changed from Sample_Out_Plant__c
                     Price__c = line.Price,                 // Changed from Sales_Price__c
                     Description__c = line.Description
                 ));

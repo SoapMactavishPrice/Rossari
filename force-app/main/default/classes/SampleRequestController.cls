@@ -85,6 +85,7 @@ public with sharing class SampleRequestController {
                                             
                                             // Optional fields
                                             sampleRequest.Consignee_Name__c = (String)sampleData.get('Consignee_Name');
+                                            sampleRequest.Additional_Email__c = (String)sampleData.get('Email');
                                             sampleRequest.Remark__c = (String)sampleData.get('Remark');
                                             sampleRequest.Status__c = 'Pending';
                                             sampleRequest.Customer_Code__c = (String)sampleData.get('Customer_Code__c');
