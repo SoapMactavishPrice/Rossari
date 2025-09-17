@@ -18,7 +18,7 @@ public with sharing class ProformaInvoicePdfController {
                             Bill_To_Name__c, Bill_To_Street__c, Bill_To_City__c, Bill_To_State__c, Bill_To_Zip_Postal_Code__c, Bill_To_Country__c,
                             Ship_To_Name__c, Ship_To_Street__c, Ship_To_City__c, Ship_To_Country__c, Ship_To_Zip_Postal_Code__c, Ship_To_State__c,
                             Bank__r.Bank_Account_No__c, Bank__r.Name, Bank__r.Branch__c, Bank__r.SWIFT_Code__c,
-                            Terms_and_Conditions__c, Declaration__c, Subtotal__c,
+                            Terms_and_Conditions__c, Declaration__c, Subtotal__c, PO_No__c, PO_Date__c, Account_Name__r.GST_No__c,
                             Grand_Total__c FROM Proforma_Invoice__c WHERE Id = :proformaInvoiceId];
 
         this.isExport = proformaInvoice.Business_Type__c == 'Export';
@@ -51,7 +51,7 @@ public with sharing class ProformaInvoicePdfController {
                             Bill_To_Name__c, Bill_To_Street__c, Bill_To_City__c, Bill_To_State__c, Bill_To_Zip_Postal_Code__c, Bill_To_Country__c,
                             Ship_To_Name__c, Ship_To_Street__c, Ship_To_City__c, Ship_To_Country__c, Ship_To_Zip_Postal_Code__c, Ship_To_State__c,
                             Bank__r.Bank_Account_No__c, Bank__r.Name, Bank__r.Branch__c, Bank__r.SWIFT_Code__c,
-                            Terms_and_Conditions__c, Declaration__c, Subtotal__c,
+                            Terms_and_Conditions__c, Declaration__c, Subtotal__c, PO_No__c, PO_Date__c, Account_Name__r.GST_No__c,
                             Grand_Total__c FROM Proforma_Invoice__c WHERE Id = :proformaInvoiceId];
 
         this.isExport = proformaInvoice.Business_Type__c == 'Export';
@@ -170,12 +170,12 @@ public with sharing class ProformaInvoicePdfController {
         html += '</tr>';
 
         html += '<tr>';
-        html += '<td style="' + leftBorder + '">Buyer Ref No.: (HC)</td>';
+        html += '<td style="' + leftBorder + '">Buyer Ref No.: ' + ns(proformaInvoice.PO_No__c) + '</td>';
         html += '<td style="' + borderless + '">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;A/c No.: ' + ns(proformaInvoice.Bank__r.Bank_Account_No__c) + '</td>';
         html += '</tr>';
 
         html += '<tr>';
-        html += '<td style="' + leftBorder + '">Buyer Ref Date: (HC)</td>';
+        html += '<td style="' + leftBorder + '">Buyer Ref Date: ' + (proformaInvoice.PO_Date__c != null ? proformaInvoice.PO_Date__c.format() : '') + '</td>';
         html += '<td style="' + borderless + '">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Bank Name: ' + ns(proformaInvoice.Bank__r.Name) + '</td>';
         html += '</tr>';
 
@@ -188,7 +188,7 @@ public with sharing class ProformaInvoicePdfController {
         html += '<td style="' + leftBorder + '">Currency: ' + ns(proformaInvoice.CurrencyIsoCode) + '</td>';
         html += '<td style="' + borderless + '">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Swift Code: ' + ns(proformaInvoice.Bank__r.SWIFT_Code__c) + '</td>';
         if (!isExport) {
-            html += '<td style="' + doubleBorder + '" colspan="2">GSTIN: (HC)</td>';
+            html += '<td style="' + doubleBorder + '" colspan="2">GSTIN: ' + ns(proformaInvoice.Account_Name__r.GST_No__c) + '</td>';
         }
         html += '</tr>';
         html += '</table>';
@@ -228,7 +228,7 @@ public with sharing class ProformaInvoicePdfController {
             html += '<tr><td style="' + leftBorder + '"></td><td style="' + borderless + '"></td></tr>';
             html += '<tr><td style="' + leftBorder + '"></td><td style="' + borderless + '"></td></tr>';
             html += '<tr><td style="' + leftBorder + '"></td><td style="' + borderless + '"></td></tr>';
-            html += '<tr><td style="' + leftBorder + '"></td><td style="' + borderless + '"></td><td style="' + doubleBorder + '" colspan="2">GSTIN: (HC)</td></tr>';
+            html += '<tr><td style="' + leftBorder + '"></td><td style="' + borderless + '"></td><td style="' + doubleBorder + '" colspan="2">GSTIN: ' + ns(proformaInvoice.Account_Name__r.GST_No__c) + '</td></tr>';
         }
         html += '</table>';
 

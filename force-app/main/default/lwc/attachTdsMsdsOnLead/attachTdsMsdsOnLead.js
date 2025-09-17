@@ -53,7 +53,7 @@ export default class AttachTdsMsdsOnLead extends NavigationMixin(LightningElemen
     }
 
     get isRequestDocumentButtonDisabled() {
-        return this.approverModel.tdsApproverId == null || this.approverModel.msdsApproverId == null || this.approverModel.technicalDocApproverId == null;
+        return !this.approverModel.tdsApproverId && !this.approverModel.msdsApproverId && !this.approverModel.technicalDocApproverId;
     }
 
     @track viewTypeOptions = [
@@ -249,8 +249,7 @@ export default class AttachTdsMsdsOnLead extends NavigationMixin(LightningElemen
         uploadDocuments({tdsFiles: this.documentModel.tdsFiles, msdsFiles: this.documentModel.msdsFiles, technicalDocumentFiles: this.documentModel.technicalDocumentFiles, leadId: this.rId}).then((result)=>{
             if (result == 'Success') {
                 this.showToast('Success', 'success', 'Files uploaded successfully');
-                this.getDocumentDetails();
-                this.isSaveDisabled = false;
+                this.backTorecord();
             }
         }).catch((error)=>{
             this.isSaveDisabled = false;

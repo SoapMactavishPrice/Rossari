@@ -11,9 +11,15 @@ public class DocumentApprovalHandler {
                              TDS_Approver__c, MSDS_Approver__c, Technical_Document_Approver__c 
                              FROM Lead WHERE Id = :leadId];
             
-            leadRecord.TDS_Approver__c = approvers.tdsApproverId;
-            leadRecord.MSDS_Approver__c = approvers.msdsApproverId;
-            leadRecord.Technical_Document_Approver__c = approvers.technicalDocApproverId;
+            if (approvers.tdsApproverId != null) {
+                leadRecord.TDS_Approver__c = approvers.tdsApproverId;
+            }
+            if (approvers.msdsApproverId != null) {
+                leadRecord.MSDS_Approver__c = approvers.msdsApproverId;
+            }
+            if (approvers.technicalDocApproverId != null) {
+                leadRecord.Technical_Document_Approver__c = approvers.technicalDocApproverId;
+            }
             
             update leadRecord;
             
@@ -75,27 +81,25 @@ public class DocumentApprovalHandler {
     
     private static Messaging.SingleEmailMessage createApprovalEmail(User approver, Lead leadRecord, String documentType) {
         Messaging.SingleEmailMessage email = new Messaging.SingleEmailMessage();
-        
-        
+
         email.setToAddresses(new List<String>{approver.Email});
-        
         email.setCcAddresses(new List<String>{leadRecord.Owner.Email});
 
         email.setSubject('Request for ' + documentType + ' Document - ' + leadRecord.Company);
-        
-        
-        String body = 'Dear ' + approver.Name + ',\n\n';
-        body += 'There is a request for a ' + documentType + ' document for the below Lead:\n';
-        body += 'Lead First Name: ' + leadRecord.FirstName + '\n';
-        body += 'Lead Last Name: ' + leadRecord.LastName + '\n';
-        body += 'Company: ' + leadRecord.Company + '\n';
-        body += 'URL: https://rossari--devorg.sandbox.lightning.force.com/lightning/cmp/c__AttachTdsMsdsOnOppCaller?c__recordId=' + leadRecord.Id + '\n\n';
-        body += 'Kindly review and provide the required document.\n\n\n';
-        body += 'Regards,\n';
-        body += leadRecord.Owner.Name;
-        
-        email.setPlainTextBody(body);
-        
+
+        String htmlBody = 'Dear ' + approver.Name + ',<br/><br/>';
+        htmlBody += 'There is a request for a ' + documentType + ' document for the below Lead:<br/><br/>';
+        htmlBody += '<b>Lead First Name:</b> ' + leadRecord.FirstName + '<br/>';
+        htmlBody += '<b>Lead Last Name:</b> ' + leadRecord.LastName + '<br/>';
+        htmlBody += '<b>Company:</b> ' + leadRecord.Company + '<br/>';
+        htmlBody += '<b>URL:</b> <a href="https://rossari--devorg.sandbox.lightning.force.com/lightning/cmp/c__AttachTdsMsdsOnOppCaller?c__recordId=' 
+                    + leadRecord.Id + '" target="_blank">Click here</a><br/><br/>';
+        htmlBody += 'Kindly review and provide the required document.<br/><br/>';
+        htmlBody += 'Regards,<br/>';
+        htmlBody += leadRecord.Owner.Name;
+
+        email.setHtmlBody(htmlBody);
+
         return email;
     }
     
@@ -261,20 +265,22 @@ public class DocumentApprovalHandler {
         Messaging.SingleEmailMessage email = new Messaging.SingleEmailMessage();
         email.setToAddresses(new List<String>{lead.Owner.Email});
         email.setSubject(documentType + ' Document Uploaded - ' + lead.Company);
-        
-        String body = 'Dear ' + lead.Owner.Name + ',\n\n';
-        body += 'The requested ' + documentType + ' document for the below Lead has been successfully uploaded:\n';
-        body += 'Lead First Name: ' + lead.FirstName + '\n';
-        body += 'Lead Last Name: ' + lead.LastName + '\n';
-        body += 'Company: ' + lead.Company + '\n';
-        body += 'URL: https://rossari--devorg.sandbox.lightning.force.com/lightning/cmp/c__AttachTdsMsdsOnOppCaller?c__recordId=' + lead.Id + '\n\n';
-        body += 'Please confirm if any further action is required.\n\n\n';
-        body += 'Regards,\n';
-        body += approverName;
-        
-        email.setPlainTextBody(body);
+
+        String htmlBody = 'Dear ' + lead.Owner.Name + ',<br/><br/>';
+        htmlBody += 'The requested ' + documentType + ' document for the below Lead has been successfully uploaded:<br/><br/>';
+        htmlBody += '<b>Lead First Name:</b> ' + lead.FirstName + '<br/>';
+        htmlBody += '<b>Lead Last Name:</b> ' + lead.LastName + '<br/>';
+        htmlBody += '<b>Company:</b> ' + lead.Company + '<br/>';
+        htmlBody += '<b>URL:</b> <a href="https://rossari--devorg.sandbox.lightning.force.com/lightning/cmp/c__AttachTdsMsdsOnOppCaller?c__recordId=' 
+                    + lead.Id + '" target="_blank">Click here</a><br/><br/>';
+        htmlBody += 'Please confirm if any further action is required.<br/><br/>';
+        htmlBody += 'Regards,<br/>';
+        htmlBody += approverName;
+
+        email.setHtmlBody(htmlBody);
         return email;
     }
+
     
     private static ContentVersion createContentVersion(String title, String base64Content, String contentType) {
         ContentVersion cv = new ContentVersion();
@@ -487,12 +493,17 @@ public class DocumentApprovalHandler {
             this.isTechnicalDocDisabled = !(leadRecord.Technical_Document_Approver__c == currentUserId);
             
             
-            this.tdsApproverName = leadRecord.TDS_Approver__r.Name;
-            this.msdsApproverName = leadRecord.MSDS_Approver__r.Name;
-            this.technicalDocApproverName = leadRecord.Technical_Document_Approver__r.Name;
-            
-            
-            this.isAccessEnabled = this.isTdsUploaded && this.isMsdsUploaded && this.isTechnicalDocUploaded;
+            this.tdsApproverName = leadRecord.TDS_Approver__r != null ? leadRecord.TDS_Approver__r.Name : null;
+            this.msdsApproverName = leadRecord.MSDS_Approver__r != null ? leadRecord.MSDS_Approver__r.Name : null;
+            this.technicalDocApproverName = leadRecord.Technical_Document_Approver__r != null 
+                ? leadRecord.Technical_Document_Approver__r.Name 
+                : null;
+
+            Boolean tdsOk = String.isBlank(this.tdsApproverName) || this.isTdsUploaded;
+            Boolean msdsOk = String.isBlank(this.msdsApproverName) || this.isMsdsUploaded;
+            Boolean techOk = String.isBlank(this.technicalDocApproverName) || this.isTechnicalDocUploaded;
+
+            this.isAccessEnabled = tdsOk && msdsOk && techOk;
             
             this.isSaveDisabled = this.isTdsDisabled && this.isMsdsDisabled && this.isTechnicalDocDisabled;
         }

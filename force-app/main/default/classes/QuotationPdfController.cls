@@ -17,7 +17,7 @@ public with sharing class QuotationPdfController {
                             Destination__c, Loading_Port__c, Destination_Port__c, Place_of_Supplier__c, Partial_Shipment__c, ShippingName,
                             BillingStreet, BillingCity, BillingState, BillingPostalCode, BillingCountry, Business_Type__c, Vessel_Flight_No__c, Pre_Carriage_Destination__c,
                             ShippingStreet, ShippingCity, ShippingCountry, ShippingPostalCode, ShippingState, Terms_and_Conditions__c, Declaration__c,
-                            Bank__r.Bank_Account_No__c, Bank__r.Name, Bank__r.Branch__c, Bank__r.SWIFT_Code__c, Subtotal,
+                            Bank__r.Bank_Account_No__c, Bank__r.Name, Bank__r.Branch__c, Bank__r.SWIFT_Code__c, Subtotal, PO_No__c, PO_Date__c, Account.GST_No__c,
                             ShippingAddress, GrandTotal FROM Quote WHERE Id = :quotationId];
 
         this.isExport = quotation.Business_Type__c == 'Export';
@@ -49,7 +49,7 @@ public with sharing class QuotationPdfController {
                             Destination__c, Loading_Port__c, Destination_Port__c, Place_of_Supplier__c, Partial_Shipment__c, ShippingName,
                             BillingStreet, BillingCity, BillingState, BillingPostalCode, BillingCountry, Business_Type__c, Vessel_Flight_No__c, Pre_Carriage_Destination__c,
                             ShippingStreet, ShippingCity, ShippingCountry, ShippingPostalCode, ShippingState, Terms_and_Conditions__c, Declaration__c,
-                            Bank__r.Bank_Account_No__c, Bank__r.Name, Bank__r.Branch__c, Bank__r.SWIFT_Code__c, Subtotal,
+                            Bank__r.Bank_Account_No__c, Bank__r.Name, Bank__r.Branch__c, Bank__r.SWIFT_Code__c, Subtotal, PO_No__c, PO_Date__c, Account.GST_No__c,
                             ShippingAddress, GrandTotal FROM Quote WHERE Id = :quotationId];
 
         this.isExport = quotation.Business_Type__c == 'Export';
@@ -168,12 +168,12 @@ public with sharing class QuotationPdfController {
         html += '</tr>';
 
         html += '<tr>';
-        html += '<td style="' + leftBorder + '">Buyer Ref No.: (HC)</td>';
+        html += '<td style="' + leftBorder + '">Buyer Ref No.: ' + ns(quotation.PO_No__c) + '</td>';
         html += '<td style="' + borderless + '">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;A/c No.: ' + ns(quotation.Bank__r.Bank_Account_No__c) + '</td>';
         html += '</tr>';
 
         html += '<tr>';
-        html += '<td style="' + leftBorder + '">Buyer Ref Date: (HC)</td>';
+        html += '<td style="' + leftBorder + '">Buyer Ref Date: ' + (quotation.PO_Date__c != null ? quotation.PO_Date__c.format() : '') + '</td>';
         html += '<td style="' + borderless + '">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Bank Name: ' + ns(quotation.Bank__r.Name) + '</td>';
         html += '</tr>';
 
@@ -186,7 +186,7 @@ public with sharing class QuotationPdfController {
         html += '<td style="' + leftBorder + '">Currency: ' + ns(quotation.CurrencyIsoCode) + '</td>';
         html += '<td style="' + borderless + '">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Swift Code: ' + ns(quotation.Bank__r.SWIFT_Code__c) + '</td>';
         if (!isExport) {
-            html += '<td style="' + doubleBorder + '" colspan="2">GSTIN: (HC)</td>';
+            html += '<td style="' + doubleBorder + '" colspan="2">GSTIN: ' + ns(quotation.Account.GST_No__c) + '</td>';
         }
         html += '</tr>';
         html += '</table>';
@@ -226,7 +226,7 @@ public with sharing class QuotationPdfController {
             html += '<tr><td style="' + leftBorder + '"></td><td style="' + borderless + '"></td></tr>';
             html += '<tr><td style="' + leftBorder + '"></td><td style="' + borderless + '"></td></tr>';
             html += '<tr><td style="' + leftBorder + '"></td><td style="' + borderless + '"></td></tr>';
-            html += '<tr><td style="' + leftBorder + '"></td><td style="' + borderless + '"></td><td style="' + doubleBorder + '" colspan="2">GSTIN: (HC)</td></tr>';
+            html += '<tr><td style="' + leftBorder + '"></td><td style="' + borderless + '"></td><td style="' + doubleBorder + '" colspan="2">GSTIN: ' + ns(quotation.Account.GST_No__c) + '</td></tr>';
         }
         html += '</table>';
 

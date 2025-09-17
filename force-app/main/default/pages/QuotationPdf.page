@@ -120,11 +120,13 @@
             </apex:outputPanel>
         </tr>
         <tr>
-            <td class="leftBorder">Buyer Ref No.: (HC)</td>
+            <td class="leftBorder">Buyer Ref No.: {!quotation.PO_No__c}</td>
             <td class="borderlessClean">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;A/c No.: {!quotation.Bank__r.Bank_Account_No__c}</td>
         </tr>
         <tr>
-            <td class="leftBorder">Buyer Ref Date: (HC)</td>
+            <td class="leftBorder">Buyer Ref Date: <apex:outputText value="{0,date,dd/MM/yyyy}">
+                                                        &nbsp;<apex:param value="{!quotation.PO_Date__c}" />
+                                                    </apex:outputText></td>
             <td class="borderlessClean">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Bank Name: {!quotation.Bank__r.Name}</td>
         </tr>
         <tr>
@@ -139,7 +141,7 @@
             <td class="leftBorder">Currency: {!quotation.CurrencyIsoCode}</td>
             <td class="borderlessClean">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Swift Code: {!quotation.Bank__r.SWIFT_Code__c}</td>
             <apex:outputPanel layout="none" rendered="{!NOT(isExport)}">
-                <td class="doubleBorder" colspan="2">GSTIN: (HC)</td>
+                <td class="doubleBorder" colspan="2">GSTIN: {!quotation.Account.GST_No__c}</td>
             </apex:outputPanel>
         </tr>
     </table>
@@ -210,7 +212,7 @@
             <tr>
                 <td class="leftBorder"></td>
                 <td class="borderlessClean"></td>
-                <td class="doubleBorder" colspan="2">GSTIN: (HC)</td>
+                <td class="doubleBorder" colspan="2">GSTIN: {!quotation.Account.GST_No__c}</td>
             </tr>
         </table>
     </apex:outputPanel>
