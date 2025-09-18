@@ -1,7 +1,7 @@
 import { LightningElement, wire, track } from 'lwc';
-import findProducts from '@salesforce/apex/AddProductPageOpp.findProduct';
-import saveProducts from '@salesforce/apex/AddProductPageOpp.saveProducts';
-import getproductfamily from '@salesforce/apex/AddProductPageOpp.getproductfamily';
+import findProducts from '@salesforce/apex/AddProductPageQuote.findProduct';
+import saveProducts from '@salesforce/apex/AddProductPageQuote.saveProducts';
+import getproductfamily from '@salesforce/apex/AddProductPageQuote.getproductfamily';
 import { ShowToastEvent } from 'lightning/platformShowToastEvent';
 import { RefreshEvent } from 'lightning/refresh';
 const DELAY = 300;

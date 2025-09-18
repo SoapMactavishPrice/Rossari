@@ -82,6 +82,10 @@ public with sharing class SampleRequestController {
                                             if (sampleData.containsKey('Sample_Expected_Date') && sampleData.get('Sample_Expected_Date') != null) {
                                                 sampleRequest.Sample_Expected_Date__c = Date.valueOf((String)sampleData.get('Sample_Expected_Date'));
                                             }
+
+                                            if (sampleData.containsKey('salesHod') && sampleData.get('salesHod') != null) {
+                                                sampleRequest.Sales_HOD__c = (String) sampleData.get('salesHod');
+                                            }
                                             
                                             // Optional fields
                                             sampleRequest.Consignee_Name__c = (String)sampleData.get('Consignee_Name');

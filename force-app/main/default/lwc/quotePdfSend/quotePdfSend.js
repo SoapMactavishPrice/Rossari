@@ -53,7 +53,8 @@ export default class QuotePdfSend extends NavigationMixin(LightningElement) {
                 this.getUser();
                 this.getEmailDetails();
                 this.fetchEmailBody();
-            } else {
+            } 
+            else {
                 this.showSuccess('Error', 'Customer type is not defined', 'Error');
                 this.handleCancel();
             }

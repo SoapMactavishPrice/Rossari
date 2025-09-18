@@ -35,12 +35,12 @@ public class ProformaInvoiceController {
                 WHERE Id = :quoteId 
             ];
             
-             if (quote.QuoteLineItems.isEmpty()) {
+         /*    if (quote.QuoteLineItems.isEmpty()) {
                 ApexPages.addMessage(new ApexPages.Message(ApexPages.Severity.ERROR, 
                                                            'Cannot create Proforma Invoice. No Quote Line Items with "Won" status found.'));
                 showCancelButton = true;
                 return null;
-            }
+            }	*/
             
             if (quote.Status != 'Accepted') {
                 ApexPages.addMessage(new ApexPages.Message(ApexPages.Severity.ERROR, 

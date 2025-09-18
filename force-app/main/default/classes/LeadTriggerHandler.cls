@@ -531,11 +531,38 @@ l.Status = 'Working';
                     
                     Opportunity opp = oppMap.get(lead.ConvertedOpportunityId);
                     
+                    // Get current user
+                    User currentUser = [SELECT Id, Entity_Code_1__c, Entity_Code_2__c, Entity_Code_3__c FROM User WHERE Id = :UserInfo.getUserId()];
+                    
+                    // Collect all non-null entity codes
+                    Set<String> entityCodes = new Set<String>();
+                    if (currentUser.Entity_Code_1__c != null) entityCodes.add(currentUser.Entity_Code_1__c);
+                    if (currentUser.Entity_Code_2__c != null) entityCodes.add(currentUser.Entity_Code_2__c);
+                    if (currentUser.Entity_Code_3__c != null) entityCodes.add(currentUser.Entity_Code_3__c);
+                    
+                    // Find matching Sales HOD user
+                    User hodUser = null;
+                    if (!entityCodes.isEmpty()) {
+                        List<User> hodUsers = [
+                            SELECT Id FROM User 
+                            WHERE Is_Sales_HOD__c = true AND (
+                                Entity_Code_1__c IN :entityCodes OR 
+                                Entity_Code_2__c IN :entityCodes OR 
+                                Entity_Code_3__c IN :entityCodes
+                            )
+                            LIMIT 1
+                        ];
+                        if (!hodUsers.isEmpty()) {
+                            hodUser = hodUsers[0];
+                        }
+                    }
+                    
                     Quote quote = new Quote(
                         Name = opp.Name,
                         OpportunityId = opp.Id,
                         Pricebook2Id = opp.Pricebook2Id,
                         ContactId = lead.ConvertedContactId,
+                 //       Letter_Company_Name__c = 'a05C1000004Fd1xIAC',
                         
                         // Mapped fields from Lead to Quote
                         Inco_Terms__c = lead.Inco_Terms__c,
@@ -554,6 +581,7 @@ l.Status = 'Working';
                         Vessel_Flight_No__c = lead.Vessel_Flight_No__c,
                         Email	= lead.Email,
                         Phone	= lead.MobilePhone,
+                        HOD_of_Sales_Department__c = hodUser != null ? hodUser.Id : null,
                         
                         BillingStreet = 
                         (lead.Street_1__c != null ? lead.Street_1__c + '\n' : '') +
@@ -689,8 +717,8 @@ l.Status = 'Working';
     public static void setRossariCompanyOnAccount(List<Lead> newLeads, Map<Id, Lead> oldLeadMap) {
         Map<String, String> recordTypeToCompanyName = new Map<String, String>{
             'RBL' => 'Rossari Biotech Limited',
-                'Tristar' => 'Tristar Intermediates Private Limited', 
-                'Unitop' => 'Unitop Chemicals Private Limited'
+                'Tristar' => 'Rossari Biotech Limited', 
+                'Unitop' => 'Rossari Biotech Limited'
                 };
                     
                     Set<Id> convertedLeadIds = new Set<Id>();

@@ -1,7 +1,7 @@
 public with sharing class ReusableLookupController {
     @AuraEnabled
     public static List<ResultWrapper> fetchRecords(SearchWrapper inputWrapper, string currencyCode) {
-        try {
+        // try {
             // Validate input parameters
             if (inputWrapper == null) {
                 throw new AuraHandledException('Input parameters cannot be null');
@@ -16,10 +16,13 @@ public with sharing class ReusableLookupController {
             Boolean isPricebookEntry = inputWrapper.objectApiName == 'PricebookEntry';
             Boolean isProduct = inputWrapper.objectApiName == 'Product2';
             String fieldsToQuery;
+
+            List<String> productIds = Utility.getUserDivisionProductList(UserInfo.getUserId());
             
             // Step 1: Compose the SELECT clause
             if (isPricebookEntry) {
                 // Fields for PricebookEntry
+
                 fieldsToQuery = 'SELECT Id, Product2Id, UnitPrice, Product2.Name, Product2.ProductCode, ' +
                                'Product2.Family, Product2.Plant_Name__c, Product2.Description, ' +
                                'CurrencyIsoCode ' +
@@ -40,9 +43,11 @@ public with sharing class ReusableLookupController {
                 }
                 fieldsToQuery += ' FROM ' + inputWrapper.objectApiName;
             }
-            
-            // Step 2: Build WHERE filter
             String filterCriteria = '';
+            // Step 2: Build WHERE filter
+            if (isProduct && String.isBlank(inputWrapper.selectedRecordId)) {
+                filterCriteria = 'Id IN :productIds';
+            }
             
             // Add currency filter only for PricebookEntry
             if (isPricebookEntry && String.isNotBlank(currencyCode)) {
@@ -134,10 +139,10 @@ public with sharing class ReusableLookupController {
             
             system.debug('returnWrapperList==>'+returnWrapperList);
             return returnWrapperList;
-        } catch (Exception err) {
-            System.debug('Error at line: ' + err.getLineNumber() + ' - ' + err.getMessage());
-            throw new AuraHandledException(err.getMessage());
-        }
+        // } catch (Exception err) {
+        //     System.debug('Error at line: ' + err.getLineNumber() + ' - ' + err.getMessage());
+        //     throw new AuraHandledException(err.getMessage());
+        // }
     }
     
     public class ResultWrapper {

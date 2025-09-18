@@ -28,6 +28,12 @@ export default class SampleRequestForm extends NavigationMixin(LightningElement)
     };
     @track filteredSAPDocTypeOptions = [];
 
+    @track salesHod = null;
+
+    handleSalesHodChange(event) {
+        this.salesHod = event.detail.recordId;
+    }
+
     todayDate = new Date().toISOString().split('T')[0];
     @track leadNumber = '';
     @track zone = '';
@@ -437,6 +443,7 @@ export default class SampleRequestForm extends NavigationMixin(LightningElement)
             Sample_Category: this.selectedSampleCategory,
             SAP_Doc_Type: this.selectedSAPDocType,
             Customer_Code__c: this.leadNumber,
+            salesHod: this.salesHod,
             Zone__c: this.zone
         };
 

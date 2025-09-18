@@ -82,6 +82,7 @@ export default class AttachTdsMsdsOnLead extends NavigationMixin(LightningElemen
     }
 
     getViewType() {
+        console.log('getViewType leadId', this.rId)
         getPreviousViewType({leadId: this.rId}).then((result)=>{
             this.viewType = result;
         }).catch((error)=>{
@@ -328,7 +329,7 @@ export default class AttachTdsMsdsOnLead extends NavigationMixin(LightningElemen
     }
 
     connectedCallback() {
-
+        console.log('leadId', this.rId);
         Promise.all([
             this.getViewType()
         ])

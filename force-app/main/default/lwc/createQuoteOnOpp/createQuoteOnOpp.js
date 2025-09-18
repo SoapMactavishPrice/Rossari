@@ -256,6 +256,13 @@ export default class CreateQuoteFromOpportunity extends NavigationMixin(Lightnin
             return false;
         }
 
+
+        if (!this.quoteFields.contactId) {
+            this.showToast('Error', 'Please select a Contact', 'error');
+            return false;
+        }
+
+
         if (!this.quoteFields.expirationDate) {
             this.showToast('Error', 'Please select an expiration date', 'error');
             return false;

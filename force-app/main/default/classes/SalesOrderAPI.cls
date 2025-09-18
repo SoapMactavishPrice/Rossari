@@ -431,7 +431,13 @@ global class SalesOrderAPI {
                             //     uomCodeMap.put(uom.Name, uom);
                             // }
                             Map < String, PricebookEntry > pricebookEntryMap = new Map < String, PricebookEntry > ();
-                            for (PricebookEntry entry: [SELECT Id, Product2Id, Product2.ProductCode FROM PricebookEntry WHERE Pricebook2Id =: ord.Pricebook2Id AND Product2.ProductCode IN: productCodes]) {
+                            for (PricebookEntry entry: [
+                                SELECT Id, Product2Id, Product2.ProductCode, CurrencyIsoCode 
+                                FROM PricebookEntry 
+                                WHERE Pricebook2Id = :ord.Pricebook2Id 
+                                AND Product2.ProductCode IN :productCodes
+                                AND CurrencyIsoCode = :ord.CurrencyIsoCode
+                            ]) {
                                 pricebookEntryMap.put(entry.Product2.ProductCode, entry);
                             }
                             Map < String, OrderItem > mpOrderLineItemList = new Map < String, OrderItem > ();
@@ -443,9 +449,15 @@ global class SalesOrderAPI {
                                 if (String.isNotBlank(item.SFDC_LINE_ITEM_ID)) {
                                     orderItem.Id = item.SFDC_LINE_ITEM_ID;
                                 } else {
+                                    if (!pricebookEntryMap.containsKey(item.MATERIAL)) {
+                                        apiLog.Response__c = 'No pricebook entry found for product ' + item.MATERIAL + ' with currency ' + ord.CurrencyIsoCode;
+                                        apiLog.Status__c = 'Failed';
+                                        continue;
+                                    }
                                     orderItem.OrderId = ord.Id;
                                     orderItem.Product2Id = product2Map.get(item.MATERIAL).Id;
                                     orderItem.PricebookEntryId = pricebookEntryMap.get(item.MATERIAL).Id;
+                                    // Currency is automatically set from the PricebookEntry
                                     // orderItem.Material_Group_1_Temp__c = product2Map.get(item.MATERIAL).Material_Group_1__c;
                                 }
                                 if (String.isNotBlank(item.ITEM_NUM)) {

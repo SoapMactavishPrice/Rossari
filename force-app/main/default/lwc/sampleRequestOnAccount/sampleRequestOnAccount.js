@@ -31,6 +31,12 @@ export default class AccountSampleRequest extends NavigationMixin(LightningEleme
     @track zone = '';
     @track accountNumber = '';
 
+    @track salesHod = null;
+
+    handleSalesHodChange(event) {
+        this.salesHod = event.detail.recordId;
+    }
+
 
 
     todayDate = new Date().toISOString().split('T')[0];
@@ -410,6 +416,7 @@ export default class AccountSampleRequest extends NavigationMixin(LightningEleme
             SAP_Doc_Type: this.selectedSAPDocType,
             Zone__c: this.zone,
             Customer_Code__c: this.accountNumber,
+            salesHod: this.salesHod,
         };
     }
 

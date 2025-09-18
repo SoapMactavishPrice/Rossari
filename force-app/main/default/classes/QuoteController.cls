@@ -81,16 +81,45 @@ public with sharing class QuoteController {
         // Get opportunity
         Opportunity opp = [SELECT Id,Pricebook2Id,CurrencyIsoCode, AccountId, Name FROM Opportunity WHERE Id = :opportunityId];
         
+        // Get current user
+        User currentUser = [SELECT Id, Entity_Code_1__c, Entity_Code_2__c, Entity_Code_3__c FROM User WHERE Id = :UserInfo.getUserId()];
+        
+        // Collect all non-null entity codes
+        Set<String> entityCodes = new Set<String>();
+        if (currentUser.Entity_Code_1__c != null) entityCodes.add(currentUser.Entity_Code_1__c);
+        if (currentUser.Entity_Code_2__c != null) entityCodes.add(currentUser.Entity_Code_2__c);
+        if (currentUser.Entity_Code_3__c != null) entityCodes.add(currentUser.Entity_Code_3__c);
+        
+        // Find matching Sales HOD user
+        User hodUser = null;
+        if (!entityCodes.isEmpty()) {
+            List<User> hodUsers = [
+                SELECT Id FROM User 
+                WHERE Is_Sales_HOD__c = true AND (
+                    Entity_Code_1__c IN :entityCodes OR 
+                    Entity_Code_2__c IN :entityCodes OR 
+                    Entity_Code_3__c IN :entityCodes
+                )
+                LIMIT 1
+            ];
+            if (!hodUsers.isEmpty()) {
+                hodUser = hodUsers[0];
+            }
+        }
+        
+        
         // Create the quote with all fields
         Quote quote = new Quote(
             Name = quoteName,
             OpportunityId = opp.Id,
             Status = status,
+          //  Letter_Company_Name__c = 'a05C1000004Fd1xIAC',
             ExpirationDate = expirationDate,
             Quote_Valid_From__c = Date.today(),
             Pricebook2Id = String.isNotBlank(pricebookId) ? pricebookId : opp.Pricebook2Id,
             CurrencyIsoCode = String.isNotBlank(currencyCode) ? currencyCode : opp.CurrencyIsoCode,
             ContactId = String.isNotBlank(contactId) ? contactId : null,
+            HOD_of_Sales_Department__c = hodUser != null ? hodUser.Id : null,
             Terms_and_Conditions__c =
             'All bank charges outside India will be borne by the customer and such charges should not be deducted from our payment.\n' +
             'We should receive full invoice amount in our bank account and you are liable to pay the bank charges which are applicable in India only.\n' +

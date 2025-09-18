@@ -13,6 +13,8 @@ global class AccountMaster_API {
     public static Map < String, Customer_Sales_Area__c > csaMap = new Map < String, Customer_Sales_Area__c > ();
     public static Map<String, Id> sapCodeToIdMap = new Map<String, Id>();
     public static List<AccountMasterRequest> accountRequests = new List<AccountMasterRequest> ();
+    public static Map<String, Payment_Term__c> ptMap = new Map<String, Payment_Term__c>();
+    public static Map<String, Sales_District__c> sdMap = new Map<String, Sales_District__c>();
     
     @HttpPost
     global static void upsertAccountMaster() {
@@ -181,6 +183,28 @@ global class AccountMaster_API {
                 csaMap.put(mapKeyStr, va);
             }
 
+            // Get Existing Payment Term
+            List<Payment_Term__c> paymentTermList = [
+                SELECT Id, Name, Payment_Term_Code__c
+                FROM Payment_Term__c
+            ];
+
+            // Map<String, Payment_Term__c> ptMap = new Map<String, Payment_Term__c>();
+            for (Payment_Term__c pt : paymentTermList) {
+                ptMap.put(pt.Payment_Term_Code__c, pt);
+            }
+
+            // Get Existing Sales District
+            List<Sales_District__c> salesDistrictList = [
+                SELECT Id, Name, Sales_District_Code__c
+                FROM Sales_District__c
+            ];
+
+            // Map<String, Sales_District__c> sdMap = new Map<String, Sales_District__c>();
+            for (Sales_District__c pt : salesDistrictList) {
+                sdMap.put(pt.Sales_District_Code__c, pt);
+            }
+
             // ! ========================================== End (Get Existing Data) ========================================== ! //
             
             // Prepare all data for bulk processing
@@ -281,7 +305,7 @@ global class AccountMaster_API {
                 processAllContacts(successAccounts, accountContactsMap, response);
                 
                 // Process bank details
-                // processAllBankDetails(successAccounts, accountBankDetailsMap, response);
+                processAllBankDetails(successAccounts, accountBankDetailsMap, response);
                 
                 // Process sales areas
                 processAllSalesAreas(successAccounts, accountSalesAreasMap, response);
@@ -420,37 +444,37 @@ global class AccountMaster_API {
         return bankAccounts;
     }
     
-    // // Process all bank details in bulk
-    // private static void processAllBankDetails(Map<Id, Account> successAccounts,
-    //                                        Map<String, List<Bank_Information__c>> accountBankDetailsMap,
-    //                                        ResponseWrapper response) {
-    //     List<Bank_Information__c> allBankAccounts = new List<Bank_Information__c>();
+    // Process all bank details in bulk
+    private static void processAllBankDetails(Map<Id, Account> successAccounts,
+                                           Map<String, List<Bank_Information__c>> accountBankDetailsMap,
+                                           ResponseWrapper response) {
+        List<Bank_Information__c> allBankAccounts = new List<Bank_Information__c>();
         
-    //     // Collect all bank accounts for bulk upsert
-    //     for (Account acc : successAccounts.values()) {
-    //         if (accountBankDetailsMap.containsKey(acc.SAP_Customer_Code__c)) {
-    //             allBankAccounts.addAll(accountBankDetailsMap.get(acc.SAP_Customer_Code__c));
-    //         }
-    //     }
+        // Collect all bank accounts for bulk upsert
+        for (Account acc : successAccounts.values()) {
+            if (accountBankDetailsMap.containsKey(acc.SAP_Customer_Code__c)) {
+                allBankAccounts.addAll(accountBankDetailsMap.get(acc.SAP_Customer_Code__c));
+            }
+        }
         
-    //     if (!allBankAccounts.isEmpty()) {
-    //         Database.UpsertResult[] results = Database.upsert(
-    //             allBankAccounts,
-    //             Bank_Information__c.Fields.External_Id__c,
-    //             false
-    //         );
+        if (!allBankAccounts.isEmpty()) {
+            Database.UpsertResult[] results = Database.upsert(
+                allBankAccounts,
+                Bank_Information__c.Fields.External_Id__c,
+                false
+            );
             
-    //         // Handle results
-    //         for (Integer i = 0; i < results.size(); i++) {
-    //             if (!results[i].isSuccess()) {
-    //                 for (Database.Error err : results[i].getErrors()) {
-    //                     response.errors.add('Bank Account error: ' + err.getMessage() + 
-    //                                      ' for account: ' + allBankAccounts[i].Bank_Account_Number__c);
-    //                 }
-    //             }
-    //         }
-    //     }
-    // }
+            // Handle results
+            for (Integer i = 0; i < results.size(); i++) {
+                if (!results[i].isSuccess()) {
+                    for (Database.Error err : results[i].getErrors()) {
+                        response.errors.add('Bank Account error: ' + err.getMessage() + 
+                                         ' for account: ' + allBankAccounts[i].Bank_A_C_No__c);
+                    }
+                }
+            }
+        }
+    }
     
     // // Prepare sales areas for bulk processing
     private static List<Customer_Sales_Area__c> prepareSalesAreas(List<SalesArea> salesAreas, Account acc) {
@@ -480,26 +504,33 @@ global class AccountMaster_API {
             if (cmMap.containsKey(saData.COCODE)) {
                 salesArea.Company__c = cmMap.get(saData.COCODE).Id;
             }
-            // salesArea.Incoterms__c = saData.INCOTERMS;
-            // salesArea.Incoterms_Text__c = saData.INCO_TERM_1_C;
+            salesArea.Incoterm_2__c = saData.INCOTERMS;
+            salesArea.Incoterm_1__c = saData.INCO_TERM_1_C;
+            salesArea.Incoterm_3__c = saData.INCOTERMS2;
             // salesArea.Delivery_Plant__c = saData.DELIVERY_PLANT;
+            salesArea.Payment_Term_Code__c = saData.TERMS_OF_PAYMENT_C;
+            if (ptMap.containsKey(saData.TERMS_OF_PAYMENT_C)) {
+                salesArea.Payment_Term__c = ptMap.get(saData.TERMS_OF_PAYMENT_C).Id;
+            }
             // salesArea.Payment_Terms__c = saData.PAYT_TERMS;
-            // salesArea.Terms_Of_Payment__c = saData.TERMS_OF_PAYMENT_C;
+            salesArea.Sales_District_Code__c = saData.SALES_DISTRICT_C;
+            if (sdMap.containsKey(saData.SALES_DISTRICT_C)) {
+                salesArea.Sales_District__c = sdMap.get(saData.SALES_DISTRICT_C).Id;
+            }
             // salesArea.Sales_District_Code__c = saData.SALES_DISTRICT;
-            // salesArea.Sales_District__c = saData.SALES_DISTRICT_C;
             // salesArea.Sales_Office_Code__c = saData.SALES_OFF;
             // salesArea.Sales_Office__c = saData.SALES_OFFICE_C;
             // salesArea.Sales_Group_Code__c = saData.SALES_GRP;
             // salesArea.Sales_Group__c = saData.SALES_GROUP_C;
-            // salesArea.Customer_Group__c = saData.CUSTGROUP;
-            // salesArea.Customer_Price_Group__c = saData.CUST_PRICE_GROUP_C;
+            salesArea.Customer_Group__c = saData.CUSTGROUP;
+            salesArea.Customer_Price_Group__c = saData.CUST_PRICE_GROUP_C;
             // salesArea.ABC_Classification__c = saData.ABC_CLASS;
             // salesArea.Price_Group_Code__c = saData.PRICEGRP;
             // salesArea.Price_Group__c = saData.PRICE_GROUP_C;
             // salesArea.Price_List_Type__c = saData.PRICE_LIST;
-            // salesArea.Customer_Statistics_Group__c = saData.CUSTSTATGR;
-            // salesArea.Invoice_Date_Type__c = saData.INVOIC_DAT;
-            // salesArea.Invoice_List_Schedule__c = saData.INVLISTSCH;
+            salesArea.Cust_Stat_Gr__c = saData.CUSTSTATGR;
+            salesArea.INVOIC_DAT__c = saData.INVOIC_DAT;
+            salesArea.INVLISTSCH__c = saData.INVLISTSCH;
 
             salesArea.External_Id__c = externalId;
             
@@ -924,7 +955,7 @@ global class AccountMaster_API {
         
         public ResponseWrapper() {
             this.status = 'success';
-            this.message = 'Operation completed successfully';
+            this.message = 'Customer Upsert successfully';
             this.data = new Map<String, Object>();
             this.errors = new List<String>();
         }

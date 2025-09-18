@@ -177,6 +177,37 @@ public with sharing class Utility {
         return null;
     }
 
+    public static List<String> getUserDivisionProductList(String userId) {
+        List<String> productIds = new List<String>();
+        if (userId != null) {
+            List<String> divisionList = new List<String>();
+            User user = [SELECT Id, Division_Code__c, Division_Code_2__c, Division_Code_3__c FROM User WHERE Id = :userId];
+            
+            if(string.isNotBlank(user.Division_Code__c)){
+                List<String> divisionList1 = user.Division_Code__c.split(';');
+                divisionList.addAll(divisionList1);
+            }
+            
+            if(string.isNotBlank(user.Division_Code_2__c)){
+                List<String> divisionList2 = user.Division_Code_2__c.split(';');
+                divisionList.addAll(divisionList2);
+            }
+            
+            if(string.isNotBlank(user.Division_Code_3__c)){
+                List<String> divisionList3 = user.Division_Code_3__c.split(';');
+                divisionList.addAll(divisionList3);
+            }
+            
+
+            List<Product2> productList = [SELECT Id FROM Product2 WHERE Division__r.Name IN :divisionList];
+            for (Product2 eachProduct:productList) {
+                productIds.add(eachProduct.Id);
+            }
+        }
+
+        return productIds;
+    }
+
     public class OpportunityHeaderWrapper {
         @AuraEnabled public String plantLocation;
         @AuraEnabled public String yashoCompany;

@@ -53,7 +53,8 @@ export default class ProformaInvoicePdfSend extends NavigationMixin(LightningEle
                 this.getUser();
                 this.getEmailDetails();
                 this.fetchEmailBody();
-            } else {
+            } 
+            else {
                 this.showSuccess('Error', 'Customer type is not defined', 'Error');
                 this.handleCancel();
             }

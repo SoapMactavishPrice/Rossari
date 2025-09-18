@@ -13,10 +13,12 @@ public without sharing class lookupComponentController {
     ) {
         String searchText = '\'%' + String.escapeSingleQuotes(searchKey) + '%\'';
         String vQuery = '';
+        
+        List<String> productIds = Utility.getUserDivisionProductList(UserInfo.getUserId());
 
         if (objectName == 'PricebookEntry') {
             vQuery = 'SELECT Id, Product2Id, UnitPrice, Product2.Name, Product2.Family, ProductCode '
-                   + 'FROM PricebookEntry WHERE IsActive = true';
+                   + 'FROM PricebookEntry WHERE IsActive = true AND Product2Id IN :productIds ';
 
             if (String.isNotBlank(currencyCode)) {
                 vQuery += ' AND CurrencyIsoCode = \'' + String.escapeSingleQuotes(currencyCode) + '\'';
@@ -69,6 +71,7 @@ public without sharing class lookupComponentController {
 
     @AuraEnabled(cacheable=true)
     public static String fetchDefaultRecord(String recordId) {
+
         String vQuery = 'SELECT Id, Product2Id, UnitPrice, Product2.Name, Product2.Family, ProductCode '
                       + 'FROM PricebookEntry WHERE Id = :recordId LIMIT 1';
         Wrapper w;

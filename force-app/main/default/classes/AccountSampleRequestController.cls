@@ -38,6 +38,10 @@ public with sharing class AccountSampleRequestController {
 										//	Zone__c = (String)sampleData.get('Zone__c')
                                             
                                         );
+
+                                        if (sampleData.containsKey('salesHod') && sampleData.get('salesHod') != null) {
+                                            sampleRequest.Sales_HOD__c = (String) sampleData.get('salesHod');
+                                        }
                                         
                                         if (sampleData.containsKey('Sample_Follow_Up_Date') && sampleData.get('Sample_Follow_Up_Date') != null && (String)sampleData.get('Sample_Follow_Up_Date') != '') {
                                             sampleRequest.Sample_Follow_Up_Date__c = Date.valueOf((String)sampleData.get('Sample_Follow_Up_Date'));

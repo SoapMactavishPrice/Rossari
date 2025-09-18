@@ -84,7 +84,8 @@ public class DocumentApprovalHandler {
 
         email.setToAddresses(new List<String>{approver.Email});
         email.setCcAddresses(new List<String>{leadRecord.Owner.Email});
-
+        email.setTargetObjectId(leadRecord.Id);
+        email.setSaveAsActivity(true);
         email.setSubject('Request for ' + documentType + ' Document - ' + leadRecord.Company);
 
         String htmlBody = 'Dear ' + approver.Name + ',<br/><br/>';
@@ -265,6 +266,8 @@ public class DocumentApprovalHandler {
         Messaging.SingleEmailMessage email = new Messaging.SingleEmailMessage();
         email.setToAddresses(new List<String>{lead.Owner.Email});
         email.setSubject(documentType + ' Document Uploaded - ' + lead.Company);
+        email.setTargetObjectId(lead.Id);
+        email.setSaveAsActivity(true);
 
         String htmlBody = 'Dear ' + lead.Owner.Name + ',<br/><br/>';
         htmlBody += 'The requested ' + documentType + ' document for the below Lead has been successfully uploaded:<br/><br/>';
@@ -351,6 +354,8 @@ public class DocumentApprovalHandler {
         mail.setSubject(subject);
         mail.setHtmlBody(body);
         mail.setFileAttachments(attachments);
+        mail.setTargetObjectId(leadId);
+        mail.setSaveAsActivity(true);
         
         Messaging.sendEmail(new List<Messaging.SingleEmailMessage>{mail});
         
@@ -368,6 +373,7 @@ public class DocumentApprovalHandler {
 
     @AuraEnabled
     public static string getPreviousViewType(String leadId){
+        System.debug('leadId ==>'+ leadId);
         Lead lead = [SELECT Previous_View_Type__c FROM Lead WHERE Id = :leadId];
 
         if (lead.Previous_View_Type__c != null) {
