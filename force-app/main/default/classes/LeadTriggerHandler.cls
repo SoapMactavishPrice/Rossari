@@ -531,6 +531,8 @@ l.Status = 'Working';
                     
                     Opportunity opp = oppMap.get(lead.ConvertedOpportunityId);
                     
+                    Company__c rossariCompany = [SELECT Id FROM Company__c WHERE Name = 'Rossari Biotech Limited' LIMIT 1];
+                    
                     // Get current user
                     User currentUser = [SELECT Id, Entity_Code_1__c, Entity_Code_2__c, Entity_Code_3__c FROM User WHERE Id = :UserInfo.getUserId()];
                     
@@ -562,7 +564,7 @@ l.Status = 'Working';
                         OpportunityId = opp.Id,
                         Pricebook2Id = opp.Pricebook2Id,
                         ContactId = lead.ConvertedContactId,
-                 //       Letter_Company_Name__c = 'a05C1000004Fd1xIAC',
+                        Letter_Company_Name__c = rossariCompany.Id,
                         
                         // Mapped fields from Lead to Quote
                         Inco_Terms__c = lead.Inco_Terms__c,

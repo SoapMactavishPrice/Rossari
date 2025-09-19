@@ -17,7 +17,7 @@ public with sharing class ProformaInvoicePdfController {
                             Destination__c, Loading_Port__c, Destination_Port__c, Place_of_Supplier__c, Partial_Shipment__c, Business_Type__c, Net_weight__c,
                             Bill_To_Name__c, Bill_To_Street__c, Bill_To_City__c, Bill_To_State__c, Bill_To_Zip_Postal_Code__c, Bill_To_Country__c,
                             Ship_To_Name__c, Ship_To_Street__c, Ship_To_City__c, Ship_To_Country__c, Ship_To_Zip_Postal_Code__c, Ship_To_State__c,
-                            Bank__r.Bank_Account_No__c, Bank__r.Name, Bank__r.Branch__c, Bank__r.SWIFT_Code__c,
+                            Bank__r.Bank_Account_No__c, Bank__r.Name, Bank__r.Branch__c, Bank__r.SWIFT_Code__c, Quote__r.Letter_Company_Name__c, Quote__r.Letter_Company_Name__r.Name,
                             Terms_and_Conditions__c, Declaration__c, Subtotal__c, PO_No__c, PO_Date__c, Account_Name__r.GST_No__c,
                             Grand_Total__c FROM Proforma_Invoice__c WHERE Id = :proformaInvoiceId];
 
@@ -50,7 +50,7 @@ public with sharing class ProformaInvoicePdfController {
                             Destination__c, Loading_Port__c, Destination_Port__c, Place_of_Supplier__c, Partial_Shipment__c, Business_Type__c, Net_weight__c,
                             Bill_To_Name__c, Bill_To_Street__c, Bill_To_City__c, Bill_To_State__c, Bill_To_Zip_Postal_Code__c, Bill_To_Country__c,
                             Ship_To_Name__c, Ship_To_Street__c, Ship_To_City__c, Ship_To_Country__c, Ship_To_Zip_Postal_Code__c, Ship_To_State__c,
-                            Bank__r.Bank_Account_No__c, Bank__r.Name, Bank__r.Branch__c, Bank__r.SWIFT_Code__c,
+                            Bank__r.Bank_Account_No__c, Bank__r.Name, Bank__r.Branch__c, Bank__r.SWIFT_Code__c, Quote__r.Letter_Company_Name__c, Quote__r.Letter_Company_Name__r.Name,
                             Terms_and_Conditions__c, Declaration__c, Subtotal__c, PO_No__c, PO_Date__c, Account_Name__r.GST_No__c,
                             Grand_Total__c FROM Proforma_Invoice__c WHERE Id = :proformaInvoiceId];
 
@@ -267,12 +267,15 @@ public with sharing class ProformaInvoicePdfController {
         // Terms & Totals
         html += '<tr>';
         html += '<td colspan="6" rowspan="5" style="' + borderStyle + 'white-space: pre-wrap; padding: 0px; margin: 0px;' + '"><b>Terms and Conditions:</b><br/>' + ns(proformaInvoice.Terms_and_Conditions__c) + '</td>';
-        html += '<td colspan="3" style="' + boldStyle + borderStyle + '">Amount Before Tax</td><td style="' + borderStyle + '">' + proformaInvoice.Subtotal__c + '</td>';
+        // html += '<td colspan="3" style="' + boldStyle + borderStyle + '">Amount Before Tax</td><td style="' + borderStyle + '">' + proformaInvoice.Subtotal__c + '</td>';
         html += '</tr>';
 
-        html += '<tr><td colspan="2" style="' + boldStyle + borderStyle + '">CGST</td><td style="' + borderStyle + '">(HC)</td><td style="' + borderStyle + '">(HC)</td></tr>';
-        html += '<tr><td colspan="2" style="' + boldStyle + borderStyle + '">SGST</td><td style="' + borderStyle + '">(HC)</td><td style="' + borderStyle + '">(HC)</td></tr>';
-        html += '<tr><td colspan="2" style="' + boldStyle + borderStyle + '">IGST</td><td style="' + borderStyle + '">(HC)</td><td style="' + borderStyle + '">(HC)</td></tr>';
+        // html += '<tr><td colspan="2" style="' + boldStyle + borderStyle + '">CGST</td><td style="' + borderStyle + '">(HC)</td><td style="' + borderStyle + '">(HC)</td></tr>';
+        // html += '<tr><td colspan="2" style="' + boldStyle + borderStyle + '">SGST</td><td style="' + borderStyle + '">(HC)</td><td style="' + borderStyle + '">(HC)</td></tr>';
+        // html += '<tr><td colspan="2" style="' + boldStyle + borderStyle + '">IGST</td><td style="' + borderStyle + '">(HC)</td><td style="' + borderStyle + '">(HC)</td></tr>';
+        html += '<tr></tr>';
+        html += '<tr></tr>';
+        html += '<tr></tr>';
         html += '<tr><td colspan="2" style="' + boldStyle + borderStyle + '">Round Off</td><td style="' + borderStyle + '">(HC)</td><td style="' + borderStyle + '">(HC)</td></tr>';
 
         html += '<tr><td colspan="6" style="' + borderStyle + '"><b>Net Weight</b>: ' + ns(proformaInvoice.Net_weight__c) + '</td><td colspan="3" style="' + boldStyle + borderStyle + '">Total Amount After Tax</td><td style="' + borderStyle + '">' + ns(proformaInvoice.Grand_Total__c) + '</td></tr>';

@@ -12,12 +12,16 @@ public with sharing class QuotationPdfController {
     public QuotationPdfController() {
         this.quotationId = ApexPages.currentPage().getparameters().get('id');
 
+        if (String.isBlank(this.quotationId)) {
+            this.quotationId = '0Q0C1000000MEYzKAO';
+        }
+
         this.quotation = [SELECT Id, QuoteNumber, CreatedDate, ExpirationDate, CurrencyIsoCode, Payment_Terms__c, BillingName, Account.Rossari_Company__r.Name,
                             BillingAddress, Inco_Terms__c, Pre_Carriage_Mode__c, Country_of_Origin__c, Country_of_Destination__c, Net_weight__c,
                             Destination__c, Loading_Port__c, Destination_Port__c, Place_of_Supplier__c, Partial_Shipment__c, ShippingName,
                             BillingStreet, BillingCity, BillingState, BillingPostalCode, BillingCountry, Business_Type__c, Vessel_Flight_No__c, Pre_Carriage_Destination__c,
                             ShippingStreet, ShippingCity, ShippingCountry, ShippingPostalCode, ShippingState, Terms_and_Conditions__c, Declaration__c,
-                            Bank__r.Bank_Account_No__c, Bank__r.Name, Bank__r.Branch__c, Bank__r.SWIFT_Code__c, Subtotal, PO_No__c, PO_Date__c, Account.GST_No__c,
+                            Bank__r.Bank_Account_No__c, Bank__r.Name, Bank__r.Branch__c, Bank__r.SWIFT_Code__c, Subtotal, PO_No__c, PO_Date__c, Account.GST_No__c, Letter_Company_Name__c, Letter_Company_Name__r.Name,
                             ShippingAddress, GrandTotal FROM Quote WHERE Id = :quotationId];
 
         this.isExport = quotation.Business_Type__c == 'Export';
@@ -49,7 +53,7 @@ public with sharing class QuotationPdfController {
                             Destination__c, Loading_Port__c, Destination_Port__c, Place_of_Supplier__c, Partial_Shipment__c, ShippingName,
                             BillingStreet, BillingCity, BillingState, BillingPostalCode, BillingCountry, Business_Type__c, Vessel_Flight_No__c, Pre_Carriage_Destination__c,
                             ShippingStreet, ShippingCity, ShippingCountry, ShippingPostalCode, ShippingState, Terms_and_Conditions__c, Declaration__c,
-                            Bank__r.Bank_Account_No__c, Bank__r.Name, Bank__r.Branch__c, Bank__r.SWIFT_Code__c, Subtotal, PO_No__c, PO_Date__c, Account.GST_No__c,
+                            Bank__r.Bank_Account_No__c, Bank__r.Name, Bank__r.Branch__c, Bank__r.SWIFT_Code__c, Subtotal, PO_No__c, PO_Date__c, Account.GST_No__c, Letter_Company_Name__c, Letter_Company_Name__r.Name,
                             ShippingAddress, GrandTotal FROM Quote WHERE Id = :quotationId];
 
         this.isExport = quotation.Business_Type__c == 'Export';
@@ -265,12 +269,16 @@ public with sharing class QuotationPdfController {
         // Terms & Totals
         html += '<tr>';
         html += '<td colspan="6" rowspan="5" style="' + borderStyle + 'white-space: pre-wrap; padding: 0px; margin: 0px;' + '"><b>Terms and Conditions:</b><br/>' + ns(quotation.Terms_and_Conditions__c) + '</td>';
-        html += '<td colspan="3" style="' + boldStyle + borderStyle + '">Amount Before Tax</td><td style="' + borderStyle + '">' + quotation.Subtotal + '</td>';
+        // html += '<td colspan="3" style="' + boldStyle + borderStyle + '">Amount Before Tax</td><td style="' + borderStyle + '">' + quotation.Subtotal + '</td>';
         html += '</tr>';
 
-        html += '<tr><td colspan="2" style="' + boldStyle + borderStyle + '">CGST</td><td style="' + borderStyle + '">(HC)</td><td style="' + borderStyle + '">(HC)</td></tr>';
-        html += '<tr><td colspan="2" style="' + boldStyle + borderStyle + '">SGST</td><td style="' + borderStyle + '">(HC)</td><td style="' + borderStyle + '">(HC)</td></tr>';
-        html += '<tr><td colspan="2" style="' + boldStyle + borderStyle + '">IGST</td><td style="' + borderStyle + '">(HC)</td><td style="' + borderStyle + '">(HC)</td></tr>';
+        // html += '<tr><td colspan="2" style="' + boldStyle + borderStyle + '">CGST</td><td style="' + borderStyle + '">(HC)</td><td style="' + borderStyle + '">(HC)</td></tr>';
+        html += '<tr></tr>';
+        // html += '<tr><td colspan="2" style="' + boldStyle + borderStyle + '">SGST</td><td style="' + borderStyle + '">(HC)</td><td style="' + borderStyle + '">(HC)</td></tr>';
+        html += '<tr></tr>';
+        // html += '<tr><td colspan="2" style="' + boldStyle + borderStyle + '">IGST</td><td style="' + borderStyle + '">(HC)</td><td style="' + borderStyle + '">(HC)</td></tr>';
+        html += '<tr></tr>';
+        
         html += '<tr><td colspan="2" style="' + boldStyle + borderStyle + '">Round Off</td><td style="' + borderStyle + '">(HC)</td><td style="' + borderStyle + '">(HC)</td></tr>';
 
         html += '<tr><td colspan="6" style="' + borderStyle + '"><b>Net Weight</b>: ' + quotation.Net_weight__c + '</td><td colspan="3" style="' + boldStyle + borderStyle + '">Total Amount After Tax</td><td style="' + borderStyle + '">' + ns(quotation.GrandTotal) + '</td></tr>';

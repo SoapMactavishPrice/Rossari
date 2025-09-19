@@ -107,13 +107,15 @@ public with sharing class QuoteController {
             }
         }
         
+        // Query the Company__c record for 'Rossari Biotech Limited'
+        Company__c rossariCompany = [SELECT Id FROM Company__c WHERE Name = 'Rossari Biotech Limited' LIMIT 1];
         
         // Create the quote with all fields
         Quote quote = new Quote(
             Name = quoteName,
             OpportunityId = opp.Id,
             Status = status,
-          //  Letter_Company_Name__c = 'a05C1000004Fd1xIAC',
+            Letter_Company_Name__c = rossariCompany.Id,
             ExpirationDate = expirationDate,
             Quote_Valid_From__c = Date.today(),
             Pricebook2Id = String.isNotBlank(pricebookId) ? pricebookId : opp.Pricebook2Id,

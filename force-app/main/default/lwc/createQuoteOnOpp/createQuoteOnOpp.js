@@ -79,7 +79,7 @@ export default class CreateQuoteFromOpportunity extends NavigationMixin(Lightnin
 
     handleContactClick() {
         if (this.contacts.length === 0) {
-            this.showToast('Warning', 'No contacts available for this Opportunity\'s Account.', 'warning');
+            this.showToast('Warning', 'No contacts available for Account. Please Create a Contact.', 'warning');
         }
     }
 

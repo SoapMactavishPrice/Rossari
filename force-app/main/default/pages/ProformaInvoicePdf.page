@@ -75,13 +75,13 @@
     </head>
 
     <header>
-        <apex:outputPanel rendered="{!proformaInvoice.Account_Name__r.Rossari_Company__r.Name = 'Rossari Biotech Limited'}">
+        <apex:outputPanel rendered="{!proformaInvoice.Quote__r.Letter_Company_Name__r.Name = 'Rossari Biotech Limited'}">
             <apex:image url="{!URLFOR($Resource.RossariHeader)}" width="100%" height="100" />
         </apex:outputPanel>
-        <apex:outputPanel rendered="{!proformaInvoice.Account_Name__r.Rossari_Company__r.Name = 'Tristar Intermediates Private Limited'}">
+        <apex:outputPanel rendered="{!proformaInvoice.Quote__r.Letter_Company_Name__r.Name = 'Tristar Intermediates Private Limited'}">
             <apex:image url="{!URLFOR($Resource.TristarHeader)}" width="100%" height="100" />
         </apex:outputPanel>
-        <apex:outputPanel rendered="{!proformaInvoice.Account_Name__r.Rossari_Company__r.Name = 'Unitop Chemicals Private Limited'}">
+        <apex:outputPanel rendered="{!proformaInvoice.Quote__r.Letter_Company_Name__r.Name = 'Unitop Chemicals Private Limited'}">
             <apex:image url="{!URLFOR($Resource.UnitopHeader)}" width="100%" height="100" />
         </apex:outputPanel>
     </header>
@@ -251,23 +251,23 @@
             <b>Terms and Conditions:</b><br/>
             <p style="white-space: pre-wrap; padding: 0px; margin: 0px;">{!proformaInvoice.Terms_and_Conditions__c}</p>
         </td>
-        <td colspan="3" class="bold">Amount Before Tax</td>
-        <td>{!proformaInvoice.Subtotal__c}</td>
+        <!-- <td colspan="3" class="bold">Amount Before Tax</td>
+        <td>{!proformaInvoice.Subtotal__c}</td> -->
     </tr>
     <tr>
-        <td colspan="2" class="bold">CGST</td>
+        <!-- <td colspan="2" class="bold">CGST</td>
         <td>(HC)</td>
-        <td>(HC)</td>
+        <td>(HC)</td> -->
     </tr>
     <tr>
-        <td colspan="2" class="bold">SGST</td>
+        <!-- <td colspan="2" class="bold">SGST</td>
         <td>(HC)</td>
-        <td>(HC)</td>
+        <td>(HC)</td> -->
     </tr>
     <tr>
-        <td colspan="2" class="bold">IGST</td>
+        <!-- <td colspan="2" class="bold">IGST</td>
         <td>(HC)</td>
-        <td>(HC)</td>
+        <td>(HC)</td> -->
     </tr>
     <tr>
         <td colspan="2" class="bold">Round Off</td>
@@ -276,7 +276,7 @@
     </tr>
     <tr>
         <td colspan="6"><b>Net Weight</b>: {!proformaInvoice.Net_weight__c}</td>
-        <td colspan="3" class="bold">Total Amount After Tax</td>
+        <td colspan="3" class="bold">Grand Total</td>
         <td>{!proformaInvoice.Grand_Total__c}</td>
     </tr>
     </table>
@@ -308,13 +308,13 @@
     </table>
 
     <footer class="pdf-footer">
-        <apex:outputPanel rendered="{!proformaInvoice.Account_Name__r.Rossari_Company__r.Name = 'Rossari Biotech Limited'}">
+        <apex:outputPanel rendered="{!proformaInvoice.Quote__r.Letter_Company_Name__r.Name = 'Rossari Biotech Limited'}">
             <apex:image url="{!URLFOR($Resource.RossariFooter)}" width="100%" height="150" />
         </apex:outputPanel>
-        <apex:outputPanel rendered="{!proformaInvoice.Account_Name__r.Rossari_Company__r.Name = 'Tristar Intermediates Private Limited'}">
+        <apex:outputPanel rendered="{!proformaInvoice.Quote__r.Letter_Company_Name__r.Name = 'Tristar Intermediates Private Limited'}">
             <apex:image url="{!URLFOR($Resource.TristarFooter)}" width="100%" height="150" />
         </apex:outputPanel>
-        <apex:outputPanel rendered="{!proformaInvoice.Account_Name__r.Rossari_Company__r.Name = 'Unitop Chemicals Private Limited'}">
+        <apex:outputPanel rendered="{!proformaInvoice.Quote__r.Letter_Company_Name__r.Name = 'Unitop Chemicals Private Limited'}">
             <apex:image url="{!URLFOR($Resource.UnitopFooter)}" width="100%" height="150" />
         </apex:outputPanel>
     </footer>
