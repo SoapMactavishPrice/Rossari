@@ -266,19 +266,16 @@ public with sharing class ProformaInvoicePdfController {
 
         // Terms & Totals
         html += '<tr>';
-        html += '<td colspan="6" rowspan="5" style="' + borderStyle + 'white-space: pre-wrap; padding: 0px; margin: 0px;' + '"><b>Terms and Conditions:</b><br/>' + ns(proformaInvoice.Terms_and_Conditions__c) + '</td>';
+        html += '<td colspan="10" style="' + borderStyle + 'white-space: pre-wrap; padding: 0px; margin: 0px;' + '"><b>Terms and Conditions:</b><br/>' + ns(proformaInvoice.Terms_and_Conditions__c) + '</td>';
         // html += '<td colspan="3" style="' + boldStyle + borderStyle + '">Amount Before Tax</td><td style="' + borderStyle + '">' + proformaInvoice.Subtotal__c + '</td>';
         html += '</tr>';
 
         // html += '<tr><td colspan="2" style="' + boldStyle + borderStyle + '">CGST</td><td style="' + borderStyle + '">(HC)</td><td style="' + borderStyle + '">(HC)</td></tr>';
         // html += '<tr><td colspan="2" style="' + boldStyle + borderStyle + '">SGST</td><td style="' + borderStyle + '">(HC)</td><td style="' + borderStyle + '">(HC)</td></tr>';
         // html += '<tr><td colspan="2" style="' + boldStyle + borderStyle + '">IGST</td><td style="' + borderStyle + '">(HC)</td><td style="' + borderStyle + '">(HC)</td></tr>';
-        html += '<tr></tr>';
-        html += '<tr></tr>';
-        html += '<tr></tr>';
-        html += '<tr><td colspan="2" style="' + boldStyle + borderStyle + '">Round Off</td><td style="' + borderStyle + '">(HC)</td><td style="' + borderStyle + '">(HC)</td></tr>';
+        // html += '<tr><td colspan="2" style="' + boldStyle + borderStyle + '">Round Off</td><td style="' + borderStyle + '">(HC)</td><td style="' + borderStyle + '">(HC)</td></tr>';
 
-        html += '<tr><td colspan="6" style="' + borderStyle + '"><b>Net Weight</b>: ' + ns(proformaInvoice.Net_weight__c) + '</td><td colspan="3" style="' + boldStyle + borderStyle + '">Total Amount After Tax</td><td style="' + borderStyle + '">' + ns(proformaInvoice.Grand_Total__c) + '</td></tr>';
+        html += '<tr><td colspan="6" style="' + borderStyle + '"><b>Net Weight</b>: ' + ns(proformaInvoice.Net_weight__c) + '</td><td colspan="3" style="' + boldStyle + borderStyle + '">Grand Total</td><td style="' + borderStyle + '">' + ns(proformaInvoice.Grand_Total__c) + '</td></tr>';
         html += '</table>';
 
         // Amount in Words & Declaration

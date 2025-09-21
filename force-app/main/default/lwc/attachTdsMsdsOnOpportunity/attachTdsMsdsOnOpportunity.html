@@ -1,0 +1,504 @@
+<template>
+    <lightning-card title="Share TDS/MSDS/Technical Document" icon-name="standard:product">
+        <template if:true={isLoading}>
+            <lightning-spinner alternative-text="Loading"></lightning-spinner>
+        </template>
+        <div class="slds-grid slds-gutters slds-grid_vertical-align-center slds-p-around_medium">
+
+            <!-- Left section -->
+            <div class="slds-col slds-size_5-of-12"></div>
+
+            <!-- Center section -->
+            <div class="slds-col slds-size_2-of-12">
+                <div>
+                    <lightning-combobox
+                        name="viewType"
+                        label="Select View"
+                        value={viewType}
+                        placeholder="Select an option"
+                        options={viewTypeOptions}
+                        onchange={handleViewtypeChange}>
+                    </lightning-combobox>
+                </div>
+            </div>
+
+            <!-- Right section -->
+            <div class="slds-col slds-size_5-of-12"></div>
+
+        </div>
+
+        <template if:true={isViewTypeProduct}>
+            <lightning-layout multiple-rows class="slds-m-top_small">
+                <lightning-layout-item size="12">
+                    <div class="slds-box slds-theme--default">
+                        <table class="slds-table slds-table_cell-buffer slds-table_bordered slds-table_striped">
+                            <thead>
+                                <tr class="slds-line-height_reset">
+                                    <th
+                                        style="width: 5%;background-color:#9d0b0f;color: white;padding: 5px;font-size: 13px;text-align: center">
+                                        Sr. No.</th>
+                                    <th style="background-color: #9d0b0f;color: white;padding: 5px;font-size: 13px;"></th>
+                                    <th style="background-color: #9d0b0f;color: white;padding: 5px;font-size: 13px;">Product
+                                        Name</th>
+                                    <th style="background-color: #9d0b0f;color: white;padding: 5px;font-size: 13px;">Product
+                                        Code</th>
+                                    <th style="background-color: #9d0b0f;color: white;padding: 5px;font-size: 13px;">
+                                        Description</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <template for:each={tableData} for:item="product" for:index="index">
+                                    <tr key={product.Id} class="slds-hint-parent">
+                                        <td>
+                                            <div class="slds-cell-wrap slds-text-align_center slds-align_absolute-center">
+                                                {product.index}
+                                            </div>
+                                        </td>
+    
+                                        <td>
+                                            <lightning-icon icon-name="utility:add" size="x-small" data-id={product.Id}
+                                                if:true={product.openFiles} onclick={handleOpenChild} data-level="product"
+                                                data-action="open" title="Expand">
+                                            </lightning-icon>
+                                            <lightning-icon icon-name="utility:dash" size="x-small"
+                                                onclick={handleOpenChild} data-level="product" data-action="close"
+                                                data-id={product.Id} if:true={product.closeFiles} title="Collapse">
+                                            </lightning-icon>
+                                        </td>
+    
+    
+                                        <!-- <td style="padding: 1px">
+                                            <lightning-icon icon-name="utility:add" size="x-small" data-id={product.Id}
+                                                if:true={product.openFiles} onclick={handleOpenChild} data-level="product"
+                                                data-action="open" title="Expand">
+                                            </lightning-icon>
+                                            <lightning-icon icon-name="utility:dash" size="x-small"
+                                                onclick={handleOpenChild} data-level="product" data-action="close"
+                                                data-id={product.Id} if:true={product.closeFiles} title="Collapse">
+                                            </lightning-icon>
+                                        </td> -->
+    
+                                        <td>
+                                            <div class="slds-cell-wrap" style="padding: 1px">{product.Name}</div>
+                                        </td>
+                                        <td>
+                                            <div class="slds-cell-wrap" style="padding: 1px">{product.ProductCode}</div>
+                                        </td>
+                                        <td>
+                                            <div class="slds-cell-wrap" style="padding: 1px">{product.Description}</div>
+                                        </td>
+                                    </tr>
+    
+                                    <template if:true={product.showChildData}>
+                                        <tr key={product.Id}>
+                                            <td colspan="1"></td>
+                                            <td colspan=" 5">
+                                                <table class="slds-table slds-table_cell-buffer slds-table_bordered"
+                                                    style="width:100%;background-color:#f3f3f3;">
+                                                    <tbody>
+                                                        <template for:each={product.dataChildFiles} for:item="doc"
+                                                            for:index="docIndex">
+                                                            <tr key={doc.Id}>
+                                                                <td style="width: 5%;"></td>
+                                                                <td style="width: 5%;">
+                                                                    <lightning-icon icon-name="utility:add" size="x-small"
+                                                                        data-id={doc.Id} if:true={doc.openFiles}
+                                                                        onclick={handleOpenChild} data-level="document"
+                                                                        data-action="open" title="Expand">
+                                                                    </lightning-icon>
+                                                                    <lightning-icon icon-name="utility:dash" size="x-small"
+                                                                        onclick={handleOpenChild} data-level="document"
+                                                                        data-action="close" data-id={doc.Id}
+                                                                        if:true={doc.closeFiles} title="Collapse">
+                                                                    </lightning-icon>
+                                                                </td>
+                                                                <td colspan="3">{doc.Name}</td>
+                                                            </tr>
+    
+                                                            <template if:true={doc.showChildData}>
+                                                                <tr key={doc.Id}>
+                                                                    <td colspan="1"></td>
+                                                                    <td colspan="5">
+                                                                        <table
+                                                                            class="slds-table slds-table_cell-buffer slds-table_bordered"
+                                                                            style="width:95%;margin-left:5%;background-color:#ffffff;">
+                                                                            <thead>
+                                                                                <tr class="slds-line-height_reset">
+                                                                                    <th
+                                                                                        style="width: 5%;background-color: #ddd;padding: 3px;font-size: 13px;">
+                                                                                        Select
+                                                                                    </th>
+                                                                                    <th
+                                                                                        style="width: 60%;background-color: #ddd;padding: 3px;font-size: 13px;">
+                                                                                        File Name
+                                                                                    </th>
+                                                                                    <th
+                                                                                        style="background-color: #ddd;padding: 3px;font-size: 13px;">
+                                                                                        View
+                                                                                    </th>
+                                                                                </tr>
+                                                                            </thead>
+                                                                            <tbody>
+                                                                                <template for:each={doc.dataChildFiles}
+                                                                                    for:item="file">
+                                                                                    <tr key={file.Id}>
+                                                                                        <td>
+                                                                                            <lightning-input type="checkbox"
+                                                                                                checked={file.selectFile}
+                                                                                                data-id={file.Id}
+                                                                                                onchange={handleFileSelect}></lightning-input>
+                                                                                        </td>
+                                                                                        <td>{file.Name}</td>
+                                                                                        <td>
+                                                                                            <lightning-icon
+                                                                                                icon-name="action:preview"
+                                                                                                size="x-small"
+                                                                                                data-id={file.Id}
+                                                                                                onclick={viewFile}></lightning-icon>
+                                                                                        </td>
+                                                                                    </tr>
+                                                                                </template>
+                                                                            </tbody>
+                                                                        </table>
+                                                                    </td>
+                                                                </tr>
+                                                            </template>
+                                                        </template>
+                                                    </tbody>
+                                                </table>
+                                            </td>
+                                        </tr>
+                                    </template>
+                                </template>
+                            </tbody>
+                        </table>
+                    </div>
+    
+                    <footer class="slds-modal__footer">
+                        <lightning-button variant="brand" label="Send Email" onclick={openModaltoSend}></lightning-button>
+                        <lightning-button variant="neutral" label="Cancel" class="slds-m-left_small"
+                            onclick={backTorecord}></lightning-button>
+                    </footer>
+                </lightning-layout-item>
+            </lightning-layout>
+        </template>
+
+        <template if:true={isViewTypeCustomer}>
+            <table class="slds-table slds-table_cell-buffer slds-table_bordered slds-table_striped">
+                <thead>
+                    <tr class="slds-line-height_reset">
+                        <th
+                            style="width: 5%;background-color:#9d0b0f;color: white;padding: 5px;font-size: 13px;text-align: center">
+                            Sr. No.</th>
+                        <th style="background-color: #9d0b0f;color: white;padding: 5px;font-size: 13px;">Product
+                            Name</th>
+                        <th style="background-color: #9d0b0f;color: white;padding: 5px;font-size: 13px;">Product
+                            Code</th>
+                        <th style="background-color: #9d0b0f;color: white;padding: 5px;font-size: 13px;">
+                            Description</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <template for:each={tableData} for:item="product" for:index="index">
+                        <tr key={product.Id} class="slds-hint-parent">
+                            <td>
+                                <div class="slds-cell-wrap slds-text-align_center slds-align_absolute-center">
+                                    {product.index}
+                                </div>
+                            </td>
+
+                            <td>
+                                <div class="slds-cell-wrap" style="padding: 1px">{product.Name}</div>
+                            </td>
+                            <td>
+                                <div class="slds-cell-wrap" style="padding: 1px">{product.ProductCode}</div>
+                            </td>
+                            <td>
+                                <div class="slds-cell-wrap" style="padding: 1px">{product.Description}</div>
+                            </td>
+                        </tr>
+
+                        <template if:true={product.showChildData}>
+                            <tr key={product.Id}>
+                                <td colspan="1"></td>
+                                <td colspan=" 5">
+                                    <table class="slds-table slds-table_cell-buffer slds-table_bordered"
+                                        style="width:100%;background-color:#f3f3f3;">
+                                        <tbody>
+                                            <template for:each={product.dataChildFiles} for:item="doc"
+                                                for:index="docIndex">
+                                                <tr key={doc.Id}>
+                                                    <td style="width: 5%;"></td>
+                                                    <td style="width: 5%;">
+                                                        <lightning-icon icon-name="utility:add" size="x-small"
+                                                            data-id={doc.Id} if:true={doc.openFiles}
+                                                            onclick={handleOpenChild} data-level="document"
+                                                            data-action="open" title="Expand">
+                                                        </lightning-icon>
+                                                        <lightning-icon icon-name="utility:dash" size="x-small"
+                                                            onclick={handleOpenChild} data-level="document"
+                                                            data-action="close" data-id={doc.Id}
+                                                            if:true={doc.closeFiles} title="Collapse">
+                                                        </lightning-icon>
+                                                    </td>
+                                                    <td colspan="3">{doc.Name}</td>
+                                                </tr>
+
+                                                <template if:true={doc.showChildData}>
+                                                    <tr key={doc.Id}>
+                                                        <td colspan="1"></td>
+                                                        <td colspan="5">
+                                                            <table
+                                                                class="slds-table slds-table_cell-buffer slds-table_bordered"
+                                                                style="width:95%;margin-left:5%;background-color:#ffffff;">
+                                                                <thead>
+                                                                    <tr class="slds-line-height_reset">
+                                                                        <th
+                                                                            style="width: 5%;background-color: #ddd;padding: 3px;font-size: 13px;">
+                                                                            Select
+                                                                        </th>
+                                                                        <th
+                                                                            style="width: 60%;background-color: #ddd;padding: 3px;font-size: 13px;">
+                                                                            File Name
+                                                                        </th>
+                                                                        <th
+                                                                            style="background-color: #ddd;padding: 3px;font-size: 13px;">
+                                                                            View
+                                                                        </th>
+                                                                    </tr>
+                                                                </thead>
+                                                                <tbody>
+                                                                    <template for:each={doc.dataChildFiles}
+                                                                        for:item="file">
+                                                                        <tr key={file.Id}>
+                                                                            <td>
+                                                                                <lightning-input type="checkbox"
+                                                                                    checked={file.selectFile}
+                                                                                    data-id={file.Id}
+                                                                                    onchange={handleFileSelect}></lightning-input>
+                                                                            </td>
+                                                                            <td>{file.Name}</td>
+                                                                            <td>
+                                                                                <lightning-icon
+                                                                                    icon-name="action:preview"
+                                                                                    size="x-small"
+                                                                                    data-id={file.Id}
+                                                                                    onclick={viewFile}></lightning-icon>
+                                                                            </td>
+                                                                        </tr>
+                                                                    </template>
+                                                                </tbody>
+                                                            </table>
+                                                        </td>
+                                                    </tr>
+                                                </template>
+                                            </template>
+                                        </tbody>
+                                    </table>
+                                </td>
+                            </tr>
+                        </template>
+                    </template>
+                </tbody>
+            </table>
+
+            <template if:false={isRequestDocumentSubmittedFlag}>
+                <div class="slds-grid slds-gutters slds-p-around_medium">
+            
+                    <div class="slds-col slds-size_1-of-3">
+                        <lightning-record-picker
+                            label="TDS Approver"
+                            object-api-name="User"
+                            data-id="tdsApproverId"
+                            value={approverModel.tdsApproverId}
+                            placeholder="Search User..."
+                            onchange={handleApproverChange}>
+                        </lightning-record-picker>
+                    </div>
+    
+                    <div class="slds-col slds-size_1-of-3">
+                        <lightning-record-picker
+                            label="MSDS Approver"
+                            object-api-name="User"
+                            data-id="msdsApproverId"
+                            value={approverModel.msdsApproverId}
+                            placeholder="Search User..."
+                            onchange={handleApproverChange}>
+                        </lightning-record-picker>
+                    </div>
+    
+                    <div class="slds-col slds-size_1-of-3">
+                        <lightning-record-picker
+                            label="Technical Document Approver"
+                            object-api-name="User"
+                            data-id="technicalDocApproverId"
+                            value={approverModel.technicalDocApproverId}
+                            placeholder="Search User..."
+                            onchange={handleApproverChange}>
+                        </lightning-record-picker>
+                    </div>
+    
+                </div>
+                <div class="slds-grid slds-gutters slds-p-around_medium">
+            
+                    <div class="slds-col slds-size_1-of-3"></div>
+    
+                    <div class="slds-col slds-size_1-of-3" style="text-align: center;">
+                        <lightning-button variant="brand" label="Request Document" onclick={handleRequestDocument} disabled={isRequestDocumentButtonDisabled}></lightning-button>
+                    </div>
+    
+                    <div class="slds-col slds-size_1-of-3"></div>
+    
+                </div>
+            </template>
+
+            <template if:true={isRequestDocumentSubmittedFlag}>
+                <div class="slds-grid slds-gutters slds-p-around_medium">
+                    <div class="slds-col slds-size_1-of-12"></div>
+                    <div class="slds-col slds-size_10-of-12">
+                        <table class="slds-table slds-table_cell-buffer slds-table_bordered custom-table">
+                            <thead>
+                                <tr>
+                                    <th class="custom-header" style="width: 33.333%">TDS Approver</th>
+                                    <th class="custom-header" style="width: 33.333%">MSDS Approver</th>
+                                    <th class="custom-header" style="width: 33.333%">Tech Doc Approver</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td style="text-align: center;">{documentModel.tdsApproverName}</td>
+                                    <td style="text-align: center;">{documentModel.msdsApproverName}</td>
+                                    <td style="text-align: center;">{documentModel.technicalDocApproverName}</td>
+                                </tr>
+                                <tr>
+                                    <td>
+                                        <lightning-button label="Upload" onclick={handleTdsUpload} disabled={documentModel.isTdsDisabled}></lightning-button>
+                                        <input type="file" multiple class="hidden-input" onchange={handleTdsFiles} data-type="tds"/>
+                                    </td>
+                                    <td>
+                                        <lightning-button label="Upload" onclick={handleMsdsUpload} disabled={documentModel.isMsdsDisabled}></lightning-button>
+                                        <input type="file" multiple class="hidden-input" onchange={handleMsdsFiles} data-type="msds"/>
+                                    </td>
+                                    <td>
+                                        <lightning-button label="Upload" onclick={handleTechnicalDocUpload} disabled={documentModel.isTechnicalDocDisabled}></lightning-button>
+                                        <input type="file" multiple class="hidden-input" onchange={handleTechnicalDocFiles} data-type="tech"/>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <!-- TDS Files Column -->
+                                    <td>
+                                        <template for:each={documentModel.tdsFiles} for:item="file" for:index="index">
+                                            <div key={file.fileName} class="file-row">
+                                                {file.fileName}
+                                                <template if:false={file.isReadOnly}>
+                                                    <lightning-button-icon 
+                                                        icon-name="utility:close" 
+                                                        alternative-text="Remove" 
+                                                        size="x-small" 
+                                                        onclick={removeTdsFile}
+                                                        data-index={index}>
+                                                    </lightning-button-icon>
+                                                </template>
+                                            </div>
+                                        </template>
+                                    </td>
+
+                                    <!-- MSDS Files Column -->
+                                    <td>
+                                        <template for:each={documentModel.msdsFiles} for:item="file" for:index="index">
+                                            <div key={file.fileName} class="file-row">
+                                                {file.fileName}
+                                                <template if:false={file.isReadOnly}>
+                                                    <lightning-button-icon 
+                                                        icon-name="utility:close" 
+                                                        alternative-text="Remove" 
+                                                        size="x-small" 
+                                                        onclick={removeMsdsFile}
+                                                        data-index={index}>
+                                                    </lightning-button-icon>
+                                                </template>
+                                            </div>
+                                        </template>
+                                    </td>
+
+                                    <!-- Technical Document Files Column -->
+                                    <td>
+                                        <template for:each={documentModel.technicalDocumentFiles} for:item="file" for:index="index">
+                                            <div key={file.fileName} class="file-row">
+                                                {file.fileName}
+                                                <template if:false={file.isReadOnly}>
+                                                    <lightning-button-icon 
+                                                        icon-name="utility:close" 
+                                                        alternative-text="Remove" 
+                                                        size="x-small" 
+                                                        onclick={removeTechnicalDocFile}
+                                                        data-index={index}>
+                                                    </lightning-button-icon>
+                                                </template>
+                                            </div>
+                                        </template>
+                                    </td>
+                                </tr>
+
+                                <tr>
+                                    <td colspan="3" class="slds-text-align_center">
+                                        <lightning-button label="Cancel" class="slds-p-right_medium" onclick={backTorecord}></lightning-button>
+                                        <lightning-button label="Save" variant="success" onclick={uploadFilesToRecord} disabled={isSaveDisabled}></lightning-button>
+                                        <template if:true={documentModel.isAccessEnabled}>
+                                            <lightning-button label="Send Email" variant="brand" class="slds-p-left_medium" onclick={openModaltoSend}></lightning-button>
+                                        </template>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="slds-col slds-size_1-of-12"></div>
+                </div>
+            </template>
+
+        </template>
+
+        <template if:true={OpenModal}>
+            <section role="dialog" tabindex="-1" class="slds-modal slds-fade-in-open">
+                <div class="slds-modal__container">
+                    <header class="slds-modal__header">
+                        <h2 class="slds-text-heading_medium slds-hyphenate">Send Files to Customer</h2>
+                    </header>
+                    <div class="slds-modal__content slds-p-around_medium">
+                        <lightning-layout multiple-rows>
+                            <lightning-layout-item size="12">
+                                <label>To Address:</label>
+                                <lightning-input value={ToAddress} variant="label-hidden"
+                                    onchange={handleToAddressChange}></lightning-input>
+                            </lightning-layout-item>
+                            <lightning-layout-item size="12" class="slds-m-top_small">
+                                <label>CC Address:</label>
+                                <lightning-input value={ccAddress} variant="label-hidden"
+                                    onchange={handleCCAddressChange}></lightning-input>
+                            </lightning-layout-item>
+                            <lightning-layout-item size="12" class="slds-m-top_small">
+                                <label>Subject:</label>
+                                <lightning-input value={subject} variant="label-hidden"
+                                    onchange={handleSubChange}></lightning-input>
+                            </lightning-layout-item>
+                            <lightning-layout-item size="12" class="slds-m-top_small">
+                                <label>Body:</label>
+                                <lightning-input-rich-text value={commnetBody} onchange={handleBodyChange}
+                                    variant="label-hidden"></lightning-input-rich-text>
+                            </lightning-layout-item>
+                        </lightning-layout>
+                    </div>
+                    <footer class="slds-modal__footer">
+                        <button class="slds-button slds-button_neutral" onclick={hideModalBox}>Cancel</button>
+                        <template if:true={isViewTypeProduct}>
+                            <button class="slds-button slds-button_brand" onclick={handleSendMail}>Send</button>
+                        </template>
+                        <template if:true={isViewTypeCustomer}>
+                            <button class="slds-button slds-button_brand" onclick={sendLeadDocument}>Send</button>
+                        </template>
+                    </footer>
+                </div>
+            </section>
+        </template>
+    </lightning-card>
+</template>

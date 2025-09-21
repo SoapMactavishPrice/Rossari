@@ -247,33 +247,33 @@
             <apex:variable var="srNo" value="{!srNo + 1}" />
         </apex:repeat>
     <tr>
-        <td colspan="6" rowspan="5">
+        <td colspan="10">
             <b>Terms and Conditions:</b><br/>
             <p style="white-space: pre-wrap; padding: 0px; margin: 0px;">{!proformaInvoice.Terms_and_Conditions__c}</p>
         </td>
         <!-- <td colspan="3" class="bold">Amount Before Tax</td>
         <td>{!proformaInvoice.Subtotal__c}</td> -->
     </tr>
-    <tr>
-        <!-- <td colspan="2" class="bold">CGST</td>
+    <!-- <tr>
+        <td colspan="2" class="bold">CGST</td>
         <td>(HC)</td>
-        <td>(HC)</td> -->
+        <td>(HC)</td>
     </tr>
     <tr>
-        <!-- <td colspan="2" class="bold">SGST</td>
+        <td colspan="2" class="bold">SGST</td>
         <td>(HC)</td>
-        <td>(HC)</td> -->
+        <td>(HC)</td>
     </tr>
     <tr>
-        <!-- <td colspan="2" class="bold">IGST</td>
+        <td colspan="2" class="bold">IGST</td>
         <td>(HC)</td>
-        <td>(HC)</td> -->
+        <td>(HC)</td>
     </tr>
     <tr>
         <td colspan="2" class="bold">Round Off</td>
         <td>(HC)</td>
         <td>(HC)</td>
-    </tr>
+    </tr> -->
     <tr>
         <td colspan="6"><b>Net Weight</b>: {!proformaInvoice.Net_weight__c}</td>
         <td colspan="3" class="bold">Grand Total</td>

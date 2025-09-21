@@ -1,0 +1,86 @@
+th {
+    color: aliceblue;
+background-color: #007cc2;
+}
+
+.slds-modal.slds-fade-in-open {
+        background-color: rgba(0, 0, 0, 0.5); /* Semi-transparent black background */
+    }
+
+    /* Ensuring modal content has padding and proper spacing */
+    .slds-modal__content {
+        background-color: #fff;
+        
+        padding: 20px;
+    }
+
+    /* Adjusting the footer layout */
+    .slds-modal__footer {
+        display: flex;
+        justify-content: center; 
+    }
+
+      .custom-close-button .slds-button__icon {
+        color: gray; /* You can use other shades like 'darkgray', 'lightgray', etc. */
+    }
+    .page-center {
+        display: flex;
+        justify-content: center;
+    }
+    
+    .file-container {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.5rem;
+        border: 1px solid #ddd;
+        border-radius: 0.25rem;
+        background: white;
+    }
+    
+    .fixed-width {
+        width: 250px; /* Make sure this width fits your longest filename */
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .slds-table th, .slds-table td {
+
+        padding: 2px;
+    }
+
+    .custom-header {
+        font-size: 1.25rem; /* bigger font */
+        font-weight: 700;   /* bolder */
+        text-align: center;
+        padding: 20px;      /* more spacing */
+    }
+
+
+    .custom-table {
+    width: 100%;
+    border-left: 2px solid #d8dde6;  /* left border */
+    border-right: 2px solid #d8dde6; /* right border */
+    border-collapse: separate;
+    border-spacing: 20px;
+    }
+
+    .custom-table th,
+    .custom-table td {
+        padding: 15px;
+        text-align: center;
+        vertical-align: middle;
+    }
+
+    .hidden-input {
+        display: none;
+    }
+
+    .file-row {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 5px;
+        margin: 4px 0;
+    }
