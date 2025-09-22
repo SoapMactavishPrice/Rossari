@@ -70,9 +70,11 @@ global class AccountMaster_API {
                         cityNameSet.add(pf.CITY1);
                     }
                 }
-                for (ContactData con : accMaster.CONTACT) {
-                    cityNameSet.add(con.CONTACT_CITY);
-                    postalCodeSet.add(con.CONTACT_POSTCODE);
+                if (accMaster.CONTACT != null && !accMaster.CONTACT.isEmpty()) {
+                    for (ContactData con : accMaster.CONTACT) {
+                        cityNameSet.add(con.CONTACT_CITY);
+                        postalCodeSet.add(con.CONTACT_POSTCODE);
+                    }
                 }
             }
 
@@ -217,12 +219,9 @@ global class AccountMaster_API {
                 // Map fields from request to Account object
                 // acc.SAP_Customer_Code__c = accMaster.Account_ID; //NTC
                 // acc.SAP_Customer_Code__c = accMaster.ADDRESS;
-                // acc.SAP_Customer_Code__c = accMaster.REGION;
                 // acc.SAP_Customer_Code__c = accMaster.TAXNO3;
                 // acc.SAP_Customer_Code__c = accMaster.TAX_CLASS;
                 // acc.SAP_Customer_Code__c = accMaster.INDUSTRY_C;
-                // acc.SAP_Customer_Code__c = accMaster.RECON_ACCT;
-                // acc.SAP_Customer_Code__c = accMaster.EXRATETYPE;
                 
                 acc.Name = accMaster.CUST_NAME;
                 acc.SAP_Customer_Code__c = accMaster.CUSTOMER_NO;
@@ -237,6 +236,9 @@ global class AccountMaster_API {
                 acc.BillingStreet = accMaster.STREET;
                 acc.Street__c = accMaster.HOUSE_NO;
                 acc.Post_Code__c = accMaster.POST_CODE;
+                acc.State1__c = accMaster.REGION;
+                acc.RECON_ACCT__c = accMaster.RECON_ACCT;
+                acc.City1__c = accMaster.CITY;  
                 if (String.isNotBlank(accMaster.CITY)) {
                     if (cityMap.containsKey(accMaster.CITY)) {
                         acc.City__c = cityMap.get(accMaster.CITY).id;    
@@ -246,6 +248,7 @@ global class AccountMaster_API {
                 acc.GST_Type__c = accMaster.GST_TYPE_C;
                 acc.Industry = accMaster.INDUSTRY;
                 acc.Recon_Account__c = accMaster.RECON_ACCOUNT;
+                acc.Exch_Rate_Type_Code__c = accMaster.EXRATETYPE;
                 acc.Exch_Rate_Type__c = accMaster.EXCH_RATE_TYPE_C;
                 acc.CurrencyIsoCode = String.isNotBlank(accMaster.CURRNCY) ? accMaster.CURRNCY : 'INR';
                 acc.Balance_Credit_Limit__c = String.isNotBlank(accMaster.CRED_LIMIT) ? Decimal.valueOf(accMaster.CRED_LIMIT.replace(',', '')) : null;
@@ -508,16 +511,15 @@ global class AccountMaster_API {
             salesArea.Incoterm_1__c = saData.INCO_TERM_1_C;
             salesArea.Incoterm_3__c = saData.INCOTERMS2;
             // salesArea.Delivery_Plant__c = saData.DELIVERY_PLANT;
-            salesArea.Payment_Term_Code__c = saData.TERMS_OF_PAYMENT_C;
-            if (ptMap.containsKey(saData.TERMS_OF_PAYMENT_C)) {
-                salesArea.Payment_Term__c = ptMap.get(saData.TERMS_OF_PAYMENT_C).Id;
+            salesArea.Payment_Term_Code__c = saData.PAYT_TERMS;
+            if (ptMap.containsKey(saData.PAYT_TERMS)) {
+                salesArea.Payment_Term__c = ptMap.get(saData.PAYT_TERMS).Id;
             }
             // salesArea.Payment_Terms__c = saData.PAYT_TERMS;
-            salesArea.Sales_District_Code__c = saData.SALES_DISTRICT_C;
-            if (sdMap.containsKey(saData.SALES_DISTRICT_C)) {
-                salesArea.Sales_District__c = sdMap.get(saData.SALES_DISTRICT_C).Id;
+            salesArea.Sales_District_Code__c = saData.SALES_DISTRICT;
+            if (sdMap.containsKey(saData.SALES_DISTRICT)) {
+                salesArea.Sales_District__c = sdMap.get(saData.SALES_DISTRICT).Id;
             }
-            // salesArea.Sales_District_Code__c = saData.SALES_DISTRICT;
             // salesArea.Sales_Office_Code__c = saData.SALES_OFF;
             // salesArea.Sales_Office__c = saData.SALES_OFFICE_C;
             // salesArea.Sales_Group_Code__c = saData.SALES_GRP;
@@ -525,9 +527,9 @@ global class AccountMaster_API {
             salesArea.Customer_Group__c = saData.CUSTGROUP;
             salesArea.Customer_Price_Group__c = saData.CUST_PRICE_GROUP_C;
             // salesArea.ABC_Classification__c = saData.ABC_CLASS;
-            // salesArea.Price_Group_Code__c = saData.PRICEGRP;
-            // salesArea.Price_Group__c = saData.PRICE_GROUP_C;
-            // salesArea.Price_List_Type__c = saData.PRICE_LIST;
+            salesArea.Price_Group__c = saData.PRICE_GROUP_C;
+            salesArea.Price_Group_Code__c = saData.PRICEGRP;
+            salesArea.Pricelist__c = saData.PRICE_LIST;
             salesArea.Cust_Stat_Gr__c = saData.CUSTSTATGR;
             salesArea.INVOIC_DAT__c = saData.INVOIC_DAT;
             salesArea.INVLISTSCH__c = saData.INVLISTSCH;

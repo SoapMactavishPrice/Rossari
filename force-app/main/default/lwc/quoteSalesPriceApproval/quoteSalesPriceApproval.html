@@ -4,7 +4,15 @@
         <template if:true={quotes}>
             <template for:each={quotes} for:item="quote">
                 <div key={quote.quoteId} class="slds-box slds-m-bottom_medium">
-                    <h3 class="slds-text-heading_small" style="font-weight: bold; padding-bottom: 6px;">{quote.quoteName}</h3>
+                    <h3 class="slds-text-heading_small" style="padding-bottom: 6px;">
+                        <div style="display: flex; justify-content: space-between;">
+                            <span style="flex: 1;"><b>Account Name:</b> {quote.accountName}</span>
+                            <span style="flex: 1;"><b>Quote Owner:</b> {quote.quoteOwnerName}</span>
+                            <span style="flex: 1;"><b>Quote Number:</b> {quote.quoteNumber}</span>
+                            <span style="flex: 1;"><b>Quote Name:</b> {quote.quoteName}</span>
+                        </div>
+                    </h3>
+
                     <table class="slds-table slds-table_cell-buffer slds-table_bordered">
                         <thead>
                             <tr>
@@ -32,7 +40,8 @@
                                             value={item.approvalStatus}
                                             options={statusOptions}
                                             onchange={handleLineItemChanges}
-                                            variant="label-hidden">
+                                            variant="label-hidden"
+                                            disabled={quote.disableFields}>
                                         </lightning-combobox>
                                     </td>
                                     <td>
@@ -42,7 +51,8 @@
                                             data-field="approvalComments"
                                             data-id={item.quoteLineItemId}
                                             onchange={handleLineItemChanges}
-                                            variant="label-hidden">
+                                            variant="label-hidden"
+                                            disabled={quote.disableFields}>
                                         </lightning-input>
                                     </td>
                                 </tr>

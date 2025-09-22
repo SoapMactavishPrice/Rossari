@@ -6,8 +6,8 @@ public with sharing class DocumentApprovalHandlerForOpp {
             ApproverModel approvers = (ApproverModel)JSON.deserialize(approverStringObject, ApproverModel.class);
             
             
-            Opportunity leadRecord = [SELECT Id, Company__c, Owner.Name, Owner.Email,
-                             TDS_Approver__c, MSDS_Approver__c, Technical_Document_Approver__c 
+            Opportunity leadRecord = [SELECT Id, Name, Company__c, Owner.Name, Owner.Email, Enquiry_Document_No__c, Account.Name, 
+                             TDS_Approver__c, MSDS_Approver__c, Technical_Document_Approver__c, Contact__r.Name
                              FROM Opportunity WHERE Id = :leadId];
             
             if (approvers.tdsApproverId != null) {
@@ -85,18 +85,21 @@ public with sharing class DocumentApprovalHandlerForOpp {
         email.setCcAddresses(new List<String>{leadRecord.Owner.Email});
         email.setWhatId(leadRecord.Id);
         email.setSaveAsActivity(true);
-        email.setSubject('Request for ' + documentType + ' Document - ' + leadRecord.Company__c);
+        email.setSubject('Request for ' + documentType + ' Document - ' + (leadRecord.Account != null ? leadRecord.Account.Name : ''));
 
         String htmlBody = 'Dear ' + approver.Name + ',<br/><br/>';
         htmlBody += 'There is a request for a ' + documentType + ' document for the below Opportunity:<br/><br/>';
-        // htmlBody += '<b>Opportunity First Name:</b> ' + leadRecord.FirstName + '<br/>';
-        // htmlBody += '<b>Opportunity Last Name:</b> ' + leadRecord.LastName + '<br/>';
-        htmlBody += '<b>Company:</b> ' + leadRecord.Company__c + '<br/>';
+        htmlBody += '<b>Opportunity Number:</b> ' + leadRecord.Enquiry_Document_No__c + '<br/>';
+        htmlBody += '<b>Opportunity Name:</b> ' + leadRecord.Name + '<br/>';
+        htmlBody += '<b>Company:</b> ' + (leadRecord.Account != null ? leadRecord.Account.Name : '') + '<br/>';
+        htmlBody += '<b>Contact Name:</b> ' + (leadRecord.Contact__r != null ? leadRecord.Contact__r.Name : '') + '<br/>';
         htmlBody += '<b>URL:</b> <a href="https://rossari--devorg.sandbox.lightning.force.com/lightning/cmp/c__AttachTdsMsdsOnOpportunityCaller?c__recordId=' 
                     + leadRecord.Id + '" target="_blank">Click here</a><br/><br/>';
         htmlBody += 'Kindly review and provide the required document.<br/><br/>';
         htmlBody += 'Regards,<br/>';
         htmlBody += leadRecord.Owner.Name;
+
+        System.debug('html body ==>' + htmlBody);
 
         email.setHtmlBody(htmlBody);
 
@@ -200,8 +203,8 @@ public with sharing class DocumentApprovalHandlerForOpp {
         update leadToUpdate;
         
         // Query lead details for email
-        Opportunity lead = [SELECT Id, Company__c, Owner.Name, Owner.Email,
-                        TDS_Approver__r.Name, MSDS_Approver__r.Name, Technical_Document_Approver__r.Name
+        Opportunity lead = [SELECT Id, Name, Company__c, Owner.Name, Owner.Email, Enquiry_Document_No__c, Account.Name, 
+                        TDS_Approver__r.Name, MSDS_Approver__r.Name, Technical_Document_Approver__r.Name, Contact__r.Name
                         FROM Opportunity WHERE Id = :leadId];
         
         // Send email notifications
@@ -264,15 +267,15 @@ public with sharing class DocumentApprovalHandlerForOpp {
     private static Messaging.SingleEmailMessage createUploadNotificationEmail(Opportunity lead, String documentType, String approverName) {
         Messaging.SingleEmailMessage email = new Messaging.SingleEmailMessage();
         email.setToAddresses(new List<String>{lead.Owner.Email});
-        email.setSubject(documentType + ' Document Uploaded - ' + lead.Company__c);
+        email.setSubject(documentType + ' Document Uploaded - ' + (lead.Account != null ? lead.Account.Name : ''));
         email.setWhatId(lead.Id);
         email.setSaveAsActivity(true);
 
         String htmlBody = 'Dear ' + lead.Owner.Name + ',<br/><br/>';
-        htmlBody += 'The requested ' + documentType + ' document for the below Opportunity has been successfully uploaded:<br/><br/>';
-        // htmlBody += '<b>Opportunity First Name:</b> ' + lead.FirstName + '<br/>';
-        // htmlBody += '<b>Opportunity Last Name:</b> ' + lead.LastName + '<br/>';
-        htmlBody += '<b>Company:</b> ' + lead.Company__c + '<br/>';
+        htmlBody += '<b>Opportunity Number:</b> ' + lead.Enquiry_Document_No__c + '<br/>';
+        htmlBody += '<b>Opportunity Name:</b> ' + lead.Name + '<br/>';
+        htmlBody += '<b>Company:</b> ' + (lead.Account != null ? lead.Account.Name : '') + '<br/>';
+        htmlBody += '<b>Contact Name:</b> ' + (lead.Contact__r != null ? lead.Contact__r.Name : '') + '<br/>';
         htmlBody += '<b>URL:</b> <a href="https://rossari--devorg.sandbox.lightning.force.com/lightning/cmp/c__AttachTdsMsdsOnOpportunityCaller?c__recordId=' 
                     + lead.Id + '" target="_blank">Click here</a><br/><br/>';
         htmlBody += 'Please confirm if any further action is required.<br/><br/>';

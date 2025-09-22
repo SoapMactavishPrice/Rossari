@@ -319,6 +319,28 @@ l.Status = 'Working';
                 System.debug('Contact update error: ' + e.getMessage());
             }
         }
+        
+        // ------------------ Update Opportunity.Contact__c with Converted Contact ------------------
+        List<Opportunity> opportunitiesToUpdate = new List<Opportunity>();
+        
+        for (Lead lead : convertedLeadsMap.values()) {
+            if (lead.ConvertedOpportunityId != null && lead.ConvertedContactId != null) {
+                Opportunity opp = new Opportunity();
+                opp.Id = lead.ConvertedOpportunityId;
+                opp.Contact__c = lead.ConvertedContactId;
+                opportunitiesToUpdate.add(opp);
+            }
+        }
+        
+        if (!opportunitiesToUpdate.isEmpty()) {
+            try {
+                update opportunitiesToUpdate;
+                System.debug('Updated Opportunity.Contact__c for: ' + opportunitiesToUpdate.size() + ' opportunities.');
+            } catch (Exception e) {
+                System.debug('Opportunity update error: ' + e.getMessage());
+            }
+        }
+        
     }
     
     
@@ -494,7 +516,7 @@ l.Status = 'Working';
             Bank__c, Destination__c,
             Country_of_Origin__c, Country_of_Destination__c,
             Pre_Carriage_Mode__c, Place_of_Supplier__c,
-            Partial_Shipment__c, Vessel_Flight_No__c,
+            Partial_Shipment__c, Vessel_Flight_No__c,Payment_Terms__c,
             Street_1__c,Street_2__c,Street_3__c,Pin_Code__c,Pin_Code__r.Name,City__c,City__r.Name,Zone__c,State__c,
             State__r.Name,Region__c,Country__c,Country__r.Name,
             Shipping_Street_1__c,Shipping_Street_2__c,Shipping_Street_3__c,Shipping_Pin_Code__c,Shipping_Pin_Code__r.Name,
@@ -568,7 +590,8 @@ l.Status = 'Working';
                         
                         // Mapped fields from Lead to Quote
                         Inco_Terms__c = lead.Inco_Terms__c,
-                        Payment_Terms__c = lead.Payment_Term__c,
+                      //  Payment_Terms__c = lead.Payment_Term__c,
+                      Payment_Term__c = lead.Payment_Terms__c,
                         Loading_Port__c = lead.Loading_Port__c,
                         Destination_Port__c = lead.Destination_Port__c,
                         Quote_Valid_From__c = lead.Quote_Valid_From__c,

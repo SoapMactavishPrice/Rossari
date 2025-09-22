@@ -49,6 +49,7 @@
                                             data-field="Credit_Approval_Status__c"
                                             options={statusOptions}
                                             onchange={handleChange}
+                                            disabled={quote.isDisabled}
                                             style="margin-top: -8px;">
                                         </lightning-combobox>
                                     </td>
@@ -60,6 +61,7 @@
                                             data-id={quote.Id} 
                                             data-field="Payment_Remark__c" 
                                             onchange={handleChange}
+                                            disabled={quote.isDisabled}
                                             style="margin-top: -8px;">
                                         </lightning-input>
                                     </td>

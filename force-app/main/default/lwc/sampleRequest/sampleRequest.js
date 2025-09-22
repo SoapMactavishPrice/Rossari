@@ -134,11 +134,13 @@ export default class SampleRequestForm extends NavigationMixin(LightningElement)
     //     this.filteredSAPDocTypeOptions = this.allSAPDocTypeOptions[this.selectedSampleCategory] || [];
     // }
 
+    // Update the handleSampleCategoryChange method
     handleSampleCategoryChange(event) {
         this.selectedSampleCategory = event.detail.value;
         this.selectedSAPDocType = '';
         this.filteredSAPDocTypeOptions = this.allSAPDocTypeOptions[this.selectedSampleCategory] || [];
 
+        // Reset Sales Price to 0 for all items when Unpaid is selected
         if (this.selectedSampleCategory === 'Unpaid') {
             this.SampleLine = this.SampleLine.map(item => ({
                 ...item,
@@ -146,7 +148,6 @@ export default class SampleRequestForm extends NavigationMixin(LightningElement)
             }));
         }
     }
-
 
     handleSAPDocTypeChange(event) {
         if (!this.selectedSampleCategory) {
@@ -221,7 +222,13 @@ export default class SampleRequestForm extends NavigationMixin(LightningElement)
         }];
     }
 
+    // Update the handlePriceChange method to prevent changes when Unpaid
     handlePriceChange(event) {
+        if (this.isUnpaidSampleCategory) {
+            // Don't allow price changes for Unpaid samples
+            return;
+        }
+
         const index = event.target.dataset.index;
         const value = event.detail.value;
         this.SampleLine[index].Sales_Price = value;
@@ -320,7 +327,7 @@ export default class SampleRequestForm extends NavigationMixin(LightningElement)
                     sampleLine: JSON.stringify(this.SampleLine)
                 })
                     .then(result => {
-                        this.showSuccess('Success!', 'Sample request created', 'success');
+                        this.showSuccess('Success!', 'Sample request created successfully', 'success');
                         this.navigateToRecord(result);
                     })
                     .catch(error => {
@@ -373,11 +380,19 @@ export default class SampleRequestForm extends NavigationMixin(LightningElement)
         today.setHours(0, 0, 0, 0); // Set time to 00:00:00 for accurate comparison
 
         const requestDate = new Date(this.template.querySelector("[data-name='Sample_Request_Date__c']")?.value);
-        const expectedDate = new Date(this.template.querySelector("[data-name='Sample_Expected_Date__c']")?.value);
+        //    const expectedDate = new Date(this.template.querySelector("[data-name='Sample_Expected_Date__c']")?.value);
         const followUpDate = new Date(this.template.querySelector("[data-name='Sample_Follow_Up_Date__c']")?.value);
+
+        const expectedDateStr = this.template.querySelector("[data-name='Sample_Expected_Date__c']")?.value;
+        const expectedDate = expectedDateStr ? new Date(expectedDateStr) : null;
 
         if (requestDate < today) {
             this.showError('Validation Error', "Sample Request Date cannot be earlier than today's date.");
+            return false;
+        }
+
+        if (!expectedDate) {
+            this.showError('Validation Error', 'Sample Expected Date is required');
             return false;
         }
 
@@ -388,11 +403,6 @@ export default class SampleRequestForm extends NavigationMixin(LightningElement)
 
         if (new Date(expectedDate) < new Date(requestDate)) {
             this.showError('Validation Error', 'Sample Expected Date cannot be earlier than Sample Request Date');
-            return false;
-        }
-
-        if (!expectedDate) {
-            this.showError('Validation Error', 'Sample Expected Date is required');
             return false;
         }
 
@@ -459,12 +469,15 @@ export default class SampleRequestForm extends NavigationMixin(LightningElement)
         return Math.random().toString(36).substring(2, 15);
     }
 
-    showSuccess(message) {
-        this.dispatchEvent(new ShowToastEvent({
-            title: 'Success',
-            message: message,
-            variant: 'success'
-        }));
+    showSuccess(title, message, variant = 'success') {
+        this.dispatchEvent(
+            new ShowToastEvent({
+                title: title,
+                message: message,
+                variant: variant,
+                mode: 'dismissable'
+            })
+        );
     }
 
     showError(title, message) {

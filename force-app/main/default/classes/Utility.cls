@@ -208,6 +208,10 @@ public with sharing class Utility {
         return productIds;
     }
 
+    public String ns(Object val) {
+        return val == null ? '' : String.valueOf(val);
+    }
+
     public class OpportunityHeaderWrapper {
         @AuraEnabled public String plantLocation;
         @AuraEnabled public String yashoCompany;

@@ -1,25 +1,47 @@
 public with sharing class CreditApprovalController {
+    
     @AuraEnabled(cacheable=true)
-    public static List<Quote> getQuotesWithChangedPaymentTerms() {
-        List<Quote> allQuotes = [
+    public static List<Quote> getQuotesWithChangedPaymentTerms(Id currentUserId) {
+        // Quotes owned by the current user
+        List<Quote> ownedQuotes = [
             SELECT Id, Name, Payment_Term__c, Previous_Payment_Terms__c, QuoteNumber,
             Payment_Term__r.Name, Previous_Payment_Terms__r.Name, Account.Name,
-            HOD_of_Sales_Department__r.Name, HOD_of_Sales_Department__r.Email,
-            Payment_Remark__c, Credit_Approval_Status__c, Owner.Name
+            HOD_of_Sales_Department__c, HOD_of_Sales_Department__r.Name, HOD_of_Sales_Department__r.Email,
+            Payment_Remark__c, Credit_Approval_Status__c, OwnerId, Owner.Name
             FROM Quote
             WHERE Payment_Term__c != null
             AND Previous_Payment_Terms__c != null
             AND Credit_Approval_Status__c != 'Approved'
+            AND OwnerId = :currentUserId
         ];
         
-        List<Quote> changedQuotes = new List<Quote>();
-        for (Quote q : allQuotes) {
+        // Quotes where current user is HOD
+        List<Quote> hodQuotes = [
+            SELECT Id, Name, Payment_Term__c, Previous_Payment_Terms__c, QuoteNumber,
+            Payment_Term__r.Name, Previous_Payment_Terms__r.Name, Account.Name,
+            HOD_of_Sales_Department__c, HOD_of_Sales_Department__r.Name, HOD_of_Sales_Department__r.Email,
+            Payment_Remark__c, Credit_Approval_Status__c, OwnerId, Owner.Name
+            FROM Quote
+            WHERE Payment_Term__c != null
+            AND Previous_Payment_Terms__c != null
+            AND Credit_Approval_Status__c != 'Approved'
+            AND HOD_of_Sales_Department__c = :currentUserId
+        ];
+        
+        // Combine and remove duplicates
+        Map<Id, Quote> quoteMap = new Map<Id, Quote>();
+        for (Quote q : ownedQuotes) {
             if (q.Payment_Term__c != q.Previous_Payment_Terms__c) {
-                changedQuotes.add(q);
+                quoteMap.put(q.Id, q);
+            }
+        }
+        for (Quote q : hodQuotes) {
+            if (q.Payment_Term__c != q.Previous_Payment_Terms__c) {
+                quoteMap.put(q.Id, q);
             }
         }
         
-        return changedQuotes;
+        return quoteMap.values();
     }
     
     
@@ -35,7 +57,7 @@ public with sharing class CreditApprovalController {
         }
         
         update toUpdate;
-                
+        
         return 'Success';
     }
 }

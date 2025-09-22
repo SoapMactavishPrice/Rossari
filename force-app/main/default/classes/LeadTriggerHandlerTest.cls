@@ -333,7 +333,7 @@ public class LeadTriggerHandlerTest {
             Email = 'lead@test.com',   
             Create_Quote_upon_Conversion__c = true,
             Inco_Terms__c = 'FOB',
-            Payment_Term__c = 'Advance',
+        //    Payment_Term__c = 'Advance',
             Bill_to__c = 'BillTo',
             Ship_to__c = 'ShipTo',
             Loading_Port__c = 'Mumbai',

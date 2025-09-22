@@ -16,7 +16,7 @@ public with sharing class QuoteController {
         Map<String, Object> result = new Map<String, Object>();
         
         // Get opportunity details
-        Opportunity opp = [SELECT Id, AccountId, Name, CurrencyIsoCode, Pricebook2Id 
+        Opportunity opp = [SELECT Id, AccountId, Name, CurrencyIsoCode, Pricebook2Id,Contact__c, Contact__r.Name, Contact__r.Id 
                            FROM Opportunity 
                            WHERE Id = :opportunityId LIMIT 1];
         
@@ -52,12 +52,20 @@ public with sharing class QuoteController {
             ORDER BY Name
         ];
         
+        
         result.put('opportunityName', opp.Name);
         result.put('defaultCurrency', opp.CurrencyIsoCode);
         result.put('pricebookId', opp.Pricebook2Id);
         result.put('statusOptions', statusOptions);
         result.put('currencyOptions', currencyOptions);
         result.put('contacts', contacts);
+        
+        if (opp.Contact__c != null && opp.Contact__r != null) {
+            result.put('defaultContact', new Map<String, String>{
+                'label' => opp.Contact__r.Name,
+                    'value' => opp.Contact__r.Id
+                    });
+        }
         
         return result;
     }

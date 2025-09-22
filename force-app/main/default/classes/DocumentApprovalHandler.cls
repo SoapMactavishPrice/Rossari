@@ -7,7 +7,7 @@ public class DocumentApprovalHandler {
             ApproverModel approvers = (ApproverModel)JSON.deserialize(approverStringObject, ApproverModel.class);
             
             
-            Lead leadRecord = [SELECT Id, FirstName, LastName, Company, Owner.Name, Owner.Email,
+            Lead leadRecord = [SELECT Id, FirstName, LastName, Company, Owner.Name, Owner.Email, Lead_Number__c,
                              TDS_Approver__c, MSDS_Approver__c, Technical_Document_Approver__c 
                              FROM Lead WHERE Id = :leadId];
             
@@ -90,6 +90,7 @@ public class DocumentApprovalHandler {
 
         String htmlBody = 'Dear ' + approver.Name + ',<br/><br/>';
         htmlBody += 'There is a request for a ' + documentType + ' document for the below Lead:<br/><br/>';
+        htmlBody += '<b>Lead Number:</b> ' + leadRecord.Lead_Number__c + '<br/>';
         htmlBody += '<b>Lead First Name:</b> ' + leadRecord.FirstName + '<br/>';
         htmlBody += '<b>Lead Last Name:</b> ' + leadRecord.LastName + '<br/>';
         htmlBody += '<b>Company:</b> ' + leadRecord.Company + '<br/>';
@@ -201,7 +202,7 @@ public class DocumentApprovalHandler {
         update leadToUpdate;
         
         // Query lead details for email
-        Lead lead = [SELECT Id, FirstName, LastName, Company, Owner.Name, Owner.Email,
+        Lead lead = [SELECT Id, FirstName, LastName, Company, Owner.Name, Owner.Email, Lead_Number__c,
                         TDS_Approver__r.Name, MSDS_Approver__r.Name, Technical_Document_Approver__r.Name
                         FROM Lead WHERE Id = :leadId];
         
@@ -271,6 +272,7 @@ public class DocumentApprovalHandler {
 
         String htmlBody = 'Dear ' + lead.Owner.Name + ',<br/><br/>';
         htmlBody += 'The requested ' + documentType + ' document for the below Lead has been successfully uploaded:<br/><br/>';
+        htmlBody += '<b>Lead Number:</b> ' + lead.Lead_Number__c + '<br/>';
         htmlBody += '<b>Lead First Name:</b> ' + lead.FirstName + '<br/>';
         htmlBody += '<b>Lead Last Name:</b> ' + lead.LastName + '<br/>';
         htmlBody += '<b>Company:</b> ' + lead.Company + '<br/>';

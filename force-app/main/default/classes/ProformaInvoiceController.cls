@@ -30,7 +30,7 @@ public class ProformaInvoiceController {
                  Previous_Quantity__c, Previous_Sales_Price__c, Reject_Reason__c, 
                  Approver__c, Approval_Status__c, Approval_Comments__c, Subtotal, 
                  Discount, TotalPrice, Description,Status__c
-                 FROM QuoteLineItems WHERE Status__c = 'Won')
+                 FROM QuoteLineItems)
                 FROM Quote
                 WHERE Id = :quoteId 
             ];

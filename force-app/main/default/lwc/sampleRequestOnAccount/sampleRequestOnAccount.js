@@ -347,9 +347,12 @@ export default class AccountSampleRequest extends NavigationMixin(LightningEleme
         today.setHours(0, 0, 0, 0); // Set time to 00:00:00 for accurate comparison
 
         const requestDate = new Date(this.template.querySelector("[data-name='Sample_Request_Date__c']")?.value);
-        const expectedDate = new Date(this.template.querySelector("[data-name='Sample_Expected_Date__c']")?.value);
+        //    const expectedDate = new Date(this.template.querySelector("[data-name='Sample_Expected_Date__c']")?.value);
         const followUpDate = new Date(this.template.querySelector("[data-name='Sample_Follow_Up_Date__c']")?.value);
         const email = this.template.querySelector("[data-name='Email__c']")?.value;
+
+        const expectedDateStr = this.template.querySelector("[data-name='Sample_Expected_Date__c']")?.value;
+        const expectedDate = expectedDateStr ? new Date(expectedDateStr) : null;
 
         console.log('email', email);
 

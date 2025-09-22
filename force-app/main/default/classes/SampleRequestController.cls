@@ -57,169 +57,185 @@ public with sharing class SampleRequestController {
         return [SELECT Id, Name, Plant_Name__c FROM Plant__c ORDER BY Name];
     }
     
-    @AuraEnabled
-    public static String saveSample(String leadId, String sampleJs, 
-                                    List<Object> attachmentsFromUploadFile, 
-                                    String sampleLine) {
-                                        try {
-                                            System.debug('=== APEX SAVE STARTED ===');
-                                            System.debug('Lead ID: ' + leadId);
-                                            
-                                            // Process sample request data
-                                            Map<String, Object> sampleData = (Map<String, Object>)JSON.deserializeUntyped(sampleJs);
-                                            
-                                            Lead lead = [SELECT CurrencyIsoCode, Country FROM Lead WHERE Id = :leadId LIMIT 1];
-                                            
-                                            Sample_Request__c sampleRequest = new Sample_Request__c();
-                                            sampleRequest.Lead__c = leadId;
-                                            sampleRequest.CurrencyIsoCode = lead.CurrencyIsoCode;
-                                            
-                                            // Set required fields safely
-                                            if (sampleData.containsKey('Request_Date') && sampleData.get('Request_Date') != null) {
-                                                sampleRequest.Sample_Request_Date__c = Date.valueOf((String)sampleData.get('Request_Date'));
-                                            }
-                                            
-                                            if (sampleData.containsKey('Sample_Expected_Date') && sampleData.get('Sample_Expected_Date') != null) {
-                                                sampleRequest.Sample_Expected_Date__c = Date.valueOf((String)sampleData.get('Sample_Expected_Date'));
-                                            }
+   @AuraEnabled
+public static String saveSample(String leadId, String sampleJs, 
+                                List<Object> attachmentsFromUploadFile, 
+                                String sampleLine) {
+    try {
+        System.debug('=== APEX SAVE STARTED ===');
+        System.debug('Lead ID: ' + leadId);
+        
+        // Process sample request data
+        Map<String, Object> sampleData = (Map<String, Object>)JSON.deserializeUntyped(sampleJs);
+        
+        // Get the sample category
+        String sampleCategory = (String)sampleData.get('Sample_Category');
+        Boolean isUnpaid = 'Unpaid'.equals(sampleCategory);
+        
+        Lead lead = [SELECT CurrencyIsoCode, Country FROM Lead WHERE Id = :leadId LIMIT 1];
+        
+        Sample_Request__c sampleRequest = new Sample_Request__c();
+        sampleRequest.Lead__c = leadId;
+        sampleRequest.CurrencyIsoCode = lead.CurrencyIsoCode;
+        
+        // Set required fields safely
+        if (sampleData.containsKey('Request_Date') && sampleData.get('Request_Date') != null) {
+            sampleRequest.Sample_Request_Date__c = Date.valueOf((String)sampleData.get('Request_Date'));
+        }
+        
+        if (sampleData.containsKey('Sample_Expected_Date') && sampleData.get('Sample_Expected_Date') != null) {
+            sampleRequest.Sample_Expected_Date__c = Date.valueOf((String)sampleData.get('Sample_Expected_Date'));
+        }
 
-                                            if (sampleData.containsKey('salesHod') && sampleData.get('salesHod') != null) {
-                                                sampleRequest.Sales_HOD__c = (String) sampleData.get('salesHod');
-                                            }
-                                            
-                                            // Optional fields
-                                            sampleRequest.Consignee_Name__c = (String)sampleData.get('Consignee_Name');
-                                            sampleRequest.Additional_Email__c = (String)sampleData.get('Email');
-                                            sampleRequest.Remark__c = (String)sampleData.get('Remark');
-                                            sampleRequest.Status__c = 'Pending';
-                                            sampleRequest.Customer_Code__c = (String)sampleData.get('Customer_Code__c');
-    									//	sampleRequest.Zone__c = (String)sampleData.get('Zone__c');
-                                            
-                                            String followUpDateStr = (String)sampleData.get('Sample_Follow_Up_Date');
-                                            if (sampleData.containsKey('Sample_Follow_Up_Date') && String.isNotBlank(followUpDateStr)) {
-                                                sampleRequest.Sample_Follow_Up_Date__c = Date.valueOf(followUpDateStr);
-                                            }
-                                            
-                                            if (sampleData.containsKey('Sample_Category')) {
-                                                sampleRequest.Sample_Category__c = (String)sampleData.get('Sample_Category');
-                                            }
-                                            if (sampleData.containsKey('SAP_Doc_Type')) {
-                                                sampleRequest.SAP_Sample_Document_Type__c = (String)sampleData.get('SAP_Doc_Type');
-                                            }
-                                            
-                                            insert sampleRequest;
-                                            System.debug('Sample_Category: ' + sampleData.get('Sample_Category'));
-                                            System.debug('SAP_Doc_Type: ' + sampleData.get('SAP_Doc_Type'));
-                                            
-                                            
-                                            // Process line items
-                                            List<Sample_Request_Line_Item__c> lineItems = new List<Sample_Request_Line_Item__c>();
-                                            
-                                            Object rawLines = JSON.deserializeUntyped(sampleLine);
-                                            if(rawLines instanceof List<Object>) {
-                                                List<Object> tempList = (List<Object>) rawLines;
-                                                for(Object o : tempList) {
-                                                    if(o instanceof Map<String, Object>) {
-                                                        Map<String, Object> line = (Map<String, Object>) o;
-                                                        
-                                                        lineItems.add(new Sample_Request_Line_Item__c(
-                                                            Sample_Request__c = sampleRequest.Id,
-                                                            Product__c = (String)line.get('prodId'),
-                                                            Sample_Qty_in_Kgs__c = line.containsKey('Sample_Qty_in_Kgs') && String.isNotEmpty(String.valueOf(line.get('Sample_Qty_in_Kgs')))
-                                                            ? Decimal.valueOf(String.valueOf(line.get('Sample_Qty_in_Kgs')))
-                                                            : 0,
-                                                            CurrencyIsoCode = lead.CurrencyIsoCode,
-                                                            Sales_Price__c = line.containsKey('Sales_Price') && String.isNotEmpty(String.valueOf(line.get('Sales_Price')))
-                                                            ? Decimal.valueOf(String.valueOf(line.get('Sales_Price')))
-                                                            : null
-                                                            
-                                                        ));
-                                                    }
-                                                }
-                                            }
-                                            
-                                            if(!lineItems.isEmpty()) {
-                                                System.debug('Line items to insert: ' + lineItems.size());
-                                                insert lineItems;
-                                            }
-                                            
-                                            // Process file attachments with enhanced logging
-                                            if(attachmentsFromUploadFile != null && !attachmentsFromUploadFile.isEmpty()) {
-                                                System.debug('Processing ' + attachmentsFromUploadFile.size() + ' attachments');
-                                                
-                                                List<ContentVersion> contentVersions = new List<ContentVersion>();
-                                                
-                                                for(Object fileObj : attachmentsFromUploadFile) {
-                                                    if(fileObj instanceof Map<String, Object>) {
-                                                        Map<String, Object> file = (Map<String, Object>)fileObj;
-                                                        System.debug('Processing file: ' + file.get('filename'));
-                                                        
-                                                        // Validate base64 data
-                                                        String base64Data = (String)file.get('base64');
-                                                        if(base64Data == null || base64Data.length() < 100) {
-                                                            System.debug('Invalid base64 data for file: ' + file.get('filename'));
-                                                            continue; // Skip this file but continue with others
-                                                        }
-                                                        
-                                                        try {
-                                                            ContentVersion cv = new ContentVersion(
-                                                                Title = (String)file.get('filename'),
-                                                                PathOnClient = (String)file.get('filename'),
-                                                                VersionData = EncodingUtil.base64Decode(base64Data)
-                                                            );
-                                                            contentVersions.add(cv);
-                                                            System.debug('Created ContentVersion for file: ' + file.get('filename'));
-                                                        } catch(Exception e) {
-                                                            System.debug('Error creating ContentVersion for file: ' + file.get('filename') + 
-                                                                         ' Error: ' + e.getMessage());
-                                                        }
-                                                    }
-                                                }
-                                                
-                                                if(!contentVersions.isEmpty()) {
-                                                    System.debug('ContentVersions to insert: ' + contentVersions.size());
-                                                    insert contentVersions;
-                                                    System.debug('ContentVersions inserted successfully');
-                                                    
-                                                    // Get the ContentDocumentIds
-                                                    List<ContentVersion> insertedCVs = [
-                                                        SELECT ContentDocumentId 
-                                                        FROM ContentVersion 
-                                                        WHERE Id IN :contentVersions
-                                                    ];
-                                                    System.debug('Inserted ContentVersions: ' + insertedCVs.size());
-                                                    
-                                                    List<ContentDocumentLink> docLinks = new List<ContentDocumentLink>();
-                                                    for(ContentVersion cv : insertedCVs) {
-                                                        docLinks.add(new ContentDocumentLink(
-                                                            ContentDocumentId = cv.ContentDocumentId,
-                                                            LinkedEntityId = sampleRequest.Id,
-                                                            ShareType = 'V',
-                                                            Visibility = 'AllUsers'
-                                                        ));
-                                                        System.debug('Created ContentDocumentLink for ContentDocumentId: ' + cv.ContentDocumentId);
-                                                    }
-                                                    
-                                                    if(!docLinks.isEmpty()) {
-                                                        System.debug('ContentDocumentLinks to insert: ' + docLinks.size());
-                                                        insert docLinks;
-                                                        System.debug('ContentDocumentLinks inserted successfully');
-                                                    }
-                                                }
-                                            }
-                                            
-                                            System.debug('=== APEX SAVE COMPLETED ===');
-                                            return sampleRequest.Id;
-                                            
-                                        } catch(Exception e) {
-                                            System.debug('=== APEX SAVE ERROR ===');
-                                            System.debug('Error message: ' + e.getMessage());
-                                            System.debug('Line number: ' + e.getLineNumber());
-                                            System.debug('Stack trace: ' + e.getStackTraceString());
-                                            throw new AuraHandledException('Error creating sample request: ' + e.getMessage() + 
-                                                                           ' [Line: ' + e.getLineNumber() + ']');
-                                        }
-                                    }
+        if (sampleData.containsKey('salesHod') && sampleData.get('salesHod') != null) {
+            sampleRequest.Sales_HOD__c = (String) sampleData.get('salesHod');
+        }
+        
+        // Optional fields
+        sampleRequest.Consignee_Name__c = (String)sampleData.get('Consignee_Name');
+        sampleRequest.Additional_Email__c = (String)sampleData.get('Email');
+        sampleRequest.Remark__c = (String)sampleData.get('Remark');
+        sampleRequest.Status__c = 'Pending';
+        sampleRequest.Customer_Code__c = (String)sampleData.get('Customer_Code__c');
+        sampleRequest.Sample_Category__c = sampleCategory;
+        
+        String followUpDateStr = (String)sampleData.get('Sample_Follow_Up_Date');
+        if (sampleData.containsKey('Sample_Follow_Up_Date') && String.isNotBlank(followUpDateStr)) {
+            sampleRequest.Sample_Follow_Up_Date__c = Date.valueOf(followUpDateStr);
+        }
+        
+        if (sampleData.containsKey('SAP_Doc_Type')) {
+            sampleRequest.SAP_Sample_Document_Type__c = (String)sampleData.get('SAP_Doc_Type');
+        }
+        
+        insert sampleRequest;
+        System.debug('Sample_Category: ' + sampleCategory);
+        System.debug('SAP_Doc_Type: ' + sampleData.get('SAP_Doc_Type'));
+        System.debug('Is Unpaid Sample: ' + isUnpaid);
+        
+        // Process line items with Sales Price logic for Unpaid samples
+        List<Sample_Request_Line_Item__c> lineItems = new List<Sample_Request_Line_Item__c>();
+        
+        Object rawLines = JSON.deserializeUntyped(sampleLine);
+        if(rawLines instanceof List<Object>) {
+            List<Object> tempList = (List<Object>) rawLines;
+            for(Object o : tempList) {
+                if(o instanceof Map<String, Object>) {
+                    Map<String, Object> line = (Map<String, Object>) o;
+                    
+                    // Set Sales Price to 0 if sample category is Unpaid
+                    Decimal salesPrice;
+                    if(isUnpaid) {
+                        salesPrice = 0;
+                        System.debug('Setting Sales Price to 0 for Unpaid sample');
+                    } else {
+                        // For paid samples, use the provided value or null
+                        salesPrice = line.containsKey('Sales_Price') && String.isNotEmpty(String.valueOf(line.get('Sales_Price')))
+                            ? Decimal.valueOf(String.valueOf(line.get('Sales_Price')))
+                            : null;
+                        System.debug('Using provided Sales Price: ' + salesPrice);
+                    }
+                    
+                    lineItems.add(new Sample_Request_Line_Item__c(
+                        Sample_Request__c = sampleRequest.Id,
+                        Product__c = (String)line.get('prodId'),
+                        Sample_Qty_in_Kgs__c = line.containsKey('Sample_Qty_in_Kgs') && String.isNotEmpty(String.valueOf(line.get('Sample_Qty_in_Kgs')))
+                            ? Decimal.valueOf(String.valueOf(line.get('Sample_Qty_in_Kgs')))
+                            : 0,
+                        CurrencyIsoCode = lead.CurrencyIsoCode,
+                        Sales_Price__c = salesPrice
+                    ));
+                }
+            }
+        }
+        
+        if(!lineItems.isEmpty()) {
+            System.debug('Line items to insert: ' + lineItems.size());
+            insert lineItems;
+            
+            // Debug inserted line items
+            for(Sample_Request_Line_Item__c item : lineItems) {
+                System.debug('Inserted Line Item - Product: ' + item.Product__c + ', Sales Price: ' + item.Sales_Price__c);
+            }
+        }
+        
+        // Process file attachments with enhanced logging
+        if(attachmentsFromUploadFile != null && !attachmentsFromUploadFile.isEmpty()) {
+            System.debug('Processing ' + attachmentsFromUploadFile.size() + ' attachments');
+            
+            List<ContentVersion> contentVersions = new List<ContentVersion>();
+            
+            for(Object fileObj : attachmentsFromUploadFile) {
+                if(fileObj instanceof Map<String, Object>) {
+                    Map<String, Object> file = (Map<String, Object>)fileObj;
+                    System.debug('Processing file: ' + file.get('filename'));
+                    
+                    // Validate base64 data
+                    String base64Data = (String)file.get('base64');
+                    if(base64Data == null || base64Data.length() < 100) {
+                        System.debug('Invalid base64 data for file: ' + file.get('filename'));
+                        continue; // Skip this file but continue with others
+                    }
+                    
+                    try {
+                        ContentVersion cv = new ContentVersion(
+                            Title = (String)file.get('filename'),
+                            PathOnClient = (String)file.get('filename'),
+                            VersionData = EncodingUtil.base64Decode(base64Data)
+                        );
+                        contentVersions.add(cv);
+                        System.debug('Created ContentVersion for file: ' + file.get('filename'));
+                    } catch(Exception e) {
+                        System.debug('Error creating ContentVersion for file: ' + file.get('filename') + 
+                                     ' Error: ' + e.getMessage());
+                    }
+                }
+            }
+            
+            if(!contentVersions.isEmpty()) {
+                System.debug('ContentVersions to insert: ' + contentVersions.size());
+                insert contentVersions;
+                System.debug('ContentVersions inserted successfully');
+                
+                // Get the ContentDocumentIds
+                List<ContentVersion> insertedCVs = [
+                    SELECT ContentDocumentId 
+                    FROM ContentVersion 
+                    WHERE Id IN :contentVersions
+                ];
+                System.debug('Inserted ContentVersions: ' + insertedCVs.size());
+                
+                List<ContentDocumentLink> docLinks = new List<ContentDocumentLink>();
+                for(ContentVersion cv : insertedCVs) {
+                    docLinks.add(new ContentDocumentLink(
+                        ContentDocumentId = cv.ContentDocumentId,
+                        LinkedEntityId = sampleRequest.Id,
+                        ShareType = 'V',
+                        Visibility = 'AllUsers'
+                    ));
+                    System.debug('Created ContentDocumentLink for ContentDocumentId: ' + cv.ContentDocumentId);
+                }
+                
+                if(!docLinks.isEmpty()) {
+                    System.debug('ContentDocumentLinks to insert: ' + docLinks.size());
+                    insert docLinks;
+                    System.debug('ContentDocumentLinks inserted successfully');
+                }
+            }
+        }
+        
+        System.debug('=== APEX SAVE COMPLETED ===');
+        return sampleRequest.Id;
+        
+    } catch(Exception e) {
+        System.debug('=== APEX SAVE ERROR ===');
+        System.debug('Error message: ' + e.getMessage());
+        System.debug('Line number: ' + e.getLineNumber());
+        System.debug('Stack trace: ' + e.getStackTraceString());
+        throw new AuraHandledException('Error creating sample request: ' + e.getMessage() + 
+                                       ' [Line: ' + e.getLineNumber() + ']');
+    }
+}
     
     @AuraEnabled(cacheable=true)
     public static List<Sample_Request_Line_Item__c> getExistingLineItems(String recordId) {

@@ -72,8 +72,7 @@ global class SalesOrderAPI {
                 acc = [
                     SELECT Id, Name, SAP_Customer_Code__c
                     FROM Account
-                    WHERE Id IN(SELECT AccountId FROM Contact)
-                    AND SAP_Customer_Code__c =: soRequest.CUSTOMER_NO
+                    WHERE SAP_Customer_Code__c =: soRequest.CUSTOMER_NO
                 ];
                 if (acc.size() > 0) {
 
@@ -101,7 +100,7 @@ global class SalesOrderAPI {
                     user = [
                         SELECT Id, SAP_User_Id__c
                         FROM User
-                        WHERE SAP_User_Id__c =: soRequest.SALES_EXECUTIVE
+                        // WHERE SAP_User_Id__c =: soRequest.SALES_EXECUTIVE
                     ];
 
                     if (user.size() > 0) {

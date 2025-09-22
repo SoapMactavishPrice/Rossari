@@ -2,13 +2,15 @@ import { LightningElement, track, wire } from 'lwc';
 import { ShowToastEvent } from 'lightning/platformShowToastEvent';
 import getAllQuotations from '@salesforce/apex/SalesPriceApprovalForQuotation.getAllQuotations';
 import updateQuoteLineItem from '@salesforce/apex/SalesPriceApprovalForQuotation.updateQuoteLineItem';
-
+import USER_ID from '@salesforce/user/Id';
 import { NavigationMixin } from 'lightning/navigation';
 
 export default class quoteSalesPriceApproval extends NavigationMixin(LightningElement) {
     @track quotes;
     @track updatedLineItems = new Map();
     @track isSaveDisabled = false;
+
+    userId = USER_ID;
 
     @track statusOptions = [
         { label: 'Pending', value: 'Pending' },
@@ -24,19 +26,22 @@ export default class quoteSalesPriceApproval extends NavigationMixin(LightningEl
     fetchQuotes() {
         getAllQuotations()
             .then(result => {
-                console.log(result);
-                this.quotes = result;
+                this.quotes = result.map(q => {
+                    const isHodUser = (q.hodUserId === this.userId);
+                    return {
+                        ...q,
+                        isHodUser: isHodUser,
+                        disableFields: !isHodUser // 👈 add this
+                    };
+                });
             })
             .catch(error => {
                 this.showToast('Error', error.body.message, 'error');
-
                 this.redirectToHome();
-
-                setTimeout(()=>{
-                    window.location.reload();
-                }, 2500)
+                setTimeout(()=>{ window.location.reload(); }, 2500);
             });
     }
+
 
     handleLineItemChanges(event) {
         const field = event.target.dataset.field;

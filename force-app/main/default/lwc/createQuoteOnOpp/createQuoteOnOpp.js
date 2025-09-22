@@ -46,6 +46,12 @@ export default class CreateQuoteFromOpportunity extends NavigationMixin(Lightnin
                     value: contact.Id
                 }));
 
+                // Set default contact if available from Apex
+                if (result.defaultContact) {
+                    this.quoteFields.contactId = result.defaultContact.value;
+                }
+
+
                 if (this.statusOptions.length > 0) {
                     this.quoteFields.status = this.statusOptions[0].value;
                 }

@@ -77,20 +77,21 @@ global class ProductMasterAPI {
                 // pCodeList.add(jd.PLANT_CODE);
                 plantCodeSet.add(jd.PLANT_CODE);
                 
-                uomCodeSet.add(jd.SALES_UOM);
+                // uomCodeSet.add(jd.SALES_UOM);
                 uomCodeSet.add(jd.WT_UOM);
                 uomCodeSet.add(jd.BASE_UOM);
                 // slorgList.add(jd.SALES_ORGANISATION);
                 // disChlList.add(jd.DISTRIBUTION_CHANNEL);
                 divList.add(jd.DIVISION);
                 prHierarSet.add(jd.PROD_HIERACHY);
-
+                
                 // for (cls_PLANT_EXTENTION data: jd.PLANT_EXTENTION) {
-                //     pCodeList.add(data.PLANT_CODE);
-                //     plantExtensionIds.add(jd.ITEM_NUMBER + '-' + data.PLANT_CODE);
-                // }
-
-                for (cls_SALES_AREA data: jd.SALES_AREA) {
+                    //     pCodeList.add(data.PLANT_CODE);
+                    //     plantExtensionIds.add(jd.ITEM_NUMBER + '-' + data.PLANT_CODE);
+                    // }
+                    
+                    for (cls_SALES_AREA data: jd.SALES_AREA) {
+                    uomCodeSet.add(data.SALES_UOM);
                     slorgList.add(data.SALES_ORGANISATION);
                     disChlList.add(data.DISTRIBUTION_CHANNEL);
                     divList.add(data.DIVISION);
@@ -241,9 +242,9 @@ global class ProductMasterAPI {
                 pr.Net_Wt__c = jd.NET_WT;
                 pr.Volume__c = jd.VOLUME;
                 pr.Size_Dimensions__c = jd.SIZE_DIMENSIONS;
-                if (allUOMmap.containsKey(jd.SALES_UOM)) {
-                    pr.Sales_UOM__c = allUOMmap.get(jd.SALES_UOM).id;
-                }
+                // if (allUOMmap.containsKey(jd.SALES_UOM)) {
+                //     pr.Sales_UOM__c = allUOMmap.get(jd.SALES_UOM).id;
+                // }
                 if (allUOMmap.containsKey(jd.WT_UOM)) {
                     pr.Wt_UOM__c = allUOMmap.get(jd.WT_UOM).id;
                 }
@@ -429,6 +430,9 @@ global class ProductMasterAPI {
                     if (diMap.containsKey(data.DIVISION)) {
                         obj.Division__c = diMap.get(data.DIVISION).id;
                     }
+                    if (allUOMmap.containsKey(data.SALES_UOM)) {
+                        obj.Sales_UOM__c = allUOMmap.get(data.SALES_UOM).id;
+                    }
                     SalesAreaListtoInsert.put(data.ITEM_NUMBER + '_' + data.SALES_ORGANISATION + '_' + data.DISTRIBUTION_CHANNEL + '_' + data.PLANT_CODE, obj);
 
 
@@ -587,6 +591,7 @@ global class ProductMasterAPI {
         public String DISTRIBUTION_CHANNEL; //10
         public String DIVISION; //28
         public String PLANT_CODE; //1100
+        public String SALES_UOM;
     }
     class cls_CONV_FACT_SALE {
         // public String SFDC_ID; //

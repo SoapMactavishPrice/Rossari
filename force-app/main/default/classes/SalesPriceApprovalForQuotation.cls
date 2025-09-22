@@ -12,46 +12,57 @@ public without sharing class SalesPriceApprovalForQuotation {
      */
     @AuraEnabled
     public static List<QuotationWrapper> getAllQuotations() {
-        
-        List<QuoteLineItem> quoteLineItems = [SELECT Approval_Comments__c, Approval_Status__c, Approver__c, CreatedById, ServiceDate, 
-                                                Discount, LastModifiedById, Description, LineNumber, ListPrice, Previous_Quantity__c, 
-                                                Previous_Sales_Price__c, Product2Id, Product2.Name, Quality__c, Quantity, QuoteId, Reject_Reason__c, 
-                                                UnitPrice, SortOrder, Subtotal, TotalPrice
-                                            FROM QuoteLineItem
-                                            WHERE Approval_Status__c = 'Pending' AND Is_SP_less_than_LP__c = true];
-
+        Id currentUserId = UserInfo.getUserId();
+    
+        // Fetch all pending line items first
+        List<QuoteLineItem> quoteLineItems = [
+            SELECT Approval_Comments__c, Approval_Status__c, Approver__c, CreatedById, ServiceDate, 
+                   Discount, LastModifiedById, Description, LineNumber, ListPrice, Previous_Quantity__c, 
+                   Previous_Sales_Price__c, Product2Id, Product2.Name, Quality__c, Quantity, QuoteId, 
+                   Reject_Reason__c, UnitPrice, SortOrder, Subtotal, TotalPrice
+            FROM QuoteLineItem
+            WHERE Approval_Status__c = 'Pending'
+              AND Is_SP_less_than_LP__c = true
+        ];
+    
         if (quoteLineItems.isEmpty()) {
             throw new AuraHandledException('No Quotation Line Items found with their status as "Pending"');
         }
-
-        List<String> quoteIds = new List<String>();
-
+    
+        // collect Quote Ids
+        Set<Id> quoteIds = new Set<Id>();
         for (QuoteLineItem eachQli : quoteLineItems) {
             quoteIds.add(eachQli.QuoteId);
         }
-
-        Map<Id, Quote> quoteMap = new Map<Id, Quote>([SELECT Id, Name, Owner.Email, Owner.Name, Link__c FROM Quote WHERE Id IN :quoteIds]);
-
+    
+        // fetch only those Quotes that belong to the user (owner) or where user is HOD
+        Map<Id, Quote> quoteMap = new Map<Id, Quote>(
+            [SELECT Id, Name, Owner.Email, Owner.Name, OwnerId, Account.Name, QuoteNumber, Link__c, HOD_of_Sales_Department__c
+             FROM Quote
+             WHERE Id IN :quoteIds
+               AND (OwnerId = :currentUserId OR HOD_of_Sales_Department__c = :currentUserId)]
+        );
+    
+        // map line items to their parent Quote
         Map<Id, List<QuoteLineItem>> quoteToQuoteLineItemMap = new Map<Id, List<QuoteLineItem>>();
-
         for (QuoteLineItem eachLine : quoteLineItems) {
-
-            if (!quoteToQuoteLineItemMap.containsKey(eachLine.QuoteId)) {
-                quoteToQuoteLineItemMap.put(eachLine.QuoteId, new List<QuoteLineItem>());
+            if (quoteMap.containsKey(eachLine.QuoteId)) { // filter by accessible quotes
+                if (!quoteToQuoteLineItemMap.containsKey(eachLine.QuoteId)) {
+                    quoteToQuoteLineItemMap.put(eachLine.QuoteId, new List<QuoteLineItem>());
+                }
+                quoteToQuoteLineItemMap.get(eachLine.QuoteId).add(eachLine);
             }
-
-            quoteToQuoteLineItemMap.get(eachLine.QuoteId).add(eachLine);
         }
-
+    
+        // build wrapper list
         List<QuotationWrapper> quotations = new List<QuotationWrapper>();
-
-        for (String eachQuoteId : quoteToQuoteLineItemMap.keySet()) {
-            QuotationWrapper quoteWrapperObject = new QuotationWrapper(quoteMap.get(eachQuoteId), quoteToQuoteLineItemMap.get(eachQuoteId));
-            quotations.add(quoteWrapperObject);
+        for (Id eachQuoteId : quoteToQuoteLineItemMap.keySet()) {
+            quotations.add(new QuotationWrapper(quoteMap.get(eachQuoteId), quoteToQuoteLineItemMap.get(eachQuoteId)));
         }
-
+    
         return quotations;
     }
+
 
     /**
      * @description: This method is used to update the approval status and approval comments of the line item
@@ -156,10 +167,13 @@ public without sharing class SalesPriceApprovalForQuotation {
     public class QuotationWrapper {
         @AuraEnabled public String quoteId;
         @AuraEnabled public String quoteName;
+        @AuraEnabled public String quoteNumber;
+        @AuraEnabled public String accountName;
         @AuraEnabled public String quoteOwnerId;
         @AuraEnabled public String quoteOwnerEmail;
         @AuraEnabled public String quoteOwnerName;
         @AuraEnabled public String quoteLink;
+        @AuraEnabled public String hodUserId; 
         @AuraEnabled public List<QuotationLineItemWrapper> quoteLineItems;
         @AuraEnabled public Boolean updated;
 
@@ -168,10 +182,13 @@ public without sharing class SalesPriceApprovalForQuotation {
         public QuotationWrapper(Quote quote, List<QuoteLineItem> quoteLineItems) {
             this.quoteId = quote.Id;
             this.quoteName = quote.Name;
+            this.accountName = quote.Account.Name;
+            this.quoteNumber = quote.QuoteNumber;
             this.quoteOwnerId = quote.OwnerId;
             this.quoteOwnerEmail = quote.Owner.Email;
             this.quoteOwnerName = quote.Owner.Name;
             this.quoteLink = quote.Link__c;
+            this.hodUserId = quote.HOD_of_Sales_Department__c; 
             this.updated = false;
 
             if (this.quoteLineItems == null) {
