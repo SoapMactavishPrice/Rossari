@@ -13,7 +13,9 @@ import { ShowToastEvent } from 'lightning/platformShowToastEvent';
 import { getRecord } from 'lightning/uiRecordApi';
 import USER_ID from '@salesforce/user/Id';
 import NAME_FIELD from '@salesforce/schema/User.Name';
-
+import ENTITY_CODE_FIELD from '@salesforce/schema/User.Entity_Code_1__c';
+import DIVISION_CODE_FIELD from '@salesforce/schema/User.Division_Code__c';
+const USER_FIELDS = [NAME_FIELD, ENTITY_CODE_FIELD, DIVISION_CODE_FIELD];
 
 export default class VisitReport extends LightningElement {
 
@@ -46,6 +48,7 @@ export default class VisitReport extends LightningElement {
     @track selectedTourAccounts = [];
     @track currentUserId = USER_ID;
     @track currentUserName;
+    @track natureOptions = [];
 
     // ✅ Initialize all lists
     @track Attendees = [];
@@ -76,6 +79,137 @@ export default class VisitReport extends LightningElement {
         { label: 'Internal Attendee', value: 'Internal Attendee' },
         { label: 'External Attendee', value: 'External Attendee' }
     ];
+
+
+    // ✅ Single wire for all user data
+    @wire(getRecord, { recordId: USER_ID, fields: USER_FIELDS })
+    wiredUser({ error, data }) {
+        if (data) {
+            console.log('User record data:', JSON.stringify(data));
+            
+            // Extract all user fields
+            this.currentUserName = data.fields.Name.value;
+            this.userEntityCode = data.fields.Entity_Code_1__c.value;
+            this.userDivisionCode = data.fields.Division_Code__c.value;
+            
+            console.log('User Details - Name:', this.currentUserName, 
+                       'Entity Code:', this.userEntityCode, 
+                       'Division Code:', this.userDivisionCode);
+            
+            // If category is already selected, filter nature options
+            if (this.visitCategory) {
+                this.filterNatureOptions();
+            }
+            
+        } else if (error) {
+            console.error('Error fetching user data:', error);
+            this.userEntityCode = undefined;
+            this.userDivisionCode = undefined;
+        }
+    }
+
+     // ✅ UPDATED mapping based on exact snapshot values
+    visitNatureMapping = {
+        'Customer Visit': {
+            '1000_10_11': ['Distributor Visit', 'B2B Visit', 'Industry Visit', 'Technician'],
+            '1000_22': ['Distributor Visit', 'B2B Customer Visit', 'Farm Visit', 'Consultant', 'Farmer Meeting'],
+            'NOT1000': ['Distributor Visit', 'B2B Customer Visit']
+        },
+        'Competitor Tracking': {
+            '1000_10_11': ['Competitor Distributor', 'Competition Visit'],
+            '1000_22': ['Competitor Distributor', 'Competition Visit'],
+            'NOT1000': ['Competitor Distributor', 'Competition Visit']
+        },
+        'Internal Meeting': {
+            '1000_10_11': ['HO Meeting', 'Zonal Meeting'],
+            '1000_22': ['HO Meeting', 'Zonal Meeting'],
+            'NOT1000': ['HO Meeting']
+        },
+        'RND related Visit': {
+            '1000_10_11': ['External Lab Visit', 'University Visit', 'Lab Trial'],
+            '1000_22': ['External Lab Testing', 'University Trial', 'Field Trial – Existing Product'],
+            'NOT1000': ['External Lab Visit', 'University Visit', 'Lab Trial']
+        },
+        'Seminar/ Conferences': {
+            '1000_10_11': ['Conferences'],
+            '1000_22': ['Conferences', 'Technical Seminar'],
+            'NOT1000': ['Conferences']
+        }
+    };
+
+    // ✅ SIMPLIFIED filter logic based on exact snapshot mapping
+    filterNatureOptions() {
+        console.log('➡️ filterNatureOptions called');
+        console.log('visitCategory:', this.visitCategory);
+        console.log('userEntityCode:', this.userEntityCode, 'userDivisionCode:', this.userDivisionCode);
+
+        // Reset if no category selected
+        if (!this.visitCategory) {
+            this.natureOptions = [];
+            console.warn('No category selected, resetting natureOptions');
+            return;
+        }
+
+        // Wait for user data to load
+        if (this.userEntityCode === undefined || this.userDivisionCode === undefined) {
+            console.log('Waiting for user data to load...');
+            return;
+        }
+
+        const mapping = this.visitNatureMapping[this.visitCategory];
+        if (!mapping) {
+            this.natureOptions = [];
+            console.warn('No mapping found for category:', this.visitCategory);
+            return;
+        }
+
+        let values = [];
+        const divisionCode = String(this.userDivisionCode);
+
+        // Determine the mapping key based on entity code and division code
+        let mappingKey;
+        
+        if (this.userEntityCode === '1000') {
+            if (divisionCode === '10' || divisionCode === '11') {
+                mappingKey = '1000_10_11';
+            } else if (divisionCode === '22') {
+                mappingKey = '1000_22';
+            } else {
+                // If division code is not 10, 11, or 22, use 10_11 as default
+                mappingKey = '1000_10_11';
+            }
+        } else {
+            // Entity code is NOT 1000
+            mappingKey = 'NOT1000';
+        }
+
+        console.log('Using mapping key:', mappingKey);
+        values = mapping[mappingKey] || [];
+
+        // Handle combined scenario: Entity_Code_1__c (1000) and Division_Code__c (10, 11, 22)
+        if (this.userEntityCode === '1000' && 
+            (divisionCode === '10' || divisionCode === '11' || divisionCode === '22') &&
+            this.visitCategory === 'Customer Visit') {
+            
+            // Combine values from both 10_11 and 22 for Customer Visit
+            const values10_11 = mapping['1000_10_11'] || [];
+            const values22 = mapping['1000_22'] || [];
+            
+            // Merge and remove duplicates
+            values = [...new Set([...values10_11, ...values22])];
+            console.log('Combined scenario - All values:', values);
+        }
+
+        // Convert to options format
+        this.natureOptions = values.map(v => ({ label: v, value: v }));
+        console.log('Available natureOptions:', JSON.stringify(this.natureOptions));
+        
+        // Clear selected nature if it's no longer in options
+        if (this.dataMap.Nature && !values.includes(this.dataMap.Nature)) {
+            this.dataMap.Nature = '';
+            console.log('Cleared Nature selection as it is not available in filtered options');
+        }
+    }
 
     handleAccountSelectedForBillTo(event) {
         this.customerId = event.detail.recordId;
@@ -273,7 +407,10 @@ export default class VisitReport extends LightningElement {
     // handles other fields (record-edit-form, inputs, etc.)
     handleVisitChange(event) {
         const fieldName = event.target.dataset.label;
-        const fieldValue = event.target.value;
+        const fieldValue = event.detail.value; // ✅ Always use detail.value
+
+        console.log('➡️ handleVisitChange called');
+        console.log('Field:', fieldName, 'Value:', fieldValue);
 
         if (!fieldValue) {
             delete this.dataMap[fieldName];
@@ -288,10 +425,10 @@ export default class VisitReport extends LightningElement {
                 let endDate = new Date(startDate);
                 endDate.setHours(endDate.getHours() + 1); // add 1 hour
 
-                // Save in dataMap
                 this.dataMap['End_Date_Time'] = endDate.toISOString();
 
-                // Auto update End Date field in UI
+                console.log('Auto-set End_Date_Time:', this.dataMap['End_Date_Time']);
+
                 const endDateField = this.template.querySelector(
                     '[data-label="End_Date_Time"]'
                 );
@@ -310,8 +447,9 @@ export default class VisitReport extends LightningElement {
             } else {
                 this.isTourDisabled = true;
                 this.selectedTourId = null;
-                delete this.dataMap['tourId']; // clear tour when not needed
+                delete this.dataMap['tourId'];
             }
+            console.log('isTourDisabled:', this.isTourDisabled);
         }
 
         // Customer Handling
@@ -325,6 +463,7 @@ export default class VisitReport extends LightningElement {
                         if (result) {
                             this.sapCustomerCode = result.SAP_Customer_Code__c;
                             this.customerRecordType = result.RecordTypeName;
+                            console.log('Fetched Customer Details:', result);
                         }
                     })
                     .catch(error => {
@@ -333,10 +472,25 @@ export default class VisitReport extends LightningElement {
             }
         }
 
-        // Visit Category Handling
+        // Handle Category change
         if (fieldName === 'Category') {
             this.visitCategory = fieldValue;
+            console.log('Selected Category:', this.visitCategory);
+            
+            // Filter nature options based on new category
+            this.filterNatureOptions();
+            
+            // Clear Nature when Category changes
+            this.dataMap.Nature = '';
         }
+
+        // ✅ When Nature changes → store properly
+        if (fieldName === 'Nature') {
+            this.dataMap.Nature = fieldValue;
+            console.log('Selected Nature:', this.dataMap.Nature);
+        }
+
+        console.log('Current dataMap:', JSON.stringify(this.dataMap));
     }
 
     // Getters for visit category
@@ -406,14 +560,14 @@ export default class VisitReport extends LightningElement {
         this.Attendees.push(temCon2);
     }
 
-    @wire(getRecord, { recordId: USER_ID, fields: [NAME_FIELD] })
-    wiredUser({ error, data }) {
-        if (data) {
-            this.currentUserName = data.fields.Name.value;
-        } else if (error) {
-            console.error('Error fetching user data', error);
-        }
-    }
+    // @wire(getRecord, { recordId: USER_ID, fields: [NAME_FIELD] })
+    // wiredUser({ error, data }) {
+    //     if (data) {
+    //         this.currentUserName = data.fields.Name.value;
+    //     } else if (error) {
+    //         console.error('Error fetching user data', error);
+    //     }
+    // }
 
     // handleAttendeeChange(event) {
     //     const recordIndex = parseInt(event.target.dataset.index, 10); // unique 4-digit code

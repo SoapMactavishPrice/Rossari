@@ -180,11 +180,11 @@
             </div>
 
             <div class="slds-m-top_small slds-text-align_center">
-                <lightning-button label="Cancel" onclick={handleCancel} disabled={isLoading}>
+                <lightning-button label="Save" variant="brand" onclick={handleSave} disabled={isLoading}>
                 </lightning-button>
-                <lightning-button label="Save" variant="brand" onclick={handleSave} disabled={isLoading}
-                    class="slds-m-left_small">
+                <lightning-button label="Cancel" onclick={handleCancel} disabled={isLoading} class="slds-m-left_small">
                 </lightning-button>
+
             </div>
         </div>
     </lightning-quick-action-panel>

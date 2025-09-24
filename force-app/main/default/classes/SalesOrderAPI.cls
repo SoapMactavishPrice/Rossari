@@ -120,6 +120,20 @@ global class SalesOrderAPI {
                             FROM Division__c
                             WHERE Division_Code__c =: soRequest.DIVISION
                         ];
+                        // Get Existing Payment Term
+                        List<Payment_Term__c> paymentTermList = [
+                            SELECT Id, Name, Payment_Term_Code__c
+                            FROM Payment_Term__c
+                            WHERE Payment_Term_Code__c = :soRequest.PMNTRMS
+                            LIMIT 1
+                        ];
+                        // Get Sale District
+                        List<Sales_District__c> salesDistrictList = [
+                            SELECT Id, Name, Sales_District_Code__c
+                            FROM Sales_District__c
+                            WHERE Sales_District_Code__c = :soRequest.SALES_DISTRICT
+                        ];
+
                         // SBU__c sbu = [
                         //     SELECT Id, Distribution_Channel__c, Distribution_Code__c, Division__c, Division_Code__c,
                         //     Sales_Organizations__c, Sales_Organization_Code__c, SBU_Code__c
@@ -148,7 +162,12 @@ global class SalesOrderAPI {
                         ord.Distribution_Channel__c = dc.Id;
                         ord.Division__c = div.Id;
                         ord.PoNumber = soRequest.CUST_PURC_NO;
-                        ord.Payment_Terms__c = soRequest.PMNTRMS;
+                        if (String.isNotBlank(soRequest.PMNTRMS) && paymentTermList.size() > 0) {
+                            ord.PaymentTerms__c = paymentTermList[0].Id;
+                        }
+                        if (String.isNotBlank(soRequest.SALES_DISTRICT) && salesDistrictList.size() > 0) {
+                            ord.Sales_District__c = salesDistrictList[0].Id;
+                        }
                         ord.Inco_Terms__c = soRequest.INCOTERMS1;
                         ord.Inco_Remark__c = soRequest.INCOTERMS2;
                         ord.Order_Reason__c = soRequest.ORD_REASON;

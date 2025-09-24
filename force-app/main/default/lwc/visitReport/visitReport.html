@@ -145,13 +145,19 @@
                     </lightning-layout-item>
 
                     <lightning-layout-item size="12" large-device-size="5" small-device-size="5"
-                        class="slds-m-around_small">Nature of Visit<abbr class="slds-required" title="required">*</abbr>
+                        class="slds-m-around_small">
+                        Nature of Visit <abbr class="slds-required" title="required">*</abbr>
                         <br />
-                        <lightning-record-edit-form object-api-name="Visit_Report__c">
-                            <lightning-input-field field-name="Nature_of_Visit__c" variant="label-hidden"
-                                data-label="Nature" onchange={handleVisitChange}></lightning-input-field>
-                        </lightning-record-edit-form>
+                        <lightning-combobox
+                            name="Nature"
+                            value={dataMap.Nature}
+                            options={natureOptions}
+                            onchange={handleVisitChange}
+                            data-label="Nature"
+                            style="margin-top: -18px;">
+                        </lightning-combobox>
                     </lightning-layout-item>
+
 
                     <!-- Customer Visit Fields -->
                     <template if:true={isCustomerVisit}>

@@ -512,30 +512,30 @@ export default class ExpenseForm extends NavigationMixin(LightningElement) {
                 Zone__c: this.zone,
                 Tour__c: this.selectedTourId,
                 Customer_Visited__c: customerVisitIds.length > 0 ? customerVisitIds[0] : null,
-                Visit_Report__c: this.visitReportId 
+                Visit_Report__c: this.visitReportId
             };
 
             const lineItemsToSend = this.lineItems.map(item => ({
-            Type_of_Expense__c: item.typeOfExpenseId,
-            Amount_Claimed__c: item.amountClaimed,
-            Reason__c: this.selectedVoucherType === 'Misc' ? item.reason : 
+                Type_of_Expense__c: item.typeOfExpenseId,
+                Amount_Claimed__c: item.amountClaimed,
+                Reason__c: this.selectedVoucherType === 'Misc' ? item.reason :
                     (this.selectedVoucherType === 'Outstation' ? item.outstationReason : null),
-            From_Location__c: this.selectedVoucherType === 'Local' ? item.fromLocation : 
-                            (this.selectedVoucherType === 'Outstation' ? item.outstationFromLocation : null),
-            To_Location__c: this.selectedVoucherType === 'Local' ? item.toLocation : 
-                        (this.selectedVoucherType === 'Outstation' ? item.outstationToLocation : null),
-            Mode_of_Transport__c: this.selectedVoucherType === 'Local' ? item.transportMode : 
-                                (this.selectedVoucherType === 'Outstation' ? item.outstationTransportMode : null),
-            Start_KM__c: this.selectedVoucherType === 'Local' && this.isPrivateExpense(item.typeOfExpenseId) ? item.startKM : null,
-            End_KM__c: this.selectedVoucherType === 'Local' && this.isPrivateExpense(item.typeOfExpenseId) ? item.endKM : null,
-            KM_Rate__c: this.selectedVoucherType === 'Local' ? item.kmRate : null,
-            Toll_Parking__c: this.selectedVoucherType === 'Local' ? item.tollParking : null,
-            // Outstation fields
-            Date__c: this.selectedVoucherType === 'Outstation' ? item.outstationDate : null,
-            Ticket_Booked_By_Company__c: this.selectedVoucherType === 'Outstation' ? item.ticketBookedByCompany : false,
-            Description__c: this.selectedVoucherType === 'Outstation' ? item.outstationDescription : 
-                       (this.selectedVoucherType === 'Cash' ? item.cashDescription : null)
-        }));
+                From_Location__c: this.selectedVoucherType === 'Local' ? item.fromLocation :
+                    (this.selectedVoucherType === 'Outstation' ? item.outstationFromLocation : null),
+                To_Location__c: this.selectedVoucherType === 'Local' ? item.toLocation :
+                    (this.selectedVoucherType === 'Outstation' ? item.outstationToLocation : null),
+                Mode_of_Transport__c: this.selectedVoucherType === 'Local' ? item.transportMode :
+                    (this.selectedVoucherType === 'Outstation' ? item.outstationTransportMode : null),
+                Start_KM__c: this.selectedVoucherType === 'Local' && this.isPrivateExpense(item.typeOfExpenseId) ? item.startKM : null,
+                End_KM__c: this.selectedVoucherType === 'Local' && this.isPrivateExpense(item.typeOfExpenseId) ? item.endKM : null,
+                KM_Rate__c: this.selectedVoucherType === 'Local' ? item.kmRate : null,
+                Toll_Parking__c: this.selectedVoucherType === 'Local' ? item.tollParking : null,
+                // Outstation fields
+                Date__c: this.selectedVoucherType === 'Outstation' ? item.outstationDate : null,
+                Ticket_Booked_By_Company__c: this.selectedVoucherType === 'Outstation' ? item.ticketBookedByCompany : false,
+                Description__c: this.selectedVoucherType === 'Outstation' ? item.outstationDescription :
+                    (this.selectedVoucherType === 'Cash' ? item.cashDescription : null)
+            }));
 
             const filesPerLineItem = {};
             this.lineItems.forEach(item => {
@@ -657,7 +657,7 @@ export default class ExpenseForm extends NavigationMixin(LightningElement) {
             if (this.selectedVoucherType === 'Outstation') {
                 for (let i = 0; i < this.lineItems.length; i++) {
                     const item = this.lineItems[i];
-                    
+
                     if (!item.outstationDate) {
                         this.showToast('Error', `Select Date for Outstation expense in row ${i + 1}`, 'error');
                         return false;

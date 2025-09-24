@@ -1,0 +1,172 @@
+<template>
+    <lightning-card>
+        <div class="slds-card__header slds-grid">
+            <header class="slds-media slds-media_center slds-has-flexi-truncate">
+                <div class="slds-media__body">
+                    <h2 class="slds-card__header-title">
+                        <span class="slds-text-heading_medium" style="font-size: 24px; font-weight: bold;">Expense Approval Dashboard</span>
+                    </h2>
+                </div>
+            </header>
+        </div>
+
+        <div class="slds-card__body slds-card__body_inner">
+            <template if:true={expenses}>
+                <template if:true={expenses.length}>
+                    <template for:each={expenses} for:item="expense">
+                        <div key={expense.expenseId} class="expense-container slds-box slds-m-bottom_medium">
+                            <!-- Approval Level Badge -->
+                            <!-- <div class="slds-m-bottom_small">
+                                <span class={badgeClass} if:true={expense.currentApprovalLevel}>
+                                    {expense.currentApprovalLevel} - Pending with {expense.currentApprover}
+                                </span>
+                            </div> -->
+
+                            <!-- Approval Header with Badge and Buttons -->
+                            <div class="approval-header slds-grid slds-wrap slds-gutters slds-m-bottom_medium">
+                                <!-- Left Side: Approval Level Badge -->
+                                <div class="slds-col slds-size_1-of-2 approval-badge-container">
+                                    <template if:true={expense.currentApprovalLevel}>
+                                        <span class={badgeClass}>
+                                            {expense.currentApprovalLevel} - Pending with {expense.currentApprover}
+                                        </span>
+                                    </template>
+                                </div>
+                                <template if:true={expense.isPendingWithCurrentUser}>
+                                <!-- Right Side: Approve/Reject Buttons -->
+                                <div class="slds-col slds-size_1-of-2 approval-buttons-container">
+                                    <div class="slds-float_right">
+                                        <lightning-button 
+                                            label="Approve" 
+                                            variant="success" 
+                                            data-id={expense.expenseId}
+                                            onclick={handleApprove}
+                                            class="slds-m-right_small approve-btn green-button">
+                                        </lightning-button>
+                                        <lightning-button 
+                                            label="Reject" 
+                                            variant="destructive" 
+                                            data-id={expense.expenseId}
+                                            onclick={handleReject}
+                                            class="reject-btn red-button">
+                                        </lightning-button>
+                                    </div>
+                                </div>
+                                </template>
+                            </div>
+
+                            <!-- Expense Header Information -->
+                            <div class="header-grid slds-grid slds-wrap slds-gutters">
+                                <div class="slds-col slds-size_1-of-7 header-item">
+                                    <div class="field-label"><strong>Expense Name:</strong></div>
+                                    <div class="field-value">{expense.expenseName}</div>
+                                </div>
+                                <div class="slds-col slds-size_1-of-7 header-item">
+                                    <div class="field-label"><strong>Employee:</strong></div>
+                                    <div class="field-value">{expense.employeeName}</div>
+                                </div>
+                                <div class="slds-col slds-size_1-of-7 header-item">
+                                    <div class="field-label"><strong>Expense Date:</strong></div>
+                                    <div class="field-value">{expense.expenseDate}</div>
+                                </div>
+                                <div class="slds-col slds-size_1-of-7 header-item">
+                                    <div class="field-label"><strong>Voucher Type:</strong></div>
+                                    <div class="field-value">{expense.typeOfVoucher}</div>
+                                </div>
+
+                                <template if:true={expense.isOutstation}>
+                                    <div class="slds-col slds-size_1-of-7 header-item">
+                                        <div class="field-label"><strong>Tour:</strong></div>
+                                        <div class="field-value">{expense.tourName}</div>
+                                    </div>
+                                </template>
+
+                                <div class="slds-col slds-size_1-of-7 header-item">
+                                    <div class="field-label"><strong>Zonal Head:</strong></div>
+                                    <div class="field-value">{expense.zonalHead}</div>
+                                </div>
+                                <div class="slds-col slds-size_1-of-7 header-item">
+                                    <div class="field-label"><strong>Business HOD:</strong></div>
+                                    <div class="field-value">{expense.businessHOD}</div>
+                                </div>
+
+                            </div>
+
+                            <!-- Expense Line Items Table -->
+                            <div class="table-container slds-m-top_medium">
+                                <table class="slds-table slds-table_cell-buffer slds-table_bordered slds-table_striped">
+                                    <thead>
+                                        <tr class="slds-text-title_caps">
+                                            <th scope="col" style="width: 30%" class="table-header">TYPE OF EXPENSE</th>
+                                            <th scope="col" style="width: 20%" class="table-header text-center">AMOUNT CLAIMED</th>
+                                            <th scope="col" style="width: 50%" class="table-header text-center">DESCRIPTION</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <template for:each={expense.lineItems} for:item="lineItem">
+                                            <tr key={lineItem.lineItemId} class="table-row">
+                                                <td class="table-cell">{lineItem.typeOfExpense}</td>
+                                                <td class="table-cell text-center">
+                                                    <lightning-formatted-number value={lineItem.amountClaimed}  currency-code="USD"></lightning-formatted-number>
+                                                </td>
+                                                <td class="table-cell">{lineItem.description}</td>
+                                            </tr>
+                                        </template>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </template>
+                </template>
+                <template if:false={expenses.length}>
+                    <div class="slds-align_absolute-center slds-p-vertical_xx-large">
+                        <p class="slds-text-heading_medium">No pending expense approvals found.</p>
+                    </div>
+                </template>
+            </template>
+        </div>
+
+        <!-- Approval Modal -->
+        <template if:true={showModal}>
+            <section role="dialog" tabindex="-1" class="slds-modal slds-fade-in-open">
+                <div class="slds-modal__container">
+                    <header class="slds-modal__header">
+                        <h2 class="slds-text-heading_medium">{modalHeader}</h2>
+                        <button class="slds-button slds-button_icon slds-modal__close" onclick={closeModal}>
+                            <lightning-icon icon-name="utility:close" alternative-text="Close"></lightning-icon>
+                        </button>
+                    </header>
+                    <div class="slds-modal__content slds-p-around_medium">
+                        <lightning-textarea
+                            label="Approval Comments"
+                            value={approvalComments}
+                            onchange={handleCommentChange}
+                            maxlength="255"
+                            message-when-bad-input="Please enter comments">
+                        </lightning-textarea>
+                    </div>
+                    <footer class="slds-modal__footer">
+                        <lightning-button label="Cancel" onclick={closeModal} variant="neutral"></lightning-button>
+                        <lightning-button 
+                            label={modalButtonLabel} 
+                            onclick={submitApproval} 
+                            variant={modalButtonVariant}
+                            disabled={isLoading}>
+                        </lightning-button>
+                    </footer>
+                </div>
+            </section>
+            <div class="slds-backdrop slds-backdrop_open"></div>
+        </template>
+
+        <!-- Loading Spinner -->
+        <template if:true={isLoading}>
+            <div class="slds-spinner_container">
+                <div class="slds-spinner slds-spinner_medium" role="status">
+                    <span class="slds-spinner__dot-a"></span>
+                    <span class="slds-spinner__dot-b"></span>
+                </div>
+            </div>
+        </template>
+    </lightning-card>
+</template>

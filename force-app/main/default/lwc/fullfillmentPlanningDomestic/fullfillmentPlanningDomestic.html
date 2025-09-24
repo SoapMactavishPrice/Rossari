@@ -62,15 +62,15 @@
     <lightning-card if:true={showFilterSection} title="Filters">
         <lightning-layout multiple-rows="true"
             class="custom-lightning-accordion filter-section">
-            <lightning-layout-item size="1" small-device-size="1" medium-device-size="1" large-device-size="1"
-                class="slds-var-p-around_small" style="margin-left: 10px;">
+            <lightning-layout-item size="1" small-device-size="1" medium-device-size="1" large-device-size="2"
+                class="slds-var-p-around_small">
                 <div>
                     <lightning-combobox label="SBU" data-id="sbuFilter" value={filterObject.sbuFilter}
                         placeholder="Select SBU" options={filterOption.sbuPicklist}
                         onchange={handleFilterChanges}></lightning-combobox>
                 </div>
             </lightning-layout-item>
-            <lightning-layout-item size="1" small-device-size="1" medium-device-size="1" large-device-size="1"
+            <lightning-layout-item size="1" small-device-size="1" medium-device-size="1" large-device-size="2"
                 class="slds-var-p-around_small">
                 <div>
                     <lightning-combobox label="Status" data-id="statusFilter" value={filterObject.statusFilter}
@@ -78,7 +78,7 @@
                         onchange={handleFilterChanges}></lightning-combobox>
                 </div>
             </lightning-layout-item>
-            <lightning-layout-item size="1" small-device-size="1" medium-device-size="1" large-device-size="1"
+            <lightning-layout-item size="1" small-device-size="1" medium-device-size="1" large-device-size="2"
                 class="slds-var-p-around_small">
                 <div>
                     <lightning-combobox label="SO No." data-id="orderNumberFilter"
@@ -86,7 +86,7 @@
                         options={filterOption.orderNumberPicklist} onchange={handleFilterChanges}></lightning-combobox>
                 </div>
             </lightning-layout-item>
-            <lightning-layout-item size="1" small-device-size="1" medium-device-size="1" large-device-size="1"
+            <lightning-layout-item size="1" small-device-size="1" medium-device-size="1" large-device-size="2"
                 class="slds-var-p-around_small">
                 <div>
                     <lightning-combobox label="Plant" data-id="plantFilter" value={filterObject.plantFilter}
@@ -94,7 +94,7 @@
                         onchange={handleFilterChanges}></lightning-combobox>
                 </div>
             </lightning-layout-item>
-            <lightning-layout-item size="1" small-device-size="1" medium-device-size="1" large-device-size="1"
+            <lightning-layout-item size="1" small-device-size="1" medium-device-size="1" large-device-size="2"
                 class="slds-var-p-around_small">
                 <div>
                     <lightning-combobox label="Customer Name" data-id="customerFilter"
@@ -102,7 +102,7 @@
                         options={filterOption.customerPicklist} onchange={handleFilterChanges}></lightning-combobox>
                 </div>
             </lightning-layout-item>
-            <lightning-layout-item size="1" small-device-size="1" medium-device-size="1" large-device-size="1"
+            <lightning-layout-item size="1" small-device-size="1" medium-device-size="1" large-device-size="2"
                 class="slds-var-p-around_small">
                 <div>
                     <lightning-combobox label="Bill To Party" data-id="billToFilter" value={filterObject.billToFilter}
@@ -110,7 +110,7 @@
                         onchange={handleFilterChanges}></lightning-combobox>
                 </div>
             </lightning-layout-item>
-            <lightning-layout-item size="1" small-device-size="1" medium-device-size="1" large-device-size="1"
+            <lightning-layout-item size="1" small-device-size="1" medium-device-size="1" large-device-size="2"
                 class="slds-var-p-around_small">
                 <div>
                     <lightning-combobox label="Ship To Party" data-id="shipToFilter" value={filterObject.shipToFilter}

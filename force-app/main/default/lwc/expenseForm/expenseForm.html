@@ -25,11 +25,8 @@
                 <div class="slds-grid slds-wrap slds-gutters">
 
                     <div class="slds-col slds-size_1-of-2 slds-medium-size_1-of-4">
-                        <c-visit-report-lookup 
-                            label="Visit Report" 
-                            onselected={handleVisitReportSelected}
-                            selected-record-id={visitReportId}
-                            selected-record-name={visitReportName}>
+                        <c-visit-report-lookup label="Visit Report" onselected={handleVisitReportSelected}
+                            selected-record-id={visitReportId} selected-record-name={visitReportName}>
                         </c-visit-report-lookup>
                     </div>
 
@@ -149,7 +146,7 @@
                                     style="text-align: center; font-size: 13px; background-color: #9d0b0f; font-weight: bold; padding: 4px 6px; color: white;">
                                     Description
                                 </th>
-                                
+
                                 <th class="amount"
                                     style="text-align: center; font-size: 13px; background-color: #9d0b0f; font-weight: bold; padding: 4px 6px; color: white;">
                                     Amount Claimed
@@ -200,8 +197,9 @@
                                         </lightning-combobox>
                                     </td>
                                     <td if:true={showOutstationFields}>
-                                        <lightning-combobox name="outstationTransportMode" value={item.outstationTransportMode}
-                                            data-index={index} options={allTransportModeOptions}
+                                        <lightning-combobox name="outstationTransportMode"
+                                            value={item.outstationTransportMode} data-index={index}
+                                            options={allTransportModeOptions}
                                             onchange={handleOutstationTransportModeChange} variant="label-hidden"
                                             required={showOutstationFields}>
                                         </lightning-combobox>
@@ -219,15 +217,15 @@
                                         </lightning-input>
                                     </td>
                                     <td if:true={showOutstationFields}>
-                                        <lightning-input type="text" value={item.outstationFromLocation} data-index={index}
-                                            onchange={handleOutstationFromLocationChange} variant="label-hidden"
-                                            required={showOutstationFields}>
+                                        <lightning-input type="text" value={item.outstationFromLocation}
+                                            data-index={index} onchange={handleOutstationFromLocationChange}
+                                            variant="label-hidden" required={showOutstationFields}>
                                         </lightning-input>
                                     </td>
                                     <td if:true={showOutstationFields}>
-                                        <lightning-input type="text" value={item.outstationToLocation} data-index={index}
-                                            onchange={handleOutstationToLocationChange} variant="label-hidden"
-                                            required={showOutstationFields}>
+                                        <lightning-input type="text" value={item.outstationToLocation}
+                                            data-index={index} onchange={handleOutstationToLocationChange}
+                                            variant="label-hidden" required={showOutstationFields}>
                                         </lightning-input>
                                     </td>
 
@@ -256,8 +254,9 @@
                                         </lightning-input>
                                     </td>
                                     <td if:true={showOutstationFields} class="slds-text-align_center">
-                                        <lightning-input type="checkbox" checked={item.ticketBookedByCompany} data-index={index}
-                                            onchange={handleTicketBookedChange} variant="label-hidden">
+                                        <lightning-input type="checkbox" checked={item.ticketBookedByCompany}
+                                            data-index={index} onchange={handleTicketBookedChange}
+                                            variant="label-hidden">
                                         </lightning-input>
                                     </td>
                                     <td if:true={showOutstationFields}>
@@ -266,7 +265,7 @@
                                             onchange={handleOutstationDescriptionChange} variant="label-hidden">
                                         </lightning-textarea>
                                     </td>
-                                    
+
                                     <td>
                                         <lightning-input type="number" value={item.amountClaimed} data-index={index}
                                             onchange={handleAmountClaimedChange} variant="label-hidden" step="0.01"
@@ -281,15 +280,15 @@
                                         </lightning-textarea>
                                     </td>
                                     <td if:true={showOutstationFields}>
-                                        <lightning-textarea value={item.outstationReason}
-                                            placeholder="Enter reason" data-index={index}
-                                            onchange={handleOutstationReasonChange} variant="label-hidden">
+                                        <lightning-textarea value={item.outstationReason} placeholder="Enter reason"
+                                            data-index={index} onchange={handleOutstationReasonChange}
+                                            variant="label-hidden">
                                         </lightning-textarea>
                                     </td>
                                     <td if:true={showCashFields}>
-                                        <lightning-textarea value={item.cashDescription}
-                                            placeholder="Enter description" data-index={index}
-                                            onchange={handleCashDescriptionChange} variant="label-hidden">
+                                        <lightning-textarea value={item.cashDescription} placeholder="Enter description"
+                                            data-index={index} onchange={handleCashDescriptionChange}
+                                            variant="label-hidden">
                                         </lightning-textarea>
                                     </td>
 

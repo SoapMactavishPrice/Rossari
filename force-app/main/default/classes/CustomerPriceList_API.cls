@@ -149,7 +149,8 @@ global class CustomerPriceList_API {
                 }
 
                 if (jsonObj.MATERIAL_PRICE != null && jsonObj.MATERIAL_PRICE != '') {
-                    p.Material_Price__c = Decimal.valueOf(jsonObj.MATERIAL_PRICE);
+                    String mpStr = jsonObj.MATERIAL_PRICE.replaceAll('\\s+', '');
+                    p.Material_Price__c = Decimal.valueOf(mpStr);
                 }
 
                
@@ -166,15 +167,17 @@ global class CustomerPriceList_API {
                 }
 
                 if (jsonObj.PER != null) {
-                    p.PER__c = Decimal.valueOf(jsonObj.PER);
+                    String perStr = jsonObj.PER.replaceAll('\\s+', '');
+                    p.PER__c = Decimal.valueOf(perStr);
                 }
-
+                
                 if (jsonObj.VALID_FROM != null && jsonObj.VALID_FROM != '') {
                     p.Valid_From__c = Date.valueOf(jsonObj.VALID_FROM);
                 }
-
+                
                 if (jsonObj.VALID_TO != null && jsonObj.VALID_TO != '') {
-                    p.Valid_To__c = Date.valueOf(jsonObj.VALID_TO);
+                    String validtoStr = jsonObj.VALID_TO.replace('9999', '2030');
+                    p.Valid_To__c = Date.valueOf(validtoStr);
                 }
 
                 upsertProductList.add(p);
