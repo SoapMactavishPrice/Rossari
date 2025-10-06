@@ -55,7 +55,7 @@ public with sharing class AddProductPageQuote {
             prodId.add(pd.Id);
         }
 
-        String query = 'SELECT Id,CurrencyIsoCode,UnitPrice,Product2Id,Product2.Name,Product2.Family,Product2.ProductCode,Product2.Description FROM PricebookEntry WHERE Pricebook2Id = \'' + op.Pricebook2Id + '\'  AND Product2.Division__r.Division_Code__c IN :divSet AND Product2Id IN :prodId AND CurrencyIsoCode =\''+op.currencyISOcode+'\'';
+        String query = 'SELECT Id,CurrencyIsoCode,UnitPrice,Product2Id,Product2.Name,Product2.Family,Product2.ProductCode,Product2.Description FROM PricebookEntry WHERE Pricebook2Id = \'' + op.Pricebook2Id + '\'  AND Product2.Division__r.Division_Code__c IN :divSet AND Product2Id IN :prodId AND CurrencyIsoCode =\''+op.currencyISOcode+'\'ORDER BY Product2.Name ASC';
         List < PricebookEntry > lstPBE = (List < PricebookEntry > ) Database.query(query);
         // return lstPBE;
 

@@ -1,0 +1,46 @@
+<template>
+    <div class="slds-form-element">
+        <label class="slds-form-element__label">{label}</label>
+        <div class="slds-form-element__control slds-combobox_container">
+            <div class={comboboxClass}>
+                <div class="slds-combobox__form-element slds-input-has-icon slds-input-has-icon_right">
+                    <input type="text"
+                           class="slds-input"
+                           placeholder="Select a User"
+                           value={inputValue}
+                           onfocus={handleFocus}
+                           onblur={handleBlur}
+                           oninput={handleInput} />
+
+                    <template if:true={showClearButton}>
+                        <button type="button"
+                                class="slds-button slds-button_icon slds-input__icon slds-input__icon_right"
+                                title="Clear"
+                                onclick={handleClear}
+                                style="padding-top: 12px;">
+                            <lightning-icon icon-name="utility:close" alternative-text="Clear"></lightning-icon>
+                        </button>
+                    </template>
+                </div>
+
+                <template if:true={showDropdown}>
+                    <div class="slds-dropdown slds-dropdown_length-5 slds-dropdown_fluid">
+                        <ul class="slds-listbox slds-listbox_vertical" role="listbox">
+                            <template for:each={filteredUsers} for:item="user">
+                                <li key={user.Id} role="presentation" class="slds-listbox__item">
+                                    <div class="slds-listbox__option slds-listbox__option_plain"
+                                         data-id={user.Id}
+                                         data-name={user.Name}
+                                         role="option"
+                                         onclick={handleSelectUser}>
+                                        {user.Name}
+                                    </div>
+                                </li>
+                            </template>
+                        </ul>
+                    </div>
+                </template>
+            </div>
+        </div>
+    </div>
+</template>

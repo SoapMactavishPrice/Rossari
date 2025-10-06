@@ -15,6 +15,7 @@ export default class LwcProductIntrestedPage extends NavigationMixin(LightningEl
 
 
     @track currencyCode = '';
+    @track leadRecordType = '';
     options = [];
     @track frequencyOptions = [];
 
@@ -112,6 +113,7 @@ export default class LwcProductIntrestedPage extends NavigationMixin(LightningEl
             console.log('result--<>>>---', JSON.stringify(result));
             let data = JSON.parse(JSON.stringify(result));
             this.currencyCode = data.currencyCode;
+            this.leadRecordType = data.leadRecordType;
 
             if (!data.currencyCode) {
                 this.showSuccess('Error', 'Please fill Currency', 'Error');

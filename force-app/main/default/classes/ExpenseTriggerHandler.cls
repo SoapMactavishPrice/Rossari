@@ -68,4 +68,51 @@ public class ExpenseTriggerHandler {
         }
         return 'GEN_FY25-25_';
     }
+    
+    public static void statusChangeToSubmitted(List<Expense__c> newList, Map<Id, Expense__c> oldMap) {
+        List<Id> expenseIds = new List<Id>();
+
+        for (Expense__c exp : newList) {
+            Expense__c oldExp = oldMap.get(exp.Id);
+
+            // Detect status change Draft → Submitted
+            if (oldExp != null && oldExp.Status__c != 'Submitted' && exp.Status__c == 'Submitted') {
+                expenseIds.add(exp.Id);
+            }
+        }
+
+        if (!expenseIds.isEmpty()) {
+            // Query with relationships so emails are available, including record type
+            List<Expense__c> expensesToNotify = [
+                SELECT Id, Name, Owner.Email, Owner.Name,
+                       Zonal_Head__c, Zonal_Head__r.Email, Zonal_Head__r.Name,
+                       Customer_Success_Incharge__c, Customer_Success_Incharge__r.Email, Customer_Success_Incharge__r.Name,
+                       Date__c, Type_of_Voucher__c, Tour__r.Name, RecordType.DeveloperName,
+                       Employee_Name__r.Name, Division__c, Zone__c
+                FROM Expense__c
+                WHERE Id IN :expenseIds
+            ];
+
+            for (Expense__c exp : expensesToNotify) {
+                try {
+                    String recordType = exp.RecordType.DeveloperName;
+                    
+                    if (recordType == 'RBL') {
+                        // For RBL - send to Zonal Head
+                        if (String.isNotBlank(exp.Zonal_Head__r?.Email)) {
+                            ExpenseApprovalEmailHandler.sendSubmissionEmail(exp, '');
+                        }
+                    } else if (recordType == 'Unitop_Tristar') {
+                        // For Unitop/Tristar - send to Customer Success Incharge
+                        if (String.isNotBlank(exp.Customer_Success_Incharge__r?.Email)) {
+                            ExpenseApprovalEmailHandler.sendSubmissionEmail(exp, '');
+                        }
+                    }
+                } catch (Exception e) {
+                    System.debug('Error sending submission email for Expense ' + exp.Id + ': ' + e.getMessage());
+                    // Log the error but don't fail the transaction
+                }
+            }
+        }
+    }
 }

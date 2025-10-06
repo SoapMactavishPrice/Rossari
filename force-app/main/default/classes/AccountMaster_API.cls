@@ -15,6 +15,7 @@ global class AccountMaster_API {
     public static List<AccountMasterRequest> accountRequests = new List<AccountMasterRequest> ();
     public static Map<String, Payment_Term__c> ptMap = new Map<String, Payment_Term__c>();
     public static Map<String, Sales_District__c> sdMap = new Map<String, Sales_District__c>();
+    public static Set < String > custNumberSet = new Set < String > ();
     
     @HttpPost
     global static void upsertAccountMaster() {
@@ -49,7 +50,7 @@ global class AccountMaster_API {
 
             // ! ========================================== Start (Get Existing Data) ========================================== ! //
             
-            Set < String > custNumberSet = new Set < String > ();
+            // Set < String > custNumberSet = new Set < String > ();
             Set < String > cityNameSet = new Set < String > ();
             Set < String > postalCodeSet = new Set < String > ();
             Set < String > salesOrgSet = new Set < String > ();
@@ -68,6 +69,7 @@ global class AccountMaster_API {
                     for (PartnerFunction pf : sa.PARTNER_FUNCTIONS) {
                         cityNameSet.add(pf.CITY0072);
                         cityNameSet.add(pf.CITY1);
+                        custNumberSet.add(pf.CUSTOMR_NO);
                     }
                 }
                 if (accMaster.CONTACT != null && !accMaster.CONTACT.isEmpty()) {
@@ -80,11 +82,11 @@ global class AccountMaster_API {
 
             // Get Existing Account list
             List < Account > accountList = new List < Account > ();
-            accountList = [SELECT ID, Name FROM Account WHERE Name IN: custNumberSet];
+            accountList = [SELECT Id, Name, SAP_Customer_Code__c FROM Account WHERE SAP_Customer_Code__c IN: custNumberSet];
 
             // Map < String, Account > accountMap = new Map < String, Account > ();
             for (Account va: accountList) {
-                accountMap.put(va.Name, va);
+                accountMap.put(va.SAP_Customer_Code__c, va);
             }
 
             // Get Existing City list
@@ -160,11 +162,11 @@ global class AccountMaster_API {
 
             // Get existing Company Code
             List < Company__c > cmList = new List < Company__c > ();
-            cmList = [SELECT Id, Company_Code__c FROM Company__c WHERE Company_Code__c IN: companyCodeSet];
+            cmList = [SELECT Id, SAP_Code__c FROM Company__c WHERE SAP_Code__c IN: companyCodeSet];
 
             Map < String, Company__c > cmMap = new Map < String, Company__c > ();
             for (Company__c va: cmList) {
-                cmMap.put(va.Company_Code__c, va);
+                cmMap.put(va.SAP_Code__c, va);
             }
 
             // Get existing Customer Sales Area
@@ -219,9 +221,9 @@ global class AccountMaster_API {
                 // Map fields from request to Account object
                 // acc.SAP_Customer_Code__c = accMaster.Account_ID; //NTC
                 // acc.SAP_Customer_Code__c = accMaster.ADDRESS;
-                // acc.SAP_Customer_Code__c = accMaster.TAXNO3;
-                // acc.SAP_Customer_Code__c = accMaster.TAX_CLASS;
-                // acc.SAP_Customer_Code__c = accMaster.INDUSTRY_C;
+                acc.GST_No__c = accMaster.TAXNO3;
+                acc.Pan_No__c = accMaster.PAN_NO;
+                acc.Mobile_Number__c = accMaster.MOBILE_NO;
                 
                 acc.Name = accMaster.CUST_NAME;
                 acc.SAP_Customer_Code__c = accMaster.CUSTOMER_NO;
@@ -230,7 +232,11 @@ global class AccountMaster_API {
                 acc.Title__c = accMaster.TITLE;
                 acc.Landline_No_1__c = accMaster.C_TELEPHONE1;
                 acc.Landline_No_2__c = accMaster.C_TELEPHONE2;
-                acc.Email_Id__c = accMaster.EMAIL;
+                acc.Email_Id__c = accMaster.EMAIL1;
+                acc.Email_Id_2__c = accMaster.EMAIL2;
+                acc.Email_Id_3__c = accMaster.EMAIL3;
+                acc.Email_Id_4__c = accMaster.EMAIL4;
+                acc.Email_Id_5__c = accMaster.EMAIL5;
                 acc.Street1__c = accMaster.C_STREET;
                 acc.Street2__c = accMaster.STREET2;
                 acc.BillingStreet = accMaster.STREET;
@@ -251,7 +257,11 @@ global class AccountMaster_API {
                 acc.Exch_Rate_Type_Code__c = accMaster.EXRATETYPE;
                 acc.Exch_Rate_Type__c = accMaster.EXCH_RATE_TYPE_C;
                 acc.CurrencyIsoCode = String.isNotBlank(accMaster.CURRNCY) ? accMaster.CURRNCY : 'INR';
-                acc.Balance_Credit_Limit__c = String.isNotBlank(accMaster.CRED_LIMIT) ? Decimal.valueOf(accMaster.CRED_LIMIT.replace(',', '')) : null;
+                if (String.isNotBlank(accMaster.CRED_LIMIT)) {
+                    String cl = accMaster.CRED_LIMIT.replace(',', '');
+                    cl = cl.replace(' ', '');
+                    acc.Balance_Credit_Limit__c = String.isNotBlank(accMaster.CRED_LIMIT) ? Decimal.valueOf(cl) : null;
+                }
                 accountsToUpsert.add(acc);
             }
             
@@ -510,6 +520,7 @@ global class AccountMaster_API {
             salesArea.Incoterm_2__c = saData.INCOTERMS;
             salesArea.Incoterm_1__c = saData.INCO_TERM_1_C;
             salesArea.Incoterm_3__c = saData.INCOTERMS2;
+            salesArea.Customer_Code__c = acc.SAP_Customer_Code__c;
             // salesArea.Delivery_Plant__c = saData.DELIVERY_PLANT;
             salesArea.Payment_Term_Code__c = saData.PAYT_TERMS;
             if (ptMap.containsKey(saData.PAYT_TERMS)) {
@@ -529,7 +540,8 @@ global class AccountMaster_API {
             // salesArea.ABC_Classification__c = saData.ABC_CLASS;
             salesArea.Price_Group__c = saData.PRICE_GROUP_C;
             salesArea.Price_Group_Code__c = saData.PRICEGRP;
-            salesArea.Pricelist__c = saData.PRICE_LIST;
+            // salesArea.Pricelist__c = saData.PRICE_LIST;
+            salesArea.Price_List__c = saData.PRICE_LIST;
             salesArea.Cust_Stat_Gr__c = saData.CUSTSTATGR;
             salesArea.INVOIC_DAT__c = saData.INVOIC_DAT;
             salesArea.INVLISTSCH__c = saData.INVLISTSCH;
@@ -558,8 +570,10 @@ global class AccountMaster_API {
                     for (SalesArea sa : accMaster.SALES_AREA) {
                         String csaKey = accMaster.CUSTOMER_NO + '-' + sa.SALES_ORG + '-' + sa.DISTR_CHL + '-' +sa.DIVISION;
                         salesAreaPartnerFunctions.put(csaKey, sa.PARTNER_FUNCTIONS);
+                        System.debug('csaKey::> ' +csaKey);
                         // for (PartnerFunction pf : sa.PARTNER_FUNCTIONS) {
-                        //     String csaKey = accMaster.SAP_Customer_Code__c + '-' + sa.SALES_ORG + '-' + sa.DISTR_CHL + '-' +sa.DIVISION + '-' +pf.PARTNERFN;
+                        //     String csaKey = accMaster.CUSTOMER_NO + '-' + sa.SALES_ORG + '-' + sa.DISTR_CHL + '-' +sa.DIVISION + '-' +pf.PARTNERFN;
+                        //     salesAreaPartnerFunctions.put(csaKey, sa.PARTNER_FUNCTIONS);
                         // }
                     }
                 }
@@ -591,16 +605,28 @@ global class AccountMaster_API {
 
             // Get all partner functions for the successfully upserted sales areas
             List<Partner_Function__c> partnerFunctions = [
-                SELECT Id, PARTNERFN__c, Customer_Sales_Area__c, Customer_Sales_Area__r.External_Id__c
+                SELECT Id, PARTNERFN__c, Customer_Sales_Area__c, Customer_Sales_Area__r.External_Id__c, External_Id__c,
+                Partner_code__c, Name, TXT_SALES_ORG0079__c, TXT_DISTR_CHANN__c, TXT_DIVISION0081__c
                 FROM Partner_Function__c
                 WHERE Customer_Sales_Area__c IN :salesAreaIdSet
             ];
 
             Map<String, Partner_Function__c> pfMap = new Map<String, Partner_Function__c>();
             for (Partner_Function__c pf : partnerFunctions) {
-                String pfKey = pf.Customer_Sales_Area__r.External_Id__c + pf.PARTNERFN__c;
+                // String pfKey = pf.Customer_Sales_Area__r.External_Id__c + pf.PARTNERFN__c;
+                // String pfKey = pf.External_Id__c;
+                String pfKey = pf.Partner_code__c+'-'+pf.Name+'-'+pf.TXT_SALES_ORG0079__c+'-'+pf.TXT_DISTR_CHANN__c+'-'+pf.TXT_DIVISION0081__c;
+                System.debug('pfKey: ' + pfKey);
                 pfmap.put(pfKey, pf);
             }
+
+            List < Account > accountList = new List < Account > ();
+            accountList = [SELECT Id, Name, SAP_Customer_Code__c FROM Account WHERE SAP_Customer_Code__c IN: custNumberSet];
+
+            for (Account va: accountList) {
+                accountMap.put(va.SAP_Customer_Code__c, va);
+            }
+
             
             // Process partner functions for successfully upserted sales areas
             if (!salesAreaMap.isEmpty() && !salesAreaPartnerFunctions.isEmpty()) {
@@ -610,13 +636,18 @@ global class AccountMaster_API {
                 for (String salesAreaExtId : salesAreaMap.keySet()) {
                     if (salesAreaPartnerFunctions.containsKey(salesAreaExtId)) {
                         for (PartnerFunction pf : salesAreaPartnerFunctions.get(salesAreaExtId)) {
+                            System.debug('salesAreaExtId: ' + salesAreaExtId+pf.PARTNERFN);
                             // Set the lookup to the parent sales area
                             Partner_Function__c partnerFn = new Partner_Function__c();
-                            if (pfmap.containsKey(salesAreaExtId + pf.PARTNERFN)) {
-                                partnerFn.Id = pfmap.get(salesAreaExtId + pf.PARTNERFN).Id;
+                            if (pfmap.containsKey(pf.CUSTOMR_NO+'-'+pf.PARTNERFN+'-'+pf.SALES_ORG0079+'-'+pf.DISTR_CHANN+'-'+pf.DIVISION0081)) {
+                                partnerFn.Id = pfmap.get(pf.CUSTOMR_NO+'-'+pf.PARTNERFN+'-'+pf.SALES_ORG0079+'-'+pf.DISTR_CHANN+'-'+pf.DIVISION0081).Id;
                             }
-                            partnerFn.Account__c = sapCodeToIdMap.get(pf.CUSTOMR_NO);
-                            partnerFn.Name = pf.PARTNERFN;
+                            // partnerFn.Account__c = sapCodeToIdMap.get(pf.CUSTOMR_NO);
+                            if (accountMap.containsKey(pf.CUSTOMR_NO)) {
+                                partnerFn.Account__c = accountMap.get(pf.CUSTOMR_NO).id;    
+                            }
+                            partnerFn.Partner_code__c = pf.CUSTOMR_NO;
+                            partnerFn.Name = pf.CUSTOMR_NO+'/'+pf.PARTNERFN;
                             partnerFn.PARTNERFN__c = pf.PARTNERFN;
                             partnerFn.PARTNER_FUNC__c = pf.PARTNER_FUNC;
                             partnerFn.TITLE0070__c = pf.TITLE0070;
@@ -641,7 +672,7 @@ global class AccountMaster_API {
                             partnerFn.TXT_TAX_CLASS0099__c = pf.TAX_CLASS0099;
                             partnerFn.TXT_REGION0074__c = pf.REGION0074;
                             partnerFn.TXT_REGION0096__c = pf.REGION0096;
-                            partnerFn.External_Id__c = salesAreaExtId+'-'+pf.PARTNERFN;
+                            partnerFn.External_Id__c = pf.CUSTOMR_NO+'-'+pf.PARTNERFN+'-'+pf.SALES_ORG0079+'-'+pf.DISTR_CHANN+'-'+pf.DIVISION0081;
                             partnerFunctionsToUpsert.add(partnerFn);
                         }
                     }
@@ -839,7 +870,11 @@ global class AccountMaster_API {
         public String ADDRESS;
         public String C_TELEPHONE1;
         public String C_TELEPHONE2;
-        public String EMAIL;
+        public String EMAIL1;
+        public String EMAIL2;
+        public String EMAIL3;
+        public String EMAIL4;
+        public String EMAIL5;
         public String C_STREET;
         public String STREET2;
         public String STREET;
@@ -849,6 +884,8 @@ global class AccountMaster_API {
         public String COUNTRY;
         public String REGION;
         public String CURRNCY;
+        public String PAN_NO;
+        public String MOBILE_NO;
         public String TAXNO3;
         public String TAX_CLASS;
         public String GST_TYPE_C;

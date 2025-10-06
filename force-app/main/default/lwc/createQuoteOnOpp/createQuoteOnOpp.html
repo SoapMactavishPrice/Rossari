@@ -35,6 +35,38 @@
                     data-field="currencyCode" onchange={handleFieldChange} disabled="true" style="margin-right: -37px;">
                 </lightning-combobox>
             </div>
+
+            <!-- Add new fields here -->
+            <!-- <div class="slds-col slds-size_1-of-4 slds-p-around_x-small" style="margin-left: -21px;margin-right: 22px;">
+                <lightning-combobox label="Sales Org" options={salesOrgOptions} value={salesOrgValue}
+                    data-field="salesOrg" onchange={handleFieldChange}>
+                </lightning-combobox>
+            </div>
+            <div class="slds-col slds-size_1-of-4 slds-p-around_x-small" style="margin-left: -21px;margin-right: 22px;">
+                <lightning-combobox label="Distribution Channel" options={distChOptions} value={distChValue}
+                    data-field="distCh" onchange={handleFieldChange}>
+                </lightning-combobox>
+            </div>
+            <div class="slds-col slds-size_1-of-4 slds-p-around_x-small" style="margin-left: -21px;margin-right: 22px;">
+                <lightning-combobox label="Division" options={divisionOptions} value={divisionValue}
+                    data-field="division" onchange={handleFieldChange}>
+                </lightning-combobox>
+            </div> -->
+
+            <div class="slds-col slds-size_1-of-4 slds-p-around_x-small" style="margin-left: -21px;margin-right: 22px;">
+                <lightning-combobox label="Inco Terms" value={quoteFields.incoTerms} options={incoTermsOptions}
+                    data-field="incoTerms" onchange={handleFieldChange}>
+                </lightning-combobox>
+            </div>
+
+            <!-- <template if:true={paymetTermField}> -->
+            <div class="slds-col slds-size_1-of-4 slds-p-around_x-small" style="margin-left: -21px;margin-right: 22px;">
+                <lightning-record-picker label="Payment Term" placeholder="Search Payment Terms..."
+                    object-api-name="Payment_Term__c" value={quoteFields.paymentTermId} filters={paymentTermFilters}
+                    onchange={handlePaymentTermSelected} variant="label-stacked" required="false">
+                </lightning-record-picker>
+            </div>
+            <!-- </template> -->
         </div>
 
         <!-- Quote Line Items Table -->
@@ -44,28 +76,48 @@
                     <tr>
                         <th
                             style="text-align: center; font-size: 13px; background-color: #9d0b0f; font-weight: bold; padding: 4px 6px; color: white;">
-                            Select</th>
+                            Select
+                        </th>
+                        <th
+                            style="text-align: center; font-size: 13px; background-color: #9d0b0f; font-weight: bold; padding: 4px 6px; color: white; width: 25%;">
+                            Product Name
+                        </th>
                         <th
                             style="text-align: center; font-size: 13px; background-color: #9d0b0f; font-weight: bold; padding: 4px 6px; color: white;">
-                            Product Name</th>
+                            Product Description
+                        </th>
                         <th
                             style="text-align: center; font-size: 13px; background-color: #9d0b0f; font-weight: bold; padding: 4px 6px; color: white;">
-                            Product Description</th>
+                            Customer Product Name
+                        </th>
                         <th
                             style="text-align: center; font-size: 13px; background-color: #9d0b0f; font-weight: bold; padding: 4px 6px; color: white;">
-                            List Price ({quoteFields.currencyCode})</th>
+                            List Price ({quoteFields.currencyCode})
+                        </th>
                         <th
                             style="text-align: center; font-size: 13px; background-color: #9d0b0f; font-weight: bold; padding: 4px 6px; color: white;">
-                            Sales Price ({quoteFields.currencyCode})</th>
+                            Customer Target Price ({quoteFields.currencyCode})
+                        </th>
                         <th
                             style="text-align: center; font-size: 13px; background-color: #9d0b0f; font-weight: bold; padding: 4px 6px; color: white;">
-                            Quantity</th>
+                            Sales Price ({quoteFields.currencyCode})
+                        </th>
                         <th
                             style="text-align: center; font-size: 13px; background-color: #9d0b0f; font-weight: bold; padding: 4px 6px; color: white;">
-                            Discount %</th>
+                            Quantity
+                        </th>
                         <th
                             style="text-align: center; font-size: 13px; background-color: #9d0b0f; font-weight: bold; padding: 4px 6px; color: white;">
-                            Actions</th>
+                            Discount %
+                        </th>
+                        <th
+                            style="text-align: center; font-size: 13px; background-color: #9d0b0f; font-weight: bold; padding: 4px 6px; color: white;">
+                            Container Type
+                        </th>
+                        <th
+                            style="text-align: center; font-size: 13px; background-color: #9d0b0f; font-weight: bold; padding: 4px 6px; color: white;">
+                            Actions
+                        </th>
                     </tr>
                 </thead>
 
@@ -77,40 +129,60 @@
                                     onchange={handleCheckboxChange}>
                                 </lightning-input>
                             </td>
-                            <td>
-                                <c-reusable-lookup selected-record-id={item.pbeId}
-                                    currency-code={quoteFields.currencyCode} data-index={item.index} data-label="prodId"
-                                    index={item.index} selected-icon-name="standard:product" object-label="Product"
-                                    object-api-name="PricebookEntry"
-                                    other-field-api-name="Product2Id,Product2.Name,Product2.ProductCode,Product2.Description"
-                                    onvalueselected={handleValueSelectedOnAccount}>
-                                </c-reusable-lookup>
+                            <td style="width: 20%;">
+                                <div class="product-name-search">
+                                    <c-reusable-lookup selected-record-id={item.pbeId}
+                                        currency-code={quoteFields.currencyCode} data-index={item.index}
+                                        data-label="prodId" index={item.index} selected-icon-name="standard:product"
+                                        object-label="Product" object-api-name="PricebookEntry"
+                                        other-field-api-name="Product2Id,Product2.Name,Product2.ProductCode,Product2.Description"
+                                        onvalueselected={handleValueSelectedOnAccount}>
+                                    </c-reusable-lookup>
+                                </div>
                             </td>
-                            <td>
+                            <td style="width: 15%;">
                                 <lightning-input type="text" value={item.Description} disabled
                                     variant="label-hidden"></lightning-input>
+                            </td>
+                            <td class="slds-text-align_center" data-label="Customer Product Name">
+                                <lightning-input type="text" variant="label-hidden"
+                                    value={item.Customer_Product_Name__c} data-index={item.index}
+                                    onchange={handleProductNameChange} maxlength="255">
+                                </lightning-input>
                             </td>
                             <td class="slds-text-align_center" data-label="List Price">
                                 <lightning-formatted-number value={item.listPrice} format-style="currency"
                                     currency-code={quoteFields.currencyCode}>
                                 </lightning-formatted-number>
                             </td>
-                            <td class="slds-text-align_center" data-label="Sales Price">
-                                <lightning-input type="number" variant="label-hidden" value={item.salesPrice}
-                                    data-index={item.index} onchange={handlePriceChange}>
+                            <td class="slds-text-align_center" data-label="Customer Target Price">
+                                <lightning-input type="number" variant="label-hidden"
+                                    value={item.Customer_Target_Price__c} data-index={item.index}
+                                    onchange={handleCustomerTargetPriceChange} step="Any">
                                 </lightning-input>
                             </td>
-                            <td class="slds-text-align_center">
+                            <td class="slds-text-align_center" data-label="Sales Price">
+                                <lightning-input type="number" variant="label-hidden" value={item.salesPrice}
+                                    data-index={item.index} onchange={handlePriceChange} step="Any">
+                                </lightning-input>
+                            </td>
+                            <td class="slds-text-align_center" style="width: 8%;">
                                 <lightning-input type="number" variant="label-hidden" value={item.Quantity}
-                                    data-index={item.index} onchange={handleQuantityChange}>
+                                    data-index={item.index} onchange={handleQuantityChange} step="Any">
                                 </lightning-input>
                             </td>
                             <td class="slds-text-align_center" data-label="Discount (%)">
                                 <lightning-input type="number" variant="label-hidden" value={item.Discount}
-                                    data-index={item.index} min="0" max="100" step="0.01"
+                                    data-index={item.index} min="0" max="100" step="Any"
                                     onchange={handleDiscountChange}>
                                 </lightning-input>
                             </td>
+                            <td class="slds-text-align_center" data-label="Container Type" style="width: 12%;">
+                                <lightning-input type="text" variant="label-hidden" value={item.Container_Type__c}
+                                    data-index={item.index} onchange={handleContainerTypeChange} maxlength="255">
+                                </lightning-input>
+                            </td>
+
                             <td class="slds-text-align_center">
                                 <div style="display:flex; gap: 5px; justify-content: center;">
                                     <lightning-button-icon icon-name="utility:add" alternative-text="Add"

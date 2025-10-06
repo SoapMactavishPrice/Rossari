@@ -29,7 +29,8 @@ public class ProformaInvoiceController {
                 (SELECT Id, Product2Id, ListPrice, UnitPrice, Quantity, Quality__c, 
                  Previous_Quantity__c, Previous_Sales_Price__c, Reject_Reason__c, 
                  Approver__c, Approval_Status__c, Approval_Comments__c, Subtotal, 
-                 Discount, TotalPrice, Description,Status__c
+                 Discount, TotalPrice, Description,Status__c,Container_Type__c,
+                 Customer_Product_Name__c,Customer_Target_Price__c
                  FROM QuoteLineItems)
                 FROM Quote
                 WHERE Id = :quoteId 
@@ -105,6 +106,7 @@ public class ProformaInvoiceController {
                 Ship_To_Country__c = quote.ShippingCountry,
                 Pre_Carriage_Destination__c = quote.Pre_Carriage_Destination__c,
                 Vessel_Flight_No__c = quote.Vessel_Flight_No__c
+                
             );
             insert invoice;
             
@@ -127,7 +129,10 @@ public class ProformaInvoiceController {
                     Subtotal__c = qli.Subtotal,
                     Discount_Percentage__c = qli.Discount,
                     Total_Price__c = qli.TotalPrice,
-                    Line_Item_Description__c = qli.Description
+                    Line_Item_Description__c = qli.Description,
+                    Container_Type__c = qli.Container_Type__c,
+                    Customer_Product_Name__c = qli.Customer_Product_Name__c,
+                    Customer_Target_Price__c = qli.Customer_Target_Price__c
                 ));
             }
             

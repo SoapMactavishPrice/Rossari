@@ -15,8 +15,6 @@
                                     title="object">
                                     <div class="slds-icon slds-icon_small">
                                         <lightning-icon icon-name={iconName} size="small"></lightning-icon>
-
-
                                     </div>
                                     <span class="slds-assistive-text">Record</span>
                                 </span>
@@ -69,11 +67,12 @@
                                         {message}
                                     </template>
                                     <template for:each={recordsList} for:item="record">
-                                        <li id={record.Id} key={record.Id} onclick={onRecordSelection}
-                                            role="presentation" class="slds-listbox__item">
-                                            <div data-key={record.Id} data-name={record.Name}
+                                        <li id={record.Id} key={record.Id} class="slds-listbox__item">
+                                            <!-- Main clickable container with proper data attributes -->
+                                            <div onclick={onRecordSelection} data-key={record.Id}
+                                                data-name={record.Name}
                                                 class="slds-media slds-listbox__option slds-listbox__option_entity slds-listbox__option_has-meta"
-                                                role="option">
+                                                role="option" style="cursor: pointer;">
                                                 <span class="slds-media__figure slds-listbox__option-icon"
                                                     if:true={showIcon}>
                                                     <span class="slds-icon_container">
@@ -82,40 +81,35 @@
                                                     </span>
                                                 </span>
                                                 <span class="slds-media__body">
-                                                    <span data-key={record.Id} data-name={record.Name}
-                                                        title={record.Name}
+                                                    <!-- Product Name - clickable area -->
+                                                    <span title={record.Name}
                                                         class="slds-listbox__option-text slds-listbox__option-text_entity"
-                                                        style="height:16px;">{record.Name}
+                                                        style="height:16px;">
+                                                        <strong>{record.Name}</strong>
                                                     </span>
-                                                    <!-- <span data-key={record.Id} data-name={record.Name} if:true={record.Consignee_Email__c}
-                                                        class="slds-listbox__option-text slds-listbox__option-text_entity">{record.Consignee_Email__c}
+                                                    <!-- Product Code - clickable area -->
+                                                    <span if:true={record.productCode} title={record.productCode}
+                                                        class="slds-listbox__option-meta slds-listbox__option-meta_entity">
+                                                        Product Code: {record.productCode}
                                                     </span>
-                                                    <span data-key={record.Id} data-name={record.Name} if:true={record.Consignee_Mobile__c}
-                                                        class="slds-listbox__option-text slds-listbox__option-text_entity">{record.Consignee_Mobile__c}
-                                                    </span> -->
                                                     <template if:true={displayFields}>
-                                                        <span data-key={record.Id} data-name={record.Name}
-                                                            if:true={record.c__col1} title={record.c__col1}
+                                                        <span if:true={record.c__col1} title={record.c__col1}
                                                             class="slds-listbox__option-text slds-listbox__option-text_entity">
                                                             {record.c__col1}
                                                         </span>
-                                                        <span data-key={record.Id} data-name={record.Name}
-                                                            if:true={record.c__col2} title={record.c__col2}
+                                                        <span if:true={record.c__col2} title={record.c__col2}
                                                             class="slds-listbox__option-text slds-listbox__option-text_entity">
                                                             {record.c__col2}
                                                         </span>
-                                                        <span data-key={record.Id} data-name={record.Name}
-                                                            if:true={record.c__col3} title={record.c__col3}
+                                                        <span if:true={record.c__col3} title={record.c__col3}
                                                             class="slds-listbox__option-text slds-listbox__option-text_entity">
                                                             {record.c__col3}
                                                         </span>
-                                                        <span data-key={record.Id} data-name={record.Name}
-                                                            if:true={record.c__col4} title={record.c__col4}
+                                                        <span if:true={record.c__col4} title={record.c__col4}
                                                             class="slds-listbox__option-text slds-listbox__option-text_entity">
                                                             {record.c__col4}
                                                         </span>
-                                                        <span data-key={record.Id} data-name={record.Name}
-                                                            if:true={record.c__col5} title={record.c__col5}
+                                                        <span if:true={record.c__col5} title={record.c__col5}
                                                             class="slds-listbox__option-text slds-listbox__option-text_entity">
                                                             {record.c__col5}
                                                         </span>

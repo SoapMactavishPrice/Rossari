@@ -1,17 +1,17 @@
 import { LightningElement, api, track, wire } from 'lwc';
 import { ShowToastEvent } from 'lightning/platformShowToastEvent';
-import getPlantOptions from '@salesforce/apex/SampleRequestController.getPlantOptions';
+// import getPlantOptions from '@salesforce/apex/SampleRequestController.getPlantOptions'; // Plant - removed
 import getExistingLineItems from '@salesforce/apex/SampleRequestController.getExistingLineItems';
 import saveLineItems from '@salesforce/apex/SampleRequestController.saveLineItems';
 import { NavigationMixin } from 'lightning/navigation';
 import getStatusPicklistValues from '@salesforce/apex/SampleRequestController.getStatusPicklistValues';
 import deleteLineItem from '@salesforce/apex/SampleRequestController.deleteLineItem';
 
-
 export default class SampleRequestLineItems extends NavigationMixin(LightningElement) {
     @api recordId;
     @track lineItems = [];
-    @track plantOptions = [];
+    // @track plantOptions = []; // Plant - removed
+    @track statusOptions = []; // Added missing statusOptions declaration
     @track isLoading = false;
 
     connectedCallback() {
@@ -22,14 +22,15 @@ export default class SampleRequestLineItems extends NavigationMixin(LightningEle
         this.isLoading = true;
 
         Promise.all([
-            getPlantOptions(),
+            // getPlantOptions(), // Plant - removed
             getStatusPicklistValues()
         ])
-            .then(([plantResult, statusResult]) => {
-                this.plantOptions = plantResult.map(plant => ({
-                    label: `${plant.Name} - ${plant.Plant_Name__c}`,
-                    value: plant.Id
-                }));
+            .then(([/*plantResult,*/ statusResult]) => { // Plant - removed plantResult
+                // Plant - removed plant options mapping
+                // this.plantOptions = plantResult.map(plant => ({
+                //     label: `${plant.Name} - ${plant.Plant_Name__c}`,
+                //     value: plant.Id
+                // }));
 
                 this.statusOptions = statusResult.map(status => ({
                     label: status,
@@ -110,17 +111,17 @@ export default class SampleRequestLineItems extends NavigationMixin(LightningEle
         }];
     }
 
-
     handleAddProduct() {
         this.addEmptyRow();
     }
 
-    handlePlantChange(event) {
-        const index = event.target.dataset.index;
-        const plantId = event.detail.value;
-        this.lineItems[index].plantId = plantId;
-        this.lineItems = [...this.lineItems];
-    }
+    // Plant - removed handlePlantChange method
+    // handlePlantChange(event) {
+    //     const index = event.target.dataset.index;
+    //     const plantId = event.detail.value;
+    //     this.lineItems[index].plantId = plantId;
+    //     this.lineItems = [...this.lineItems];
+    // }
 
     handleQuantityChange(event) {
         const index = event.target.dataset.index;
@@ -160,7 +161,6 @@ export default class SampleRequestLineItems extends NavigationMixin(LightningEle
         }
     }
 
-
     handleSave() {
         if (this.validateForm()) {
             this.isLoading = true;
@@ -171,7 +171,6 @@ export default class SampleRequestLineItems extends NavigationMixin(LightningEle
                 quantity: Number(item.quantity),
                 status: item.status
             }));
-
 
             saveLineItems({
                 recordId: this.recordId,
@@ -208,7 +207,6 @@ export default class SampleRequestLineItems extends NavigationMixin(LightningEle
             window.location.reload();
         }, 1000);
     }
-
 
     validateForm() {
         let isValid = true;

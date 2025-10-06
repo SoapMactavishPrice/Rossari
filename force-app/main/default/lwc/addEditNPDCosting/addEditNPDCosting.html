@@ -1,0 +1,133 @@
+<template>
+    <lightning-card>
+        <div class="slds-m-around_medium">
+            <div class="slds-p-around_xx-small slds-text-align_center slds-border_bottom slds-theme_shade"
+                style="margin-left: -4px;background-color: #9d0b0f; color: #ffffff;">
+                <h3 class="slds-text-heading_small" style="margin: 0;">Add/Edit Costing</h3>
+            </div>
+            <div class="slds-p-around_medium">
+                <table class="slds-table slds-table_bordered slds-table_cell-buffer">
+                    <thead>
+                        <tr class="slds-text-title_caps">
+                            <th scope="col">Name</th>
+                            <th scope="col">Mol Weight</th>
+                            <th scope="col">Used in Batch (Kgs)</th>
+                            <th scope="col">Recovered</th>
+                            <th scope="col">Consumed (Kgs)</th>
+                            <th scope="col">Kg RM / Kg Product</th>
+                            <th scope="col">Unit Cost Per Kg</th>
+                            <th scope="col">Cost in Batch</th>
+                            <th scope="col">Cost Per Kg</th>
+                            <th scope="col">Gmoles</th>
+                            <th scope="col">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <template for:each={lineItems} for:item="item" for:index="index">
+                            <tr key={item.key} class="slds-hint-parent">
+                                <!-- Name Field -->
+                                <td style="width: 25%;">
+                                    <lightning-input type="text" value={item.name} onchange={handleNameChange}
+                                        data-index={index} variant="label-hidden" placeholder="Enter Name">
+                                    </lightning-input>
+                                </td>
+
+                                <!-- Molecular Weight -->
+                                <td>
+                                    <lightning-input type="number" value={item.molWeight}
+                                        onchange={handleMolWeightChange} data-index={index} variant="label-hidden"
+                                        step="0.001" placeholder="0.000">
+                                    </lightning-input>
+                                </td>
+
+                                <!-- Used in Batch (Kgs) -->
+                                <td>
+                                    <lightning-input type="number" value={item.usedInBatch}
+                                        onchange={handleUsedInBatchChange} data-index={index} variant="label-hidden"
+                                        step="0.001" placeholder="0.000">
+                                    </lightning-input>
+                                </td>
+
+                                <!-- Recovered -->
+                                <td>
+                                    <lightning-input type="number" value={item.recovered}
+                                        onchange={handleRecoveredChange} data-index={index} variant="label-hidden"
+                                        step="0.001" placeholder="0.000">
+                                    </lightning-input>
+                                </td>
+
+                                <!-- Consumed (Kgs) -->
+                                <td>
+                                    <lightning-input type="number" value={item.consumed} onchange={handleConsumedChange}
+                                        data-index={index} variant="label-hidden" step="0.001" placeholder="0.000"
+                                        disabled>
+                                    </lightning-input>
+                                </td>
+
+                                <!-- Kg RM / Kg Product -->
+                                <td>
+                                    <lightning-input type="number" value={item.kgRmPerKgProduct} data-index={index}
+                                        variant="label-hidden" disabled>
+                                    </lightning-input>
+                                </td>
+
+                                <!-- Unit Cost Per Kg -->
+                                <td>
+                                    <lightning-input type="number" formatter="currency" value={item.unitCostPerKg}
+                                        onchange={handleUnitCostPerKgChange} data-index={index} variant="label-hidden"
+                                        step="0.01" placeholder="0.00">
+                                    </lightning-input>
+                                </td>
+
+                                <!-- Cost in Batch -->
+                                <td>
+                                    <lightning-input type="number" formatter="currency" value={item.costInBatch}
+                                        onchange={handleCostInBatchChange} data-index={index} variant="label-hidden"
+                                        step="0.01" placeholder="0.00" disabled>
+                                    </lightning-input>
+                                </td>
+
+                                <!-- Cost Per Kg -->
+                                <td>
+                                    <lightning-input type="number" formatter="currency" value={item.costPerKg}
+                                        onchange={handleCostPerKgChange} data-index={index} variant="label-hidden"
+                                        step="0.01" placeholder="0.00" disabled>
+                                    </lightning-input>
+                                </td>
+
+                                <!-- Gmoles -->
+                                <td style="width: 8%;">
+                                    <lightning-input type="number" value={item.gmoles} onchange={handleGmolesChange}
+                                        data-index={index} variant="label-hidden" step="0.001" placeholder="0.000"
+                                        disabled>
+                                    </lightning-input>
+                                </td>
+
+                                <!-- Actions -->
+                                <td>
+                                    <lightning-button-icon icon-name="utility:add" alternative-text="Add"
+                                        onclick={handleAddItem} data-index={index} class="slds-m-right_x-small">
+                                    </lightning-button-icon>
+
+                                    <lightning-button-icon icon-name="utility:delete" alternative-text="Delete"
+                                        onclick={handleDeleteItem} data-index={index} class={item.deleteButtonClass}>
+                                    </lightning-button-icon>
+                                </td>
+
+
+                            </tr>
+                        </template>
+                    </tbody>
+                </table>
+
+                <div class="slds-align_absolute-center slds-m-top_medium">
+                    <lightning-button label="Save" variant="brand" onclick={handleSave}>
+                    </lightning-button>
+                    <lightning-button label="Cancel" variant="neutral" onclick={handleCancel}
+                        class="slds-m-left_medium">
+                    </lightning-button>
+                </div>
+            </div>
+        </div>
+    </lightning-card>
+</template>

@@ -29,10 +29,14 @@
                                         role="option" onclick={handleOptionClick} data-id={report.Id}>
                                         <div class="slds-media__body">
                                             <span class="slds-truncate">
-                                                <strong>{report.Name}</strong><br /> 
+
+                                                <strong>{report.Title_of_Meeting__c}</strong><br /> 
+                                                <small>Visit Report No.: {report.Name}</small>
+
+                                                <!-- <strong>{report.Name}</strong><br /> 
                                                 <template if:true={report.Title_of_Meeting__c}>
                                                     <small>Title: {report.Title_of_Meeting__c}</small>
-                                                </template>
+                                                </template> -->
                                             </span>
                                         </div>
                                     </div>

@@ -7,7 +7,8 @@ public with sharing class DocumentApprovalHandlerForOpp {
             
             
             Opportunity leadRecord = [SELECT Id, Name, Company__c, Owner.Name, Owner.Email, Enquiry_Document_No__c, Account.Name, 
-                             TDS_Approver__c, MSDS_Approver__c, Technical_Document_Approver__c, Contact__r.Name
+                             TDS_Approver__c, MSDS_Approver__c, Technical_Document_Approver__c, COA_Document_Approver__c, Contact__r.Name,
+                             TDS_Remark__c, MSDS_Remark__c, Tech_Doc_Remark__c, COA_Doc_Remark__c
                              FROM Opportunity WHERE Id = :leadId];
             
             if (approvers.tdsApproverId != null) {
@@ -18,6 +19,9 @@ public with sharing class DocumentApprovalHandlerForOpp {
             }
             if (approvers.technicalDocApproverId != null) {
                 leadRecord.Technical_Document_Approver__c = approvers.technicalDocApproverId;
+            }
+            if (approvers.coaDocApproverId != null) {
+                leadRecord.COA_Document_Approver__c = approvers.coaDocApproverId;
             }
             
             update leadRecord;
@@ -30,6 +34,7 @@ public with sharing class DocumentApprovalHandlerForOpp {
             if (approvers.tdsApproverId != null) approverIds.add(approvers.tdsApproverId);
             if (approvers.msdsApproverId != null) approverIds.add(approvers.msdsApproverId);
             if (approvers.technicalDocApproverId != null) approverIds.add(approvers.technicalDocApproverId);
+            if (approvers.coaDocApproverId != null) approverIds.add(approvers.coaDocApproverId);
             
             Map<Id, User> approverMap = new Map<Id, User>([
                 SELECT Id, Name, Email 
@@ -66,6 +71,15 @@ public with sharing class DocumentApprovalHandlerForOpp {
                     );
                 emailMessages.add(techEmail);
             }
+
+            if (approvers.coaDocApproverId != null) {
+                Messaging.SingleEmailMessage techEmail = createApprovalEmail(
+                    approverMap.get(approvers.coaDocApproverId),
+                leadRecord,
+                'COA'
+                    );
+                emailMessages.add(techEmail);
+            }
             
             
             if (!emailMessages.isEmpty()) {
@@ -93,6 +107,15 @@ public with sharing class DocumentApprovalHandlerForOpp {
         htmlBody += '<b>Opportunity Name:</b> ' + leadRecord.Name + '<br/>';
         htmlBody += '<b>Company:</b> ' + (leadRecord.Account != null ? leadRecord.Account.Name : '') + '<br/>';
         htmlBody += '<b>Contact Name:</b> ' + (leadRecord.Contact__r != null ? leadRecord.Contact__r.Name : '') + '<br/>';
+        if (documentType == 'TDS') {
+            htmlBody += '<b>Remark:</b> ' + (leadRecord.TDS_Remark__c != null ? leadRecord.TDS_Remark__c : '') + '<br/>';
+        } else if (documentType == 'MSDS') {
+            htmlBody += '<b>Remark:</b> ' + (leadRecord.MSDS_Remark__c != null ? leadRecord.MSDS_Remark__c : '') + '<br/>';
+        } else if (documentType == 'Technical') {
+            htmlBody += '<b>Remark:</b> ' + (leadRecord.Tech_Doc_Remark__c != null ? leadRecord.Tech_Doc_Remark__c : '') + '<br/>';
+        } else if (documentType == 'COA') {
+            htmlBody += '<b>Remark:</b> ' + (leadRecord.COA_Doc_Remark__c != null ? leadRecord.COA_Doc_Remark__c : '') + '<br/>';
+        }
         htmlBody += '<b>URL:</b> <a href="https://rossari--devorg.sandbox.lightning.force.com/lightning/cmp/c__AttachTdsMsdsOnOpportunityCaller?c__recordId=' 
                     + leadRecord.Id + '" target="_blank">Click here</a><br/><br/>';
         htmlBody += 'Kindly review and provide the required document.<br/><br/>';
@@ -107,84 +130,116 @@ public with sharing class DocumentApprovalHandlerForOpp {
     }
     
     @AuraEnabled
-    public static String uploadDocuments(List<Object> tdsFiles, List<Object> msdsFiles, List<Object> technicalDocumentFiles, String leadId) {
+    public static String uploadDocuments(List<Object> tdsFiles, List<Object> msdsFiles, List<Object> technicalDocumentFiles, List<Object> coaDocumentFiles, String leadId) {
         
-        Opportunity leadToUpdate = [SELECT Id, TDS_Upload_Status__c, MSDS_Upload_Status__c, Technical_Doc_Upload_Status__c 
-                               FROM Opportunity WHERE Id = :leadId];
+        System.debug('Starting uploadDocuments method for LeadId: ' + leadId);
+        
+        Opportunity leadToUpdate = [SELECT Id, TDS_Upload_Status__c, MSDS_Upload_Status__c, Technical_Doc_Upload_Status__c, COA_Doc_Upload_Status__c
+                                FROM Opportunity WHERE Id = :leadId];
+        System.debug('Fetched Opportunity: ' + leadToUpdate);
         
         List<ContentVersion> contentVersions = new List<ContentVersion>();
         
-        
+        // TDS Files
         if (tdsFiles != null && !tdsFiles.isEmpty()) {
+            System.debug('Processing TDS files: ' + tdsFiles.size());
             for (Object fileData : tdsFiles) {
                 Map<Object, Object> fileMap = (Map<Object, Object>)fileData;
-                
                 Boolean isReadOnly = (Boolean)fileMap.get('isReadOnly');
                 if (isReadOnly != null && isReadOnly) {
+                    System.debug('Skipping read-only TDS file: ' + fileMap.get('fileName'));
                     continue;
                 }
-                
                 ContentVersion cv = createContentVersion(
                     'TDS_' + (String)fileMap.get('fileName'),
-                (String)fileMap.get('base64'),
-                (String)fileMap.get('contentType')
-                    );
+                    (String)fileMap.get('base64'),
+                    (String)fileMap.get('contentType')
+                );
                 contentVersions.add(cv);
+                System.debug('Added TDS ContentVersion for file: ' + fileMap.get('fileName'));
             }
             leadToUpdate.TDS_Upload_Status__c = 'Uploaded';
+            System.debug('Set TDS_Upload_Status__c to Uploaded');
         }
         
-        
+        // MSDS Files
         if (msdsFiles != null && !msdsFiles.isEmpty()) {
+            System.debug('Processing MSDS files: ' + msdsFiles.size());
             for (Object fileData : msdsFiles) {
                 Map<Object, Object> fileMap = (Map<Object, Object>)fileData;
-                
                 Boolean isReadOnly = (Boolean)fileMap.get('isReadOnly');
                 if (isReadOnly != null && isReadOnly) {
+                    System.debug('Skipping read-only MSDS file: ' + fileMap.get('fileName'));
                     continue;
                 }
-                
                 ContentVersion cv = createContentVersion(
                     'MSDS_' + (String)fileMap.get('fileName'),
-                (String)fileMap.get('base64'),
-                (String)fileMap.get('contentType')
-                    );
+                    (String)fileMap.get('base64'),
+                    (String)fileMap.get('contentType')
+                );
                 contentVersions.add(cv);
+                System.debug('Added MSDS ContentVersion for file: ' + fileMap.get('fileName'));
             }
             leadToUpdate.MSDS_Upload_Status__c = 'Uploaded';
+            System.debug('Set MSDS_Upload_Status__c to Uploaded');
         }
         
-        
+        // Technical Documents
         if (technicalDocumentFiles != null && !technicalDocumentFiles.isEmpty()) {
+            System.debug('Processing Technical documents: ' + technicalDocumentFiles.size());
             for (Object fileData : technicalDocumentFiles) {
                 Map<Object, Object> fileMap = (Map<Object, Object>)fileData;
-                
                 Boolean isReadOnly = (Boolean)fileMap.get('isReadOnly');
                 if (isReadOnly != null && isReadOnly) {
+                    System.debug('Skipping read-only Technical document: ' + fileMap.get('fileName'));
                     continue;
                 }
-                
                 ContentVersion cv = createContentVersion(
                     'TechDoc_' + (String)fileMap.get('fileName'),
-                (String)fileMap.get('base64'),
-                (String)fileMap.get('contentType')
-                    );
+                    (String)fileMap.get('base64'),
+                    (String)fileMap.get('contentType')
+                );
                 contentVersions.add(cv);
+                System.debug('Added Technical ContentVersion for file: ' + fileMap.get('fileName'));
             }
             leadToUpdate.Technical_Doc_Upload_Status__c = 'Uploaded';
+            System.debug('Set Technical_Doc_Upload_Status__c to Uploaded');
+        }
+
+        // COA Documents
+        if (coaDocumentFiles != null && !coaDocumentFiles.isEmpty()) {
+            System.debug('Processing COA documents: ' + coaDocumentFiles.size());
+            for (Object fileData : coaDocumentFiles) {
+                Map<Object, Object> fileMap = (Map<Object, Object>)fileData;
+                Boolean isReadOnly = (Boolean)fileMap.get('isReadOnly');
+                if (isReadOnly != null && isReadOnly) {
+                    System.debug('Skipping read-only COA document: ' + fileMap.get('fileName'));
+                    continue;
+                }
+                ContentVersion cv = createContentVersion(
+                    'COA_' + (String)fileMap.get('fileName'),
+                    (String)fileMap.get('base64'),
+                    (String)fileMap.get('contentType')
+                );
+                contentVersions.add(cv);
+                System.debug('Added COA ContentVersion for file: ' + fileMap.get('fileName'));
+            }
+            leadToUpdate.COA_Doc_Upload_Status__c = 'Uploaded';
+            System.debug('Set COA_Doc_Upload_Status__c to Uploaded');
         }
         
-        
+        // Insert ContentVersions
         if (!contentVersions.isEmpty()) {
+            System.debug('Inserting ContentVersions: ' + contentVersions.size());
             insert contentVersions;
-            
+            System.debug('Inserted ContentVersions successfully');
             
             List<ContentVersion> insertedCVs = [
-                    SELECT Id, ContentDocumentId 
-                    FROM ContentVersion 
-                    WHERE Id IN :contentVersions
-                ];
-            
+                SELECT Id, ContentDocumentId 
+                FROM ContentVersion 
+                WHERE Id IN :contentVersions
+            ];
+            System.debug('Queried inserted ContentVersions: ' + insertedCVs.size());
             
             List<ContentDocumentLink> cdls = new List<ContentDocumentLink>();
             for (ContentVersion cv : insertedCVs) {
@@ -194,18 +249,21 @@ public with sharing class DocumentApprovalHandlerForOpp {
                 cdl.ShareType = 'V';
                 cdl.Visibility = 'AllUsers';
                 cdls.add(cdl);
+                System.debug('Prepared ContentDocumentLink for ContentDocumentId: ' + cv.ContentDocumentId);
             }
             
             insert cdls;
+            System.debug('Inserted ContentDocumentLinks: ' + cdls.size());
         }
         
-        
         update leadToUpdate;
+        System.debug('Updated Opportunity statuses: ' + leadToUpdate);
         
         // Query lead details for email
         Opportunity lead = [SELECT Id, Name, Company__c, Owner.Name, Owner.Email, Enquiry_Document_No__c, Account.Name, 
-                        TDS_Approver__r.Name, MSDS_Approver__r.Name, Technical_Document_Approver__r.Name, Contact__r.Name
-                        FROM Opportunity WHERE Id = :leadId];
+                            TDS_Approver__r.Name, MSDS_Approver__r.Name, Technical_Document_Approver__r.Name, Contact__r.Name, COA_Document_Approver__r.Name
+                            FROM Opportunity WHERE Id = :leadId];
+        System.debug('Fetched lead details for email: ' + lead);
         
         // Send email notifications
         List<Messaging.SingleEmailMessage> emails = new List<Messaging.SingleEmailMessage>();
@@ -213,10 +271,10 @@ public with sharing class DocumentApprovalHandlerForOpp {
         Boolean toSendTdsEmail = false;
         Boolean toSendMsdsEmail = false;
         Boolean toSendTechEmail = false;
+        Boolean toSendCoaEmail = false;
 
         for (Object each : tdsFiles) {
             Map<Object, Object> fileMap = (Map<Object, Object>)each;
-                
             Boolean isReadOnly = (Boolean)fileMap.get('isReadOnly');
             String base64 = (String)fileMap.get('base64');
             if (isReadOnly == null && base64 != null) {
@@ -224,10 +282,10 @@ public with sharing class DocumentApprovalHandlerForOpp {
                 break;
             }
         }
+        System.debug('toSendTdsEmail: ' + toSendTdsEmail);
 
         for (Object each : msdsFiles) {
             Map<Object, Object> fileMap = (Map<Object, Object>)each;
-                
             Boolean isReadOnly = (Boolean)fileMap.get('isReadOnly');
             String base64 = (String)fileMap.get('base64');
             if (isReadOnly == null && base64 != null) {
@@ -235,10 +293,10 @@ public with sharing class DocumentApprovalHandlerForOpp {
                 break;
             }
         }
+        System.debug('toSendMsdsEmail: ' + toSendMsdsEmail);
 
         for (Object each : technicalDocumentFiles) {
             Map<Object, Object> fileMap = (Map<Object, Object>)each;
-                
             Boolean isReadOnly = (Boolean)fileMap.get('isReadOnly');
             String base64 = (String)fileMap.get('base64');
             if (isReadOnly == null && base64 != null) {
@@ -246,23 +304,47 @@ public with sharing class DocumentApprovalHandlerForOpp {
                 break;
             }
         }
-        
+        System.debug('toSendTechEmail: ' + toSendTechEmail);
+
+        for (Object each : coaDocumentFiles) {
+            Map<Object, Object> fileMap = (Map<Object, Object>)each;
+            Boolean isReadOnly = (Boolean)fileMap.get('isReadOnly');
+            String base64 = (String)fileMap.get('base64');
+            if (isReadOnly == null && base64 != null) {
+                toSendCoaEmail = true;
+                break;
+            }
+        }
+        System.debug('toSendCoaEmail: ' + toSendCoaEmail);
+
         if (toSendTdsEmail) {
             emails.add(createUploadNotificationEmail(lead, 'TDS', lead.TDS_Approver__r.Name));
+            System.debug('Added TDS email for: ' + lead.TDS_Approver__r.Name);
         }
         if (toSendMsdsEmail) {
             emails.add(createUploadNotificationEmail(lead, 'MSDS', lead.MSDS_Approver__r.Name));
+            System.debug('Added MSDS email for: ' + lead.MSDS_Approver__r.Name);
         }
         if (toSendTechEmail) {
             emails.add(createUploadNotificationEmail(lead, 'Technical', lead.Technical_Document_Approver__r.Name));
+            System.debug('Added Technical email for: ' + lead.Technical_Document_Approver__r.Name);
+        }
+        if (toSendCoaEmail) {
+            emails.add(createUploadNotificationEmail(lead, 'COA', lead.COA_Document_Approver__r.Name));
+            System.debug('Added COA email for: ' + lead.COA_Document_Approver__r.Name);
         }
         
         if (!emails.isEmpty()) {
             Messaging.sendEmail(emails);
+            System.debug('Sent emails: ' + emails.size());
+        } else {
+            System.debug('No emails to send');
         }
         
+        System.debug('uploadDocuments method completed successfully');
         return 'Success';
     }
+
     
     private static Messaging.SingleEmailMessage createUploadNotificationEmail(Opportunity lead, String documentType, String approverName) {
         Messaging.SingleEmailMessage email = new Messaging.SingleEmailMessage();
@@ -333,7 +415,7 @@ public with sharing class DocumentApprovalHandlerForOpp {
         List<ContentVersion> versions = [
                 SELECT Id, Title, VersionData
                 FROM ContentVersion
-                WHERE Id IN :contentVersionIds AND (Title LIKE 'TDS_%' OR Title LIKE 'MSDS_%' OR Title LIKE 'TechDoc_%')
+                WHERE Id IN :contentVersionIds AND (Title LIKE 'TDS_%' OR Title LIKE 'MSDS_%' OR Title LIKE 'TechDoc_%' OR Title LIKE 'COA_%')
             ];
         
         List<Messaging.EmailFileAttachment> attachments = new List<Messaging.EmailFileAttachment>();
@@ -365,7 +447,7 @@ public with sharing class DocumentApprovalHandlerForOpp {
     }
 
     @AuraEnabled
-    public static string savePreviousViewType(String leadId, String viewType){
+    public static String savePreviousViewType(String leadId, String viewType){
         Opportunity lead = new Opportunity();
         lead.Id = leadId;
         lead.Previous_View_Type__c = viewType;
@@ -374,7 +456,7 @@ public with sharing class DocumentApprovalHandlerForOpp {
     }
 
     @AuraEnabled
-    public static string getPreviousViewType(String leadId){
+    public static String getPreviousViewType(String leadId){
         System.debug('leadId ==>'+ leadId);
         Opportunity lead = [SELECT Previous_View_Type__c FROM Opportunity WHERE Id = :leadId];
 
@@ -384,11 +466,35 @@ public with sharing class DocumentApprovalHandlerForOpp {
 
         return null;
     }
+
+    @AuraEnabled
+    public static String saveRemarks(String tdsRemark, String msdsRemark, String techDocRemark, String coaDocRemark, String leadId) {
+        
+
+        Opportunity lead = new Opportunity(Id = leadId);
+        if (tdsRemark != null) {
+            lead.TDS_Remark__c = tdsRemark;
+        }
+        if (msdsRemark != null) {
+            lead.MSDS_Remark__c = msdsRemark;
+        }
+        if (techDocRemark != null) {
+            lead.Tech_Doc_Remark__c = techDocRemark;
+        }
+        if (coaDocRemark != null) {
+            lead.COA_Doc_Remark__c = coaDocRemark;
+        }
+
+        UPDATE lead;
+
+        return 'Success';
+    }
     
     public class ApproverModel {
         @AuraEnabled public String tdsApproverId { get; set; }
         @AuraEnabled public String msdsApproverId { get; set; }
         @AuraEnabled public String technicalDocApproverId { get; set; }
+        @AuraEnabled public String coaDocApproverId { get; set; }
     }
     
     public class DocumentModel {
@@ -396,15 +502,23 @@ public with sharing class DocumentApprovalHandlerForOpp {
         @Auraenabled public List<Object> tdsFiles { get; set; }
         @Auraenabled public List<Object> msdsFiles { get; set; }
         @Auraenabled public List<Object> technicalDocumentFiles { get; set; }
+        @Auraenabled public List<Object> coaDocumentFiles { get; set; }
         @AuraEnabled public Boolean isTdsUploaded { get; set; }
         @AuraEnabled public Boolean isMsdsUploaded { get; set; }
         @AuraEnabled public Boolean isTechnicalDocUploaded { get; set; }
+        @AuraEnabled public Boolean isCoaDocUploaded { get; set; }
         @AuraEnabled public Boolean isTdsDisabled { get; set; }
         @AuraEnabled public Boolean isMsdsDisabled { get; set; }
         @AuraEnabled public Boolean isTechnicalDocDisabled { get; set; }
+        @AuraEnabled public Boolean isCoaDocDisabled { get; set; }
         @AuraEnabled public String tdsApproverName { get; set; }
         @AuraEnabled public String msdsApproverName { get; set; }
         @AuraEnabled public String technicalDocApproverName { get; set; }
+        @AuraEnabled public String coaDocApproverName { get; set; }
+        @AuraEnabled public String tdsApproverRemark { get; set; }
+        @AuraEnabled public String msdsApproverRemark { get; set; }
+        @AuraEnabled public String technicalDocApproverRemark { get; set; }
+        @AuraEnabled public String coaDocApproverRemark { get; set; }
         @AuraEnabled public Boolean isAccessEnabled { get; set; }
         @AuraEnabled public Boolean isSaveDisabled { get; set; }
         
@@ -413,12 +527,15 @@ public with sharing class DocumentApprovalHandlerForOpp {
             this.tdsFiles = new List<Object>();
             this.msdsFiles = new List<Object>();
             this.technicalDocumentFiles = new List<Object>();
+            this.coaDocumentFiles = new List<Object>();
             this.isTdsUploaded = false;
             this.isMsdsUploaded = false;
             this.isTechnicalDocUploaded = false;
+            this.isCoaDocUploaded = false;
             this.isTdsDisabled = true;
             this.isMsdsDisabled = true;
             this.isTechnicalDocDisabled = true;
+            this.isCoaDocDisabled = true;
             this.isAccessEnabled = false;
             this.isSaveDisabled = true;
         }
@@ -434,12 +551,19 @@ public with sharing class DocumentApprovalHandlerForOpp {
                                   TDS_Upload_Status__c, 
                                   MSDS_Upload_Status__c, 
                                   Technical_Doc_Upload_Status__c,
+                                  COA_Doc_Upload_Status__c,
                                   TDS_Approver__c, 
                                   MSDS_Approver__c, 
                                   Technical_Document_Approver__c,
+                                  COA_Document_Approver__c,
                                   TDS_Approver__r.Name,
                                   MSDS_Approver__r.Name,
-                                  Technical_Document_Approver__r.Name
+                                  Technical_Document_Approver__r.Name,
+                                  COA_Document_Approver__r.Name,
+                                  TDS_Remark__c,
+                                  MSDS_Remark__c,
+                                  Tech_Doc_Remark__c,
+                                  COA_Doc_Remark__c
                              FROM Opportunity 
                              WHERE Id = :leadId];
             
@@ -487,6 +611,13 @@ public with sharing class DocumentApprovalHandlerForOpp {
                         'base64' => null,
                         'isReadOnly' => true
                     });
+                } else if(title.startsWith('COA_')) {
+                    String fileName = title.substringAfter('COA_');
+                    this.coaDocumentFiles.add(new Map<String, Object>{
+                        'fileName' => fileName,
+                        'base64' => null,
+                        'isReadOnly' => true
+                    });
                 }
             }
             
@@ -494,11 +625,19 @@ public with sharing class DocumentApprovalHandlerForOpp {
             this.isTdsUploaded = leadRecord.TDS_Upload_Status__c == 'Uploaded';
             this.isMsdsUploaded = leadRecord.MSDS_Upload_Status__c == 'Uploaded';
             this.isTechnicalDocUploaded = leadRecord.Technical_Doc_Upload_Status__c == 'Uploaded';
+            this.isCoaDocUploaded = leadRecord.COA_Doc_Upload_Status__c == 'Uploaded';
+            
+
+            this.tdsApproverRemark = leadRecord.TDS_Remark__c;
+            this.msdsApproverRemark = leadRecord.MSDS_Remark__c;
+            this.technicalDocApproverRemark = leadRecord.Tech_Doc_Remark__c;
+            this.coaDocApproverRemark = leadRecord.COA_Doc_Remark__c;
             
             
             this.isTdsDisabled = !(leadRecord.TDS_Approver__c == currentUserId);
             this.isMsdsDisabled = !(leadRecord.MSDS_Approver__c == currentUserId);
             this.isTechnicalDocDisabled = !(leadRecord.Technical_Document_Approver__c == currentUserId);
+            this.isCoaDocDisabled = !(leadRecord.COA_Document_Approver__c == currentUserId);
             
             
             this.tdsApproverName = leadRecord.TDS_Approver__r != null ? leadRecord.TDS_Approver__r.Name : null;
@@ -506,14 +645,18 @@ public with sharing class DocumentApprovalHandlerForOpp {
             this.technicalDocApproverName = leadRecord.Technical_Document_Approver__r != null 
                 ? leadRecord.Technical_Document_Approver__r.Name 
                 : null;
+            this.coaDocApproverName = leadRecord.COA_Document_Approver__r != null 
+                ? leadRecord.COA_Document_Approver__r.Name 
+                : null;
 
             Boolean tdsOk = String.isBlank(this.tdsApproverName) || this.isTdsUploaded;
             Boolean msdsOk = String.isBlank(this.msdsApproverName) || this.isMsdsUploaded;
             Boolean techOk = String.isBlank(this.technicalDocApproverName) || this.isTechnicalDocUploaded;
+            Boolean coaOk = String.isBlank(this.coaDocApproverName) || this.isCoaDocUploaded;
 
-            this.isAccessEnabled = tdsOk && msdsOk && techOk;
+            this.isAccessEnabled = tdsOk && msdsOk && techOk && coaOk;
             
-            this.isSaveDisabled = this.isTdsDisabled && this.isMsdsDisabled && this.isTechnicalDocDisabled;
+            this.isSaveDisabled = this.isTdsDisabled && this.isMsdsDisabled && this.isTechnicalDocDisabled && this.isCoaDocDisabled;
         }
     }
 }

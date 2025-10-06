@@ -22,7 +22,6 @@ public with sharing class ReusableLookupController {
             // Step 1: Compose the SELECT clause
             if (isPricebookEntry) {
                 // Fields for PricebookEntry
-
                 fieldsToQuery = 'SELECT Id, Product2Id, UnitPrice, Product2.Name, Product2.ProductCode, ' +
                                'Product2.Family, Product2.Plant_Name__c, Product2.Description, ' +
                                'CurrencyIsoCode ' +
@@ -43,6 +42,7 @@ public with sharing class ReusableLookupController {
                 }
                 fieldsToQuery += ' FROM ' + inputWrapper.objectApiName;
             }
+            
             String filterCriteria = '';
             // Step 2: Build WHERE filter
             if (isProduct && String.isBlank(inputWrapper.selectedRecordId)) {
@@ -51,6 +51,7 @@ public with sharing class ReusableLookupController {
             
             // Add currency filter only for PricebookEntry
             if (isPricebookEntry && String.isNotBlank(currencyCode)) {
+                if (String.isNotBlank(filterCriteria)) filterCriteria += ' AND ';
                 filterCriteria += ' CurrencyIsoCode = \'' + String.escapeSingleQuotes(currencyCode) + '\'';
             }
             
@@ -59,28 +60,40 @@ public with sharing class ReusableLookupController {
                 if (String.isNotBlank(filterCriteria)) filterCriteria += ' AND ';
                 filterCriteria += ' Id = \'' + String.escapeSingleQuotes(inputWrapper.selectedRecordId) + '\'';
             } 
-            // Handle search string
+            // Handle search string - UPDATED: Search by both Name and ProductCode
             else if (String.isNotBlank(inputWrapper.searchString)) {
                 String searchStr = String.escapeSingleQuotes(inputWrapper.searchString.trim());
                 if (String.isNotBlank(filterCriteria)) filterCriteria += ' AND ';
                 
                 if (isPricebookEntry) {
-                    filterCriteria += '(Product2.Name LIKE \'' + searchStr + '%\' OR Product2.ProductCode LIKE \'' + searchStr + '%\')';
+                    // Search by both Product Name and Product Code
+                    filterCriteria += '(Product2.Name LIKE \'%' + searchStr + '%\' OR Product2.ProductCode LIKE \'%' + searchStr + '%\')';
                 } 
                 else if (isProduct) {
-                    filterCriteria += '(Name LIKE \'' + searchStr + '%\' OR ProductCode LIKE \'' + searchStr + '%\')';
+                    // Search by both Product Name and Product Code
+                    filterCriteria += '(Name LIKE \'%' + searchStr + '%\' OR ProductCode LIKE \'%' + searchStr + '%\')';
                 }
                 else if (String.isNotBlank(inputWrapper.fieldApiName)) {
-                    filterCriteria += inputWrapper.fieldApiName + ' LIKE \'' + searchStr + '%\'';
+                    filterCriteria += inputWrapper.fieldApiName + ' LIKE \'%' + searchStr + '%\'';
                 }
             }
             
-            // Step 3: Add WHERE and LIMIT clauses
+            // Step 3: Add WHERE, ORDER BY and LIMIT clauses
             String query = fieldsToQuery;
             if (String.isNotBlank(filterCriteria)) {
                 query += ' WHERE ' + filterCriteria;
             }
-            query += ' LIMIT 50'; // Increased limit to ensure better results
+            
+            // Add ORDER BY clause to sort alphabetically by product name
+            if (isPricebookEntry) {
+                query += ' ORDER BY Product2.Name ASC'; // Sort by Product Name alphabetically
+            } else if (isProduct) {
+                query += ' ORDER BY Name ASC'; // Sort by Product Name alphabetically
+            } else if (String.isNotBlank(inputWrapper.fieldApiName)) {
+                query += ' ORDER BY ' + inputWrapper.fieldApiName + ' ASC'; // Sort by main field alphabetically
+            }
+            
+            query += ' LIMIT 100'; // Increased limit to ensure better results
             
             System.debug('Final Query --> ' + query);
             

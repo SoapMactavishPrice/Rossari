@@ -5,11 +5,13 @@ import { NavigationMixin } from 'lightning/navigation';
 import getUsers from '@salesforce/apex/CompanyUserController.getUsers';
 import getCompanyUsers from '@salesforce/apex/CompanyUserController.getCompanyUsers';
 import saveCompanyUsers from '@salesforce/apex/CompanyUserController.saveCompanyUsers';
+import getCompanySAPCodes from '@salesforce/apex/CompanyUserController.getCompanySAPCodes';
 
 export default class AddCompanyUser extends NavigationMixin(LightningElement) {
     @track showSpinner = false;
     @track companyUsers = [];
     @track userOptions = [];
+    @track companySAPCodes = [];
 
     deletedRecordIds = [];
     _recordId;
@@ -28,31 +30,31 @@ export default class AddCompanyUser extends NavigationMixin(LightningElement) {
     async initializeData() {
         this.showSpinner = true;
         try {
-            const [users, existingRecords] = await Promise.all([
+            const [users, existingRecords, sapCodes] = await Promise.all([
                 getUsers(),
-                getCompanyUsers({ companyId: this._recordId })
+                getCompanyUsers({ companyId: this._recordId }),
+                getCompanySAPCodes({ companyId: this._recordId })
             ]);
 
             this.userOptions = users.map(u => ({ label: u.Name, value: u.Id }));
+            this.companySAPCodes = sapCodes;
 
             if (existingRecords && existingRecords.length > 0) {
                 this.companyUsers = existingRecords.map(rec => ({
                     id: rec.Id,
                     User__c: rec.User__c,
-                    Business_Unit__c: rec.Business_Unit__c,
                     Division__c: rec.Division__c,
                     Product_Group__c: rec.Product_Group__c,
-                    divisionFilter: {},
+                    divisionFilter: { sapCodes: this.companySAPCodes },
                     productGroupFilter: {}
                 }));
             } else {
                 this.companyUsers = [{
                     id: this.generateId(),
                     User__c: '',
-                    Business_Unit__c: '',
                     Division__c: '',
                     Product_Group__c: '',
-                    divisionFilter: {},
+                    divisionFilter: { sapCodes: this.companySAPCodes },
                     productGroupFilter: {}
                 }];
             }
@@ -72,16 +74,12 @@ export default class AddCompanyUser extends NavigationMixin(LightningElement) {
 
     updateFilters() {
         this.companyUsers = this.companyUsers.map((user, index) => {
-            let divisionFilter = {};
+            let divisionFilter = { sapCodes: this.companySAPCodes };
             let productGroupFilter = {};
 
-            if (user.Business_Unit__c) {
-                divisionFilter = { plantId: user.Business_Unit__c };
-            }
-
-            if (user.Business_Unit__c && user.Division__c) {
+            if (user.Division__c) {
                 productGroupFilter = {
-                    plantId: user.Business_Unit__c,
+                    sapCodes: this.companySAPCodes,
                     divisionId: user.Division__c
                 };
             }
@@ -118,23 +116,7 @@ export default class AddCompanyUser extends NavigationMixin(LightningElement) {
                 const updatedRow = { ...row, [field]: value };
 
                 // Clear dependent fields when parent field changes or is cleared
-                if (field === 'Business_Unit__c') {
-                    // If Business Unit is cleared or changed
-                    if (!value || value !== oldValue) {
-                        updatedRow.Division__c = '';
-                        updatedRow.Product_Group__c = '';
-
-                        // Reset filters
-                        updatedRow.divisionFilter = {};
-                        updatedRow.productGroupFilter = {};
-
-                        // Clear the dependent lookup components
-                        this.clearDependentLookups(index, ['Division__c', 'Product_Group__c']);
-                    } else {
-                        // Business Unit is set, update division filter
-                        updatedRow.divisionFilter = { plantId: value };
-                    }
-                } else if (field === 'Division__c') {
+                if (field === 'Division__c') {
                     // If Division is cleared or changed
                     if (!value || value !== oldValue) {
                         updatedRow.Product_Group__c = '';
@@ -142,10 +124,10 @@ export default class AddCompanyUser extends NavigationMixin(LightningElement) {
 
                         // Clear the product group lookup
                         this.clearDependentLookups(index, ['Product_Group__c']);
-                    } else if (row.Business_Unit__c) {
-                        // Division is set and Business Unit exists, update product group filter
+                    } else {
+                        // Division is set, update product group filter
                         updatedRow.productGroupFilter = {
-                            plantId: row.Business_Unit__c,
+                            sapCodes: this.companySAPCodes,
                             divisionId: value
                         };
                     }
@@ -175,10 +157,9 @@ export default class AddCompanyUser extends NavigationMixin(LightningElement) {
         this.companyUsers = [...this.companyUsers, {
             id: this.generateId(),
             User__c: '',
-            Business_Unit__c: '',
             Division__c: '',
             Product_Group__c: '',
-            divisionFilter: {},
+            divisionFilter: { sapCodes: this.companySAPCodes },
             productGroupFilter: {}
         }];
         this.updateFilters();
@@ -204,7 +185,6 @@ export default class AddCompanyUser extends NavigationMixin(LightningElement) {
         const records = this.companyUsers.map(r => ({
             Id: r.id && r.id.length === 18 ? r.id : null,
             User__c: r.User__c,
-            Business_Unit__c: r.Business_Unit__c,
             Division__c: r.Division__c,
             Product_Group__c: r.Product_Group__c,
             Company__c: this._recordId
@@ -242,17 +222,12 @@ export default class AddCompanyUser extends NavigationMixin(LightningElement) {
                 hasMissingFields = true;
                 isValid = false;
             }
-            if (!row.Business_Unit__c) {
-                errorMessages.add('Please select Business Unit for all rows');
-                hasMissingFields = true;
-                isValid = false;
-            }
-            if (row.Business_Unit__c && !row.Division__c) {
+            if (!row.Division__c) {
                 errorMessages.add('Please select Division for all rows');
                 hasMissingFields = true;
                 isValid = false;
             }
-            if (row.Business_Unit__c && row.Division__c && !row.Product_Group__c) {
+            if (row.Division__c && !row.Product_Group__c) {
                 errorMessages.add('Please select Product Group for all rows');
                 hasMissingFields = true;
                 isValid = false;
@@ -266,8 +241,8 @@ export default class AddCompanyUser extends NavigationMixin(LightningElement) {
 
         // Check for duplicate combinations
         this.companyUsers.forEach((row) => {
-            if (row.User__c && row.Business_Unit__c && row.Division__c && row.Product_Group__c) {
-                const combinationKey = `${row.User__c}-${row.Business_Unit__c}-${row.Division__c}-${row.Product_Group__c}`;
+            if (row.User__c && row.Division__c && row.Product_Group__c) {
+                const combinationKey = `${row.User__c}-${row.Division__c}-${row.Product_Group__c}`;
 
                 if (uniqueCombinations.has(combinationKey)) {
                     errorMessages.add('Cannot Create Duplicate records with same combinations');
@@ -294,9 +269,6 @@ export default class AddCompanyUser extends NavigationMixin(LightningElement) {
                 actionName: 'view'
             }
         });
-        // setTimeout(() => {
-        //     window.location.reload();
-        // }, 2000);
     }
 
     showToast(title, msg, variant) {

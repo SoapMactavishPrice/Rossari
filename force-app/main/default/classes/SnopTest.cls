@@ -1,116 +1,157 @@
 @isTest
 public class SnopTest {
 
-    static Account createAccount(String businessType) {
-        Account acc = new Account(Name = 'Test Account', Business_Type__c = businessType);
+    @isTest
+    static void testGetOrdersWithLineItems() {
+        // Create Account with Business_Type__c = 'Domestic'
+        Account acc = new Account(Name = 'Test Account', Business_Type__c = 'Domestic');
         insert acc;
-        return acc;
-    }
 
-    static Order createOrder(Account acc) {
-        Order ord = new Order(
-            AccountId = acc.Id,
-            EffectiveDate = System.today(),
-            Status = 'Draft',
-            Pricebook2Id = Test.getStandardPricebookId()
+        // Create Ship To and Bill To Address
+        Address_Information__c shipToAddress = new Address_Information__c(
+            Name = 'Ship To Address',
+            Account__c = acc.Id,
+            Address_Type__c = 'Payer'
         );
-        insert ord;
-        return ord;
-    }
+        insert shipToAddress;
 
-    static OrderItem createOrderItem(Order ord, Product2 prod, PricebookEntry pbe) {
-        OrderItem oi = new OrderItem(
-            OrderId = ord.Id,
-            PricebookEntryId = pbe.Id,
-            Quantity = 1,
-            UnitPrice = 100
+        Address_Information__c billToAddress = new Address_Information__c(
+            Name = 'Bill To Address',
+            Account__c = acc.Id,
+            Address_Type__c = 'Payer'
         );
-        insert oi;
-        return oi;
-    }
+        insert billToAddress;
 
-    static Product2 createProduct() {
-        Product2 prod = new Product2(Name = 'Test Product', ProductCode = 'TP1', isActive = true);
-        insert prod;
-        return prod;
-    }
+        // Get Standard Pricebook ID
+        Id stdPBId = Test.getStandardPricebookId();
 
-    static PricebookEntry createPricebookEntry(Product2 prod) {
+        // Insert active Product2
+        Product2 p = new Product2(Name = 'Test Product', ProductCode = 'TP001', IsActive = true);
+        insert p;
+
+        // Insert PricebookEntry in Standard Pricebook with CurrencyIsoCode (optional if multicurrency)
         PricebookEntry pbe = new PricebookEntry(
-            Pricebook2Id = Test.getStandardPricebookId(),
-            Product2Id = prod.Id,
+            Pricebook2Id = stdPBId,
+            Product2Id = p.Id,
             UnitPrice = 100,
-            IsActive = true
+            IsActive = true,
+            UseStandardPrice = false
+            // Optionally add CurrencyIsoCode = 'USD' if multicurrency enabled
         );
         insert pbe;
-        return pbe;
-    }
 
-    static Partial_Disptach_Qty__c createPartialDispatch(Order ord, OrderItem oi) {
-        Partial_Disptach_Qty__c pd = new Partial_Disptach_Qty__c(
+        // Create Order
+        Order ord = new Order(
+            AccountId = acc.Id,
+            SBU__c = 'SBU1',
+            Ship_to_party__c = shipToAddress.Id,
+            Bill_to_party__c = billToAddress.Id,
+            Pricing_Status__c = 'Block',
+            COGS_Status__c = 'Block',
+            Credit_Status__c = 'Block',
+            EffectiveDate = Date.today(),
+            Status = 'Draft',
+            Document_No__c = 'DOC001',
+            Name = 'Test Order',
+            Pricebook2Id = stdPBId
+        );
+        insert ord;
+
+        // Create OrderItem — must have PricebookEntryId, Product2Id is optional here
+        OrderItem oi = new OrderItem(
+            OrderId = ord.Id, 
+            Quantity = 5, 
+            UnitPrice = 100, 
+            PricebookEntryId = pbe.Id
+        );
+        insert oi;
+
+        // Create Order Scheduling Line Item Wise record
+        Order_Scheduling_Line_Item_wise__c li = new Order_Scheduling_Line_Item_wise__c(
             Order__c = ord.Id,
             Order_Product__c = oi.Id,
-            Disptach_Qty__c = 10,
-            Planning_Dispatch_Remark__c = 'Remark',
-            Planning_Ready_by_Date__c = System.today(),
-            Deviation_Reason__c = 'Reason'
+            Confirmed_Quantity__c = 3,
+            Scheduled_Quantity__c = 2,
+            Delivery_Date__c = Date.today().addDays(5)
         );
-        insert pd;
-        return pd;
+        insert li;
+
+        Test.startTest();
+        Snop.getOrdersWithLineItems('Domestic');
+        Test.stopTest();
     }
 
     @isTest
-    static void testSnopMethods() {
-        Account acc = createAccount('Export');
+    static void testSaveHeader() {
+        Account acc = new Account(Name = 'Test Account');
+        insert acc;
 
+        Address_Information__c shipToAddress = new Address_Information__c(
+            Name = 'Ship To Address',
+            Account__c = acc.Id,
+            Address_Type__c = 'Payer'
+        );
+        insert shipToAddress;
 
-        Order ord = createOrder(acc);
+        Address_Information__c billToAddress = new Address_Information__c(
+            Name = 'Bill To Address',
+            Account__c = acc.Id,
+            Address_Type__c = 'Payer'
+        );
+        insert billToAddress;
 
-        Product2 prod = createProduct();
-        PricebookEntry pbe = createPricebookEntry(prod);
-        OrderItem oi = createOrderItem(ord, prod, pbe);
+        Order ord = new Order(
+            AccountId = acc.Id,
+            Ship_to_party__c = shipToAddress.Id,
+            Bill_to_party__c = billToAddress.Id,
+            Pricing_Status__c = 'Block',
+            COGS_Status__c = 'Block',
+            Credit_Status__c = 'Block',
+            EffectiveDate = Date.today(),
+            Status = 'Draft',
+            Name = 'Test Order'
+        );
+        insert ord;
 
-        Partial_Disptach_Qty__c pd = createPartialDispatch(ord, oi);
+        String jsonString = '[{"id":"' + ord.Id + '","pricingStatus":"Block","cogsStatus":"Block","creditStatus":"Block"}]';
 
-        // getSOData
-        Snop.getSOData(acc.Business_Type__c);
+        Test.startTest();
+        Snop.saveHeader(jsonString);
+        Test.stopTest();
+    }
 
-        // getSOLineItem
-        Snop.getSOLineItem(new List<String>{ord.Id});
+    @isTest
+    static void testGetOrderPicklistOptions() {
+        Account acc = new Account(Name = 'Test Account', Business_Type__c = 'Domestic');
+        insert acc;
 
-        // saveHeader
-        String headerJson = '[{"id":"' + ord.Id + '","pricingStatus":"Block","cogsStatus":"Block","creditStatus":"Block"}]';
-        Snop.saveHeader(headerJson);
+        Address_Information__c shipToAddress = new Address_Information__c(
+            Name = 'Ship To Address',
+            Account__c = acc.Id,
+            Address_Type__c = 'Payer'
+        );
+        insert shipToAddress;
 
-        // getOrderPicklistOptions
-        Snop.getOrderPicklistOptions(acc.Business_Type__c);
+        Address_Information__c billToAddress = new Address_Information__c(
+            Name = 'Bill To Address',
+            Account__c = acc.Id,
+            Address_Type__c = 'Payer'
+        );
+        insert billToAddress;
 
-        // getFilteredOrders
-        String filterJson = '{"sbuFilter":"","statusFilter":"Draft","orderNumberFilter":"ORD-001","plantFilter":"","customerFilter":"' + acc.Id + '","billToFilter":"","shipToFilter":""}';
-        Snop.getFilteredOrders(filterJson, acc.Business_Type__c);
+        Order ord = new Order(
+            AccountId = acc.Id,
+            Bill_to_party__c = billToAddress.Id,
+            Ship_to_party__c = shipToAddress.Id,
+            SBU__c = 'SBU1',
+            Status = 'Draft',
+            EffectiveDate = Date.today(),
+            Name = 'Test Order'
+        );
+        insert ord;
 
-        // saveline
-        String lineJson = '[{"Id":"' + oi.Id + '","OrderId":"' + ord.Id + '","Lead_time__c":"5"}]';
-        Snop.saveline(lineJson);
-
-        // savePartialDisptach
-        String partJson = '[{"Id":"create1","Planning_Ready_by_Date__c":"' + String.valueOf(System.today()) + '","Disptach_Qty__c":"10","Planning_Dispatch_Remark__c":"Remark","Deviation_Reason__c":"Reason"}]';
-        Snop.savePartialDisptach(ord.Id, oi.Id, partJson);
-
-        // getPartialData
-        Snop.getPartialData(ord.Id, oi.Id);
-
-        // getDisptachList
-        Snop.getDisptachList(lineJson);
-
-        // removeALlPartialData
-        Snop.removeALlPartialData(ord.Id, oi.Id);
-
-        // removeRowPartialData
-        Snop.removeRowPartialData(pd.Id);
-
-        // replacer
-        Snop.replacer(null);
-        Snop.replacer('test');
+        Test.startTest();
+        Snop.getOrderPicklistOptions('Domestic');
+        Test.stopTest();
     }
 }

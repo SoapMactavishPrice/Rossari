@@ -17,7 +17,9 @@ export default class ExpenseApproval extends LightningElement {
             this.expenses = data.map(exp => {
                 return {
                     ...exp,
-                    isOutstation: exp.typeOfVoucher === 'Outstation'
+                    isOutstation: exp.typeOfVoucher === 'Outstation',
+                    isRBLRecordType: exp.recordType === 'RBL',
+                    isUnitopTristarRecordType: exp.recordType === 'Unitop_Tristar'
                 };
             });
             this.error = undefined;

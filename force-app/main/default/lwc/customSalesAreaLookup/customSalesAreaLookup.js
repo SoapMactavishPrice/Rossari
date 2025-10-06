@@ -35,7 +35,7 @@ export default class CustomSalesAreaLookup extends LightningElement {
 
             if (results && results.length > 0) {
                 this.selectedRecord = results[0];
-                this.displayValue = this.selectedRecord.Name;
+                this.displayValue = this.getDisplayValue(this.selectedRecord);
             }
         } catch (error) {
             console.error('Error loading selected record:', error);
@@ -66,6 +66,12 @@ export default class CustomSalesAreaLookup extends LightningElement {
                 recordId: null
             });
 
+            // Process records to add display value
+            this.records = this.records.map(record => ({
+                ...record,
+                displayValue: this.getDisplayValue(record)
+            }));
+
             this.showDropdown = true;
             this.showNoRecords = this.records.length === 0;
 
@@ -83,7 +89,7 @@ export default class CustomSalesAreaLookup extends LightningElement {
 
         if (selectedRecord) {
             this.selectedRecord = selectedRecord;
-            this.displayValue = selectedRecord.Name;
+            this.displayValue = this.getDisplayValue(selectedRecord);
             this.searchTerm = '';
             this.records = [];
             this.showDropdown = false;
@@ -97,6 +103,14 @@ export default class CustomSalesAreaLookup extends LightningElement {
                     selectedRecord: selectedRecord
                 }
             }));
+        }
+    }
+
+    getDisplayValue(record) {
+        if (this.objectApiName === 'Product_Group__c') {
+            return record.Item_Group_Description__c || '';
+        } else {
+            return record.Name || '';
         }
     }
 
@@ -120,7 +134,7 @@ export default class CustomSalesAreaLookup extends LightningElement {
     }
 
     handleFocus() {
-        // If already selected record exists, do nothing (don’t open dropdown)
+        // If already selected record exists, do nothing (don't open dropdown)
         if (this.selectedRecord && this.selectedRecord.Id) {
             return;
         }

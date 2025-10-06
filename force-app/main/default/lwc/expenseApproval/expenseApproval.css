@@ -157,13 +157,13 @@
 }
 
 .red-button {
-    background-color: #f44336;
-    border-color: #f44336;
+    background-color: #da0000;
+    border-color: #da0000;
 }
 
 .red-button:hover {
-    background-color: #da190b;
-    border-color: #da190b;
+    background-color: #da0000;
+    border-color: #da0000;
 }
 
 /* Badge Styles */

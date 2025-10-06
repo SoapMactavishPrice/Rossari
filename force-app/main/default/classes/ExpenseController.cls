@@ -4,20 +4,32 @@ public with sharing class ExpenseController {
     public static Map<String, Object> initializeExpense() {
         Map<String, Object> result = new Map<String, Object>();
         try {
-            User currentUser = [SELECT Id, Name, Division, Zone__c FROM User WHERE Id = :UserInfo.getUserId() LIMIT 1];
+            User currentUser = [SELECT Id, Name, Division, Zone__c, Cost_Center__c FROM User WHERE Id = :UserInfo.getUserId() LIMIT 1];
             
             List<Map<String, String>> voucherOptions = new List<Map<String, String>>();
             for (Schema.PicklistEntry entry : Expense__c.Type_of_Voucher__c.getDescribe().getPicklistValues()) {
                 if (entry.isActive()) {
                     voucherOptions.add(new Map<String, String>{
                         'label' => entry.getLabel(),
-                            'value' => entry.getValue()
-                            });
+                        'value' => entry.getValue()
+                    });
+                }
+            }
+            
+            // Get Cost Center record ID based on user's Cost_Center__c picklist value
+            Id costCenterId = null;
+            if (String.isNotBlank(currentUser.Cost_Center__c)) {
+                List<Cost_Center__c> costCenters = [SELECT Id FROM Cost_Center__c 
+                                                   WHERE Name = :currentUser.Cost_Center__c 
+                                                   LIMIT 1];
+                if (!costCenters.isEmpty()) {
+                    costCenterId = costCenters[0].Id;
                 }
             }
             
             result.put('currentUser', currentUser);
             result.put('voucherOptions', voucherOptions);
+            result.put('costCenterId', costCenterId); // Add the actual Cost Center record ID
             
         } catch (Exception e) {
             throw new AuraHandledException('Error initializing expense: ' + e.getMessage());
@@ -29,7 +41,7 @@ public with sharing class ExpenseController {
     public static List<Map<String, String>> getUsers(String searchTerm) {
         try {
             searchTerm = '%' + String.escapeSingleQuotes(searchTerm) + '%';
-            List<User> users = [SELECT Id, Name, Division, Zone__c 
+            List<User> users = [SELECT Id, Name, Division, Zone__c, Cost_Center__c 
                                 FROM User 
                                 WHERE Name LIKE :searchTerm 
                                 AND IsActive = true
@@ -42,7 +54,8 @@ public with sharing class ExpenseController {
                     'label' => u.Name,
                         'value' => u.Id,
                         'division' => u.Division != null ? u.Division : '',
-                            'zone' => u.Zone__c != null ? u.Zone__c : ''
+                            'zone' => u.Zone__c != null ? u.Zone__c : '',
+                                'costCenter' => u.Cost_Center__c != null ? u.Cost_Center__c : ''
                                 });
             }
             return options;
@@ -54,7 +67,7 @@ public with sharing class ExpenseController {
     @AuraEnabled(cacheable=true)
     public static List<Map<String, String>> getTypeOfExpense(String searchTerm, String voucherType) {
         try {
-            String query = 'SELECT Id, Name, Type_of_Voucher__c FROM Type_of_Expense__c ';
+            String query = 'SELECT Id, Name, Type_of_Voucher__c, GL_Code__c, GL_Code__r.Name FROM Type_of_Expense__c ';
             List<String> conditions = new List<String>();
             
             if (String.isNotBlank(searchTerm)) {
@@ -78,7 +91,9 @@ public with sharing class ExpenseController {
                 options.add(new Map<String, String>{
                     'label' => e.Name,
                     'value' => e.Id,
-                    'name' => e.Name // Add the name to identify Public/Private
+                    'name' => e.Name, // Add the name to identify Public/Private
+                        'glCodeId' => e.GL_Code__c != null ? e.GL_Code__c : '',
+                    'glCodeName' => e.GL_Code__r != null ? e.GL_Code__r.Name : ''
                 });
             }
             return options;
@@ -87,40 +102,146 @@ public with sharing class ExpenseController {
         }
     }
     
+    @AuraEnabled(cacheable=true)
+    public static Map<String, String> getExpenseRecordTypes() {
+        Map<String, String> recordTypeMap = new Map<String, String>();
+        try {
+            for (RecordType rt : [SELECT Id, DeveloperName FROM RecordType WHERE SObjectType = 'Expense__c']) {
+                recordTypeMap.put(rt.DeveloperName, rt.Id);
+            }
+        } catch (Exception e) {
+            System.debug('Error getting record types: ' + e.getMessage());
+        }
+        return recordTypeMap;
+    }
+    
     @AuraEnabled
     public static String createExpenseWithFiles(
         Expense__c expense,
         List<Expense_Line_Item__c> lineItems,
-        Map<String, List<String>> filesPerLineItem) {
+        Map<String, List<String>> filesPerLineItem
+    ) {
+        Savepoint sp = Database.setSavepoint();
+        try {
+            // Get current user with Entity Code fields
+            User currentUser = [SELECT Id, Cost_Center__c, Entity_Code_1__c, Entity_Code_2__c, Entity_Code_3__c 
+                               FROM User WHERE Id = :UserInfo.getUserId() LIMIT 1];
+            
+            // Determine record type based on Entity Codes
+            String recordTypeId = determineRecordType(currentUser);
+            if (String.isNotBlank(recordTypeId)) {
+                expense.RecordTypeId = recordTypeId;
+            }
+            
+            // Set Cost Center
+            if (String.isNotBlank(currentUser.Cost_Center__c)) {
+                List<Cost_Center__c> costCenters = [SELECT Id FROM Cost_Center__c 
+                                                   WHERE Name = :currentUser.Cost_Center__c 
+                                                   LIMIT 1];
+                if (!costCenters.isEmpty()) {
+                    expense.Cost_Center__c = costCenters[0].Id;
+                }
+            }
+            
+            // Set default currency
+            if (expense.CurrencyIsoCode == null) {
+                expense.CurrencyIsoCode = 'INR';
+            }
             
             insert expense;
             
-            List<Expense_Line_Item__c> createdItems = new List<Expense_Line_Item__c>();
+            // Process line items and GL codes
+            Map<Id, Id> expenseTypeToGLCodeMap = new Map<Id, Id>();
+            Set<Id> typeOfExpenseIds = new Set<Id>();
             for (Expense_Line_Item__c li : lineItems) {
-                li.Expense__c = expense.Id;
-                createdItems.add(li);
+                if (li.Type_of_Expense__c != null) {
+                    typeOfExpenseIds.add(li.Type_of_Expense__c);
+                }
             }
-            insert createdItems;
             
-            // Re-parent uploaded files to correct Expense_Line_Item__c
-            List<ContentDocumentLink> links = new List<ContentDocumentLink>();
-            for (Integer i = 0; i < createdItems.size(); i++) {
-                if (filesPerLineItem.containsKey(String.valueOf(i))) {
-                    for (String docId : filesPerLineItem.get(String.valueOf(i))) {
-                        links.add(new ContentDocumentLink(
-                            ContentDocumentId = docId,
-                            LinkedEntityId = createdItems[i].Id,
-                            ShareType = 'V', // View
-                            Visibility = 'AllUsers'
-                        ));
+            if (!typeOfExpenseIds.isEmpty()) {
+                for (Type_of_Expense__c et : [
+                    SELECT Id, GL_Code__c
+                    FROM Type_of_Expense__c
+                    WHERE Id IN :typeOfExpenseIds
+                ]) {
+                    if (et.GL_Code__c != null) {
+                        expenseTypeToGLCodeMap.put(et.Id, et.GL_Code__c);
                     }
                 }
             }
-            insert links;
             
-            // Return the created expense record ID for navigation
+            // Prepare and insert line items
+            List<Expense_Line_Item__c> createdItems = new List<Expense_Line_Item__c>();
+            for (Expense_Line_Item__c li : lineItems) {
+                li.Expense__c = expense.Id;
+                
+                // Map GL Code from Type_of_Expense__c
+                if (li.Type_of_Expense__c != null && expenseTypeToGLCodeMap.containsKey(li.Type_of_Expense__c)) {
+                    li.GL_Code__c = expenseTypeToGLCodeMap.get(li.Type_of_Expense__c);
+                }
+                
+                createdItems.add(li);
+            }
+            
+            if (!createdItems.isEmpty()) {
+                insert createdItems;
+            }
+            
+            // Process file attachments
+            if (filesPerLineItem != null && !filesPerLineItem.isEmpty()) {
+                List<ContentDocumentLink> linksToCreate = new List<ContentDocumentLink>();
+                
+                for (Integer i = 0; i < createdItems.size(); i++) {
+                    String indexKey = String.valueOf(i);
+                    if (filesPerLineItem.containsKey(indexKey)) {
+                        List<String> documentIds = filesPerLineItem.get(indexKey);
+                        
+                        for (String docId : documentIds) {
+                            if (String.isNotBlank(docId)) {
+                                ContentDocumentLink newLink = new ContentDocumentLink();
+                                newLink.ContentDocumentId = docId;
+                                newLink.LinkedEntityId = createdItems[i].Id;
+                                newLink.ShareType = 'V';
+                                newLink.Visibility = 'AllUsers';
+                                
+                                linksToCreate.add(newLink);
+                            }
+                        }
+                    }
+                }
+                
+                if (!linksToCreate.isEmpty()) {
+                    insert linksToCreate;
+                }
+            }
+            
             return expense.Id;
+            
+        } catch (Exception e) {
+            Database.rollback(sp);
+            throw new AuraHandledException('Error creating expense: ' + e.getMessage() + ' at line: ' + e.getLineNumber());
         }
+    }
+    
+    // Method to determine record type based on Entity Codes
+    private static String determineRecordType(User currentUser) {
+        Map<String, String> recordTypeMap = getExpenseRecordTypes();
+        String recordTypeId = null;
+        
+        // Check Entity_Code_1__c for RBL record type
+        if (currentUser.Entity_Code_1__c == '1000' && recordTypeMap.containsKey('RBL')) {
+            recordTypeId = recordTypeMap.get('RBL');
+        }
+        // Check Entity_Code_2__c or Entity_Code_3__c for Unitop/Tristar record type
+        else if ((currentUser.Entity_Code_2__c == '3000' || currentUser.Entity_Code_3__c == '4000') && 
+                 recordTypeMap.containsKey('Unitop_Tristar')) {
+            // Use the exact Developer Name of your record type
+            recordTypeId = recordTypeMap.get('Unitop_Tristar');
+        }
+        
+        return recordTypeId;
+    }
     
     @AuraEnabled(cacheable=true)
     public static List<Map<String, String>> getTransportModes() {

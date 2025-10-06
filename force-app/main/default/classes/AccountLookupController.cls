@@ -5,7 +5,7 @@ public with sharing class AccountLookupController {
         String searchKey = '%' + String.escapeSingleQuotes(keyword) + '%';
         
         List<Account> accounts = [
-            SELECT Id, Name, SAP_Customer_Code__c, BillingCity, BillingCountry
+            SELECT Id, Name, SAP_Customer_Code__c, BillingCity, BillingCountry,CurrencyIsoCode
             FROM Account 
             WHERE (Name LIKE :searchKey OR SAP_Customer_Code__c LIKE :searchKey)
             ORDER BY Name 
@@ -26,6 +26,7 @@ public with sharing class AccountLookupController {
         @AuraEnabled public String sapCode;
         @AuraEnabled public String BillingCity;
         @AuraEnabled public String BillingCountry;
+        @AuraEnabled public String CurrencyIsoCode;
 
         public AccountWrapper(Account acc) {
             this.Id = acc.Id;
@@ -33,6 +34,7 @@ public with sharing class AccountLookupController {
             this.sapCode = acc.SAP_Customer_Code__c != null ? String.valueOf(acc.SAP_Customer_Code__c) : '';
             this.BillingCity = acc.BillingCity;
             this.BillingCountry = acc.BillingCountry;
+            this.CurrencyIsoCode = acc.CurrencyIsoCode;
         }
     }
 }

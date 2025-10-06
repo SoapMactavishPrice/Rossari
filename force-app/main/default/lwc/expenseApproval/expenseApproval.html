@@ -3,7 +3,7 @@
         <div class="slds-card__header slds-grid">
             <header class="slds-media slds-media_center slds-has-flexi-truncate">
                 <div class="slds-media__body">
-                    <h2 class="slds-card__header-title">
+                    <h2 class="slds-card__header-title" style="display: block;text-align:center;">
                         <span class="slds-text-heading_medium" style="font-size: 24px; font-weight: bold;">Expense Approval Dashboard</span>
                     </h2>
                 </div>
@@ -58,7 +58,7 @@
                             <!-- Expense Header Information -->
                             <div class="header-grid slds-grid slds-wrap slds-gutters">
                                 <div class="slds-col slds-size_1-of-7 header-item">
-                                    <div class="field-label"><strong>Expense Name:</strong></div>
+                                    <div class="field-label"><strong>Voucher No:</strong></div>
                                     <div class="field-value">{expense.expenseName}</div>
                                 </div>
                                 <div class="slds-col slds-size_1-of-7 header-item">
@@ -81,10 +81,18 @@
                                     </div>
                                 </template>
 
-                                <div class="slds-col slds-size_1-of-7 header-item">
-                                    <div class="field-label"><strong>Zonal Head:</strong></div>
-                                    <div class="field-value">{expense.zonalHead}</div>
-                                </div>
+                                <template if:true={expense.isRBLRecordType}>
+                                    <div class="slds-col slds-size_1-of-7 header-item">
+                                        <div class="field-label"><strong>Zonal Head:</strong></div>
+                                        <div class="field-value">{expense.zonalHead}</div>
+                                    </div>
+                                </template>
+                                <template if:true={expense.isUnitopTristarRecordType}>
+                                    <div class="slds-col slds-size_1-of-7 header-item">
+                                        <div class="field-label"><strong>Customer Success Incharge:</strong></div>
+                                        <div class="field-value">{expense.customerSuccessIncharge}</div>
+                                    </div>
+                                </template>
                                 <div class="slds-col slds-size_1-of-7 header-item">
                                     <div class="field-label"><strong>Business HOD:</strong></div>
                                     <div class="field-value">{expense.businessHOD}</div>

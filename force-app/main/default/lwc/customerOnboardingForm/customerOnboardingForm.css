@@ -1,0 +1,16 @@
+.custom-bordered-table, 
+.custom-bordered-table th, 
+.custom-bordered-table td {
+    border: 1px solid #d8dde6; /* SLDS default border color */
+}
+
+.custom-bordered-table {
+    border-collapse: collapse; /* ensures no double borders */
+    width: 100%;
+}
+
+lightning-accordion-section section div{
+    border: 1px solid black;
+    border-radius: 8px;
+    background: #d4d4d4;
+}

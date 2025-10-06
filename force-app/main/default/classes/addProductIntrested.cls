@@ -1,25 +1,26 @@
 public class addProductIntrested {
     
     
-   @AuraEnabled 
-public static Map<string,object> getProdInterest(string Id){
-    Map<string,object> result = new Map<string,object>();
-    Lead leadRecord = [select id, CurrencyIsoCode from lead where Id =:Id LIMIT 1];
-    result.put('currencyCode', leadRecord.CurrencyIsoCode);
-    
-    List<Product_Interested__c> piList= [
-        SELECT Id, Product__c, Product__r.Name,Price_book_Entry_Id__c, 
-               New_Product_Name__c, New_Product__c, List_Price__c, 
-               Quantity_in_Kgs__c, Expected_Price__c, //Product_Family__c, 
-               Add_in_Opportunity__c, Product_Code__c, Quantity_Frequency__c, Name 
-        FROM Product_Interested__c 
-        WHERE Lead__c =:Id 
-        ORDER BY CreatedDate
-    ];
-    
-    result.put('piList', piList);
-    return result;
-}
+    @AuraEnabled 
+    public static Map<string,object> getProdInterest(string Id){
+        Map<string,object> result = new Map<string,object>();
+        Lead leadRecord = [select id, CurrencyIsoCode, RecordType.Name from lead where Id =:Id LIMIT 1];
+        result.put('currencyCode', leadRecord.CurrencyIsoCode);
+        result.put('leadRecordType', leadRecord.RecordType != null ? leadRecord.RecordType.Name : null);
+        
+        List<Product_Interested__c> piList= [
+            SELECT Id, Product__c, Product__r.Name,Price_book_Entry_Id__c, 
+                New_Product_Name__c, New_Product__c, List_Price__c, 
+                Quantity_in_Kgs__c, Expected_Price__c, //Product_Family__c, 
+                Add_in_Opportunity__c, Product_Code__c, Quantity_Frequency__c, Name 
+            FROM Product_Interested__c 
+            WHERE Lead__c =:Id 
+            ORDER BY CreatedDate
+        ];
+        
+        result.put('piList', piList);
+        return result;
+    }
     
     @AuraEnabled 
     public static string deleteProductInterested(string Id){

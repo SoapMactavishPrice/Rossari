@@ -15,20 +15,21 @@
                     </lightning-layout-item>
 
                     <!-- Visit Report Type Selection -->
-                    <lightning-layout-item size="12" large-device-size="5" small-device-size="5" class="slds-m-around_small">
-                        <lightning-combobox name="visitReportType" label="Visit Report Type" options={visitReportTypeOptions} 
-                                              value={selectedVisitReportType} onchange={handleVisitReportTypeChange} required>
+                    <lightning-layout-item size="12" large-device-size="5" small-device-size="5"
+                        class="slds-m-around_small">
+                        <lightning-combobox name="visitReportType" label="Visit Report Type"
+                            options={visitReportTypeOptions} value={selectedVisitReportType}
+                            onchange={handleVisitReportTypeChange} required>
                         </lightning-combobox>
                     </lightning-layout-item>
 
                     <!-- Existing Visit Report Lookup -->
-                    <lightning-layout-item size="12" large-device-size="5" small-device-size="5" class="slds-m-around_small">
-                        <c-visit-report-lookup 
-                            label="Select Existing Visit Report"
+                    <lightning-layout-item size="12" large-device-size="5" small-device-size="5"
+                        class="slds-m-around_small">
+                        <c-visit-report-lookup label="Select Existing Visit Report"
                             selected-record-id={selectedExistingVisitReportId}
                             selected-record-name={selectedExistingVisitReportName}
-                            onselected={handleExistingVisitReportChange}
-                            disabled={disableExistingVisitReport}>
+                            onselected={handleExistingVisitReportChange} disabled={disableExistingVisitReport}>
                         </c-visit-report-lookup>
 
                     </lightning-layout-item>
@@ -84,9 +85,10 @@
 
                                     <!-- New: Multi-select accounts -->
                                     <div class="slds-m-top_medium">
-                                        <c-tour-account-lookup onselectionchange={handleAccountSelection}></c-tour-account-lookup>
+                                        <c-tour-account-lookup
+                                            onselectionchange={handleAccountSelection}></c-tour-account-lookup>
                                     </div>
-                                    
+
                                 </div>
 
                                 <!-- Modal Footer -->
@@ -148,13 +150,8 @@
                         class="slds-m-around_small">
                         Nature of Visit <abbr class="slds-required" title="required">*</abbr>
                         <br />
-                        <lightning-combobox
-                            name="Nature"
-                            value={dataMap.Nature}
-                            options={natureOptions}
-                            onchange={handleVisitChange}
-                            data-label="Nature"
-                            style="margin-top: -18px;">
+                        <lightning-combobox name="Nature" value={dataMap.Nature} options={natureOptions}
+                            onchange={handleVisitChange} data-label="Nature" style="margin-top: -18px;">
                         </lightning-combobox>
                     </lightning-layout-item>
 
@@ -164,11 +161,8 @@
                         <lightning-layout-item size="12" large-device-size="5" small-device-size="5"
                             class="slds-m-around_small">
                             <br />
-                            <c-custom-account-lookup 
-                                placeholder="Search by Customer..." 
-                                data-label="Customer_Name"
-                                record-id={dataMap.Customer_Name} 
-                                record-name={dataMap.Customer_Name_Display}
+                            <c-custom-account-lookup placeholder="Search by Customer..." data-label="Customer_Name"
+                                record-id={dataMap.Customer_Name} record-name={dataMap.Customer_Name_Display}
                                 onrecordselected={handleAccountSelectedForBillTo}>
                             </c-custom-account-lookup>
 
@@ -283,8 +277,8 @@
                                         class="slds-m-around_xx-small">
                                         <lightning-record-edit-form object-api-name="Attendees__c">
                                             <lightning-input-field field-name="User__c" variant="label-stacked"
-                                                data-index={item.index} data-label="User__c" value={item.User__c} options={userOptions} 
-                                                onchange={handleAttendeeChange}>
+                                                data-index={item.index} data-label="User__c" value={item.User__c}
+                                                options={userOptions} onchange={handleAttendeeChange}>
                                             </lightning-input-field>
                                         </lightning-record-edit-form>
                                     </lightning-layout-item>
@@ -340,9 +334,11 @@
                                             data-label="Email__c" value={item.Email__c}
                                             onchange={handleAttendeeChange}></lightning-input>
                                     </lightning-layout-item>
-                                    <lightning-layout-item size="12" large-device-size="2" class="slds-m-around_xx-small">
-                                        <lightning-input label="Mobile Number" data-index={item.index} data-label="Mobile_No__c" 
-                                                        value={item.Mobile_No__c} onchange={handleAttendeeChange}></lightning-input>
+                                    <lightning-layout-item size="12" large-device-size="2"
+                                        class="slds-m-around_xx-small">
+                                        <lightning-input label="Mobile Number" data-index={item.index}
+                                            data-label="Mobile_No__c" value={item.Mobile_No__c}
+                                            onchange={handleAttendeeChange}></lightning-input>
                                     </lightning-layout-item>
                                     <!-- <lightning-layout-item size="12" large-device-size="2" class="slds-m-around_xx-small">
                                         <lightning-input label="Designation" data-index={item.index} data-label="Designation__c"
@@ -370,132 +366,135 @@
                     <!-- REMAINING SECTIONS (Visible only for Existing Visit Reports) -->
                     <template if:true={showRemainingSections}>
 
-                    <lightning-layout-item size="12" large-device-size="11" small-device-size="10"
-                        class="slds-m-around_small">
-                        <lightning-record-edit-form object-api-name="Visit_Report__c">
-                            <lightning-input-field field-name="Discussion_Details_from_the_Meeting__c"
-                                variant="label-hidden" data-label="Discussion_Details_from_the_Meeting"
-                                onchange={handleVisitChange}></lightning-input-field>
-                        </lightning-record-edit-form>
-                    </lightning-layout-item>
+                        <lightning-layout-item size="12" large-device-size="11" small-device-size="10"
+                            class="slds-m-around_small">
+                            <lightning-record-edit-form object-api-name="Visit_Report__c">
+                                <lightning-input-field field-name="Discussion_Details_from_the_Meeting__c"
+                                    variant="label-hidden" data-label="Discussion_Details_from_the_Meeting"
+                                    onchange={handleVisitChange}></lightning-input-field>
+                            </lightning-record-edit-form>
+                        </lightning-layout-item>
 
-                    <lightning-layout-item size="12" large-device-size="11" small-device-size="10"
-                        class="slds-m-around_small" style="background: lightgrey;color: black;">Product Interested and
-                        Pricing Benchmark / Target<br />
-                    </lightning-layout-item>
+                        <lightning-layout-item size="12" large-device-size="11" small-device-size="10"
+                            class="slds-m-around_small" style="background: lightgrey;color: black;">Product Interested
+                            and
+                            Pricing Benchmark / Target<br />
+                        </lightning-layout-item>
 
-                    <lightning-layout-item size="12" large-device-size="11" small-device-size="10"
-                        class="slds-m-around_small">
-                        <template for:each={ProductInterestPoint} for:item="item">
-                            <lightning-layout multiple-rows key={item.index}>
+                        <lightning-layout-item size="12" large-device-size="11" small-device-size="10"
+                            class="slds-m-around_small">
+                            <template for:each={ProductInterestPoint} for:item="item">
+                                <lightning-layout multiple-rows key={item.index}>
 
-                                <lightning-layout-item size="12" large-device-size="4" small-device-size="10"
-                                    class="slds-m-around_xx-small">
-                                    Product
-                                    <c-reusable-lookup label="Parent Account" selected-icon-name="standard:account"
-                                        object-label="" object-api-name="Product2" field-api-name="Name"
-                                        data-index={item.index} data-label="prodId" onvalueselected={lookUpAccount}>
+                                    <lightning-layout-item size="12" large-device-size="4" small-device-size="10"
+                                        class="slds-m-around_xx-small">
+                                        Product
+                                        <c-reusable-lookup label="Parent Account" selected-icon-name="standard:account"
+                                            object-label="" object-api-name="Product2" field-api-name="Name"
+                                            data-index={item.index} data-label="prodId" onvalueselected={lookUpAccount}>
 
-                                    </c-reusable-lookup>
-                                </lightning-layout-item>
-                                <lightning-layout-item size="12" large-device-size="2" small-device-size="10"
-                                    class="slds-m-around_xx-small">
-                                    Expected Qty in Kgs
-                                    <lightning-input type="number" variant="label-hidden" data-index={item.index}
-                                        data-label="qty" onchange={handleInterestChange}></lightning-input>
-                                </lightning-layout-item>
+                                        </c-reusable-lookup>
+                                    </lightning-layout-item>
+                                    <lightning-layout-item size="12" large-device-size="2" small-device-size="10"
+                                        class="slds-m-around_xx-small">
+                                        Expected Qty in Kgs
+                                        <lightning-input type="number" variant="label-hidden" data-index={item.index}
+                                            data-label="qty" onchange={handleInterestChange}></lightning-input>
+                                    </lightning-layout-item>
 
-                                <lightning-layout-item size="12" large-device-size="2" small-device-size="10"
-                                    class="slds-m-around_xx-small">
-                                    Expected Price
-                                    <lightning-input type="number" variant="label-hidden" data-index={item.index}
-                                        data-label="Price" onchange={handleInterestChange}></lightning-input>
-                                </lightning-layout-item>
+                                    <lightning-layout-item size="12" large-device-size="2" small-device-size="10"
+                                        class="slds-m-around_xx-small">
+                                        Expected Price
+                                        <lightning-input type="number" variant="label-hidden" data-index={item.index}
+                                            data-label="Price" onchange={handleInterestChange}></lightning-input>
+                                    </lightning-layout-item>
 
-                                <lightning-layout-item size="12" large-device-size="2" small-device-size="10"
-                                    class="slds-m-around_xx-small">
-                                    Expected Date
-                                    <lightning-input type="date" variant="label-hidden" data-index={item.index}
-                                        data-label="ExpDate" onchange={handleInterestChange}></lightning-input>
-                                </lightning-layout-item>
+                                    <lightning-layout-item size="12" large-device-size="2" small-device-size="10"
+                                        class="slds-m-around_xx-small">
+                                        Expected Date
+                                        <lightning-input type="date" variant="label-hidden" data-index={item.index}
+                                            data-label="ExpDate" onchange={handleInterestChange}></lightning-input>
+                                    </lightning-layout-item>
 
-                                <lightning-layout-item size="12" large-device-size="1" small-device-size="10"
-                                    class="slds-m-around_xx-small">
-                                    Action<br />
-                                    <lightning-icon icon-name="action:new" size="xx-small" class="slds-m-right_xx-small"
-                                        data-index={item.index} onclick={addProductInterestrow}>
-                                    </lightning-icon>
-                                    <lightning-icon icon-name="action:remove" size="xx-small" data-index={item.index}
-                                        onclick={removeProductInterest}>
-                                    </lightning-icon>
-                                </lightning-layout-item>
+                                    <lightning-layout-item size="12" large-device-size="1" small-device-size="10"
+                                        class="slds-m-around_xx-small">
+                                        Action<br />
+                                        <lightning-icon icon-name="action:new" size="xx-small"
+                                            class="slds-m-right_xx-small" data-index={item.index}
+                                            onclick={addProductInterestrow}>
+                                        </lightning-icon>
+                                        <lightning-icon icon-name="action:remove" size="xx-small"
+                                            data-index={item.index} onclick={removeProductInterest}>
+                                        </lightning-icon>
+                                    </lightning-layout-item>
 
-                            </lightning-layout>
-                        </template>
+                                </lightning-layout>
+                            </template>
 
-                    </lightning-layout-item>
+                        </lightning-layout-item>
 
-                    <lightning-layout-item size="12" large-device-size="11" small-device-size="10"
-                        class="slds-m-around_small" style="background: lightgrey;color: black;">Action Points with
-                        responsibilty and Time Frame<br />
-                    </lightning-layout-item>
+                        <lightning-layout-item size="12" large-device-size="11" small-device-size="10"
+                            class="slds-m-around_small" style="background: lightgrey;color: black;">Action Points with
+                            responsibilty and Time Frame<br />
+                        </lightning-layout-item>
 
-                    <lightning-layout-item size="12" large-device-size="11" small-device-size="10"
-                        class="slds-m-around_small">
-                        <template for:each={ActionPoint} for:item="item">
-                            <lightning-layout multiple-rows key={item.index}>
+                        <lightning-layout-item size="12" large-device-size="11" small-device-size="10"
+                            class="slds-m-around_small">
+                            <template for:each={ActionPoint} for:item="item">
+                                <lightning-layout multiple-rows key={item.index}>
 
-                                <lightning-layout-item size="12" large-device-size="4" small-device-size="10"
-                                    class="slds-m-around_xx-small">
-                                    Action Point
-                                    <lightning-input type="Text" variant="label-hidden" data-index={item.index}
-                                        data-label="Name" onchange={handleActionPlanChange}></lightning-input>
-                                </lightning-layout-item>
+                                    <lightning-layout-item size="12" large-device-size="4" small-device-size="10"
+                                        class="slds-m-around_xx-small">
+                                        Action Point
+                                        <lightning-input type="Text" variant="label-hidden" data-index={item.index}
+                                            data-label="Name" onchange={handleActionPlanChange}></lightning-input>
+                                    </lightning-layout-item>
 
 
 
-                                <lightning-layout-item size="12" large-device-size="2" small-device-size="10"
-                                    class="slds-m-around_xx-small">
-                                    Responsibility
-                                    <lightning-record-edit-form object-api-name="Action_Point__c">
-                                        <lightning-input-field field-name="Responsibility__c" variant="label-hidden"
-                                            data-index={item.index} data-label="userId"
-                                            onchange={handleActionPlanChange}></lightning-input-field>
-                                    </lightning-record-edit-form>
-                                </lightning-layout-item>
+                                    <lightning-layout-item size="12" large-device-size="2" small-device-size="10"
+                                        class="slds-m-around_xx-small">
+                                        Responsibility
+                                        <lightning-record-edit-form object-api-name="Action_Point__c">
+                                            <lightning-input-field field-name="Responsibility__c" variant="label-hidden"
+                                                data-index={item.index} data-label="userId"
+                                                onchange={handleActionPlanChange}></lightning-input-field>
+                                        </lightning-record-edit-form>
+                                    </lightning-layout-item>
 
-                                <lightning-layout-item size="12" large-device-size="2" small-device-size="10"
-                                    class="slds-m-around_xx-small">
-                                    Next Action Date
-                                    <lightning-input type="date" variant="label-hidden" data-index={item.index}
-                                        data-label="Next_Action_Date"
-                                        onchange={handleActionPlanChange}></lightning-input>
-                                </lightning-layout-item>
+                                    <lightning-layout-item size="12" large-device-size="2" small-device-size="10"
+                                        class="slds-m-around_xx-small">
+                                        Next Action Date
+                                        <lightning-input type="date" variant="label-hidden" data-index={item.index}
+                                            data-label="Next_Action_Date"
+                                            onchange={handleActionPlanChange}></lightning-input>
+                                    </lightning-layout-item>
 
-                                <lightning-layout-item size="12" large-device-size="2" small-device-size="10"
-                                    class="slds-m-around_xx-small">
-                                    Create Task & Notify
-                                    <lightning-input type="checkbox" variant="label-hidden" data-index={item.index}
-                                        checked={item.Create_Task_Notify} data-label="Create_Task_Notify"
-                                        onchange={handleActionCheckboxPlanChange}
-                                        style="margin-left: 51px;"></lightning-input>
-                                </lightning-layout-item>
+                                    <lightning-layout-item size="12" large-device-size="2" small-device-size="10"
+                                        class="slds-m-around_xx-small">
+                                        Create Task & Notify
+                                        <lightning-input type="checkbox" variant="label-hidden" data-index={item.index}
+                                            checked={item.Create_Task_Notify} data-label="Create_Task_Notify"
+                                            onchange={handleActionCheckboxPlanChange}
+                                            style="margin-left: 51px;"></lightning-input>
+                                    </lightning-layout-item>
 
-                                <lightning-layout-item size="12" large-device-size="1" small-device-size="10"
-                                    class="slds-m-around_xx-small">
-                                    Action<br />
-                                    <lightning-icon icon-name="action:new" size="xx-small" class="slds-m-right_xx-small"
-                                        data-index={item.index} onclick={addActionPointrow}>
-                                    </lightning-icon>
-                                    <lightning-icon icon-name="action:remove" size="xx-small" data-index={item.index}
-                                        onclick={removeActionPoint}>
-                                    </lightning-icon>
-                                </lightning-layout-item>
+                                    <lightning-layout-item size="12" large-device-size="1" small-device-size="10"
+                                        class="slds-m-around_xx-small">
+                                        Action<br />
+                                        <lightning-icon icon-name="action:new" size="xx-small"
+                                            class="slds-m-right_xx-small" data-index={item.index}
+                                            onclick={addActionPointrow}>
+                                        </lightning-icon>
+                                        <lightning-icon icon-name="action:remove" size="xx-small"
+                                            data-index={item.index} onclick={removeActionPoint}>
+                                        </lightning-icon>
+                                    </lightning-layout-item>
 
-                            </lightning-layout>
-                        </template>
+                                </lightning-layout>
+                            </template>
 
-                    </lightning-layout-item>
+                        </lightning-layout-item>
                     </template>
 
 

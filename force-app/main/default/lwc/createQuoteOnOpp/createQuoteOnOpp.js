@@ -6,6 +6,10 @@ import getQuoteInitialData from '@salesforce/apex/QuoteController.getQuoteInitia
 import createQuoteFromOpportunity from '@salesforce/apex/QuoteController.createQuoteFromOpportunity';
 import deleteProductInterested from '@salesforce/apex/QuoteController.deleteProductInterested';
 import sendEmailToManagerForQuote from '@salesforce/apex/ManagerEmailSender.sendEmailToManagerForQuote';
+import getSalesOrg from '@salesforce/apex/QuoteController.getSalesOrg';
+import getDistributionChannel from '@salesforce/apex/QuoteController.getDistributionChannel';
+import getDivision from '@salesforce/apex/QuoteController.getDivision';
+import getSalesArea from '@salesforce/apex/QuoteController.getSalesArea';
 export default class CreateQuoteFromOpportunity extends NavigationMixin(LightningElement) {
     @api recordId;
     @track oppLineItems = [];
@@ -15,11 +19,16 @@ export default class CreateQuoteFromOpportunity extends NavigationMixin(Lightnin
         expirationDate: '',
         contactId: '',
         currencyCode: '',
-        pricebookId: ''
+        pricebookId: '',
+        incoTerms: '',
+        paymentTermId: ''
     };
+    @track paymetTermField = true;
     @track statusOptions = [];
     @track currencyOptions = [];
     @track contacts = [];
+    @track paymentTerms = [];
+    @track incoTermsOptions = [];
     @track error;
     @track generatedIds = new Set();
     @track isLoading = false;
@@ -27,6 +36,7 @@ export default class CreateQuoteFromOpportunity extends NavigationMixin(Lightnin
 
     connectedCallback() {
         this.loadInitialData();
+        this.handleGetSalesOrg();
     }
 
     loadInitialData() {
@@ -45,6 +55,8 @@ export default class CreateQuoteFromOpportunity extends NavigationMixin(Lightnin
                     label: contact.Name,
                     value: contact.Id
                 }));
+                this.paymentTerms = result.paymentTerms; // Add this
+                this.incoTermsOptions = result.incoTermsOptions; // Add this
 
                 // Set default contact if available from Apex
                 if (result.defaultContact) {
@@ -69,6 +81,12 @@ export default class CreateQuoteFromOpportunity extends NavigationMixin(Lightnin
             });
     }
 
+    handlePaymentTermSelected(event) {
+        const selectedRecord = event.detail;
+        if (selectedRecord) {
+            this.quoteFields.paymentTermId = selectedRecord.id;
+        }
+    }
 
     handleDiscountChange(event) {
         const index = parseInt(event.target.dataset.index, 10);
@@ -89,6 +107,41 @@ export default class CreateQuoteFromOpportunity extends NavigationMixin(Lightnin
         }
     }
 
+    handleCustomerTargetPriceChange(event) {
+        const index = parseInt(event.target.dataset.index, 10);
+        const newTargetPrice = parseFloat(event.target.value) || 0;
+
+        this.oppLineItems = this.oppLineItems.map(item =>
+            item.index === index ? {
+                ...item,
+                Customer_Target_Price__c: newTargetPrice
+            } : item
+        );
+    }
+
+    handleContainerTypeChange(event) {
+        const index = parseInt(event.target.dataset.index, 10);
+        const newContainerType = event.target.value;
+
+        this.oppLineItems = this.oppLineItems.map(item =>
+            item.index === index ? {
+                ...item,
+                Container_Type__c: newContainerType
+            } : item
+        );
+    }
+
+    handleProductNameChange(event) {
+        const index = parseInt(event.target.dataset.index, 10);
+        const newProductName = event.target.value;
+
+        this.oppLineItems = this.oppLineItems.map(item =>
+            item.index === index ? {
+                ...item,
+                Customer_Product_Name__c: newProductName
+            } : item
+        );
+    }
 
     loadOppLineItems() {
         getOppLineItems({ opportunityId: this.recordId })
@@ -111,6 +164,9 @@ export default class CreateQuoteFromOpportunity extends NavigationMixin(Lightnin
                         Description: item.Product2?.Description,
                         Discount: item.Discount || 0,
                         selected: true,
+                        Customer_Target_Price__c: 0,  // Initialize with default value
+                        Container_Type__c: '',  // Initialize with default value
+                        Customer_Product_Name__c: '',
                         Product2: {
                             Id: item.Product2Id,
                             Name: item.Product2?.Name || '',
@@ -186,6 +242,9 @@ export default class CreateQuoteFromOpportunity extends NavigationMixin(Lightnin
                     Product2Id: selectedRecord.proId,
                     prodId: selectedRecord.proId,
                     Description: selectedRecord.description || '', // Get description from selected product
+                    Customer_Target_Price__c: item.Customer_Target_Price__c || 0,
+                    Container_Type__c: item.Container_Type__c || '',
+                    Customer_Product_Name__c: item.Customer_Product_Name__c || '',
                     Product2: {
                         Id: selectedRecord.proId,
                         Name: selectedRecord.mainField,
@@ -240,8 +299,31 @@ export default class CreateQuoteFromOpportunity extends NavigationMixin(Lightnin
         });
     }
 
+    handlePaymentTermSelected(event) {
+        console.log('=== DEBUG: handlePaymentTermSelected triggered ===');
+        const selectedRecordId = event.detail.recordId;
+
+        if (selectedRecordId) {
+            this.quoteFields = {
+                ...this.quoteFields,
+                paymentTermId: selectedRecordId
+            };
+            console.log('Selected Payment Term ID:', this.quoteFields.paymentTermId);
+        } else {
+            // Clear selection if no record selected
+            this.quoteFields = {
+                ...this.quoteFields,
+                paymentTermId: ''
+            };
+        }
+    }
+
     handleFieldChange(event) {
         const field = event.target.dataset.field;
+
+        // Don't handle paymentTermId here as it's handled by the lookup component
+        if (field === 'paymentTermId') return;
+
         this.quoteFields = {
             ...this.quoteFields,
             [field]: event.detail.value
@@ -249,10 +331,46 @@ export default class CreateQuoteFromOpportunity extends NavigationMixin(Lightnin
 
         // If currency changes, we may want to refresh prices
         if (field === 'currencyCode') {
-            // You could add logic here to refresh prices if needed
             console.log('Currency changed to:', this.quoteFields.currencyCode);
         }
+
+        if (field === 'salesOrg') {
+            this.salesOrgValue = event.detail.value;
+            console.log('salesOrg:', this.salesOrgValue);
+            this.distChOptions = [];
+            this.distChValue = '';
+            this.divisionOptions = [];
+            this.divisionValue = '';
+            this.handleGetDistributionChannel();
+        }
+        if (field === 'distCh') {
+            this.distChValue = event.detail.value;
+            console.log('distCh:', this.distChValue);
+            this.divisionOptions = [];
+            this.divisionValue = '';
+            this.handleGetDivision();
+        }
+        if (field === 'division') {
+            this.divisionValue = event.detail.value;
+            console.log('division:', this.divisionValue);
+            this.handleGetSalesArea();
+        }
+
     }
+
+    // handleFieldChange(event) {
+    //     const field = event.target.dataset.field;
+    //     this.quoteFields = {
+    //         ...this.quoteFields,
+    //         [field]: event.detail.value
+    //     };
+
+    //     // If currency changes, we may want to refresh prices
+    //     if (field === 'currencyCode') {
+    //         // You could add logic here to refresh prices if needed
+    //         console.log('Currency changed to:', this.quoteFields.currencyCode);
+    //     }
+    // }
 
     validateData(itemsToValidate = this.oppLineItems) {
         let isValid = true;
@@ -271,6 +389,34 @@ export default class CreateQuoteFromOpportunity extends NavigationMixin(Lightnin
 
         if (!this.quoteFields.expirationDate) {
             this.showToast('Error', 'Please select an expiration date', 'error');
+            return false;
+        }
+
+        // if (this.salesOrgValue == '') {
+        //     this.showToast('Error', 'Please select a Sales Organization', 'error');
+        //     return false;
+        // }
+
+        // if (this.distChValue == '') {
+        //     this.showToast('Error', 'Please select a Distribution Channel', 'error');
+        //     return false;
+        // }
+
+        // if (this.divisionValue == '') {
+        //     this.showToast('Error', 'Please select a Division', 'error');
+        //     return false;
+        // }
+
+
+        // Incoterms validation
+        if (!this.quoteFields.incoTerms || this.quoteFields.incoTerms.trim() === '') {
+            this.showToast('Error', 'Please select Inco terms', 'error');
+            return false;
+        }
+
+        // Payment Term validation
+        if (!this.quoteFields.paymentTermId || this.quoteFields.paymentTermId.trim() === '') {
+            this.showToast('Error', 'Please select a Payment Terms', 'error');
             return false;
         }
 
@@ -302,7 +448,6 @@ export default class CreateQuoteFromOpportunity extends NavigationMixin(Lightnin
 
         return isValid;
     }
-
     createQuote() {
         const selectedItems = this.oppLineItems.filter(item => item.selected);
 
@@ -317,26 +462,36 @@ export default class CreateQuoteFromOpportunity extends NavigationMixin(Lightnin
 
         this.isLoading = true;
 
+        // Prepare line items using wrapper structure
+        const lineItemsWithNewFields = selectedItems.map(item => ({
+            Id: item.Id,
+            Product2Id: item.Product2Id,
+            Product2Name: item.prodName,
+            PricebookEntryId: item.PricebookEntryId,
+            UnitPrice: item.salesPrice,
+            Quantity: item.Quantity,
+            Discount: item.Discount,
+            Description: item.Description,
+            CustomerTargetPrice: item.Customer_Target_Price__c || 0, // Change to wrapper field name
+            ContainerType: item.Container_Type__c || '',// Change to wrapper field name
+            CustomerProductName: item.Customer_Product_Name__c
+        }));
+
         createQuoteFromOpportunity({
             opportunityId: this.recordId,
-            lineItems: selectedItems.map(item => ({
-                ...item,
-                UnitPrice: item.salesPrice // Use the discounted price
-            })),
+            lineItems: lineItemsWithNewFields, // This now matches the wrapper structure
             quoteName: this.quoteFields.name,
             status: this.quoteFields.status,
             expirationDate: this.quoteFields.expirationDate,
             currencyCode: this.quoteFields.currencyCode,
             contactId: this.quoteFields.contactId,
-            pricebookId: this.quoteFields.pricebookId
+            pricebookId: this.quoteFields.pricebookId,
+            incoTerms: this.quoteFields.incoTerms,
+            paymentTermId: this.quoteFields.paymentTermId
         })
-
-
             .then(quoteId => {
-                // First show success toast
                 this.showToast('Success', 'Quote created successfully', 'success');
 
-                // Add slight delay before calling Apex method
                 setTimeout(() => {
                     sendEmailToManagerForQuote({ quoteId: quoteId })
                         .then(() => {
@@ -345,10 +500,8 @@ export default class CreateQuoteFromOpportunity extends NavigationMixin(Lightnin
                         .catch(error => {
                             console.error('Error sending manager email:', error);
                         });
-                }, 1000); // 1-second delay
+                }, 1000);
 
-
-                // Navigate to the new quote record
                 this[NavigationMixin.Navigate]({
                     type: 'standard__recordPage',
                     attributes: {
@@ -361,8 +514,6 @@ export default class CreateQuoteFromOpportunity extends NavigationMixin(Lightnin
                     window.location.reload();
                 }, 2000);
             })
-
-
             .catch(error => {
                 this.showToast('Error', error.body?.message || 'Failed to create quote', 'error');
             })
@@ -390,7 +541,11 @@ export default class CreateQuoteFromOpportunity extends NavigationMixin(Lightnin
             Quantity: 1,
             salesPrice: originalItem.salesPrice,
             UnitPrice: originalItem.salesPrice,
-            Description: originalItem.Description
+            Description: originalItem.Description,
+            Customer_Target_Price__c: originalItem.Customer_Target_Price__c || 0, // Preserve this field
+            Container_Type__c: originalItem.Container_Type__c || '', // Preserve this field
+            Customer_Product_Name__c: originalItem.Customer_Product_Name__c || '', // Preserve this field
+
         };
 
         const originalIndex = this.oppLineItems.findIndex(item => item.index === index);
@@ -443,6 +598,80 @@ export default class CreateQuoteFromOpportunity extends NavigationMixin(Lightnin
                 objectApiName: 'Opportunity',
                 actionName: 'view'
             }
+        });
+    }
+
+    // ------------------------- HA Changes -----------------------
+
+    @track salesOrgOptions = [];
+    @track salesOrgValue = '';
+    @track distChOptions = [];
+    @track distChValue = '';
+    @track divisionOptions = [];
+    @track divisionValue = '';
+
+    handleGetSalesOrg() {
+        getSalesOrg({
+            oppId: this.recordId
+        }).then(result => {
+            console.log('>>> Sales Org Result:', result);
+            if (result != '') {
+                this.salesOrgOptions = JSON.parse(result);
+            }
+        }).catch(error => {
+            this.showToast('Error', error.body?.message || 'Failed to fetch Sales Org', 'error');
+        });
+    }
+
+    handleGetDistributionChannel() {
+        getDistributionChannel({
+            oppId: this.recordId,
+            soId: this.salesOrgValue
+        }).then(result => {
+            console.log('>>> Distribution Channel Result:', result);
+            if (result != '') {
+                this.distChOptions = JSON.parse(result);
+            }
+        }).catch(error => {
+            this.showToast('Error', error.body?.message || 'Failed to fetch Distribution Channel', 'error');
+        });
+    }
+
+    handleGetDivision() {
+        getDivision({
+            oppId: this.recordId,
+            soId: this.salesOrgValue,
+            dcId: this.distChValue
+        }).then(result => {
+            console.log('>>> Division Result:', result);
+            if (result != '') {
+                this.divisionOptions = JSON.parse(result);
+            }
+        }).catch(error => {
+            this.showToast('Error', error.body?.message || 'Failed to fetch Division', 'error');
+        });
+    }
+
+    handleGetSalesArea() {
+        getSalesArea({
+            oppId: this.recordId,
+            soId: this.salesOrgValue,
+            dcId: this.distChValue,
+            divId: this.divisionValue
+        }).then(result => {
+            if (result != '') {
+                console.log('>>> SalesArea Result:', JSON.parse(result));
+                let parsedResult = JSON.parse(result);
+                // this.quoteFields.salesArea = JSON.parse(result);
+                if (parsedResult[0].Payment_Term__c != null) {
+                    this.quoteFields.paymentTermId = parsedResult[0].Payment_Term__c;
+                }
+                if (parsedResult[0].Incoterm_1__c != null) {
+                    this.quoteFields.incoTerms = parsedResult[0].Incoterm_1__c;
+                }
+            }
+        }).catch(error => {
+            this.showToast('Error', error.body?.message || 'Failed to fetch SalesArea', 'error');
         });
     }
 }

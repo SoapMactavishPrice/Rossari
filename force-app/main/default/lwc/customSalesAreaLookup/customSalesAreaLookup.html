@@ -18,7 +18,7 @@
                     <ul class="dropdown-list">
                         <template for:each={records} for:item="record">
                             <li key={record.Id} class="lookup-item" data-id={record.Id} onclick={handleRecordSelect}>
-                                {record.Name}
+                                {record.displayValue}
                             </li>
                         </template>
                     </ul>

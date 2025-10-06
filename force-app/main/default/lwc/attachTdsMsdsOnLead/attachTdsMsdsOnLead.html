@@ -1,5 +1,5 @@
 <template>
-    <lightning-card title="Share TDS/MSDS/Technical Document" icon-name="standard:product">
+    <lightning-card title="Share TDS/MSDS/Technical/COA Document" icon-name="standard:product">
         <template if:true={isLoading}>
             <lightning-spinner alternative-text="Loading"></lightning-spinner>
         </template>
@@ -305,37 +305,24 @@
             <template if:false={isRequestDocumentSubmittedFlag}>
                 <div class="slds-grid slds-gutters slds-p-around_medium">
             
-                    <div class="slds-col slds-size_1-of-3">
-                        <lightning-record-picker
-                            label="TDS Approver"
-                            object-api-name="User"
-                            data-id="tdsApproverId"
-                            value={approverModel.tdsApproverId}
-                            placeholder="Search User..."
-                            onchange={handleApproverChange}>
-                        </lightning-record-picker>
+                    <div class="slds-col slds-size_1-of-4">
+                        <c-user-lookup onuserselect={handleApproverChange} data-id="tdsApproverId" label="TDS Approver"></c-user-lookup>
+                        <lightning-input type="text" label="TDS Remark" value={documentModel.tdsApproverRemark} onchange={handleRemarkChange} data-id="tdsApproverRemark" disabled={tdsRemarkDisabled}></lightning-input>
                     </div>
     
-                    <div class="slds-col slds-size_1-of-3">
-                        <lightning-record-picker
-                            label="MSDS Approver"
-                            object-api-name="User"
-                            data-id="msdsApproverId"
-                            value={approverModel.msdsApproverId}
-                            placeholder="Search User..."
-                            onchange={handleApproverChange}>
-                        </lightning-record-picker>
+                    <div class="slds-col slds-size_1-of-4">
+                        <c-user-lookup onuserselect={handleApproverChange} data-id="msdsApproverId" label="MSDS Approver"></c-user-lookup>
+                        <lightning-input type="text" label="MSDS Remark" value={documentModel.msdsApproverRemark} onchange={handleRemarkChange} data-id="msdsApproverRemark" disabled={msdsRemarkDisabled}></lightning-input>
                     </div>
     
-                    <div class="slds-col slds-size_1-of-3">
-                        <lightning-record-picker
-                            label="Technical Document Approver"
-                            object-api-name="User"
-                            data-id="technicalDocApproverId"
-                            value={approverModel.technicalDocApproverId}
-                            placeholder="Search User..."
-                            onchange={handleApproverChange}>
-                        </lightning-record-picker>
+                    <div class="slds-col slds-size_1-of-4">
+                        <c-user-lookup onuserselect={handleApproverChange} data-id="technicalDocApproverId" label="Technical Document Approver"></c-user-lookup>
+                        <lightning-input type="text" label="Tech Doc Remark" value={documentModel.technicalDocApproverRemark} onchange={handleRemarkChange} data-id="technicalDocApproverRemark" disabled={techDocRemarkDisabled}></lightning-input>
+                    </div>
+
+                    <div class="slds-col slds-size_1-of-4">
+                        <c-user-lookup onuserselect={handleApproverChange} data-id="coaDocApproverId" label="COA Document Approver"></c-user-lookup>
+                        <lightning-input type="text" label="COA Doc Remark" value={documentModel.coaDocApproverRemark} onchange={handleRemarkChange} data-id="coaDocApproverRemark" disabled={coaRemarkDisabled}></lightning-input>
                     </div>
     
                 </div>
@@ -359,9 +346,10 @@
                         <table class="slds-table slds-table_cell-buffer slds-table_bordered custom-table">
                             <thead>
                                 <tr>
-                                    <th class="custom-header" style="width: 33.333%">TDS Approver</th>
-                                    <th class="custom-header" style="width: 33.333%">MSDS Approver</th>
-                                    <th class="custom-header" style="width: 33.333%">Tech Doc Approver</th>
+                                    <th class="custom-header" style="width: 25%">TDS Approver</th>
+                                    <th class="custom-header" style="width: 25%">MSDS Approver</th>
+                                    <th class="custom-header" style="width: 25%">Tech Doc Approver</th>
+                                    <th class="custom-header" style="width: 25%">COA Doc Approver</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -369,6 +357,13 @@
                                     <td style="text-align: center;">{documentModel.tdsApproverName}</td>
                                     <td style="text-align: center;">{documentModel.msdsApproverName}</td>
                                     <td style="text-align: center;">{documentModel.technicalDocApproverName}</td>
+                                    <td style="text-align: center;">{documentModel.coaDocApproverName}</td>
+                                </tr>
+                                <tr>
+                                    <td>{documentModel.tdsApproverRemark}</td>
+                                    <td>{documentModel.msdsApproverRemark}</td>
+                                    <td>{documentModel.technicalDocApproverRemark}</td>
+                                    <td>{documentModel.coaDocApproverRemark}</td>
                                 </tr>
                                 <tr>
                                     <td>
@@ -383,7 +378,12 @@
                                         <lightning-button label="Upload" onclick={handleTechnicalDocUpload} disabled={documentModel.isTechnicalDocDisabled}></lightning-button>
                                         <input type="file" multiple class="hidden-input" onchange={handleTechnicalDocFiles} data-type="tech"/>
                                     </td>
+                                    <td>
+                                        <lightning-button label="Upload" onclick={handleCoaDocUpload} disabled={documentModel.isCoaDocDisabled}></lightning-button>
+                                        <input type="file" multiple class="hidden-input" onchange={handleCoaDocFiles} data-type="coa"/>
+                                    </td>
                                 </tr>
+                                
                                 <tr>
                                     <!-- TDS Files Column -->
                                     <td>
@@ -438,10 +438,27 @@
                                             </div>
                                         </template>
                                     </td>
+
+                                    <td>
+                                        <template for:each={documentModel.coaDocumentFiles} for:item="file" for:index="index">
+                                            <div key={file.fileName} class="file-row">
+                                                {file.fileName}
+                                                <template if:false={file.isReadOnly}>
+                                                    <lightning-button-icon 
+                                                        icon-name="utility:close" 
+                                                        alternative-text="Remove" 
+                                                        size="x-small" 
+                                                        onclick={removeCoaDocFile}
+                                                        data-index={index}>
+                                                    </lightning-button-icon>
+                                                </template>
+                                            </div>
+                                        </template>
+                                    </td>
                                 </tr>
 
                                 <tr>
-                                    <td colspan="3" class="slds-text-align_center">
+                                    <td colspan="4" class="slds-text-align_center">
                                         <lightning-button label="Cancel" class="slds-p-right_medium" onclick={backTorecord}></lightning-button>
                                         <lightning-button label="Save" variant="success" onclick={uploadFilesToRecord} disabled={isSaveDisabled}></lightning-button>
                                         <template if:true={documentModel.isAccessEnabled}>

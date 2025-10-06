@@ -47,7 +47,7 @@ public class VisitReportController {
             // CHECK IF WE'RE UPDATING EXISTING RECORD OR CREATING NEW
             if (existingVisitReportId != null && !String.isBlank(existingVisitReportId)) {
                 // UPDATE EXISTING RECORD
-                vrc = [SELECT Id, Title_of_Meeting__c, Start_Date_Time__c, End_Date_Time__c 
+                vrc = [SELECT Id, Title_of_Meeting__c, Start_Date_Time__c, End_Date_Time__c,CurrencyIsoCode  
                        FROM Visit_Report__c WHERE Id = :existingVisitReportId];
                 
                 // Update only the fields that should be editable for existing records
@@ -238,43 +238,46 @@ public class VisitReportController {
             if (!attList.isEmpty()) upsert attList;
             if (!eventAttendees.isEmpty()) insert eventAttendees;
             
-            // PROCESS PRODUCT INTERESTS
-            List<Product_Interest_and_Pricing_Benchmark__c> pIList = new List<Product_Interest_and_Pricing_Benchmark__c>();
-            for (Object obj : ProductInterestPointList) {
-                Map<String, Object> objMap = (Map<String, Object>)obj;
-                if(String.isNotBlank(String.valueOf(objMap.get('prodId')))) {
-                    Product_Interest_and_Pricing_Benchmark__c cp = new Product_Interest_and_Pricing_Benchmark__c();
-                    cp.Visit_Report__c = vrc.Id;
-                    cp.CurrencyIsoCode = currencyCode;
-                    
-                    if (objMap.containsKey('prodId') && String.isNotBlank(String.valueOf(objMap.get('prodId')))) {
-                        cp.Product__c = (Id)objMap.get('prodId');
-                    }
-                    if (objMap.containsKey('qty') && String.isNotBlank(String.valueOf(objMap.get('qty')))) {
-                        Decimal qty = Decimal.valueOf(String.valueOf(objMap.get('qty')));
-                        cp.Expected_Qty_in_Kgs__c = qty > 0 ? qty : null;
-                    }
-                    if (objMap.containsKey('ExpDate')) {
-                        String expDateStr = String.valueOf(objMap.get('ExpDate'));
-                        if (String.isNotBlank(expDateStr) && expDateStr != 'false') {
-                            try {
-                                cp.Expected_Date__c = Date.valueOf(expDateStr);
-                            } catch (Exception ex) {
-                                // Optionally log or handle the error
-                            }
-                        }
-                    }
-                    
-                    if (objMap.containsKey('Price') && String.isNotBlank(String.valueOf(objMap.get('Price')))) {
-                        Decimal price = Decimal.valueOf(String.valueOf(objMap.get('Price')));
-                        cp.Expected_Price__c = price > 0 ? price : null;
-                    }
-                    
-                    pIList.add(cp);
+           // PROCESS PRODUCT INTERESTS
+List<Product_Interest_and_Pricing_Benchmark__c> pIList = new List<Product_Interest_and_Pricing_Benchmark__c>();
+for (Object obj : ProductInterestPointList) {
+    Map<String, Object> objMap = (Map<String, Object>)obj;
+    if(String.isNotBlank(String.valueOf(objMap.get('prodId')))) {
+        Product_Interest_and_Pricing_Benchmark__c cp = new Product_Interest_and_Pricing_Benchmark__c();
+        cp.Visit_Report__c = vrc.Id;
+
+        // ✅ Use the same currency as the Visit Report (Account's currency)
+        cp.CurrencyIsoCode = vrc.CurrencyIsoCode;
+        
+        if (objMap.containsKey('prodId') && String.isNotBlank(String.valueOf(objMap.get('prodId')))) {
+            cp.Product__c = (Id)objMap.get('prodId');
+        }
+        if (objMap.containsKey('qty') && String.isNotBlank(String.valueOf(objMap.get('qty')))) {
+            Decimal qty = Decimal.valueOf(String.valueOf(objMap.get('qty')));
+            cp.Expected_Qty_in_Kgs__c = qty > 0 ? qty : null;
+        }
+        if (objMap.containsKey('ExpDate')) {
+            String expDateStr = String.valueOf(objMap.get('ExpDate'));
+            if (String.isNotBlank(expDateStr) && expDateStr != 'false') {
+                try {
+                    cp.Expected_Date__c = Date.valueOf(expDateStr);
+                } catch (Exception ex) {
+                    // Optionally log or handle the error
                 }
             }
-            
-            if(!pIList.isEmpty()) insert pIList;
+        }
+        
+        if (objMap.containsKey('Price') && String.isNotBlank(String.valueOf(objMap.get('Price')))) {
+            Decimal price = Decimal.valueOf(String.valueOf(objMap.get('Price')));
+            cp.Expected_Price__c = price > 0 ? price : null;
+        }
+        
+        pIList.add(cp);
+    }
+}
+
+if(!pIList.isEmpty()) insert pIList;
+
             
             // PROCESS ACTION POINTS
             string cnTypeId = [SELECT Id FROM CustomNotificationType WHERE DeveloperName = 'Action_Point_Alert' LIMIT 1].Id;
@@ -284,7 +287,26 @@ public class VisitReportController {
                 if(String.isNotBlank(String.valueOf(objMap.get('Name')))) {
                     Action_Point__c cp = new Action_Point__c();
                     cp.Visit_Report__c = vrc.Id;
-                    cp.CurrencyIsoCode = currencyCode;
+                //    cp.CurrencyIsoCode = currencyCode;
+              
+                    //vrc = new Visit_Report__c();
+                    
+                    // Determine currency from Customer_Name__c (Account)
+                    if (visitMap.containsKey('Customer_Name') && String.isNotBlank(String.valueOf(visitMap.get('Customer_Name')))) {
+                        Id accountId = (Id)visitMap.get('Customer_Name');
+                        vrc.Customer_Name__c = accountId;
+                        
+                        try {
+                            Account acc = [SELECT CurrencyIsoCode FROM Account WHERE Id = :accountId LIMIT 1];
+                            vrc.CurrencyIsoCode = acc.CurrencyIsoCode;
+                        } catch (Exception er) {
+                            // fallback to provided currency code in case of error
+                            vrc.CurrencyIsoCode = currencyCode;
+                        }
+                    } else {
+                        vrc.CurrencyIsoCode = currencyCode; // fallback
+                    }
+
                     
                     if (objMap.containsKey('Name') && String.isNotBlank(String.valueOf(objMap.get('Name')))) {
                         cp.Name = String.valueOf(objMap.get('Name'));
@@ -349,7 +371,7 @@ public class VisitReportController {
         
         if (accountId != null) {
             Account acc = [
-                SELECT Id, SAP_Customer_Code__c, RecordType.DeveloperName
+                SELECT Id, SAP_Customer_Code__c, RecordType.DeveloperName,CurrencyIsoCode
                 FROM Account
                 WHERE Id = :accountId
                 LIMIT 1
@@ -360,6 +382,9 @@ public class VisitReportController {
             
             // RecordType is already a String
             resultMap.put('RecordType', acc.RecordType.DeveloperName);
+
+            // CurrencyIsoCode is already a String
+            resultMap.put('CurrencyIsoCode', acc.CurrencyIsoCode);
         }
         
         return resultMap;

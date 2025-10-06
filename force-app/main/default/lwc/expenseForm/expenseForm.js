@@ -9,6 +9,10 @@ import getTransportModes from '@salesforce/apex/ExpenseController.getTransportMo
 import createCustomerVisit from '@salesforce/apex/ExpenseController.createCustomerVisit';
 import searchTours from '@salesforce/apex/TourLookupController.searchTours';
 
+import { loadStyle } from 'lightning/platformResourceLoader';
+import LightningFileUploadHideLabelCss from '@salesforce/resourceUrl/LightningFileUploadHideLabelCss';
+
+
 export default class ExpenseForm extends NavigationMixin(LightningElement) {
     @track expenseName = '';
     @track todayDate = '';
@@ -16,6 +20,8 @@ export default class ExpenseForm extends NavigationMixin(LightningElement) {
     @track division = '';
     @track zone = '';
     @track selectedVoucherType = '';
+    @track userCostCenter = '';
+    @track costCenterId = '';
 
     @track employeeOptions = [];
     @track typeOfExpenseOptions = [];
@@ -34,8 +40,15 @@ export default class ExpenseForm extends NavigationMixin(LightningElement) {
     @track selectedAccounts = []; // Track multiple selected accounts   
     @track visitReportId = '';
     @track visitReportName = '';
-
-
+    @track selectedCurrency = 'INR';
+    @track currencyOptions = [
+        { label: 'Indian Rupee (INR)', value: 'INR' },
+        { label: 'US Dollar (USD)', value: 'USD' },
+        { label: 'Euro (EUR)', value: 'EUR' },
+        { label: 'UAE (AED)', value: 'AED' },
+        { label: 'Saudi Arabian Riyal (SAR)', value: 'SAR' }
+        // Add more currencies as needed
+    ];
 
     acceptedFormats = ['.pdf', '.jpg', '.jpeg', '.png', '.doc', '.docx'];
     nextKey = 0;
@@ -77,6 +90,32 @@ export default class ExpenseForm extends NavigationMixin(LightningElement) {
         return this.selectedVoucherType === 'Cash';
     }
 
+    get reactiveCurrency() {
+        return this.selectedCurrency;
+    }
+
+    get currencySymbol() {
+        const map = {
+            'INR': '₹',
+            'USD': '$',
+            'EUR': '€',
+            'AED': 'د.إ',
+            'SAR': '﷼'
+        };
+        return map[this.selectedCurrency] || this.selectedCurrency;
+    }
+
+    forceCurrencyUpdate() {
+        // Create a deep copy to force re-render
+        this.lineItems = this.lineItems.map(item => ({ ...item }));
+    }
+
+    // Add currency change handler
+    handleCurrencyChange(event) {
+        this.selectedCurrency = event.detail.value;
+        //this.forceCurrencyUpdate();
+    }
+
     handleVisitReportSelected(event) {
         this.visitReportId = event.detail.recordId;
         this.visitReportName = event.detail.recordName;
@@ -87,6 +126,8 @@ export default class ExpenseForm extends NavigationMixin(LightningElement) {
         this.todayDate = new Date().toISOString().split('T')[0];
         this.initializeData();
         this.addLineItem();
+
+       // loadStyle(this, LightningFileUploadHideLabelCss);
     }
 
     async initializeData() {
@@ -99,8 +140,10 @@ export default class ExpenseForm extends NavigationMixin(LightningElement) {
                 this.selectedEmployeeId = user.Id;
                 this.division = user.Division || '';
                 this.zone = user.Zone__c || '';
+                this.userCostCenter = user.Cost_Center__c || ''; // Store user's cost center
             }
 
+            this.costCenterId = result.costCenterId || '';
             this.voucherOptions = result.voucherOptions || [];
 
             // Load all transport modes and categorize them
@@ -193,6 +236,12 @@ export default class ExpenseForm extends NavigationMixin(LightningElement) {
         this.updateLineItem(idx, 'isPrivate', isPrivate);
         this.updateLineItem(idx, 'isPublic', isPublic);
         this.updateLineItem(idx, 'transportOptions', this.getTransportOptionsForItem(value));
+
+        // Store GL Code information for the selected expense type
+        if (expenseType) {
+            this.updateLineItem(idx, 'glCodeId', expenseType.glCodeId || '');
+            this.updateLineItem(idx, 'glCodeName', expenseType.glCodeName || '');
+        }
 
         // Reset invalid transportMode if needed
         const currentTransportMode = this.lineItems[idx].transportMode;
@@ -311,6 +360,7 @@ export default class ExpenseForm extends NavigationMixin(LightningElement) {
         const idx = parseInt(event.currentTarget.dataset.index, 10);
         const value = event.detail.value;
         this.updateLineItem(idx, 'outstationTransportMode', value);
+        this.forceCurrencyUpdate();
     }
 
     handleTicketBookedChange(event) {
@@ -395,7 +445,9 @@ export default class ExpenseForm extends NavigationMixin(LightningElement) {
             ticketBookedByCompany: false,
             outstationDescription: '',
             outstationReason: '',
-            cashDescription: ''
+            cashDescription: '',
+            glCodeId: '', // Add GL Code fields
+            glCodeName: ''
         };
         this.lineItems = [...this.lineItems, newItem];
 
@@ -459,7 +511,9 @@ export default class ExpenseForm extends NavigationMixin(LightningElement) {
                 ticketBookedByCompany: false,
                 outstationDescription: '',
                 outstationReason: '',
-                cashDescription: ''
+                cashDescription: '',
+                glCodeId: '', // Add GL Code fields
+                glCodeName: ''
             }));
 
         } catch (error) {
@@ -512,7 +566,9 @@ export default class ExpenseForm extends NavigationMixin(LightningElement) {
                 Zone__c: this.zone,
                 Tour__c: this.selectedTourId,
                 Customer_Visited__c: customerVisitIds.length > 0 ? customerVisitIds[0] : null,
-                Visit_Report__c: this.visitReportId
+                Visit_Report__c: this.visitReportId,
+                Cost_Center__c: this.costCenterId,
+                CurrencyIsoCode: this.selectedCurrency 
             };
 
             const lineItemsToSend = this.lineItems.map(item => ({
@@ -534,20 +590,24 @@ export default class ExpenseForm extends NavigationMixin(LightningElement) {
                 Date__c: this.selectedVoucherType === 'Outstation' ? item.outstationDate : null,
                 Ticket_Booked_By_Company__c: this.selectedVoucherType === 'Outstation' ? item.ticketBookedByCompany : false,
                 Description__c: this.selectedVoucherType === 'Outstation' ? item.outstationDescription :
-                    (this.selectedVoucherType === 'Cash' ? item.cashDescription : null)
+                    (this.selectedVoucherType === 'Cash' ? item.cashDescription : null),
+                    CurrencyIsoCode: this.selectedCurrency
             }));
 
+            // FIXED: Create filesPerLineItem using the correct structure
             const filesPerLineItem = {};
-            this.lineItems.forEach(item => {
+            this.lineItems.forEach((item, index) => {
                 if (this.filesMap.has(item.key)) {
-                    filesPerLineItem[item.key] = this.filesMap.get(item.key);
+                    filesPerLineItem[String(index)] = this.filesMap.get(item.key);
                 }
             });
+
+            console.log('Submitting files:', JSON.stringify(filesPerLineItem));
 
             const expenseId = await createExpenseWithFiles({
                 expense,
                 lineItems: lineItemsToSend,
-                filesPerLineItem
+                filesPerLineItem: filesPerLineItem
             });
 
             this.showToast('Success', 'Expense claim submitted successfully with all attachments', 'success');
@@ -610,6 +670,14 @@ export default class ExpenseForm extends NavigationMixin(LightningElement) {
             // Validate reason field only for Misc voucher type
             if (this.selectedVoucherType === 'Misc' && (!item.reason || item.reason.trim() === '')) {
                 this.showToast('Error', `Enter Reason for Misc expense in row ${i + 1}`, 'error');
+                return false;
+            }
+            // FILE VALIDATION FOR CAR TRANSPORT MODE
+            const transportMode = this.selectedVoucherType === 'Local' ? item.transportMode : item.outstationTransportMode;
+            const hasFiles = this.filesMap.has(item.key) && this.filesMap.get(item.key).length > 0;
+            
+            if (transportMode === 'Car' && !hasFiles) {
+                this.showToast('Error', `Meter Photo upload is mandatory for Car transport mode in row ${i + 1}`, 'error');
                 return false;
             }
             // Validate transport mode for local vouchers

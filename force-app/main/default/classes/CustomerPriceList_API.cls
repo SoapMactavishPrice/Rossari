@@ -124,7 +124,7 @@ global class CustomerPriceList_API {
 
             // Get Existing Customer_Material_Pricelist__c
             List < Customer_Material_Pricelist__c > existingCustomerMaterialPricelist = [
-                SELECT Id, Name, Customer__c, Material__c,
+                SELECT Id, Name, Customer__c, Material__c, IsDeleted__c, 
                 Customer__r.SAP_Customer_Code__c, Material__r.ProductCode, Sales_Organization__r.Name,UOM__r.Name,Distribution_Channel__r.Name
                 FROM Customer_Material_Pricelist__c
                 WHERE Customer__c IN: accountMap.values() And Material__c IN: materialMap.values()
@@ -166,7 +166,7 @@ global class CustomerPriceList_API {
                      p.Distribution_Channel__c= distchannelmap.get(jsonObj.DISTRIBUTION_CHANNEL);
                 }
 
-                if (jsonObj.PER != null) {
+                if (jsonObj.PER != null && jsonObj.PER != '') {
                     String perStr = jsonObj.PER.replaceAll('\\s+', '');
                     p.PER__c = Decimal.valueOf(perStr);
                 }
@@ -180,6 +180,14 @@ global class CustomerPriceList_API {
                     p.Valid_To__c = Date.valueOf(validtoStr);
                 }
 
+                if (jsonObj.CURR != null && jsonObj.CURR != '') {
+                    p.CurrencyIsoCode = jsonObj.CURR;
+                }
+                if (jsonObj.ISDELETED != null && jsonObj.ISDELETED != '') {
+                    String isDel = String.valueOf(jsonObj.ISDELETED).trim().toLowerCase();
+                    p.IsDeleted__c  = Boolean.valueOf(isDel);
+                }
+                
                 upsertProductList.add(p);
 
             }
@@ -187,9 +195,15 @@ global class CustomerPriceList_API {
             if (upsertProductList.size() > 0) {
                 upsert upsertProductList;
             }
+
+            Set<String> Ids = new Set<String>();
+            for (Customer_Material_Pricelist__c p : upsertProductList) {
+                Ids.add(p.Id);
+            }
             
             responseMap.put('status', 'success');
             responseMap.put('message', 'Inserted/Updated Successfully');
+            responseMap.put('SFIds', Ids);
             
             String resp = JSON.serialize(responseMap);
             response.responseBody = Blob.valueOf(resp);
@@ -240,6 +254,8 @@ global class CustomerPriceList_API {
         public String PER;
         public String VALID_FROM;
         public String VALID_TO;
+        public String CURR;
+        public String ISDELETED;
     }
 
     public static List < JSON2ApexSaveWebToLead > parse(String json) {

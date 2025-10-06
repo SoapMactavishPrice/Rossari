@@ -14,6 +14,7 @@ import uploadDocuments from '@salesforce/apex/DocumentApprovalHandler.uploadDocu
 import sendLeadDocumentEmail from '@salesforce/apex/DocumentApprovalHandler.sendLeadDocumentEmail';
 import savePreviousViewType from '@salesforce/apex/DocumentApprovalHandler.savePreviousViewType';
 import getPreviousViewType from '@salesforce/apex/DocumentApprovalHandler.getPreviousViewType';
+import saveRemarks from '@salesforce/apex/DocumentApprovalHandler.saveRemarks';
 
 
 import { CurrentPageReference } from 'lightning/navigation';
@@ -22,10 +23,10 @@ import { NavigationMixin } from 'lightning/navigation';
 export default class AttachTdsMsdsOnLead extends NavigationMixin(LightningElement) {
     @api rId;
     @track linkIdSet = [];
-    @track subject = 'Rossari Biotech TDS/MSDS/Tech Doc Files';
+    @track subject = 'Rossari Biotech TDS/MSDS/Tech Doc/COA Doc Files';
     @track ToAddress = '';
     @track ccAddress = '';
-    @track commnetBody = 'Dear Sir/Madam,<br/><br/>Please find attached Rossari Biotech TDS/MSDS/Tech Doc Files.';
+    @track commnetBody = 'Dear Sir/Madam,<br/><br/>Please find attached Rossari Biotech TDS/MSDS/Tech Doc/COA Doc Files.';
     @track OpenModal = false;
     @track isLoading = false;
     @track tableData = [];
@@ -53,7 +54,20 @@ export default class AttachTdsMsdsOnLead extends NavigationMixin(LightningElemen
     }
 
     get isRequestDocumentButtonDisabled() {
-        return !this.approverModel.tdsApproverId && !this.approverModel.msdsApproverId && !this.approverModel.technicalDocApproverId;
+        return !this.approverModel.tdsApproverId && !this.approverModel.msdsApproverId && !this.approverModel.technicalDocApproverId && !this.approverModel.coaDocApproverId;
+    }
+
+    get tdsRemarkDisabled() {
+        return !this.approverModel.tdsApproverId;
+    }
+    get msdsRemarkDisabled() {
+        return !this.approverModel.msdsApproverId;
+    }
+    get techDocRemarkDisabled() {
+        return !this.approverModel.technicalDocApproverId;
+    }
+    get coaRemarkDisabled() {
+        return !this.approverModel.coaDocApproverId;
     }
 
     @track viewTypeOptions = [
@@ -123,6 +137,13 @@ export default class AttachTdsMsdsOnLead extends NavigationMixin(LightningElemen
         })
     }
 
+    handleRemarkChange(event) {
+        let value = event.target.value;
+        let field = event.target.dataset.id;
+
+        this.documentModel[field] = value;
+    }
+
     triggerFileInput(type) {
         this.template.querySelector(`input[data-type="${type}"]`).click();
     }
@@ -136,6 +157,9 @@ export default class AttachTdsMsdsOnLead extends NavigationMixin(LightningElemen
     }
     handleTechnicalDocUpload() {
         this.triggerFileInput('tech');
+    }
+    handleCoaDocUpload() {
+        this.triggerFileInput('coa');
     }
 
     handleTdsFiles(event) {
@@ -242,12 +266,47 @@ export default class AttachTdsMsdsOnLead extends NavigationMixin(LightningElemen
         });
     }
 
+    handleCoaDocFiles(event) {
+        const files = event.target.files;
+
+        if (!this.documentModel.coaDocumentFiles) this.documentModel.coaDocumentFiles = [];
+        if (!this.documentModel.coaDocumentFileNames) this.documentModel.coaDocumentFileNames = [];
+
+        Array.from(files).forEach(file => {
+            const reader = new FileReader();
+
+            reader.onload = () => {
+                const base64 = reader.result.split(',')[1];
+
+                // Append to coaDocumentFiles (base64 for Apex)
+                this.documentModel.coaDocumentFiles = [
+                    ...this.documentModel.coaDocumentFiles,
+                    {
+                        fileName: file.name,
+                        base64: base64
+                    }
+                ];
+
+                // Append to coaDocumentFileNames (for display)
+                this.documentModel.coaDocumentFileNames = [
+                    ...this.documentModel.coaDocumentFileNames,
+                    file.name
+                ];
+
+                console.log('Updated coaDocumentFiles:', this.documentModel.coaDocumentFiles);
+                console.log('Updated coaDocumentFileNames:', this.documentModel.coaDocumentFileNames);
+            };
+
+            reader.readAsDataURL(file);
+        });
+    }
+
 
     uploadFilesToRecord() {
         if (this.isSaveDisabled) return;
         this.isSaveDisabled = true;
         console.log('Uploading files:', JSON.parse(JSON.stringify(this.documentModel)));
-        uploadDocuments({tdsFiles: this.documentModel.tdsFiles, msdsFiles: this.documentModel.msdsFiles, technicalDocumentFiles: this.documentModel.technicalDocumentFiles, leadId: this.rId}).then((result)=>{
+        uploadDocuments({tdsFiles: this.documentModel.tdsFiles, msdsFiles: this.documentModel.msdsFiles, technicalDocumentFiles: this.documentModel.technicalDocumentFiles, coaDocumentFiles: this.documentModel.coaDocumentFiles, leadId: this.rId}).then((result)=>{
             if (result == 'Success') {
                 this.showToast('Success', 'success', 'Files uploaded successfully');
                 this.backTorecord();
@@ -285,6 +344,15 @@ export default class AttachTdsMsdsOnLead extends NavigationMixin(LightningElemen
         }
     }
 
+    removeCoaDocFile(event) {
+        const index = event.currentTarget.dataset.index;
+        const file = this.documentModel.coaDocumentFiles[index];
+        if (file) {
+            this.documentModel.coaDocumentFiles = this.documentModel.coaDocumentFiles.filter((_, i) => i != index);
+            this.documentModel.coaDocumentFileNames = this.documentModel.coaDocumentFileNames.filter((_, i) => i != index);
+        }
+    }
+
     checkIfRequestDocumentSubmitted() {
         if (this.rId) {
             isRequestDocumentSubmitted({leadId: this.rId}).then((result)=>{
@@ -296,17 +364,25 @@ export default class AttachTdsMsdsOnLead extends NavigationMixin(LightningElemen
     }
 
     handleApproverChange(event) {
+        console.log(JSON.parse(JSON.stringify(event)));
         let field = event.target.dataset.id;
-        this.approverModel[field] = event.detail.recordId;
+        this.approverModel[field] = event.detail?.Id;
     }
 
     handleRequestDocument() {
-        updateApproversAndSendEmails({ approverStringObject: JSON.stringify(this.approverModel), leadId: this.rId }).then((result)=>{
+        saveRemarks({tdsRemark: this.documentModel.tdsApproverRemark, msdsRemark: this.documentModel.msdsApproverRemark, techDocRemark: this.documentModel.technicalDocApproverRemark, coaDocRemark: this.documentModel.coaDocApproverRemark, leadId: this.rId}).then((result)=>{
             if (result == 'Success') {
-                this.showToast('Success', 'success', 'Request for approval sent successfully');
-                this.backTorecord();
+                updateApproversAndSendEmails({ approverStringObject: JSON.stringify(this.approverModel), leadId: this.rId }).then((result)=>{
+                    if (result == 'Success') {
+                        this.showToast('Success', 'success', 'Request for approval sent successfully');
+                        this.backTorecord();
+                    }
+                }).catch((error)=>{
+                    this.showToast('Error', 'error', error.body.message);
+                })
             }
         }).catch((error)=>{
+            this.isSaveDisabled = false;
             this.showToast('Error', 'error', error.body.message);
         })
     }

@@ -61,12 +61,12 @@ public class ExpenseControllerTest {
     
    @isTest
 static void testCreateExpenseWithFiles() {
+    // Prepare the expense record (DO NOT insert)
     Expense__c exp = new Expense__c(
         Type_of_Voucher__c = 'Local'
     );
-    insert exp;
     
-    
+    // Prepare line items (DO NOT insert)
     List<Expense_Line_Item__c> items = new List<Expense_Line_Item__c>{
         new Expense_Line_Item__c(Reason__c = 'Test'),
         new Expense_Line_Item__c(Reason__c = 'Test 2')
@@ -87,15 +87,17 @@ static void testCreateExpenseWithFiles() {
         WHERE Id = :cv.Id
     ];
     
-    // Use ContentDocumentId here
+    // Map index of line item to the file(s)
     Map<String, List<String>> filesMap = new Map<String, List<String>>();
-    filesMap.put('0', new List<String>{insertedCV.ContentDocumentId});
+    filesMap.put('0', new List<String>{insertedCV.ContentDocumentId}); // Attach file to first line item
     
     Test.startTest();
     String expId = ExpenseController.createExpenseWithFiles(exp, items, filesMap);
     Test.stopTest();
-    
+
+    System.assertNotEquals(null, expId, 'Expense Id should not be null');
 }
+
 
 
 

@@ -31,7 +31,7 @@ global class SalesOrderAPI {
         SalesOrderJson soRequest = parse(jSONRequestBody);
 
         if (String.isBlank(soRequest.QUOTE_NUM)) {
-            // throw new CustomException('QUOTE_NUM cannot be blank!');
+            throw new CustomException('QUOTE_NUM cannot be blank!');
         }
 
         List < Quote > quoteList = [
@@ -41,7 +41,7 @@ global class SalesOrderAPI {
         ];
 
         if (quoteList.isEmpty()) {
-            // throw new CustomException('QUOTE_NUM :' +soRequest.QUOTE_NUM+ ' is not valid!');
+            throw new CustomException('QUOTE_NUM :' +soRequest.QUOTE_NUM+ ' is not valid!');
         }
 
         Map < String, Object > quoteMap = new Map < String, Object > ();
@@ -62,6 +62,40 @@ global class SalesOrderAPI {
                 ProductCodeSet.add(item.MATERIAL);
             }
 
+            List<Order> exOrd = [
+                SELECT Id, SAP_Order_Number__c
+                FROM Order WHERE SAP_Order_Number__c = :soRequest.DOC_NUM
+            ];
+
+            Map<String, String> ohpfMap = new Map<String, String>();
+            Map<String, String> ordItemMap = new Map<String, String>();
+            if (exOrd.size() > 0) {
+                ord.Id = exOrd[0].Id;
+
+                List<Order_Header_Partner_Function__c> exOrderHeaderPF = new List<Order_Header_Partner_Function__c>();
+                exOrderHeaderPF = [
+                    SELECT Id, Partner_function__c, Partner_code__c, Order__c
+                    FROM Order_Header_Partner_Function__c
+                    WHERE Order__c = :exOrd[0].Id
+                ];
+                
+                for (Order_Header_Partner_Function__c ohpf : exOrderHeaderPF) {
+                    ohpfMap.put(ohpf.Partner_function__c+'-'+ohpf.Partner_code__c, ohpf.Id);
+                }
+
+                List<OrderItem> exItemList = new List<OrderItem>();
+                exItemList = [
+                    SELECT Id, Product2Id, Product2.ProductCode
+                    FROM OrderItem WHERE OrderId = :exOrd[0].Id
+                ];
+
+                for (OrderItem ordItem : exItemList) {
+                    ordItemMap.put(ordItem.Product2.ProductCode, ordItem.Id);
+                }
+            } else {
+                ord.QuoteId = String.valueOf(quoteMap.get(soRequest.QUOTE_NUM));
+            }
+
             Map < String, Product2 > product2Map_v1 = new Map < String, Product2 > ();
             for (Product2 product: [SELECT Id, ProductCode FROM Product2 WHERE ProductCode IN: ProductCodeSet]) {
                 product2Map_v1.put(product.ProductCode, product);
@@ -76,25 +110,25 @@ global class SalesOrderAPI {
                 ];
                 if (acc.size() > 0) {
 
-                    List<Address_Information__c> shiptoAdd = [
-                        SELECT Id, Name FROM Address_Information__c
-                        WHERE Partner_SAP_Code__c = :soRequest.SHIP_TO_PARTY
-                        AND RecordType.DeveloperName = 'Ship_To'
-                        AND Account__c = :acc[0].Id
-                    ];
-                    List<Address_Information__c> billtoAdd = [
-                        SELECT Id, Name FROM Address_Information__c
-                        WHERE Partner_SAP_Code__c = :soRequest.BILL_TO_PARTY
-                        AND RecordType.DeveloperName = 'Bill_To'
-                        AND Account__c = :acc[0].Id
-                    ];
+                    // List<Address_Information__c> shiptoAdd = [
+                    //     SELECT Id, Name FROM Address_Information__c
+                    //     WHERE Partner_SAP_Code__c = :soRequest.SHIP_TO_PARTY
+                    //     AND RecordType.DeveloperName = 'Ship_To'
+                    //     AND Account__c = :acc[0].Id
+                    // ];
+                    // List<Address_Information__c> billtoAdd = [
+                    //     SELECT Id, Name FROM Address_Information__c
+                    //     WHERE Partner_SAP_Code__c = :soRequest.BILL_TO_PARTY
+                    //     AND RecordType.DeveloperName = 'Bill_To'
+                    //     AND Account__c = :acc[0].Id
+                    // ];
 
-                    if (shiptoAdd.size() > 0) {
-                        ord.Ship_to_party__c = shiptoAdd[0].Id;
-                    }
-                    if (billtoAdd.size() > 0) {
-                        ord.Bill_to_party__c = billtoAdd[0].Id;
-                    }
+                    // if (shiptoAdd.size() > 0) {
+                    //     ord.Ship_to_party__c = shiptoAdd[0].Id;
+                    // }
+                    // if (billtoAdd.size() > 0) {
+                    //     ord.Bill_to_party__c = billtoAdd[0].Id;
+                    // }
 
                     List < User > user = new List < User > ();
                     user = [
@@ -134,81 +168,48 @@ global class SalesOrderAPI {
                             WHERE Sales_District_Code__c = :soRequest.SALES_DISTRICT
                         ];
 
-                        // SBU__c sbu = [
-                        //     SELECT Id, Distribution_Channel__c, Distribution_Code__c, Division__c, Division_Code__c,
-                        //     Sales_Organizations__c, Sales_Organization_Code__c, SBU_Code__c
-                        //     FROM SBU__c
-                        //     WHERE Sales_Organizations__c =: so.Id
-                        //     AND Distribution_Channel__c =: dc.Id
-                        //     AND Division__c =: div.Id
-                        // ];
-
-                        // Map < String, Bank_Information__c > bankInfos = new Map < String, Bank_Information__c > ();
-                        // for (Bank_Information__c bankInfo: [SELECT Id, Name FROM Bank_Information__c WHERE Name =: soRequest.CUST_BANK OR Name =: soRequest.PLANT_BANK]) {
-                        //     bankInfos.put(bankInfo.Name, bankInfo);
+                        // if (String.isNotBlank(soRequest.SFDC_ID)) {
+                        //     ord.Id = soRequest.SFDC_ID;
                         // }
-
-                        if (String.isNotBlank(soRequest.SFDC_ID)) {
-                            ord.Id = soRequest.SFDC_ID;
-                        }
-                        // ord.QuoteId = String.valueOf(quoteMap.get(soRequest.QUOTE_NUM));
-                        // ord.Contact_Name__c = [SELECT Id FROM Contact WHERE AccountId =: acc[0].Id AND Is_Prmary__c = true].Id;
-                        ord.Sales_Organisations__c = so.Id;
-                        // ord.Sales_Executive__c = user[0].Id;
-                        // ord.SAP_Doc_no__c = soRequest.DOC_NUM;
-                        ord.Name = soRequest.DOC_NUM;
+                        ord.SAP_Order_Number__c = soRequest.DOC_NUM;
+                        ord.Document_Type__c = soRequest.DOC_TYPE;
                         ord.AccountId = acc[0].Id;
-                        // ord.Order_Type__c = soRequest.SALES_DOC_TYPE;
+                        ord.ShiptoParty__c = soRequest.SHIP_TO_PARTY;
+                        ord.BilltoParty__c = soRequest.BILL_TO_PARTY;
+                        if (String.isNotBlank(soRequest.ORDER_DATE)) {
+                            ord.EffectiveDate = Date.valueOf(soRequest.ORDER_DATE);
+                        }
+                        ord.SAP_Order_Created_By__c = soRequest.CREATED_BY;
+                        ord.Customer_Account_Group__c = soRequest.CUSTOMER_GROUP;
+                        if (String.isNotBlank(soRequest.SALES_DISTRICT) && salesDistrictList.size() > 0) {
+                            ord.Sales_District__c = salesDistrictList[0].Id;
+                        }
+                        ord.Country__c = soRequest.COUNTRY;
+                        // ord.Sales_Executive__c = user[0].Id;
+                        ord.Sales_Organisations__c = so.Id;
                         ord.Distribution_Channel__c = dc.Id;
                         ord.Division__c = div.Id;
                         ord.PoNumber = soRequest.CUST_PURC_NO;
                         if (String.isNotBlank(soRequest.PMNTRMS) && paymentTermList.size() > 0) {
                             ord.PaymentTerms__c = paymentTermList[0].Id;
                         }
-                        if (String.isNotBlank(soRequest.SALES_DISTRICT) && salesDistrictList.size() > 0) {
-                            ord.Sales_District__c = salesDistrictList[0].Id;
-                        }
                         ord.Inco_Terms__c = soRequest.INCOTERMS1;
                         ord.Inco_Remark__c = soRequest.INCOTERMS2;
                         ord.Order_Reason__c = soRequest.ORD_REASON;
                         ord.Sales_office__c = soRequest.SALES_OFF;
                         ord.Sales_Group__c = soRequest.SALES_GRP;
-                        // ord.SBU1__c = sbu.SBU_Code__c;
                         if (String.isNotBlank(soRequest.PO_DATE)) {
                             ord.PoDate = Date.valueOf(soRequest.PO_DATE);
                         }
                         ord.CurrencyIsoCode = soRequest.DOCUMENT_CURRENCY;
-                        // if (String.isNotBlank(soRequest.SALE_DATE_A)) {
-                        //     ord.approval_status_by_sales__c = Date.valueOf(soRequest.SALE_DATE_A);
-                        // }
-                        // if (String.isNotBlank(soRequest.CRCO_DATE)) {
-                        //     ord.Approval_status_by_credit_control__c = Date.valueOf(soRequest.CRCO_DATE);
-                        // }
-                        // if (String.isNotBlank(soRequest.APPL_DATE)) {
-                        //     ord.Overall_approval_date__c = Date.valueOf(soRequest.APPL_DATE);
-                        // }
-                        // if (String.isNotBlank(soRequest.APPL_STA)) {
-                        //     ord.Overall_Approval_Status__c = String.valueOf(soRequest.APPL_STA);
-                        // }
                         ord.Exchange_Rate__c = soRequest.EXCHG_RATE;
                         if (String.isNotBlank(soRequest.REQD_DEL_DATE)) {
                             ord.Reqd_Del_Date__c = Date.valueOf(soRequest.REQD_DEL_DATE);
                         }
-                        // ord.Port_of_Discharge__c = soRequest.PORT_DICRG;
-                        // ord.Port_of_Destination__c = soRequest.PORT_DEST;
-                        // if (String.isNotBlank(soRequest.PKT_TYPE)) {
-                        //     ord.Pack_Type__c = soRequest.PKT_TYPE;
-                        // }
-                        // ord.Palletization__c = soRequest.PALLET == 'YES';
-                        // if (String.isNotBlank(soRequest.CUST_BANK) && bankInfos.containsKey(soRequest.CUST_BANK)) {
-                        //     ord.Customer_Bank_Detail__c = bankInfos.get(soRequest.CUST_BANK).Id;
-                        // }
-                        // if (String.isNotBlank(soRequest.PLANT_BANK) && bankInfos.containsKey(soRequest.PLANT_BANK)) {
-                        //     ord.Plant_Bank_Detail__c = bankInfos.get(soRequest.PLANT_BANK).Id;
-                        // }
-                        // if (String.isNotBlank(soRequest.DOC_SENT)) {
-                        //     ord.Document_Send__c = Decimal.valueOf(soRequest.DOC_SENT);
-                        // }
+                        ord.Palletization__c = soRequest.PALLET;
+                        ord.DELIVERY_BLOCK__c = soRequest.DELIVERY_BLOCK;
+                        ord.BILLING_BLOCK__c = soRequest.BILLING_BLOCK;
+                        ord.VARIABLE_PRICE__c = soRequest.VARIABLE_PRICE;
                         ord.EffectiveDate = System.today();
                         ord.PoNumber = soRequest.CUST_PURC_NO;
                         ord.Status = 'Sale Order Created';
@@ -222,152 +223,51 @@ global class SalesOrderAPI {
                         System.debug('ord ' + ord.Pricebook2Id);
                         upsert ord;
 
-                        // ord.Delivery_Status__c = soRequest.DEL_STATUS;
-                        // ord.Overall_Status__c = soRequest.OVER_STATUS;
-                        // ord.Overall_delivery_status__c = soRequest.O_DEL_STAS;
-                        // ord.Credit_Status_v1__c = soRequest.CR_STATUS;
-                        // ord.User_Status__c = soRequest.USER_STATUS;
-
-                        //update order status 
-                        // if (soRequest.DEL_STATUS == 'Not delivered') {
-                        //     if (soRequest.OVER_STATUS == 'Completed' && soRequest.O_DEL_STAS == 'Completed') {
-                        //         ord.Status = 'Dispatched_Cancelled';
-                        //     }
-                        //     if (soRequest.OVER_STATUS == 'Being processed') {
-                        //         if ((soRequest.CR_STATUS == 'Released' || soRequest.CR_STATUS == 'Approved') && soRequest.USER_STATUS == '0002') {
-                        //             ord.Status = 'Credit Check passed';
-
-                        //         }
-                        //         if ((soRequest.CR_STATUS == 'Not approved' || soRequest.CR_STATUS == 'Not performed') && soRequest.USER_STATUS == '0002') {
-                        //             ord.Status = 'Sales Head Approved';
-                        //             // ord.Level_1__c = true;
-                        //             // ord.Level_2__c = true;
-                        //             // ord.Level_3__c = false;
-                        //             // ord.Approval_Status__c = 'Submitted';
-                        //         }
-                        //         if ((soRequest.CR_STATUS == 'Not approved' || soRequest.CR_STATUS == 'Not performed') && soRequest.USER_STATUS == '0001') {
-                        //             // ord.Status = 'Sale Order Created';
-                        //             // ord.Level_2__c = false;
-                        //             // ord.Level_3__c = false;
-                        //             // ord.Credit_Status__c = '';
-                        //         }
-                        //         if ((soRequest.CR_STATUS == 'Released' || soRequest.CR_STATUS == 'Approved') && soRequest.USER_STATUS == '0001') {
-                        //             ord.Status = 'Sale Order Created';
-                        //             // ord.Level_2__c = false;
-                        //             // ord.Level_3__c = false;
-                        //             // ord.Credit_Status__c = '';
-                        //         }
-                        //     }
-                        // }
-                        // if (soRequest.DEL_STATUS == 'Fully delivered') {
-                        //     ord.Status = 'Dispatched';
-                        // }
-                        // if (soRequest.DEL_STATUS == 'Partially delivered') {
-                        //     if (soRequest.OVER_STATUS == 'Completed' && soRequest.O_DEL_STAS == 'Completed') {
-                        //         ord.Status = 'Dispatched';
-                        //     }
-                        //     if (soRequest.OVER_STATUS == 'Being processed') {
-                        //         ord.Status = 'Partially Dispatched';
-                        //     }
-                        // }
-                        // if (soRequest.DEL_STATUS == '' && soRequest.OVER_STATUS == 'Completed') {
-                        //     ord.Status = 'Completed';
-                        // }
-                        // if ((soRequest.OVER_STATUS == '' || soRequest.OVER_STATUS == 'Open') && (soRequest.CR_STATUS == 'Not approved' || soRequest.CR_STATUS == 'Not performed') && soRequest.USER_STATUS == '0002') {
-                        //     ord.Status = 'Sales Head Approved';
-                        //     // ord.Level_1__c = true;
-                        //     // ord.Level_2__c = true;
-                        //     // ord.Level_3__c = false;
-                        //     // ord.Approval_Status__c = 'Submitted';
-                        // }
-                        // if ((soRequest.OVER_STATUS == '' || soRequest.OVER_STATUS == 'Open') && (soRequest.CR_STATUS == 'Not approved' || soRequest.CR_STATUS == 'Not performed') && soRequest.USER_STATUS == '0001') {
-                        //     ord.Status = 'Sale Order Created';
-                        //     // ord.Level_2__c = false;
-                        //     // ord.Level_3__c = false;
-                        //     // ord.Credit_Status__c = '';
-                        // }
-                        // if ((soRequest.OVER_STATUS == '' || soRequest.OVER_STATUS == 'Open') && (soRequest.CR_STATUS == 'Released' || soRequest.CR_STATUS == 'Approved') && soRequest.USER_STATUS == '0001') {
-                        //     ord.Status = 'Sale Order Created';
-                        //     // ord.Level_2__c = false;
-                        //     // ord.Level_3__c = false;
-                        //     // ord.Credit_Status__c = '';
-                        // }
-                        if (String.isNotBlank(soRequest.ORDER_DATE)) {
-                            ord.EffectiveDate = Date.valueOf(soRequest.ORDER_DATE);
-                        }
-                        // ord.Customer_Account_Group__c = soRequest.CUSTOMER_GROUP;
-                        // ord.Sales_District__c = soRequest.SALES_DISTRICT;
-                        // ord.Country__c = soRequest.COUNTRY;
-                        // ord.SAP_Order_Created_By__c = soRequest.CREATED_BY;
-
-                        // if (String.isNotBlank(soRequest.BILLING_BLOCK) || String.isNotBlank(soRequest.DELIVERY_BLOCK)) {
-                        // ord.Status = 'Order on Hold';
-                        // ord.Order_Clearance_Date__c = System.today();
-                        // ord.Level_1__c = false;
-                        // ord.Level_2__c = false;
-                        // ord.Level_3__c = false;
-                        // ord.Credit_Status__c = '';
-                        // ord.Approval_Status__c = null;
-
-                        // ---------- Need to check below condition ---------------
-                        // if (String.isNotBlank(ord.Id)) {
-                        //     List < ProcessInstanceWorkitem > pval = [
-                        //         SELECT Id FROM ProcessInstanceWorkItem
-                        //         WHERE ProcessInstance.TargetObjectId =: ord.Id
-                        //         AND ProcessInstance.Status = 'Pending'
-                        //     ];
-                        //     if (pval.size() > 0) {
-                        //         Approval.ProcessWorkItemRequest Preq = new Approval.ProcessWorkItemRequest();
-                        //         Preq.setAction('Reject');
-                        //         Preq.setWorkItemId(Pval[0].Id);
-                        //         Approval.ProcessResult result = Approval.process(Preq);
-                        //     }
-                        // }
-                        // }
-
                         // ======================================================================================
                         // For Order_Header_Partner_Function__c Start
                         // ======================================================================================
 
                         // PartnerList
-                        if (!globalFlag) {
 
-                            List < Order_Header_Text__c > orderHeaderTextList = new List < Order_Header_Text__c > ();
-                            for (cls_HEADERTEXT header: soRequest.HEADERTEXT) {
-                                Order_Header_Text__c orderHeaderText = new Order_Header_Text__c();
-                                orderHeaderText.Order__c = ord.Id;
-                                orderHeaderText.Instruction_Type__c = header.INSTRUCTION_TYPE;
-                                orderHeaderText.Instruction_Description__c = header.INSTRUCTION_DESCRIPTION;
-                                orderHeaderTextList.add(orderHeaderText);
-                                // if (mpHeadertext.get(header.TEXT_ID) != null) {
-                                //     orderHeaderText.Id = mpHeadertext.get(header.TEXT_ID);
-                                // }
-                                // orderHeaderText.Order__c = ord.Id;
-                                // orderHeaderText.Text_ID__c = header.TEXT_ID;
-                                // orderHeaderText.Text_Description__c = header.TEXT_LINE;
-                                // orderHeaderTextList.add(orderHeaderText);
-                                // if (header.TEXT_ID == 'Z005') {
-                                //     ord.Internal_Remarks__c = header.TEXT_LINE;
-                                // }
-                            }
+                        List < Order_Header_Text__c > orderHeaderTextList = new List < Order_Header_Text__c > ();
+                        for (cls_HEADERTEXT header: soRequest.HEADERTEXT) {
+                            Order_Header_Text__c orderHeaderText = new Order_Header_Text__c();
+                            orderHeaderText.Order__c = ord.Id;
+                            // orderHeaderText.Instruction_Type__c = header.INSTRUCTION_TYPE;
+                            orderHeaderText.Instruction_Id__c = header.INSTRUCTION_TYPE;
+                            orderHeaderText.Instruction_Description__c = header.INSTRUCTION_DESCRIPTION;
+                            orderHeaderTextList.add(orderHeaderText);
+                            // if (mpHeadertext.get(header.TEXT_ID) != null) {
+                            //     orderHeaderText.Id = mpHeadertext.get(header.TEXT_ID);
+                            // }
+                            // orderHeaderText.Order__c = ord.Id;
+                            // orderHeaderText.Text_ID__c = header.TEXT_ID;
+                            // orderHeaderText.Text_Description__c = header.TEXT_LINE;
+                            // orderHeaderTextList.add(orderHeaderText);
+                            // if (header.TEXT_ID == 'Z005') {
+                            //     ord.Internal_Remarks__c = header.TEXT_LINE;
+                            // }
+                        }
 
-                            if (orderHeaderTextList.size() > 0) {
-                                upsert orderHeaderTextList;
-                            }
+                        if (orderHeaderTextList.size() > 0) {
+                            upsert orderHeaderTextList;
+                        }
 
-                            List < Order_Header_Partner_Function__c > partnerFuncList = new List < Order_Header_Partner_Function__c > ();
-                            for (cls_PARTNER_LIST partnerFunctionItem: soRequest.PARTNERLIST) {
-                                Order_Header_Partner_Function__c partnerFunc = new Order_Header_Partner_Function__c();
-                                partnerFunc.Order__c = ord.Id;
-                                partnerFunc.Name = partnerFunctionItem.PARTNER_NAME;
-                                partnerFunc.Partner_code__c = partnerFunctionItem.PARTNER_CODE;
-                                partnerFunc.Partner_function__c = partnerFunctionItem.PARTNER_FUNCTION;
-                                partnerFuncList.add(partnerFunc);
+                        List < Order_Header_Partner_Function__c > partnerFuncList = new List < Order_Header_Partner_Function__c > ();
+                        for (cls_PARTNER_LIST partnerFunctionItem: soRequest.PARTNERLIST) {
+                            Order_Header_Partner_Function__c partnerFunc = new Order_Header_Partner_Function__c();
+                            if (ohpfMap.containsKey(partnerFunctionItem.PARTNER_FUNCTION+'-'+partnerFunctionItem.PARTNER_CODE)) {
+                                partnerFunc.Id = ohpfMap.get(partnerFunctionItem.PARTNER_FUNCTION+'-'+partnerFunctionItem.PARTNER_CODE);
                             }
+                            partnerFunc.Order__c = ord.Id;
+                            partnerFunc.Name = partnerFunctionItem.PARTNER_FUNCTION+'-'+partnerFunctionItem.PARTNER_NAME;
+                            partnerFunc.Partner_code__c = partnerFunctionItem.PARTNER_CODE;
+                            partnerFunc.Partner_function__c = partnerFunctionItem.PARTNER_FUNCTION;
+                            partnerFuncList.add(partnerFunc);
+                        }
 
-                            if (partnerFuncList.size() > 0) {
-                                upsert partnerFuncList;
-                            }
+                        if (partnerFuncList.size() > 0) {
+                            upsert partnerFuncList;
                         }
 
                         // Map < String, Order_Header_Partner_Function__c > partnerFunctionMap = new Map < String, Order_Header_Partner_Function__c > ();
@@ -444,10 +344,10 @@ global class SalesOrderAPI {
                             // for (Plant_Code__c plant: [SELECT Id, Name FROM Plant_Code__c WHERE Name IN: plantNames]) {
                             //     plantCodeMap.put(plant.Name, plant);
                             // }
-                            // Map < String, Base_UOM_Master__c > uomCodeMap = new Map < String, Base_UOM_Master__c > ();
-                            // for (Base_UOM_Master__c uom: [SELECT Id, Name FROM Base_UOM_Master__c WHERE Name IN: baseUOMNames]) {
-                            //     uomCodeMap.put(uom.Name, uom);
-                            // }
+                            Map < String, Base_UOM_Master__c > uomCodeMap = new Map < String, Base_UOM_Master__c > ();
+                            for (Base_UOM_Master__c uom: [SELECT Id, Name FROM Base_UOM_Master__c WHERE Name IN: baseUOMNames]) {
+                                uomCodeMap.put(uom.Name, uom);
+                            }
                             Map < String, PricebookEntry > pricebookEntryMap = new Map < String, PricebookEntry > ();
                             for (PricebookEntry entry: [
                                 SELECT Id, Product2Id, Product2.ProductCode, CurrencyIsoCode 
@@ -464,8 +364,8 @@ global class SalesOrderAPI {
                             for (cls_ITEMS item: soRequest.ITEMS) {
                                 OrderItem orderItem = new OrderItem();
 
-                                if (String.isNotBlank(item.SFDC_LINE_ITEM_ID)) {
-                                    orderItem.Id = item.SFDC_LINE_ITEM_ID;
+                                if (ordItemMap.containsKey(item.MATERIAL)) {
+                                    orderItem.Id = ordItemMap.get(item.MATERIAL);
                                 } else {
                                     if (!pricebookEntryMap.containsKey(item.MATERIAL)) {
                                         apiLog.Response__c = 'No pricebook entry found for product ' + item.MATERIAL + ' with currency ' + ord.CurrencyIsoCode;
@@ -484,6 +384,9 @@ global class SalesOrderAPI {
                                 // if (String.isNotBlank(item.PLANT)) {
                                 //     orderItem.Plant_Code__c = plantCodeMap.get(item.PLANT).Id;
                                 // }
+                                if (String.isNotBlank(item.PLANT)) {
+                                    orderItem.Plant2__c = item.PLANT;
+                                }
                                 orderItem.Quantity = item.QTY;
                                 orderItem.UnitPrice = item.PRICE;
                                 // if (item.PRICE == 0) {
@@ -491,10 +394,11 @@ global class SalesOrderAPI {
                                 // } else {
                                 //     orderItem.Free_Item__c = 'No';
                                 // }
-                                // if (String.isNotBlank(item.UOM)) {
-                                //     orderItem.Sales_UOM__c = uomCodeMap.get(item.UOM).Id;
-                                // }
+                                if (String.isNotBlank(item.UOM)) {
+                                    orderItem.SalesUOM__c = uomCodeMap.get(item.UOM).Id;
+                                }
                                 orderItem.Description = item.ITM_DESC;
+                                orderItem.Material_Code__c = item.MATERIAL;
                                 // orderItem.Display_Name__c = item.ITM_DESC;
                                 // orderItem.Item_Category__c = item.ITEM_CATEG;
                                 // orderItem.Order_Item_Category__c = item.ITEM_CATEG;
@@ -553,7 +457,8 @@ global class SalesOrderAPI {
                                         Order_Detail_Text__c orderDetailText = new Order_Detail_Text__c();
                                         orderDetailText.Order__c = ord.Id;
                                         orderDetailText.Order_Product__c = mpOrderLineItemList.get(ord.Id + '' + item.ITEM_NUM).Id;
-                                        orderDetailText.Text_Type__c = rowDetailText.TEXT_TYPE;
+                                        // orderDetailText.Text_Type__c = rowDetailText.TEXT_TYPE;
+                                        orderDetailText.Text_Id__c = rowDetailText.TEXT_TYPE;
                                         orderDetailText.Text_Description__c = rowDetailText.TEXT_DESCRIPTION;
                                         orderDetailText.Document_upload__c = rowDetailText.DOC_UPLOAD;
                                         // orderDetailText.Unique__c = mpOrderLineItemList.get(ord.Id + '' + item.ITEM_NUM).Id + '-' + rowDetailText.TEXT_ID;
@@ -657,15 +562,20 @@ global class SalesOrderAPI {
 
     public class SalesOrderJson {
         public String SFDC_ID; //
-        public String SALES_EXECUTIVE;
-        public String QUOTE_NUM;
         public String DOC_NUM; //
         public String CUSTOMER_NO; //0005002762
+        public String SHIP_TO_PARTY;
+        public String BILL_TO_PARTY;
+        public String ORDER_DATE;
+        public String CREATED_BY;
+        public String CUSTOMER_GROUP;
+        public String SALES_DISTRICT;
+        public String COUNTRY;
+        public String SALES_EXECUTIVE;
         public String SALES_ORG; //1000
-        // public String SALES_DOC_TYPE; //ZDCO
         public String DISTR_CHANN; //10
         public String DIVISION; //29
-        public String CUST_PURC_NO; //.
+        public String CUST_PURC_NO; //
         public String PMNTRMS; //
         public String INCOTERMS1; //
         public String INCOTERMS2; //
@@ -677,26 +587,24 @@ global class SalesOrderAPI {
         public String PO_DATE; //
         public String DOCUMENT_CURRENCY; //
         public Decimal EXCHG_RATE;
+        public String PALLET;
         public String REQD_DEL_DATE; //
+        public String DELIVERY_BLOCK;
+        public String BILLING_BLOCK;
+        public String VARIABLE_PRICE;
+
+        public String QUOTE_NUM;
+        public String DOC_TYPE; //ZDCO
         // public String PORT_DICRG;
         // public String PORT_DEST;
         // public String PKT_TYPE;
-        public String PALLET;
         // public String DOC_SENT;
         // public String MESSAGE; //
         // public String USER_ID;
         // public String CREATED_ON;
         // public String MODIFY_ON;
         public String INDICATOR;
-        public String BILLING_BLOCK;
-        public String DELIVERY_BLOCK;
-        public String SHIP_TO_PARTY;
-        public String ORDER_DATE;
-        public String CUSTOMER_GROUP;
-        public String SALES_DISTRICT;
-        public String COUNTRY;
-        public String BILL_TO_PARTY;
-        public String CREATED_BY;
+        
         // public String OVER_STATUS;
         // public String REJ_STATUS;
         // public String DEL_STATUS;

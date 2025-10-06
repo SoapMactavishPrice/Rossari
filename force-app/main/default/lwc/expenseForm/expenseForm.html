@@ -66,6 +66,13 @@
                             variant="label-stacked"></lightning-input>
                     </div>
 
+                    <div class="slds-col slds-size_1-of-2 slds-medium-size_1-of-4">
+                        <lightning-combobox name="currency" label="Currency" value={selectedCurrency} 
+                                            options={currencyOptions} onchange={handleCurrencyChange} 
+                                            variant="label-stacked" required>
+                        </lightning-combobox>
+                    </div>
+
                     <!-- Tour Lookup Field (Visible only for Outstation) -->
                     <div class="slds-col slds-size_1-of-2 slds-medium-size_1-of-4" if:true={showTourLookup}>
                         <c-tour-lookup-component label="Tour" onselected={handleTourSelected}></c-tour-lookup-component>
@@ -80,7 +87,6 @@
                             </c-account-lookup-component>
                         </template>
                     </div>
-
                 </div>
 
                 <!-- Line Items Section -->
@@ -242,16 +248,34 @@
                                         </lightning-input>
                                     </td>
                                     <td if:true={showKMFields}>
-                                        <lightning-input type="number" value={item.kmRate} data-index={index}
-                                            onchange={handleKMRateChange} variant="label-hidden" step="0.01"
-                                            formatter="currency" required={showKMFields}>
-                                        </lightning-input>
+                                        <div class="slds-input-has-fixed-addon">
+                                            <span class="slds-form-element__addon">
+                                                {currencySymbol}
+                                            </span>
+                                            <lightning-input type="number"
+                                                            value={item.kmRate}
+                                                            data-index={index}
+                                                            onchange={handleKMRateChange}
+                                                            variant="label-hidden"
+                                                            step="0.01"
+                                                            required={showKMFields}>
+                                            </lightning-input>
+                                        </div>
                                     </td>
                                     <td if:true={showTollParkingField}>
-                                        <lightning-input type="number" value={item.tollParking} data-index={index}
-                                            onchange={handleTollParkingChange} variant="label-hidden" step="0.01"
-                                            formatter="currency" disabled={item.disableTollParking}>
-                                        </lightning-input>
+                                        <div class="slds-input-has-fixed-addon">
+                                            <span class="slds-form-element__addon">
+                                                {currencySymbol}
+                                            </span>
+                                            <lightning-input type="number"
+                                                            value={item.tollParking}
+                                                            data-index={index}
+                                                            onchange={handleTollParkingChange}
+                                                            variant="label-hidden"
+                                                            step="0.01"
+                                                            disabled={item.disableTollParking}>
+                                            </lightning-input>
+                                        </div>
                                     </td>
                                     <td if:true={showOutstationFields} class="slds-text-align_center">
                                         <lightning-input type="checkbox" checked={item.ticketBookedByCompany}
@@ -267,10 +291,19 @@
                                     </td>
 
                                     <td>
-                                        <lightning-input type="number" value={item.amountClaimed} data-index={index}
-                                            onchange={handleAmountClaimedChange} variant="label-hidden" step="0.01"
-                                            required formatter="currency">
-                                        </lightning-input>
+                                        <div class="slds-input-has-fixed-addon">
+                                            <span class="slds-form-element__addon">
+                                                {currencySymbol}
+                                            </span>
+                                            <lightning-input type="number"
+                                                            value={item.amountClaimed}
+                                                            data-index={index}
+                                                            onchange={handleAmountClaimedChange}
+                                                            variant="label-hidden"
+                                                            step="0.01"
+                                                            required>
+                                            </lightning-input>
+                                        </div>
                                     </td>
                                     <td if:true={showReasonColumn}>
                                         <lightning-textarea value={item.reason}

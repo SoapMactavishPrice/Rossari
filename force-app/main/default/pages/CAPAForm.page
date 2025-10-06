@@ -1,0 +1,709 @@
+<apex:page controller="CAPAFormCustomController" showHeader="false" sidebar="false" 
+           renderAs="pdf" contentType="application/pdf" standardStylesheets="false">
+    
+    <!--  <apex:stylesheet value="{!URLFOR($Resource.RossariStyles, 'CAPAForm.css')}"/> -->
+    <!--1st page-->
+    <!-- HEADER (Repeats on every page) -->
+    <div class="page-header">
+        <table border="1" cellspacing="0" cellpadding="4" 
+               style="width:100%; border-collapse:collapse; font-family:'Times New Roman', Times, serif; font-size:14px; text-align:center; table-layout:fixed; border:1px solid black;">
+            <!-- First Row -->
+            <tr>
+                <td colspan="2" style="text-align:center; width:20%; max-width:20%; border:1px solid black;">
+                    <img src="{!URLFOR($Resource.RossariHeader)}" style="width:100px; height:auto;" />
+                </td>
+                <td colspan="2" 
+                    style="text-align:left; vertical-align:middle; width:80%; max-width:80%; height:auto; border:1px solid black;">                    
+                    <!-- Company Name -->
+                    <span style="font-family:'Times New Roman', Times, serif; font-size:32px; font-weight:bold; color:#9d0b0f;">
+                        ROSSARI BIOTECH LIMITED
+                    </span><br/>
+                    
+                    <!-- Address Block -->
+                    <span style="font-family:'Times New Roman', Times, serif; font-size:14px; line-height:1.4; color:blue;">                        
+                        <b>Regd. Office:</b> Rossari House, Golden Oak, LBS Marg, Surya Nagar, Opp. Mahindra Showroom, 
+                        Vikhroli (West), Mumbai - 400079, Maharashtra, India. 
+                        <b>Telephone:</b> +91-22-6123 3800<br/>                       
+                    </span>
+                </td>
+                
+            </tr>       
+            
+            <!-- Second Row -->
+            <tr>
+                <td colspan="4" style="font-family:'Times New Roman', Times, serif; font-weight:bold; text-align:center; font-size:14px; height:30px; border:1px solid black;">
+                    CORRECTIVE ACTION AND PREVENTIVE ACTION (CAPA) FORM
+                </td>
+            </tr>
+            
+            <!-- Third Row -->
+            <tr>
+                <td colspan="4" style="font-weight:bold; text-align:center; font-size:14px; height:30px; border:1px solid black;">
+                    REFERENCE SOP NO. : SOP/CQA/004
+                </td>
+            </tr>
+            
+            <!-- Fourth Row -->
+            <table style="width:100%; border-collapse:collapse; table-layout:fixed;">
+                <tr>
+                    <td style="width:25%; text-align:left; font-weight:bold; border:1px solid black; padding:6px;">CAPA No.:</td>
+                    <td style="width:25%; text-align:left; border:1px solid black; padding:6px;">
+                        <apex:outputText value="{!caseRecord.CAPA_No__c}" rendered="{!NOT(ISBLANK(caseRecord.CAPA_No__c))}"/>
+                        <apex:outputText value="" rendered="{!ISBLANK(caseRecord.CAPA_No__c)}"/>
+                    </td>
+                    <td style="width:25%; text-align:left; font-weight:bold; border:1px solid black; padding:6px;">Date :</td>
+                    <td style="width:25%; text-align:left; border:1px solid black; padding:6px;">
+                        <apex:outputText value="{0,date,dd/MM/yyyy}" rendered="{!NOT(ISBLANK(caseRecord.CAPA_Date__c))}">
+                            <apex:param value="{!caseRecord.CAPA_Date__c}" />
+                        </apex:outputText>
+                        <apex:outputText value="" rendered="{!ISBLANK(caseRecord.CAPA_Date__c)}"/>
+                    </td>
+                    
+                </tr>
+            </table>
+        </table>
+        <br/><br/>
+    </div>
+    
+    <!-- BODY CONTENT -->
+    <table style="width: 100%; border-collapse: collapse; font-family: Arial, sans-serif; font-size: 14px;">
+        <!-- Description of Non-Conformity -->
+        <tr>
+            <td colspan="4" style="border: 1px solid #000; padding: 6px; vertical-align: top; height: 80px;">
+                <span style="font-weight: bold;">Description of Non-Conformity:</span> 
+                <apex:outputText value=" {!caseRecord.Description_of_Non_Conformity__c}" rendered="{!NOT(ISBLANK(caseRecord.Description_of_Non_Conformity__c))}"/>
+            </td>
+        </tr>      
+        
+        <!-- Source of Non-Conformity -->
+        <tr>
+            <td colspan="4" style="border: 1px solid #000; padding: 6px; font-weight: bold;">
+                Source of Non-Conformity:  <apex:outputText value=" {!caseRecord.Nature_of_Complaint__c}" rendered="{!NOT(ISBLANK(caseRecord.Nature_of_Complaint__c))}"/>
+            </td>
+        </tr>
+        
+        
+        
+        <!-- Options -->
+        <!--<tr>
+            <td style="border: 1px solid #000; padding: 6px; width: 5%;">1.</td>
+            <td style="border: 1px solid #000; padding: 6px; width: 35%;">Product Complaint / Product Recall</td>
+            <td style="border: 1px solid #000; padding: 6px; width: 10%;"></td>
+            <td style="border: 1px solid #000; padding: 6px; width: 50%;">
+                Ref. Document No :
+                <apex:outputText value=" {!caseRecord.Ref_Document_No__c}" rendered="{!NOT(ISBLANK(caseRecord.Ref_Document_No__c))}"/>
+            </td>
+        </tr>
+        
+        <tr>
+            <td style="border: 1px solid #000; padding: 6px; width: 5%;">2.</td>
+            <td style="border: 1px solid #000; padding: 6px; width: 35%;">Internal Audit / Regulatory Audit</td>
+            <td style="border: 1px solid #000; padding: 6px; width: 10%;"></td>
+            <td style="border: 1px solid #000; padding: 6px; width: 50%;">Ref. Document No :</td>
+        </tr>
+        
+        <tr>
+            <td style="border: 1px solid #000; padding: 6px; width: 5%;">3.</td>
+            <td style="border: 1px solid #000; padding: 6px; width: 35%;">Annual Product Review</td>
+            <td style="border: 1px solid #000; padding: 6px; width: 10%;"></td>
+            <td style="border: 1px solid #000; padding: 6px; width: 50%;">Ref. Document No :</td>
+        </tr>
+        
+        <tr>
+            <td style="border: 1px solid #000; padding: 6px; width: 5%;">4.</td>
+            <td style="border: 1px solid #000; padding: 6px; width: 35%;">Manufacturing Deviation</td>
+            <td style="border: 1px solid #000; padding: 6px; width: 10%;"></td>
+            <td style="border: 1px solid #000; padding: 6px; width: 50%;">Ref. Document No :</td>
+        </tr>
+        
+        <tr>
+            <td style="border: 1px solid #000; padding: 6px; width: 5%;">5.</td>
+            <td colspan="3" style="border: 1px solid #000; padding: 6px;">Others:</td>
+        </tr> -->
+        
+        
+        <!-- PART 1 -->
+        <tr>
+            <td colspan="4" style="border: 1px solid #000; text-align: center; font-weight: bold; padding: 6px;">
+                PART 1
+            </td>
+        </tr>
+        
+        <!-- Investigation + Root Cause -->
+        <tr>
+            <td colspan="4" style="border: 1px solid #000; vertical-align: top; padding: 6px;">
+                <span style="font-weight: bold;">Investigation: Root Cause</span>
+            </td>
+        </tr>
+        
+        <!-- Root Cause row -->
+        <tr>
+            <td colspan="4" style="border: 1px solid #000; padding: 6px; height: 100px; vertical-align: top;">
+                <span style="font-weight: bold;">Root Cause:</span>
+                <apex:outputText value=" {!caseRecord.Root_Cause__c}" rendered="{!NOT(ISBLANK(caseRecord.Root_Cause__c))}"/><br/><br/><br/><br/><br/><br/><br/><br/>
+            </td>
+        </tr>
+        
+        <!-- Signatures -->
+        <table style="width:100%; border-collapse:collapse; table-layout:fixed;">
+            <colgroup>
+                <col style="width:20%;" />
+                <col style="width:40%;" />
+                <col style="width:40%;" />
+            </colgroup>
+            
+            <tr>
+                <td style="border: 1px solid #000; text-align: left; padding: 6px;">
+                </td>
+                <td style="border: 1px solid #000; text-align: left; padding: 6px;">
+                    Concern Department Head
+                </td>
+                <td style="border: 1px solid #000; text-align: left; padding: 6px;">
+                    Q.A. Manager / Designee
+                </td>
+            </tr>
+            <tr>
+                <td style="border: 1px solid #000; height: 60px; text-align: left; padding: 6px;">Name
+                </td>
+                <td style="border: 1px solid #000; height: 60px; text-align: left; padding: 6px;">
+                    <apex:outputText value="{!caseRecord.Concern_Department_Head__c}" 
+                                     rendered="{!NOT(ISBLANK(caseRecord.Concern_Department_Head__c))}"/>
+                </td>
+                <td style="border: 1px solid #000; height: 60px; text-align: left; padding: 6px;">
+                    <apex:outputText value="{!caseRecord.Q_A_Manager_Designee__r.Name}" 
+                                     rendered="{!NOT(ISBLANK(caseRecord.Q_A_Manager_Designee__c))}"/>
+                </td>
+            </tr>
+        </table>
+        
+        
+        
+    </table> 
+    
+    
+    <!--2nd page -->
+    <table style="page-break-before: always; width:100%; border-collapse:collapse; table-layout:fixed;">
+        
+        <!-- HEADER (Repeats on every page) -->
+        <div class="page-header">
+            <table border="1" cellspacing="0" cellpadding="4" 
+                   style="width:100%; border-collapse:collapse; font-family:'Times New Roman', Times, serif; font-size:14px; text-align:center; table-layout:fixed; border:1px solid black;">
+                <!-- First Row -->
+                <tr>
+                    <td colspan="2" style="text-align:center; width:20%; max-width:20%; border:1px solid black;">
+                        <img src="{!URLFOR($Resource.RossariHeader)}" style="width:100px; height:auto;" />
+                    </td>
+                    <td colspan="2" 
+                        style="text-align:left; vertical-align:middle; width:80%; max-width:80%; height:auto; border:1px solid black;">                    
+                        <!-- Company Name -->
+                        <span style="font-family:'Times New Roman', Times, serif; font-size:32px; font-weight:bold; color:#9d0b0f;">
+                            ROSSARI BIOTECH LIMITED
+                        </span><br/>
+                        
+                        <!-- Address Block -->
+                        <span style="font-family:'Times New Roman', Times, serif; font-size:14px; line-height:1.4; color:blue;">                        
+                            <b>Regd. Office:</b> Rossari House, Golden Oak, LBS Marg, Surya Nagar, Opp. Mahindra Showroom, 
+                            Vikhroli (West), Mumbai - 400079, Maharashtra, India. 
+                            <b>Telephone:</b> +91-22-6123 3800<br/>                       
+                        </span>
+                    </td>
+                </tr>       
+                
+                <!-- Second Row -->
+                <tr>
+                    <td colspan="4" style="font-family:'Times New Roman', Times, serif; font-weight:bold; text-align:center; font-size:14px; height:30px; border:1px solid black;">
+                        CORRECTIVE ACTION AND PREVENTIVE ACTION (CAPA) FORM
+                    </td>
+                </tr>
+                
+                <!-- Third Row -->
+                <tr>
+                    <td colspan="4" style="font-weight:bold; text-align:center; font-size:14px; height:30px; border:1px solid black;">
+                        REFERENCE SOP NO. : SOP/CQA/004
+                    </td>
+                </tr>
+                
+                <!-- Fourth Row -->
+                <table style="width:100%; border-collapse:collapse; table-layout:fixed;">
+                    <tr>
+                        <td style="width:25%; text-align:left; font-weight:bold; border:1px solid black; padding:6px;">CAPA No.:</td>
+                        <td style="width:25%; text-align:left; border:1px solid black; padding:6px;">
+                            <apex:outputText value="{!caseRecord.CAPA_No__c}" rendered="{!NOT(ISBLANK(caseRecord.CAPA_No__c))}"/>
+                            <apex:outputText value="" rendered="{!ISBLANK(caseRecord.CAPA_No__c)}"/>
+                        </td>
+                        <td style="width:25%; text-align:left; font-weight:bold; border:1px solid black; padding:6px;">Date :</td>
+                        <td style="width:25%; text-align:left; border:1px solid black; padding:6px;">
+                            <apex:outputText value="{0,date,dd/MM/yyyy}" rendered="{!NOT(ISBLANK(caseRecord.CAPA_Date__c))}">
+                                <apex:param value="{!caseRecord.CAPA_Date__c}" />
+                            </apex:outputText>
+                            <apex:outputText value="" rendered="{!ISBLANK(caseRecord.CAPA_Date__c)}"/>
+                        </td>
+                    </tr>
+                </table>
+            </table>
+            <br/><br/>
+        </div>        
+        <table border="1" cellspacing="0" cellpadding="4" 
+               style="width:100%; border-collapse:collapse; font-family:'Times New Roman', Times, serif; font-size:14px; text-align:center; table-layout:fixed; border:1px solid black;">      
+            <tr>
+                <td style="width:33.33%; border:1px solid #000; height:50px; text-align:left; padding:6px;">
+                    Sign &amp; Date
+                </td>
+                <td style="width:33.33%; border:1px solid #000; height:50px; text-align:center; padding:6px;">
+                    <apex:outputText value="{!caseRecord.Q_A_Manager_Designee_Sign__c}" rendered="{!NOT(ISBLANK(caseRecord.Q_A_Manager_Designee_Sign__c))}"/>
+                </td>
+                <td style="width:33.33%; border:1px solid #000; height:50px; text-align:center; padding:6px;">
+                    <apex:outputText value="{0,date,dd/MM/yyyy}" rendered="{!NOT(ISBLANK(caseRecord.Q_A_Manager_Designee_Date__c))}">
+                        <apex:param value="{!caseRecord.Q_A_Manager_Designee_Date__c}" />
+                    </apex:outputText>
+                    <apex:outputText value="" rendered="{!ISBLANK(caseRecord.Q_A_Manager_Designee_Date__c)}"/>
+                </td>
+            </tr>
+        </table>   
+    </table>
+    
+    
+    <!--3rd page-->
+    <table style="page-break-before: always; width:100%; border-collapse:collapse; table-layout:fixed;">
+        
+        <!-- HEADER (Repeats on every page) -->
+        <div class="page-header">
+            <table border="1" cellspacing="0" cellpadding="4" 
+                   style="width:100%; border-collapse:collapse; font-family:'Times New Roman', Times, serif; font-size:14px; text-align:center; table-layout:fixed; border:1px solid black;">
+                <!-- First Row -->
+                <tr>
+                    <td colspan="2" style="text-align:center; width:20%; max-width:20%; border:1px solid black;">
+                        <img src="{!URLFOR($Resource.RossariHeader)}" style="width:100px; height:auto;" />
+                    </td>
+                    <td colspan="2" 
+                        style="text-align:left; vertical-align:middle; width:80%; max-width:80%; height:auto; border:1px solid black;">                    
+                        <!-- Company Name -->
+                        <span style="font-family:'Times New Roman', Times, serif; font-size:32px; font-weight:bold; color:#9d0b0f;">
+                            ROSSARI BIOTECH LIMITED
+                        </span><br/>
+                        
+                        <!-- Address Block -->
+                        <span style="font-family:'Times New Roman', Times, serif; font-size:14px; line-height:1.4; color:blue;">                        
+                            <b>Regd. Office:</b> Rossari House, Golden Oak, LBS Marg, Surya Nagar, Opp. Mahindra Showroom, 
+                            Vikhroli (West), Mumbai - 400079, Maharashtra, India. 
+                            <b>Telephone:</b> +91-22-6123 3800<br/>                       
+                        </span>
+                    </td>
+                </tr>       
+                
+                <!-- Second Row -->
+                <tr>
+                    <td colspan="4" style="font-family:'Times New Roman', Times, serif; font-weight:bold; text-align:center; font-size:14px; height:30px; border:1px solid black;">
+                        CORRECTIVE ACTION AND PREVENTIVE ACTION (CAPA) FORM
+                    </td>
+                </tr>
+                
+                <!-- Third Row -->
+                <tr>
+                    <td colspan="4" style="font-weight:bold; text-align:center; font-size:14px; height:30px; border:1px solid black;">
+                        REFERENCE SOP NO. : SOP/CQA/004
+                    </td>
+                </tr>
+                
+                <!-- Fourth Row -->
+                <table style="width:100%; border-collapse:collapse; table-layout:fixed;">
+                    <tr>
+                        <td style="width:25%; text-align:left; font-weight:bold; border:1px solid black; padding:6px;">CAPA No.:</td>
+                        <td style="width:25%; text-align:left; border:1px solid black; padding:6px;">
+                            <apex:outputText value="{!caseRecord.CAPA_No__c}" rendered="{!NOT(ISBLANK(caseRecord.CAPA_No__c))}"/>
+                            <apex:outputText value="" rendered="{!ISBLANK(caseRecord.CAPA_No__c)}"/>
+                        </td>
+                        <td style="width:25%; text-align:left; font-weight:bold; border:1px solid black; padding:6px;">Date :</td>
+                        <td style="width:25%; text-align:left; border:1px solid black; padding:6px;">
+                            <apex:outputText value="{0,date,dd/MM/yyyy}" rendered="{!NOT(ISBLANK(caseRecord.CAPA_Date__c))}">
+                                <apex:param value="{!caseRecord.CAPA_Date__c}" />
+                            </apex:outputText>
+                            <apex:outputText value="" rendered="{!ISBLANK(caseRecord.CAPA_Date__c)}"/>
+                        </td>
+                    </tr>
+                </table>
+            </table>
+            <br/><br/><br/><br/>
+        </div>        
+        
+        
+        <!-- PART 2 TABLE -->
+        <table style="width:100%; border-collapse:collapse; font-family:'Times New Roman', Times, serif; font-size:14px;">
+            <tr>
+                <td colspan="5" style="border:1px solid #000; text-align:center; padding:6px; font-size:14px;">
+                    PART 2
+                </td>
+            </tr>
+            <!-- Row 1 -->
+            <tr>
+                <!-- Numbering -->
+                <td rowspan="2" style="border:1px solid #000; width:5%; vertical-align:top; padding:6px; text-align:left;">
+                    1.
+                </td>
+                <!-- Suggested Action text spanning two rows -->
+                <td rowspan="2" style="border:1px solid #000; width:55%; vertical-align:top; padding:6px; text-align:left;">
+                    Suggested Corrective/Preventive Action To Be Taken:<br/>
+                    <apex:outputText value="{!caseRecord.Corrective_Preventive_Action_To_Be_Taken__c}" 
+                                     rendered="{!NOT(ISBLANK(caseRecord.Corrective_Preventive_Action_To_Be_Taken__c))}"/>
+                </td>
+                <!-- Responsible Staff (header) -->
+                <td style="border:1px solid #000; width:20%; text-align:left; padding:6px;">
+                    Responsible Staff <br/> (Name &amp; Designation)
+                </td>
+                <!-- Target Date (header) -->
+                <td style="border:1px solid #000; width:20%; text-align:left; padding:6px;">
+                    Target date for completion of Corrective Action
+                </td>
+            </tr>
+            <!-- Row 2 (empty input row for staff/date) -->
+            <tr>
+                <td style="border:1px solid #000; padding:6px; text-align:left;">
+                    <apex:outputText value="{!caseRecord.Responsible_Staff__c}" 
+                                     rendered="{!NOT(ISBLANK(caseRecord.Responsible_Staff__c))}"/>
+                    <br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/>
+                </td>
+                <td style="border:1px solid #000; padding:6px; text-align:left;">
+                    <apex:outputText value="{0,date,dd/MM/yyyy}" 
+                                     rendered="{!NOT(ISBLANK(caseRecord.Target_Date_for_Completion_of_Corrective__c))}">
+                        <apex:param value="{!caseRecord.Target_Date_for_Completion_of_Corrective__c}" />
+                    </apex:outputText>
+                    <apex:outputText value="" rendered="{!ISBLANK(caseRecord.Target_Date_for_Completion_of_Corrective__c)}"/>
+                    <br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/>
+                </td>
+            </tr>
+            
+            <tr>
+                <!-- Numbering -->
+                <td rowspan="2" style="border:1px solid #000; width:5%; vertical-align:top; padding:6px; text-align:left;">
+                    2.
+                </td>
+                <!-- Suggested Action text spanning two rows -->
+                <td rowspan="2" style="border:1px solid #000; width:55%; vertical-align:top; padding:6px; text-align:left;">
+                    Corrective / Preventive Action Taken: <br/>
+                    <apex:outputText value="{!caseRecord.Corrective_Preventive_Action_Taken__c}" 
+                                     rendered="{!NOT(ISBLANK(caseRecord.Corrective_Preventive_Action_Taken__c))}"/>
+                </td>
+                <!-- Responsible Staff (header) -->
+                <td style="border:1px solid #000; width:20%; text-align:left; padding:6px;">
+                    Action Taken By (Name &amp; Designation)
+                </td>
+                <!-- Target Date (header) -->
+                <td style="border:1px solid #000; width:20%; text-align:left; padding:6px;">
+                    Date of completion of Corrective Action
+                </td>
+            </tr>
+            <!-- Row 2 (empty input row for staff/date) -->
+            <tr>
+                <td style="border:1px solid #000; padding:6px; text-align:left;">
+                    <apex:outputText value="{!caseRecord.Action_Taken_By_Name_Designation__c}" 
+                                     rendered="{!NOT(ISBLANK(caseRecord.Action_Taken_By_Name_Designation__c))}"/>
+                    <br/><br/><br/><br/><br/><br/><br/>
+                </td>
+                <td style="border:1px solid #000; padding:6px; text-align:left;">
+                    <apex:outputText value="{0,date,dd/MM/yyyy}" 
+                                     rendered="{!NOT(ISBLANK(caseRecord.Date_of_completion_of_Corrective_Action__c))}">
+                        <apex:param value="{!caseRecord.Date_of_completion_of_Corrective_Action__c}" />
+                    </apex:outputText>
+                    <apex:outputText value="" rendered="{!ISBLANK(caseRecord.Date_of_completion_of_Corrective_Action__c)}"/>
+                    <br/><br/><br/><br/><br/><br/><br/>
+                </td>
+            </tr>
+            
+        </table>
+        <br/>
+        <table style="width:100%; border-collapse:collapse; font-family:'Times New Roman', Times, serif; font-size:14px;">            
+            
+            <!-- Signature Header Row -->
+            <tr>
+                <td style="border:1px solid #000; text-align:center; padding:6px; font-size:14px;"></td>
+                <td style="border:1px solid #000; text-align:center; padding:6px; font-size:14px;">
+                    Concern Department Head
+                </td>
+                <td style="border:1px solid #000; text-align:center; padding:6px; font-size:14px;">
+                    Q.A. Manager / Designee
+                </td>
+            </tr>
+            
+            <!-- Name Row -->
+            <tr>
+                <td style="border:1px solid #000; padding:6px; width:20%; font-size:14px;">Name</td>
+                <td style="border:1px solid #000; padding:6px; width:40%; font-size:14px;"><apex:outputText value="{!caseRecord.Concern_Department_Head__c}" rendered="{!NOT(ISBLANK(caseRecord.Concern_Department_Head__c))}"/></td>
+                <td style="border:1px solid #000; padding:6px; width:40%; font-size:14px;"><apex:outputText value="{!caseRecord.Q_A_Manager_Designee__r.Name}" rendered="{!NOT(ISBLANK(caseRecord.Q_A_Manager_Designee__c))}"/></td>
+            </tr>
+            
+            <!-- Sign & Date Row -->
+            <tr>
+                <td style="border:1px solid #000; padding:6px; width:20%; font-size:14px;">Sign &amp; Date<br/><br/><br/></td>
+                <td style="border:1px solid #000; padding:6px; width:40%; font-size:14px;"><apex:outputText value="{!caseRecord.Concern_Department_Head_Sign__c}" rendered="{!NOT(ISBLANK(caseRecord.Concern_Department_Head_Sign__c))}"/> 
+                    <br/>  <apex:outputText value="{0,date,dd/MM/yyyy}" rendered="{!NOT(ISBLANK(caseRecord.Concern_Department_Head_Date__c))}">
+                    <apex:param value="{!caseRecord.Concern_Department_Head_Date__c}" />
+                    </apex:outputText>
+                    <apex:outputText value="" rendered="{!ISBLANK(caseRecord.Concern_Department_Head_Date__c)}"/></td>
+                <td style="border:1px solid #000; padding:6px; width:40%; font-size:14px;"><apex:outputText value="{!caseRecord.Q_A_Manager_Designee_Sign__c}" rendered="{!NOT(ISBLANK(caseRecord.Q_A_Manager_Designee_Sign__c))}"/> 
+                    <br/>  <apex:outputText value="{0,date,dd/MM/yyyy}" rendered="{!NOT(ISBLANK(caseRecord.Q_A_Manager_Designee_Date__c))}">
+                    <apex:param value="{!caseRecord.Q_A_Manager_Designee_Date__c}" />
+                    </apex:outputText>
+                    <apex:outputText value="" rendered="{!ISBLANK(caseRecord.Q_A_Manager_Designee_Date__c)}"/></td>
+            </tr>
+        </table>       
+        
+        <!--4th page-->        
+        <table style="page-break-before: always; width:100%; border-collapse:collapse; table-layout:fixed;">
+            
+            <!-- HEADER (Repeats on every page) -->
+            <div class="page-header">
+                <table border="1" cellspacing="0" cellpadding="4" 
+                       style="width:100%; border-collapse:collapse; font-family:'Times New Roman', Times, serif; font-size:14px; text-align:center; table-layout:fixed; border:1px solid black;">
+                    <!-- First Row -->
+                    <tr>
+                        <td colspan="2" style="text-align:center; width:20%; max-width:20%; border:1px solid black;">
+                            <img src="{!URLFOR($Resource.RossariHeader)}" style="width:100px; height:auto;" />
+                        </td>
+                        <td colspan="2" 
+                            style="text-align:left; vertical-align:middle; width:80%; max-width:80%; height:auto; border:1px solid black;">                    
+                            <!-- Company Name -->
+                            <span style="font-family:'Times New Roman', Times, serif; font-size:32px; font-weight:bold; color:#9d0b0f;">
+                                ROSSARI BIOTECH LIMITED
+                            </span><br/>
+                            
+                            <!-- Address Block -->
+                            <span style="font-family:'Times New Roman', Times, serif; font-size:14px; line-height:1.4; color:blue;">                        
+                                <b>Regd. Office:</b> Rossari House, Golden Oak, LBS Marg, Surya Nagar, Opp. Mahindra Showroom, 
+                                Vikhroli (West), Mumbai - 400079, Maharashtra, India. 
+                                <b>Telephone:</b> +91-22-6123 3800<br/>                       
+                            </span>
+                        </td>
+                    </tr>       
+                    
+                    <!-- Second Row -->
+                    <tr>
+                        <td colspan="4" style="font-family:'Times New Roman', Times, serif; font-weight:bold; text-align:center; font-size:14px; height:30px; border:1px solid black;">
+                            CORRECTIVE ACTION AND PREVENTIVE ACTION (CAPA) FORM
+                        </td>
+                    </tr>
+                    
+                    <!-- Third Row -->
+                    <tr>
+                        <td colspan="4" style="font-weight:bold; text-align:center; font-size:14px; height:30px; border:1px solid black;">
+                            REFERENCE SOP NO. : SOP/CQA/004
+                        </td>
+                    </tr>
+                    
+                    <!-- Fourth Row -->
+                    <table style="width:100%; border-collapse:collapse; table-layout:fixed;">
+                        <tr>
+                            <td style="width:25%; text-align:left; font-weight:bold; border:1px solid black; padding:6px;">CAPA No.:</td>
+                            <td style="width:25%; text-align:left; border:1px solid black; padding:6px;">
+                                <apex:outputText value="{!caseRecord.CAPA_No__c}" rendered="{!NOT(ISBLANK(caseRecord.CAPA_No__c))}"/>
+                                <apex:outputText value="" rendered="{!ISBLANK(caseRecord.CAPA_No__c)}"/>
+                            </td>
+                            <td style="width:25%; text-align:left; font-weight:bold; border:1px solid black; padding:6px;">Date :</td>
+                            <td style="width:25%; text-align:left; border:1px solid black; padding:6px;">
+                                <apex:outputText value="{0,date,dd/MM/yyyy}" rendered="{!NOT(ISBLANK(caseRecord.CAPA_Date__c))}">
+                                    <apex:param value="{!caseRecord.CAPA_Date__c}" />
+                                </apex:outputText>
+                                <apex:outputText value="" rendered="{!ISBLANK(caseRecord.CAPA_Date__c)}"/>
+                            </td>
+                        </tr>
+                    </table>
+                </table>
+                <br/><br/><br/><br/>    
+            </div>
+        </table>
+        
+        
+        <table style="width:100%; border-collapse:collapse; font-family:'Times New Roman', Times, serif; font-size:14px;">
+            <!-- PART 3 Header -->
+            <tr>
+                <td colspan="4" style="border:1px solid #000; text-align:center; padding:6px;">
+                    <b>PART 3</b>
+                </td>
+            </tr>
+            
+            <!-- Verification of Corrective Action Taken -->
+            <tr>
+                <td style="border:1px solid #000; width:5%; vertical-align:top; padding:6px;">
+                    1.
+                </td>
+                <td colspan="3" style="border:1px solid #000; width:95%; vertical-align:top; padding:6px;">
+                    Verification of the Corrective/Preventive Action Taken: <apex:outputText value=" {!caseRecord.Verification_of_Corrective_Preventive__c}" rendered="{!NOT(ISBLANK(caseRecord.Verification_of_Corrective_Preventive__c))}"/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/>
+                </td>
+            </tr>
+            
+            <!-- Verification Signatures Header -->
+            <tr>
+                <td style="border:1px solid #000; width:25%; text-align:center; padding:6px;">
+                    Verification Done By
+                </td>
+                <td style="border:1px solid #000; width:25%; text-align:center; padding:6px;">
+                    Concern Department Head
+                </td>
+                <td colspan="2" style="border:1px solid #000; width:50%; text-align:center; padding:6px;">
+                    Q.A. Manager / Designee
+                </td>
+            </tr>
+            
+            <!-- Name Row -->
+            <tr>
+                <td style="border:1px solid #000; padding:6px;">Name</td>
+                <td style="border:1px solid #000; padding:6px;"></td>
+                <td colspan="2" style="border:1px solid #000; padding:6px;"></td>
+            </tr>
+            
+            <!-- Sign & Date Row -->
+            <tr>
+                <td style="border:1px solid #000; padding:6px;">Sign &amp; Date<br/><br/><br/></td>
+                <td style="border:1px solid #000; padding:6px;"></td>
+                <td colspan="2" style="border:1px solid #000; padding:6px;"></td>
+            </tr>
+            
+            <!-- PART 4 Header -->
+            <tr>
+                <td colspan="4" style="border:1px solid #000; text-align:center; padding:6px;">
+                    <b>PART 4</b>
+                </td>
+            </tr>
+            
+            <!-- Remarks -->
+            <tr>
+                <td colspan="4" style="border:1px solid #000; padding:12px; vertical-align:middle;">
+                    
+                    <!-- Remarks Row -->
+                    <div style="text-align:left; font-weight:bold; margin-bottom:40px;">
+                        Remarks:
+                    </div>
+                    
+                    <!-- Sub Table for alignment -->
+                    <table style="width:100%; border-collapse:collapse;">
+                        <tr>
+                            <td style="text-align:left; font-weight:bold; width:50%;">Head of Quality Assurance Department:</td>
+                            <td style="text-align:center; font-weight:normal; width:50%;">
+                                <apex:outputText value="{!caseRecord.Head_of_Quality_Assurance_Department__r.Name}" 
+                                                 rendered="{!NOT(ISNULL(caseRecord.Q_A_Manager_Designee__c))}"/> 
+                            </td>
+                        </tr>
+                        <tr>
+                            <td style="text-align:left; font-weight:bold;">Sign:</td>
+                            <td style="text-align:center; font-weight:normal;">
+                                <apex:outputText value="{!caseRecord.Head_of_Quality_Assurance_Sign__c}" 
+                                                 rendered="{!NOT(ISNULL(caseRecord.Head_of_Quality_Assurance_Sign__c))}"/>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td style="text-align:left; font-weight:bold;">Date:</td>
+                            <td style="text-align:center; font-weight:normal;">
+                                <apex:outputText value="{0,date,dd/MM/yyyy}" 
+                                                 rendered="{!NOT(ISBLANK(caseRecord.Head_of_Quality_Assurance_Date__c))}">
+                                    <apex:param value="{!caseRecord.Head_of_Quality_Assurance_Date__c}" />
+                                </apex:outputText>
+                                <apex:outputText value="" rendered="{!ISBLANK(caseRecord.Head_of_Quality_Assurance_Date__c)}"/>
+                            </td>
+                        </tr>
+                    </table>                    
+                </td>                
+            </tr>          
+        </table>
+        
+        <!--5th page-->
+        <table style="page-break-before: always; width:100%; border-collapse:collapse; table-layout:fixed;">
+            
+            <!-- HEADER (Repeats on every page) -->
+            <div class="page-header">
+                <table border="1" cellspacing="0" cellpadding="4" 
+                       style="width:100%; border-collapse:collapse; font-family:'Times New Roman', Times, serif; font-size:14px; text-align:center; table-layout:fixed; border:1px solid black;">
+                    <!-- First Row -->
+                    <tr>
+                        <td colspan="2" style="text-align:center; width:20%; max-width:20%; border:1px solid black;">
+                            <img src="{!URLFOR($Resource.RossariHeader)}" style="width:100px; height:auto;" />
+                        </td>
+                        <td colspan="2" 
+                            style="text-align:left; vertical-align:middle; width:80%; max-width:80%; height:auto; border:1px solid black;">                    
+                            <!-- Company Name -->
+                            <span style="font-family:'Times New Roman', Times, serif; font-size:32px; font-weight:bold; color:#9d0b0f;">
+                                ROSSARI BIOTECH LIMITED
+                            </span><br/>
+                            
+                            <!-- Address Block -->
+                            <span style="font-family:'Times New Roman', Times, serif; font-size:14px; line-height:1.4; color:blue;">                        
+                                <b>Regd. Office:</b> Rossari House, Golden Oak, LBS Marg, Surya Nagar, Opp. Mahindra Showroom, 
+                                Vikhroli (West), Mumbai - 400079, Maharashtra, India. 
+                                <b>Telephone:</b> +91-22-6123 3800<br/>                       
+                            </span>
+                        </td>
+                    </tr>       
+                    
+                    <!-- Second Row -->
+                    <tr>
+                        <td colspan="4" style="font-family:'Times New Roman', Times, serif; font-weight:bold; text-align:center; font-size:14px; height:30px; border:1px solid black;">
+                            CORRECTIVE ACTION AND PREVENTIVE ACTION (CAPA) FORM
+                        </td>
+                    </tr>
+                    
+                    <!-- Third Row -->
+                    <tr>
+                        <td colspan="4" style="font-weight:bold; text-align:center; font-size:14px; height:30px; border:1px solid black;">
+                            REFERENCE SOP NO. : SOP/CQA/004
+                        </td>
+                    </tr>
+                    
+                    <!-- Fourth Row -->
+                    <table style="width:100%; border-collapse:collapse; table-layout:fixed;">
+                        <tr>
+                            <td style="width:25%; text-align:left; font-weight:bold; border:1px solid black; padding:6px;">CAPA No.:</td>
+                            <td style="width:25%; text-align:left; border:1px solid black; padding:6px;">
+                                <apex:outputText value="{!caseRecord.CAPA_No__c}" rendered="{!NOT(ISBLANK(caseRecord.CAPA_No__c))}"/>
+                                <apex:outputText value="" rendered="{!ISBLANK(caseRecord.CAPA_No__c)}"/>
+                            </td>
+                            <td style="width:25%; text-align:left; font-weight:bold; border:1px solid black; padding:6px;">Date :</td>
+                            <td style="width:25%; text-align:left; border:1px solid black; padding:6px;">
+                                <apex:outputText value="{0,date,dd/MM/yyyy}" rendered="{!NOT(ISBLANK(caseRecord.CAPA_Date__c))}">
+                                    <apex:param value="{!caseRecord.CAPA_Date__c}" />
+                                </apex:outputText>
+                                <apex:outputText value="" rendered="{!ISBLANK(caseRecord.CAPA_Date__c)}"/>
+                            </td>
+                        </tr>
+                    </table>
+                </table>
+                <br/><br/>
+            </div>  
+        </table>
+        <table style="width:100%; border-collapse:collapse; font-family:'Times New Roman', Times, serif; font-size:14px;">
+            <!-- PART 3 Header -->
+            <tr>
+                <td colspan="4" style="border:1px solid #000; text-align:left; padding:6px;">
+                    
+                    <table style="width:100%; border-collapse:collapse;">
+                        <!-- Closure of CAPA -->
+                        <tr>
+                            <td style="width:40%; font-weight:bold; text-align:left;">
+                                Closure of CAPA:
+                            </td>
+                            <td style="width:60%; text-align:center; font-weight:normal;">
+                                <apex:outputText value="{!caseRecord.Closure_of_CAPA__c}" 
+                                                 rendered="{!NOT(ISBLANK(caseRecord.Closure_of_CAPA__c))}"/>
+                            </td>
+                        </tr>
+                        
+                        <!-- Head/Designee QA -->
+                        <tr>
+                            <td style="font-weight:bold; text-align:left;">
+                                Head/Designee QA (sign/date):
+                            </td>
+                            <td style="text-align:center; font-weight:normal;">
+                                <apex:outputText value="{!caseRecord.Head_Designee_QA_Sign__c}" 
+                                                 rendered="{!NOT(ISBLANK(caseRecord.Head_Designee_QA_Sign__c))}"/>
+                                &nbsp;&nbsp;
+                                <apex:outputText value="{0,date,dd/MM/yyyy}" 
+                                                 rendered="{!NOT(ISBLANK(caseRecord.Head_Designee_QA_Date__c))}">
+                                    <apex:param value="{!caseRecord.Head_Designee_QA_Date__c}" />
+                                </apex:outputText>
+                            </td>
+                        </tr>
+                    </table>
+                    
+                </td>
+            </tr>
+            
+        </table>        
+    </table>
+</apex:page>

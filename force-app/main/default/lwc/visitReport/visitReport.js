@@ -14,8 +14,18 @@ import { getRecord } from 'lightning/uiRecordApi';
 import USER_ID from '@salesforce/user/Id';
 import NAME_FIELD from '@salesforce/schema/User.Name';
 import ENTITY_CODE_FIELD from '@salesforce/schema/User.Entity_Code_1__c';
+import ENTITY_CODE_2_FIELD from '@salesforce/schema/User.Entity_Code_2__c';
+import ENTITY_CODE_3_FIELD from '@salesforce/schema/User.Entity_Code_3__c';
 import DIVISION_CODE_FIELD from '@salesforce/schema/User.Division_Code__c';
-const USER_FIELDS = [NAME_FIELD, ENTITY_CODE_FIELD, DIVISION_CODE_FIELD];
+
+// Combine all fields into one array
+const USER_FIELDS = [
+    NAME_FIELD,
+    ENTITY_CODE_FIELD,
+    ENTITY_CODE_2_FIELD,
+    ENTITY_CODE_3_FIELD,
+    DIVISION_CODE_FIELD
+];
 
 export default class VisitReport extends LightningElement {
 
@@ -27,6 +37,14 @@ export default class VisitReport extends LightningElement {
         Category: '',
         Nature: ''
     };
+
+    // User fields
+    userEntityCode1;
+    userEntityCode2;
+    userEntityCode3;
+    userDivisionCode;
+    currentUserName;
+
     @track accId = '';
     @track contactSearchBy = 'Lead';
     @track currencyCode = '';
@@ -56,8 +74,11 @@ export default class VisitReport extends LightningElement {
     @track ActionPoint = [];
 
     @track visitReportTypeOptions = [
-        { label: 'New', value: 'New' },
-        { label: 'Existing', value: 'Existing' }
+        { label: 'Planned', value: 'New' },
+        { label: 'Unplanned', value: 'Unplanned' },
+        { label: 'Choose Existing', value: 'Existing' }
+        
+        
     ];
     @track disableExistingVisitReport = true;
     @track selectedVisitReportType = 'New';
@@ -86,62 +107,109 @@ export default class VisitReport extends LightningElement {
     wiredUser({ error, data }) {
         if (data) {
             console.log('User record data:', JSON.stringify(data));
-            
+
             // Extract all user fields
             this.currentUserName = data.fields.Name.value;
-            this.userEntityCode = data.fields.Entity_Code_1__c.value;
+            this.userEntityCode1 = data.fields.Entity_Code_1__c.value;
+            this.userEntityCode2 = data.fields.Entity_Code_2__c.value;
+            this.userEntityCode3 = data.fields.Entity_Code_3__c.value;
             this.userDivisionCode = data.fields.Division_Code__c.value;
-            
-            console.log('User Details - Name:', this.currentUserName, 
-                       'Entity Code:', this.userEntityCode, 
-                       'Division Code:', this.userDivisionCode);
-            
+
+            console.log('User Details - Name:', this.currentUserName,
+                'Entity Code 1:', this.userEntityCode1,
+                'Entity Code 2:', this.userEntityCode2,
+                'Entity Code 3:', this.userEntityCode3,
+                'Division Code:', this.userDivisionCode);
+
             // If category is already selected, filter nature options
             if (this.visitCategory) {
                 this.filterNatureOptions();
             }
-            
+
         } else if (error) {
             console.error('Error fetching user data:', error);
-            this.userEntityCode = undefined;
+            this.userEntityCode1 = undefined;
+            this.userEntityCode2 = undefined;
+            this.userEntityCode3 = undefined;
             this.userDivisionCode = undefined;
         }
     }
 
-     // ✅ UPDATED mapping based on exact snapshot values
+    // ✅ UPDATED mapping 
     visitNatureMapping = {
         'Customer Visit': {
+            // Entity_Code_1__c (1000) & Division_Code__c (10, 11)
             '1000_10_11': ['Distributor Visit', 'B2B Visit', 'Industry Visit', 'Technician'],
+
+            // Entity_Code_1__c (1000) & Division_Code__c (22)
             '1000_22': ['Distributor Visit', 'B2B Customer Visit', 'Farm Visit', 'Consultant', 'Farmer Meeting'],
-            'NOT1000': ['Distributor Visit', 'B2B Customer Visit']
+
+            // Entity_Code_1__c (1000) & Division_Code__c (10, 11, 22) - Combined
+            '1000_10_11_22': ['Distributor Visit', 'B2B Visit', 'Industry Visit', 'Technician', 'B2B Customer Visit', 'Farm Visit', 'Consultant', 'Farmer Meeting'],
+
+            // Entity_Code_2__c (3000) or Entity_Code_3__c (4000)
+            '3000_4000': ['Distributor Visit', 'B2B Visit'],
+
+            // Default/Other Entity Codes
+            'DEFAULT': ['Distributor Visit', 'B2B Customer Visit']
         },
         'Competitor Tracking': {
+
             '1000_10_11': ['Competitor Distributor', 'Competition Visit'],
+
             '1000_22': ['Competitor Distributor', 'Competition Visit'],
-            'NOT1000': ['Competitor Distributor', 'Competition Visit']
+
+            '1000_10_11_22': ['Competitor Distributor', 'Competition Visit'],
+
+            '3000_4000': ['Competitor Distributor', 'Competition Visit'
+            ],
+            'DEFAULT': ['Competitor Distributor', 'Competition Visit']
         },
         'Internal Meeting': {
+
             '1000_10_11': ['HO Meeting', 'Zonal Meeting'],
+
             '1000_22': ['HO Meeting', 'Zonal Meeting'],
-            'NOT1000': ['HO Meeting']
+
+            '1000_10_11_22': ['HO Meeting', 'Zonal Meeting'],
+
+            '3000_4000': ['HO Meeting'],
+
+            'DEFAULT': ['HO Meeting']
         },
         'RND related Visit': {
+
             '1000_10_11': ['External Lab Visit', 'University Visit', 'Lab Trial'],
+
             '1000_22': ['External Lab Testing', 'University Trial', 'Field Trial – Existing Product'],
-            'NOT1000': ['External Lab Visit', 'University Visit', 'Lab Trial']
+
+            '1000_10_11_22': ['External Lab Visit', 'University Visit', 'Lab Trial', 'External Lab Testing', 'University Trial', 'Field Trial – Existing Product'],
+
+            '3000_4000': ['External Lab Visit', 'University Visit', 'Lab Trial'],
+
+            'DEFAULT': ['External Lab Visit', 'University Visit', 'Lab Trial']
         },
         'Seminar/ Conferences': {
+
             '1000_10_11': ['Conferences'],
+
             '1000_22': ['Conferences', 'Technical Seminar'],
-            'NOT1000': ['Conferences']
+
+            '1000_10_11_22': ['Conferences', 'Technical Seminar'],
+
+            '3000_4000': ['Conferences'],
+
+            'DEFAULT': ['Conferences']
         }
     };
 
-    // ✅ SIMPLIFIED filter logic based on exact snapshot mapping
     filterNatureOptions() {
         console.log('➡️ filterNatureOptions called');
         console.log('visitCategory:', this.visitCategory);
-        console.log('userEntityCode:', this.userEntityCode, 'userDivisionCode:', this.userDivisionCode);
+        console.log('User Codes - Entity1:', this.userEntityCode1,
+            'Entity2:', this.userEntityCode2,
+            'Entity3:', this.userEntityCode3,
+            'Division:', this.userDivisionCode);
 
         // Reset if no category selected
         if (!this.visitCategory) {
@@ -151,7 +219,7 @@ export default class VisitReport extends LightningElement {
         }
 
         // Wait for user data to load
-        if (this.userEntityCode === undefined || this.userDivisionCode === undefined) {
+        if (this.userEntityCode1 === undefined || this.userDivisionCode === undefined) {
             console.log('Waiting for user data to load...');
             return;
         }
@@ -166,50 +234,58 @@ export default class VisitReport extends LightningElement {
         let values = [];
         const divisionCode = String(this.userDivisionCode);
 
-        // Determine the mapping key based on entity code and division code
-        let mappingKey;
-        
-        if (this.userEntityCode === '1000') {
-            if (divisionCode === '10' || divisionCode === '11') {
-                mappingKey = '1000_10_11';
-            } else if (divisionCode === '22') {
-                mappingKey = '1000_22';
-            } else {
-                // If division code is not 10, 11, or 22, use 10_11 as default
-                mappingKey = '1000_10_11';
-            }
-        } else {
-            // Entity code is NOT 1000
-            mappingKey = 'NOT1000';
-        }
+        // Determine the mapping key based on entity codes and division code
+        let mappingKey = this.determineMappingKey();
+        console.log('Determined mapping key:', mappingKey);
 
-        console.log('Using mapping key:', mappingKey);
-        values = mapping[mappingKey] || [];
-
-        // Handle combined scenario: Entity_Code_1__c (1000) and Division_Code__c (10, 11, 22)
-        if (this.userEntityCode === '1000' && 
-            (divisionCode === '10' || divisionCode === '11' || divisionCode === '22') &&
-            this.visitCategory === 'Customer Visit') {
-            
-            // Combine values from both 10_11 and 22 for Customer Visit
-            const values10_11 = mapping['1000_10_11'] || [];
-            const values22 = mapping['1000_22'] || [];
-            
-            // Merge and remove duplicates
-            values = [...new Set([...values10_11, ...values22])];
-            console.log('Combined scenario - All values:', values);
-        }
+        values = mapping[mappingKey] || mapping['DEFAULT'] || [];
 
         // Convert to options format
         this.natureOptions = values.map(v => ({ label: v, value: v }));
         console.log('Available natureOptions:', JSON.stringify(this.natureOptions));
-        
+
         // Clear selected nature if it's no longer in options
-        if (this.dataMap.Nature && !values.includes(this.dataMap.Nature)) {
-            this.dataMap.Nature = '';
-            console.log('Cleared Nature selection as it is not available in filtered options');
-        }
+        // if (this.dataMap.Nature && !values.includes(this.dataMap.Nature)) {
+        //     this.dataMap.Nature = '';
+        //     console.log('Cleared Nature selection as it is not available in filtered options');
+        // }
     }
+
+    // ✅ NEW METHOD: Determine the correct mapping key based on user's codes
+    determineMappingKey() {
+        const divisions = this.userDivisionCode
+            ? String(this.userDivisionCode).split(';').map(d => d.trim())
+            : [];
+
+        // Priority 1: Entity_Code_2__c (3000) or Entity_Code_3__c (4000)
+        if (this.userEntityCode2 === '3000' || this.userEntityCode3 === '4000') {
+            return '3000_4000';
+        }
+
+        // Priority 2: Entity_Code_1__c (1000) with various Division_Code__c combinations
+        if (this.userEntityCode1 === '1000') {
+            const has10 = divisions.includes('10');
+            const has11 = divisions.includes('11');
+            const has22 = divisions.includes('22');
+
+            // 10 or 11 only
+            if ((has10 || has11) && !has22) {
+                return '1000_10_11';
+            }
+            // 22 only
+            else if (has22 && !has10 && !has11) {
+                return '1000_22';
+            }
+            // Any combination of 10, 11, 22 together
+            else if ((has10 || has11) && has22) {
+                return '1000_10_11_22';
+            }
+        }
+
+        // Default case
+        return 'DEFAULT';
+    }
+
 
     handleAccountSelectedForBillTo(event) {
         this.customerId = event.detail.recordId;
@@ -476,10 +552,10 @@ export default class VisitReport extends LightningElement {
         if (fieldName === 'Category') {
             this.visitCategory = fieldValue;
             console.log('Selected Category:', this.visitCategory);
-            
+
             // Filter nature options based on new category
             this.filterNatureOptions();
-            
+
             // Clear Nature when Category changes
             this.dataMap.Nature = '';
         }
@@ -881,22 +957,47 @@ export default class VisitReport extends LightningElement {
         return this.selectedVisitReportType === 'New' && !this.selectedExistingVisitReportId;
     }
 
+    // Add this getter for Unplanned logic
+    get isUnplannedVisitReport() {
+        return this.selectedVisitReportType === 'Unplanned';
+    }
+
     // Handle Visit Report Type Change
     handleVisitReportTypeChange(event) {
         const previousType = this.selectedVisitReportType;
         this.selectedVisitReportType = event.detail.value;
 
         // Disable Existing Visit Report lookup if type = New
-        this.disableExistingVisitReport = (this.selectedVisitReportType === 'New');
-        this.showRemainingSections = (this.selectedVisitReportType === 'Existing');
+        this.disableExistingVisitReport = (this.selectedVisitReportType !== 'Existing');
+        this.showRemainingSections = (this.selectedVisitReportType === 'Existing' || this.selectedVisitReportType === 'Unplanned');
+
+        // ✅ FIX: Reload page when switching FROM Existing or Unplanned TO any other type
+        if ((previousType === 'Existing' || previousType === 'Unplanned') && 
+            (this.selectedVisitReportType === 'New' || this.selectedVisitReportType === 'Unplanned')) {
+            console.log('Reloading page due to type change from', previousType, 'to', this.selectedVisitReportType);
+            window.location.reload();
+            return;
+        }
 
         if (this.selectedVisitReportType === 'Existing') {
             // Clear form when switching to existing
             this.clearForm();
             this.isFormDisabled = true; // Disable basic fields initially
-        } else {
+        } else if (this.selectedVisitReportType === 'Unplanned') {
+        // For Unplanned, clear form but keep fields enabled
+            this.clearForm();
+            this.isFormDisabled = false;
+            this.selectedExistingVisitReportId = null;
+            
+            // Clear any existing visit report selection
+            const lookupCmp = this.template.querySelector('c-visit-report-lookup');
+            if (lookupCmp) {
+                lookupCmp.clearSelection();
+            }
+            
+        }else {
             // 👉 If switching back from Existing → New, reload the page
-            if (previousType === 'Existing') {
+            if (previousType === 'Existing' || previousType === 'Unplanned') {
                 window.location.reload();
                 return; // stop here, reload takes over
             }
@@ -920,7 +1021,7 @@ export default class VisitReport extends LightningElement {
     async handleExistingVisitReportChange(event) {
         this.selectedExistingVisitReportId = event.detail.recordId;
         this.selectedExistingVisitReportName = event.detail.recordName;
-        
+
         if (this.selectedExistingVisitReportId) {
             await this.loadExistingVisitReportData();
             this.isFormDisabled = false; // Keep basic fields disabled
@@ -934,7 +1035,7 @@ export default class VisitReport extends LightningElement {
         try {
             // You'll need to create an Apex method to get attendees
             const attendees = await getVisitReportAttendees({ visitReportId });
-            
+
             this.Attendees = attendees.map(att => ({
                 index: this.generateUniqueCode(),
                 Attendee_Type__c: att.Attendee_Type__c,
@@ -960,15 +1061,12 @@ export default class VisitReport extends LightningElement {
     async loadExistingVisitReportData() {
         try {
             this.showSpinner = true;
-            
+
             // Query the existing visit report
-            const visitReport = await getVisitReportDetails({ 
-                visitReportId: this.selectedExistingVisitReportId 
+            const visitReport = await getVisitReportDetails({
+                visitReportId: this.selectedExistingVisitReportId
             });
             console.log('Visit Report:', visitReport);
-            
-            // Populate the basic fields with existing data
-            this.populateBasicFields(visitReport);
 
             // 👇 ensure accountContacts are loaded first
             if (visitReport.Customer_Name__c) {
@@ -978,10 +1076,13 @@ export default class VisitReport extends LightningElement {
                     value: c.Id
                 }));
             }
-            
+
+            // Populate the basic fields with existing data
+            this.populateBasicFields(visitReport);
+
             // Load attendees
             await this.loadAttendees(this.selectedExistingVisitReportId);
-            
+
             this.dispatchEvent(
                 new ShowToastEvent({
                     title: 'Success',
@@ -1025,27 +1126,27 @@ export default class VisitReport extends LightningElement {
         const endDateTime = this.formatLocalDateTime(visitReport.End_Date_Time__c);
 
         this.dataMap = {
-        Mode: visitReport.Type_of_Visit__c || '',
-        Title_of_Meeting: visitReport.Title_of_Meeting__c || '',
-        Start_Date_Time: startDateTime,
-        End_Date_Time: endDateTime,
-        Category: visitReport.Visit_Category__c || '',
-        Nature: visitReport.Nature_of_Visit__c || '',
-        
-        // For lookups store both Id + Name
-        Customer_Name: visitReport.Customer_Name__c || '',
-        Customer_Name_Display: visitReport.Customer_Name__r ? visitReport.Customer_Name__r.Name : '',
+            Mode: visitReport.Type_of_Visit__c || '',
+            Title_of_Meeting: visitReport.Title_of_Meeting__c || '',
+            Start_Date_Time: startDateTime,
+            End_Date_Time: endDateTime,
+            Category: visitReport.Visit_Category__c || '',
+            Nature: visitReport.Nature_of_Visit__c || '',
 
-        Competition_Name: visitReport.Competition_Name__c || '',
-        Competition_Name_Display: visitReport.Competition_Name__r ? visitReport.Competition_Name__r.Name : '',
+            // For lookups store both Id + Name
+            Customer_Name: visitReport.Customer_Name__c || '',
+            Customer_Name_Display: visitReport.Customer_Name__r ? visitReport.Customer_Name__r.Name : '',
 
-        tourId: visitReport.Name_of_the_Tour__c || '',
-        ProjectId: visitReport.Name_of_the_Project__c || '',
+            Competition_Name: visitReport.Competition_Name__c || '',
+            Competition_Name_Display: visitReport.Competition_Name__r ? visitReport.Competition_Name__r.Name : '',
 
-        Reason: visitReport.Reason__c || '',
-        Seminar: visitReport.Name_of_the_Conference_Seminar__c || '',
-        Discussion_Details_from_the_Meeting: visitReport.Discussion_Details_from_the_Meeting__c || '',
-        Next_Meeting_Date_agreed_with_Customer: visitReport.Next_Meeting_Date_agreed_with_Customer__c || ''
+            tourId: visitReport.Name_of_the_Tour__c || '',
+            ProjectId: visitReport.Name_of_the_Project__c || '',
+
+            Reason: visitReport.Reason__c || '',
+            Seminar: visitReport.Name_of_the_Conference_Seminar__c || '',
+            Discussion_Details_from_the_Meeting: visitReport.Discussion_Details_from_the_Meeting__c || '',
+            Next_Meeting_Date_agreed_with_Customer: visitReport.Next_Meeting_Date_agreed_with_Customer__c || ''
         };
 
         // Set other properties for UI display
@@ -1053,32 +1154,35 @@ export default class VisitReport extends LightningElement {
         this.customerId = visitReport.Customer_Name__c;
         console.log('Visit Category:', this.visitCategory);
         console.log('Customer ID:', this.customerId);
-        
+
         this.competitorId = visitReport.Competition_Name__c;
         this.selectedTourId = visitReport.Name_of_the_Tour__c;
         this.ProjectId = visitReport.Name_of_the_Project__c;
-        
+
+        // ✅ FIX: Wait for user data to be available before filtering nature options
+        this.waitForUserDataAndFilterNature(visitReport.Nature_of_Visit__c);
+
         // Update customer details if customer exists
         if (visitReport.Customer_Name__c) {
             this.sapCustomerCode = visitReport.Customer_Name__r?.SAP_Customer_Code__c || '';
         }
-        
+
         // Update competitor code if competitor exists
         if (visitReport.Attendees__r && visitReport.Attendees__r.length > 0) {
-        this.Attendees = visitReport.Attendees__r.map((att, index) => {
-            console.log('Attendee contact Id:', att.Contact_Name__c); // ✅ correct scope
-            return {
-                index: index,
-                Id: att.Id,
-                isInternalExisting: att.Type__c === 'Internal',
-                isExternalExisting: att.Type__c === 'External',
-                User__c: att.User__c || '',
-                Contact_Name__c: att.Contact_Name__c || ''  // must match option.value
-            };
-        });
-    } else {
-        this.Attendees = [];
-    }
+            this.Attendees = visitReport.Attendees__r.map((att, index) => {
+                console.log('Attendee contact Id:', att.Contact_Name__c); // ✅ correct scope
+                return {
+                    index: index,
+                    Id: att.Id,
+                    isInternalExisting: att.Type__c === 'Internal',
+                    isExternalExisting: att.Type__c === 'External',
+                    User__c: att.User__c || '',
+                    Contact_Name__c: att.Contact_Name__c || ''  // must match option.value
+                };
+            });
+        } else {
+            this.Attendees = [];
+        }
         // Update UI fields manually since they might not react to dataMap changes
         this.updateUIFields();
     }
@@ -1095,6 +1199,51 @@ export default class VisitReport extends LightningElement {
                 }
             });
         }, 100);
+    }
+
+    // ✅ NEW METHOD: Wait for user data to load before filtering nature options
+    waitForUserDataAndFilterNature(existingNatureValue) {
+        const maxWaitTime = 5000; // 5 seconds max
+        const interval = 100; // Check every 100ms
+        let elapsed = 0;
+
+        const waitForData = setInterval(() => {
+            // Check if user data is loaded (entity codes and division code are available)
+            if (this.userEntityCode1 !== undefined && this.userDivisionCode !== undefined) {
+                clearInterval(waitForData);
+                console.log('User data loaded, filtering nature options...');
+                
+                // Now filter nature options
+                this.filterNatureOptions();
+                
+                // Set the existing nature value after options are populated
+                if (existingNatureValue) {
+                    // Use setTimeout to ensure the combobox is rendered with options
+                    setTimeout(() => {
+                        this.dataMap.Nature = existingNatureValue;
+                        console.log('Set existing Nature value:', existingNatureValue);
+                    }, 100);
+                }
+            } else if (elapsed >= maxWaitTime) {
+                clearInterval(waitForData);
+                console.warn('Timeout waiting for user data, using default nature options');
+                // Fallback: set default nature options
+                this.setDefaultNatureOptions(existingNatureValue);
+            }
+            elapsed += interval;
+        }, interval);
+    }
+
+    setDefaultNatureOptions(existingNatureValue) {
+        const mapping = this.visitNatureMapping[this.visitCategory];
+        if (mapping && mapping['DEFAULT']) {
+            this.natureOptions = mapping['DEFAULT'].map(v => ({ label: v, value: v }));
+            if (existingNatureValue) {
+                this.dataMap.Nature = existingNatureValue;
+            }
+        } else {
+            this.natureOptions = [];
+        }
     }
 
     // Add this method to clear the form
@@ -1132,7 +1281,7 @@ export default class VisitReport extends LightningElement {
             isExternalNew: false,
             isExternalExisting: false
         }];
-        
+
         // Clear other properties
         this.customerId = '';
         this.competitorId = '';
@@ -1144,10 +1293,10 @@ export default class VisitReport extends LightningElement {
         this.visitCategory = '';
         this.accountContacts = [];
         this.selectedExistingVisitReportId = null;
-    
+
     }
 
-   
+
     validateVisitReport() {
         // mapping of your dataMap keys to user-friendly labels
         const fieldLabels = {
@@ -1199,7 +1348,8 @@ export default class VisitReport extends LightningElement {
         this.showSpinner = true;
 
         try {
-            const result = await saveVisitReport({
+            // ✅ FIX: Ensure all data is properly structured before saving
+            const saveData = {
                 visit: JSON.stringify(this.dataMap),
                 Attendees: JSON.stringify(this.Attendees),
                 ProductInterestPoint: JSON.stringify(this.ProductInterestPoint),
@@ -1208,7 +1358,11 @@ export default class VisitReport extends LightningElement {
                 currencyCode: this.currencyCode,
                 visitType: this.selectedVisitReportType,
                 existingVisitReportId: this.selectedExistingVisitReportId
-            });
+            };
+
+            console.log('Saving data:', saveData);
+
+            const result = await saveVisitReport(saveData);
 
             if (result.Message === 'Success') {
                 this.dispatchEvent(
@@ -1220,24 +1374,29 @@ export default class VisitReport extends LightningElement {
                     })
                 );
 
+                // Open record in new tab
                 window.open('/' + result.Id, '_blank');
-                
-                if (this.selectedVisitReportType === 'New') {
-                    // For new records, open in new tab and refresh
-                    
-                    setTimeout(() => this.handleRefresh(), 3500);
-                } else {
-                    // For existing records, just show success message
-                    this.showRemainingSections = true;
-                    setTimeout(() => this.handleRefresh(), 3500);
-                }
+
+                // ✅ FIX: Consistent reload behavior for all types
+                setTimeout(() => {
+                    window.location.reload();
+                }, 2000);
+
+            } else {
+                throw new Error(result.Message || 'Unknown error occurred');
             }
         } catch (error) {
-            // Error handling
+            console.error('Error saving visit report:', error);
+            this.dispatchEvent(
+                new ShowToastEvent({
+                    title: 'Error!',
+                    message: 'Failed to save record: ' + error.message,
+                    variant: 'error',
+                    mode: 'dismissable'
+                })
+            );
         } finally {
             this.showSpinner = false;
         }
     }
-
-
 }

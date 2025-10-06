@@ -1,0 +1,47 @@
+<template>
+
+    <div if:true={showSpinner} class="exampleHolder">
+        <lightning-spinner alternative-text="Loading" size="medium"></lightning-spinner>
+    </div>
+
+    <div class="modal-container">
+        <!-- Header -->
+        <div class="modal-header">
+            <h2>Customer Ledger</h2>
+            <div class="header-divider"></div>
+        </div>
+
+        <!-- Scrollable Content -->
+        <div class="modal-body slds-p-around_medium">
+            <div class="slds-grid slds-gutters slds-wrap">
+                <div class="slds-col slds-size_1-of-3 slds-p-horizontal_small slds-p-vertical_xx-small">
+                    <lightning-combobox label="Sales Org" options={companyOptions} value={companyValue}
+                        data-field="company" onchange={handleFieldChange} required>
+                    </lightning-combobox>
+                </div>
+                <div class="slds-col slds-size_1-of-3 slds-p-horizontal_small slds-p-vertical_xx-small">
+                    <lightning-input type="date" label="From Date" value={fromDate} onchange={handleDateChange}
+                        data-field="fromDate" required format-value="dd.MM.yyyy">
+                    </lightning-input>
+                </div>
+                <div class="slds-col slds-size_1-of-3 slds-p-horizontal_small slds-p-vertical_xx-small">
+                    <lightning-input type="date" label="To Date" value={toDate} onchange={handleDateChange}
+                        data-field="toDate" required format-value="dd.MM.yyyy">
+                    </lightning-input>
+                </div>
+            </div>
+            <!-- <template if:true={dateError}>
+                <div class="slds-text-color_error slds-p-around_x-small">
+                    {dateError}
+                </div>
+            </template> -->
+        </div>
+        <div class="modal-footer">
+            <!-- <lightning-button variant="brand" label="Send" onclick={handleMainSubmit}></lightning-button> -->
+            <lightning-button variant="brand" label="Download" onclick={handleCallout} disabled={downloadBtnFlag}></lightning-button>
+            <lightning-button label="Cancel" variant="neutral" class="slds-m-left_small" onclick={closeModal}>
+            </lightning-button>
+        </div>
+    </div>
+
+</template>
