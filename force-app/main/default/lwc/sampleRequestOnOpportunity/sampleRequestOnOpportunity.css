@@ -1,0 +1,10 @@
+.custom-modal .slds-modal__container.custom-modal-size {
+    width: 90vw;
+    max-width: 1200px;
+    height: 85vh;
+
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+}
