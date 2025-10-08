@@ -21,7 +21,9 @@ export default class CreateQuoteFromOpportunity extends NavigationMixin(Lightnin
         currencyCode: '',
         pricebookId: '',
         incoTerms: '',
-        paymentTermId: ''
+        paymentTermId: '',
+        transportationCost: 0,
+        containerType: ''
     };
     @track paymetTermField = true;
     @track statusOptions = [];
@@ -143,6 +145,18 @@ export default class CreateQuoteFromOpportunity extends NavigationMixin(Lightnin
         );
     }
 
+    handleHSCodeChange(event) {
+        const index = parseInt(event.target.dataset.index, 10);
+        const newHSCode = event.target.value;
+
+        this.oppLineItems = this.oppLineItems.map(item =>
+            item.index === index ? {
+                ...item,
+                Customer_HS_Code__c: newHSCode
+            } : item
+        );
+    }
+
     loadOppLineItems() {
         getOppLineItems({ opportunityId: this.recordId })
             .then(result => {
@@ -167,6 +181,7 @@ export default class CreateQuoteFromOpportunity extends NavigationMixin(Lightnin
                         Customer_Target_Price__c: 0,  // Initialize with default value
                         Container_Type__c: '',  // Initialize with default value
                         Customer_Product_Name__c: '',
+                        Customer_HS_Code__c: '',
                         Product2: {
                             Id: item.Product2Id,
                             Name: item.Product2?.Name || '',
@@ -245,6 +260,7 @@ export default class CreateQuoteFromOpportunity extends NavigationMixin(Lightnin
                     Customer_Target_Price__c: item.Customer_Target_Price__c || 0,
                     Container_Type__c: item.Container_Type__c || '',
                     Customer_Product_Name__c: item.Customer_Product_Name__c || '',
+                    Customer_HS_Code__c: item.Customer_HS_Code__c || '',
                     Product2: {
                         Id: selectedRecord.proId,
                         Name: selectedRecord.mainField,
@@ -447,7 +463,23 @@ export default class CreateQuoteFromOpportunity extends NavigationMixin(Lightnin
         }
 
         return isValid;
+
     }
+
+    handleTransportationCostChange(event) {
+        this.quoteFields = {
+            ...this.quoteFields,
+            transportationCost: parseFloat(event.target.value) || 0
+        };
+    }
+
+    handleContainerTypeChange(event) {
+        this.quoteFields = {
+            ...this.quoteFields,
+            containerType: event.target.value
+        };
+    }
+
     createQuote() {
         const selectedItems = this.oppLineItems.filter(item => item.selected);
 
@@ -474,7 +506,8 @@ export default class CreateQuoteFromOpportunity extends NavigationMixin(Lightnin
             Description: item.Description,
             CustomerTargetPrice: item.Customer_Target_Price__c || 0, // Change to wrapper field name
             ContainerType: item.Container_Type__c || '',// Change to wrapper field name
-            CustomerProductName: item.Customer_Product_Name__c
+            CustomerProductName: item.Customer_Product_Name__c,
+            CustomerHsCode: item.Customer_HS_Code__c
         }));
 
         createQuoteFromOpportunity({
@@ -487,7 +520,9 @@ export default class CreateQuoteFromOpportunity extends NavigationMixin(Lightnin
             contactId: this.quoteFields.contactId,
             pricebookId: this.quoteFields.pricebookId,
             incoTerms: this.quoteFields.incoTerms,
-            paymentTermId: this.quoteFields.paymentTermId
+            paymentTermId: this.quoteFields.paymentTermId,
+            transportationCost: this.quoteFields.transportationCost, // Add this
+            containerType: this.quoteFields.containerType // Add this
         })
             .then(quoteId => {
                 this.showToast('Success', 'Quote created successfully', 'success');
@@ -545,7 +580,8 @@ export default class CreateQuoteFromOpportunity extends NavigationMixin(Lightnin
             Customer_Target_Price__c: originalItem.Customer_Target_Price__c || 0, // Preserve this field
             Container_Type__c: originalItem.Container_Type__c || '', // Preserve this field
             Customer_Product_Name__c: originalItem.Customer_Product_Name__c || '', // Preserve this field
-
+            Customer_HS_Code__c: originalItem.Customer_HS_Code__c || '', // Preserve this field
+            selected: true,
         };
 
         const originalIndex = this.oppLineItems.findIndex(item => item.index === index);

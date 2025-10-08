@@ -7,25 +7,23 @@ public class addProductIntrestedTest {
         Account acc = new Account(Name = 'Rossari Chemicals Ltd.');
         insert acc;
         
-         Company__c rossari = new Company__c(
+        Company__c rossari = new Company__c(
             Name = 'Rossari Biotech Limited'
         );
         insert rossari;
         
         //  Insert test Lead (AFTER inserting the Account above)
         Lead testLead = new Lead(
-            LastName = 'Test Lead',
+            FirstName ='Prince',
+            LastName = 'TestLead',
+            MobilePhone = '1928374650',
             Company = 'Rossari Chemicals Ltd.', 
             Status = 'Open - Not Contacted'
         );
         insert testLead;
         
         //  Insert test Product2
-        Product2 prod = new Product2(
-            Name = 'Test Product',
-            IsActive = true,
-            Family = 'Chemicals'
-        );
+         Product2 prod = new Product2(Name = 'Test Product');
         insert prod;
         
         //  Ensure Standard Pricebook is Active
@@ -51,21 +49,19 @@ public class addProductIntrestedTest {
         );
         insert pbe;
         
-        //  Insert Product_Interested__c
         Product_Interested__c pi = new Product_Interested__c(
-            Lead__c = testLead.Id,
-            Product__c = prod.Id,
-           // Price_book_Entry_Id__c = pbe.Id,
+            Lead__c = testLead.Id, // Ensure this is a valid Lead record
+            Product__c = prod.Id, // Ensure this is a valid Product2 record
             New_Product_Name__c = 'New Product',
             New_Product__c = true,
             List_Price__c = 100,
             Quantity_in_Kgs__c = 10,
             Expected_Price__c = 95,
-          //  Product_Family__c = 'None',
             Add_in_Opportunity__c = true,
             Quantity_Frequency__c = 'Per/Month'
         );
         insert pi;
+        
     }
     
     
@@ -77,7 +73,7 @@ public class addProductIntrestedTest {
         Map<String, Object> result = addProductIntrested.getProdInterest(testLead.Id);
         Test.stopTest();
         
-       
+        
     }
     
     @isTest

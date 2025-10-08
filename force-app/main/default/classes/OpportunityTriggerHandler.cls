@@ -159,7 +159,7 @@ public class OpportunityTriggerHandler {
             // Busy wait - can't use Sleep in Apex
         }
     }
-    public static void setStandardPricebook(List<Opportunity> newOpps) {
+ /*   public static void setStandardPricebook(List<Opportunity> newOpps) {
         // Query Standard Pricebook once
         Pricebook2 standardPB = [
             SELECT Id 
@@ -176,7 +176,22 @@ public class OpportunityTriggerHandler {
         
         // Corrected parameter name here
         setConvertedOpportunityName(newOpps);
+    }		*/
+    
+    public static void setStandardPricebook(List<Opportunity> newOpps) {
+        Id standardPBId = Test.isRunningTest() 
+            ? Test.getStandardPricebookId()
+            : [SELECT Id FROM Pricebook2 WHERE IsStandard = true AND IsActive = true LIMIT 1].Id;
+        
+        for (Opportunity opp : newOpps) {
+            if (opp.Pricebook2Id == null) {
+                opp.Pricebook2Id = standardPBId;
+            }
+        }
+        
+        setConvertedOpportunityName(newOpps);
     }
+
 
     
      public static void setConvertedOpportunityName(List<Opportunity> oppList) {

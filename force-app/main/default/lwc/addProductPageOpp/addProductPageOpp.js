@@ -2,6 +2,9 @@ import { LightningElement, wire, track } from 'lwc';
 import findProducts from '@salesforce/apex/AddProductPageOpp.findProduct';
 import saveProducts from '@salesforce/apex/AddProductPageOpp.saveProducts';
 import getproductfamily from '@salesforce/apex/AddProductPageOpp.getproductfamily';
+import getCustomerSalesArea from '@salesforce/apex/AddProductPageOpp.getCustomerSalesArea';
+import getDistributionChannel from '@salesforce/apex/AddProductPageOpp.getDistributionChannel';
+import getDivision from '@salesforce/apex/AddProductPageOpp.getDivision';
 import { ShowToastEvent } from 'lightning/platformShowToastEvent';
 import { RefreshEvent } from 'lightning/refresh';
 const DELAY = 300;
@@ -74,6 +77,13 @@ export default class AddProductPage extends NavigationMixin(LightningElement) {
     @track filteredData = [];
     @track DisableNext = true;
 
+    @track customerSalesArea = [];
+    @track selectedSalesArea = '';
+    @track distributionChannel = [];
+    @track selectedDistributionChannel = '';
+    @track selectedDivision = [];
+    @track division = '';
+
     connectedCallback() {
         //this.measureLoadTime();
 
@@ -93,34 +103,96 @@ export default class AddProductPage extends NavigationMixin(LightningElement) {
 
         // this.getproductfamily();
 
+        this.getCustomerSalesArea();
+
         // this.openModal();
-        this.showSpinner = true;
-        findProducts({ recordId: this.recId, productFamily: [] }).then(result => {
-            // console.log('connectedCallback = ', result);
-            let dataObj = JSON.parse(result);
-            // console.log(result);
-            this.AllProductData = dataObj.productList;
-            this.ShowTableData = dataObj.productList;
+        // this.showSpinner = true;
+        // findProducts({ recordId: this.recId, productFamily: [] }).then(result => {
+        //     // console.log('connectedCallback = ', result);
+        //     let dataObj = JSON.parse(result);
+        //     // console.log(result);
+        //     this.AllProductData = dataObj.productList;
+        //     this.ShowTableData = dataObj.productList;
 
 
-            // this.ShowTableData = result.map(pbe => {
-            //     return {
-            //         Id: pbe.Id, // PricebookEntry Id
-            //         purl: '/lightning/r/Product2/' + pbe.Product2Id + '/view',
-            //         Name: pbe.Product2.Name,
-            //         ProductCode: pbe.Product2.ProductCode,
-            //         Family: pbe.Product2.Family,
-            //         Price: pbe.UnitPrice,
-            //         Description: pbe.Product2.Description
-            //     };
-            // });
+        //     // this.ShowTableData = result.map(pbe => {
+        //     //     return {
+        //     //         Id: pbe.Id, // PricebookEntry Id
+        //     //         purl: '/lightning/r/Product2/' + pbe.Product2Id + '/view',
+        //     //         Name: pbe.Product2.Name,
+        //     //         ProductCode: pbe.Product2.ProductCode,
+        //     //         Family: pbe.Product2.Family,
+        //     //         Price: pbe.UnitPrice,
+        //     //         Description: pbe.Product2.Description
+        //     //     };
+        //     // });
 
-            // console.log('ShowTableData', JSON.parse(JSON.stringify(this.ShowTableData)));
+        //     // console.log('ShowTableData', JSON.parse(JSON.stringify(this.ShowTableData)));
 
-            this.paginiateData(JSON.stringify(this.AllProductData));
+        //     this.paginiateData(JSON.stringify(this.AllProductData));
 
-            // this.PriceBook = dataObj.priceBook;
+        //     // this.PriceBook = dataObj.priceBook;
+        // });
+    }
+
+    getCustomerSalesArea() {
+        getCustomerSalesArea({ recordId: this.recId })
+            .then(result => {
+                console.log('Customer Sales Area: ' + result);
+                if (result) {
+                    this.customerSalesArea = JSON.parse(result);
+                }
+            })
+            .catch(error => {
+                console.error('Error fetching customer sales area:', error);
+            });
+    }
+
+    handleSalesAreaChange(event) {
+        this.selectedSalesArea = event.detail.value;
+        // Add any additional logic when sales area changes
+        this.handlerGetDistributionChannel();
+    }
+
+
+    handlerGetDistributionChannel() {
+        getDistributionChannel({
+            oppId: this.recId,
+            salesOrg: this.selectedSalesArea
+        }).then(result => {
+            console.log('Distribution Channel: ' + result);
+            if (result) {
+                this.distributionChannel = JSON.parse(result);
+            }
+        }).catch(error => {
+            console.error('Error fetching distribution channel:', error);
         });
+    }
+
+    handleDistributionChannelChange(event) {
+        this.selectedDistributionChannel = event.detail.value;
+        this.handlerGetDivision();
+        // Add any additional logic when distribution channel changes
+    }
+
+    handlerGetDivision() {
+        getDivision({
+            oppId: this.recId,
+            salesOrg: this.selectedSalesArea,
+            distributionChannel: this.selectedDistributionChannel
+        }).then(result => {
+            console.log('Division: ' + result);
+            if (result) {
+                this.division = JSON.parse(result);
+            }
+        }).catch(error => {
+            console.error('Error fetching division:', error);
+        });
+    }
+
+    handleDivisionChange(event) {
+        this.selectedDivision = event.detail.value;
+        // Add any additional logic when division changes
     }
 
     getproductfamily() {

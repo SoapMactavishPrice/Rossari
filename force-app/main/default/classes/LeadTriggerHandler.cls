@@ -90,7 +90,7 @@ public class LeadTriggerHandler {
         }
         
         
-        Country__c india = [SELECT Id FROM Country__c WHERE Name = 'India' LIMIT 1];
+  /*      Country__c india = [SELECT Id FROM Country__c WHERE Name = 'India' LIMIT 1];
         
         for (Lead lead : newLeads) {
             if (lead.Country__c == null &&
@@ -99,7 +99,22 @@ public class LeadTriggerHandler {
                  lead.Business_Type__c == 'Deemed Export')) {
                      lead.Country__c = india.Id;
                  }
+        }	*/
+        
+        List<Country__c> countries = [SELECT Id FROM Country__c WHERE Name = 'India' LIMIT 1];
+        Id indiaId = (countries.size() > 0) ? countries[0].Id : null;
+        
+        for (Lead lead : newLeads) {
+            if (lead.Country__c == null &&
+                (lead.Business_Type__c == 'Domestic' ||
+                 lead.Business_Type__c == 'SEZ' ||
+                 lead.Business_Type__c == 'Deemed Export')) {
+                     if (indiaId != null) {
+                         lead.Country__c = indiaId;
+                     }
+                 }
         }
+
     }
     
     

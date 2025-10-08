@@ -108,7 +108,9 @@ public with sharing class QuoteController {
         String contactId,
         String pricebookId,
         String incoTerms,
-        String paymentTermId
+        String paymentTermId,
+        Decimal transportationCost,
+         String containerType
     ) {
         // Validate required parameters
         if (String.isBlank(opportunityId)) {
@@ -161,6 +163,8 @@ public with sharing class QuoteController {
             HOD_of_Sales_Department__c = hodUser != null ? hodUser.Id : null,
             Inco_Terms__c = incoTerms,
             Payment_Term__c = paymentTermId,
+            Transportation_Cost__c = transportationCost != null ? transportationCost : 0.0, 
+            Container_Type__c = containerType,
             Terms_and_Conditions__c =
             'All bank charges outside India will be borne by the customer and such charges should not be deducted from our payment.\n' +
             'We should receive full invoice amount in our bank account and you are liable to pay the bank charges which are applicable in India only.\n' +
@@ -190,8 +194,10 @@ public with sharing class QuoteController {
                 Discount = discountPercent,
                 Description = itemWrapper.Description,
                 Customer_Target_Price__c = itemWrapper.CustomerTargetPrice != null ? itemWrapper.CustomerTargetPrice : 0,
-                Container_Type__c = itemWrapper.ContainerType != null ? itemWrapper.ContainerType : '',
-                Customer_Product_Name__c = itemWrapper.CustomerProductName != null ? itemWrapper.CustomerProductName : ''
+           //     Container_Type__c = itemWrapper.ContainerType != null ? itemWrapper.ContainerType : '',
+                Customer_Product_Name__c = itemWrapper.CustomerProductName != null ? itemWrapper.CustomerProductName : '',
+                Customer_HS_Code__c = itemWrapper.CustomerHsCode != null ? itemWrapper.CustomerHsCode : ''
+           //    Transportation_Cost__c = itemWrapper.TransportationCost != null ? Decimal.valueOf(itemWrapper.TransportationCost) : 0.0
             ));
         }
         
@@ -460,5 +466,9 @@ public with sharing class QuoteController {
         public String ContainerType { get; set; }
         @AuraEnabled
         public String CustomerProductName { get; set; }
+        @AuraEnabled
+        public String CustomerHsCode { get; set; }
+         @AuraEnabled
+        public String TransportationCost { get; set; }
     }
 }

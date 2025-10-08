@@ -4,6 +4,7 @@ import getLineItem from '@salesforce/apex/CreateQuotation_ToSAP.getLineItem';
 // import quoteValidation from '@salesforce/apex/CreateQuotation_ToSAP.quoteValidation';
 import createQuotation from '@salesforce/apex/CreateQuotation_ToSAP.createQuotation';
 import syncQuoteLineItems from '@salesforce/apex/CreateQuotation_ToSAP.syncQuoteLineItems';
+import getInventoryData from '@salesforce/apex/GetInventory_FromSAP.fetchInventoryData';
 // import updateQuotation from '@salesforce/apex/CreateQuotation_ToSAP.updateQuotation';
 import { CloseActionScreenEvent } from 'lightning/actions';
 import { RefreshEvent } from 'lightning/refresh';
@@ -20,6 +21,17 @@ export default class SendQuoteToSAP extends LightningElement {
     @track syncDataResponseFlag = false;
     @track partnerfunctionOptions = [];
     @track partnerfunctionValue = '';
+    
+    // Inventory Modal Properties
+    @track showInventoryModal = false;
+    @track isLoading = false;
+    @track inventoryData = [];
+    @track selectedProductName = '';
+    @track selectedProductId = '';
+    @track totalStock = 0;
+    @track totalValue = 0;
+    @track unitOfMeasure = '';
+    @track currency = '';
 
     showToast(toastTitle, toastMsg, toastType) {
         const event = new ShowToastEvent({
@@ -53,7 +65,113 @@ export default class SendQuoteToSAP extends LightningElement {
             console.log('data:>>> ', data);
             this.orderLineItemList = data.quoteLineItemList;
             console.log('orderLineItemList ', this.orderLineItemList);
+        }).catch(error => {
+            console.error('Error fetching line items:', error);
+            this.showToast('Error', 'Failed to load line items', 'error');
+        });
+    }
+
+    // Handle View Inventory button click
+    handleViewInventory(event) {
+        const productId = event.currentTarget.dataset.productId;
+        const material = event.currentTarget.dataset.material;
+        const productName = this.orderLineItemList.find(item => item.Product2Id === productId)?.Product2?.Name;
+        
+        if (material) {
+            this.selectedProductId = productId;
+            this.selectedProductName = productName;
+            this.showInventoryModal = true;
+            this.loadInventoryData(material);
+        }
+    }
+    
+    // Load inventory data for the selected product
+    // Calculate total stock and value
+    calculateTotals() {
+        if (!this.inventoryData || this.inventoryData.length === 0) {
+            this.totalStock = 0;
+            this.totalValue = 0;
+            return;
+        }
+        
+        // Calculate total stock
+        this.totalStock = this.inventoryData.reduce((sum, item) => {
+            return sum + (item.unrestrictedUseStock || 0);
+        }, 0);
+        
+        // Calculate total value
+        this.totalValue = this.inventoryData.reduce((sum, item) => {
+            return sum + (item.valueOfUnrestrictedStock || 0);
+        }, 0);
+        
+        // Get the unit of measure and currency from the first item
+        this.unitOfMeasure = this.inventoryData[0]?.baseUnitOfMeasure || '';
+        this.currency = this.inventoryData[0]?.currencyKey || '';
+    }
+    
+    loadInventoryData(material) {
+        this.isLoading = true;
+        this.inventoryData = [];
+        
+        // Call the Apex method to get inventory data
+        getInventoryData({
+            materialNumber: material
         })
+        .then(result => {
+            if (result && result.length > 0) {
+                this.inventoryData = result.map(item => ({
+                    ...item,
+                    // Format dates if needed
+                    formattedManufactureDate: item.dateOfManufacture ? 
+                        new Date(item.dateOfManufacture).toLocaleDateString() : 'N/A',
+                    formattedExpiryDate: item.shelfLifeExpirationDate ? 
+                        new Date(item.shelfLifeExpirationDate).toLocaleDateString() : 'N/A'
+                }));
+                
+                // Calculate totals
+                this.calculateTotals();
+            } else {
+                this.inventoryData = [];
+                this.totalStock = 0;
+                this.totalValue = 0;
+            }
+            this.isLoading = false;
+        })
+        .catch(error => {
+            console.error('Error loading inventory data:', error);
+            this.showToast('Error', 'Failed to load inventory data', 'error');
+            this.isLoading = false;
+        });
+    }
+    
+    // Close the inventory modal
+    closeInventoryModal() {
+        this.showInventoryModal = false;
+        this.inventoryData = [];
+        this.selectedProductId = '';
+        this.selectedProductName = '';
+    }
+    
+    // Check if there is inventory data to display
+    get hasInventoryData() {
+        return this.inventoryData && this.inventoryData.length > 0;
+    }
+    
+    get totalsDisplay() {
+        if (!this.hasInventoryData) return '';
+        return `${this.totalStock.toFixed(2)} ${this.unitOfMeasure} | ${this.currency} ${this.totalValue.toFixed(2)}`;
+    }
+    
+    // Format date for display
+    formatDate(dateString) {
+        if (!dateString) return 'N/A';
+        try {
+            const date = new Date(dateString);
+            return date.toLocaleDateString();
+        } catch (error) {
+            console.error('Error formatting date:', error);
+            return dateString; // Return original string if parsing fails
+        }
     }
 
     // ------------ Main Order Submit --------------------

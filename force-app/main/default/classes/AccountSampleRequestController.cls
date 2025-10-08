@@ -38,7 +38,8 @@ public static String saveSample(String accountId, String sampleJs,
             Consignee_Name__c = (String)sampleData.get('Consignee_Name'),
             Remark__c = (String)sampleData.get('Remark'),
             Customer_Code__c = String.valueOf(sampleData.get('Customer_Code__c')),
-            Sample_Category__c = sampleCategory
+            Sample_Category__c = sampleCategory,
+            Additional_Email__c = (String)sampleData.get('Email')
         );
 
         if (sampleData.containsKey('salesHod') && sampleData.get('salesHod') != null) {
@@ -127,7 +128,7 @@ public static String saveSample(String accountId, String sampleJs,
                 insert contentVersions;
             }
         }
-        
+        Utility.sendSampleRequestEmail(sampleRequest.Id);
         return sampleRequest.Id;
         
     } catch(Exception e) {

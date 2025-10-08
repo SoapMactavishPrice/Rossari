@@ -6,7 +6,8 @@
                 componentName: "c__customerOnboardingFormCaller"
             },
             state: {
-                c__refRecordId: component.get("v.recordId")
+                c__refRecordId: component.get("v.recordId"),
+                c__objectApiName: component.get("v.sObjectName")
             }
         };
         console.log('PARENT -> ', pageReference);

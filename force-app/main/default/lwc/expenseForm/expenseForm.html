@@ -30,11 +30,11 @@
                         </c-visit-report-lookup>
                     </div>
 
-                    <div class="slds-col slds-size_1-of-2 slds-medium-size_1-of-4">
+                    <!-- <div class="slds-col slds-size_1-of-2 slds-medium-size_1-of-4">
                         <lightning-input type="text" label="Voucher No" value={expenseName} data-name="Name"
-                            onchange={handleNameChange} required variant="label-stacked">
+                            onchange={handleNameChange} variant="label-stacked" disabled>
                         </lightning-input>
-                    </div>
+                    </div> -->
 
                     <div class="slds-col slds-size_1-of-2 slds-medium-size_1-of-4">
                         <lightning-input type="date" label="Expense Date" value={todayDate} data-name="Date__c" required
@@ -56,9 +56,15 @@
                         </lightning-combobox>
                     </div>
 
-                    <div class="slds-col slds-size_1-of-2 slds-medium-size_1-of-4">
+                    <!-- <div class="slds-col slds-size_1-of-2 slds-medium-size_1-of-4">
                         <lightning-input type="text" label="Division" value={division} disabled
                             variant="label-stacked"></lightning-input>
+                    </div> -->
+
+                    <div class="slds-col slds-size_1-of-2 slds-medium-size_1-of-4">
+                        <lightning-combobox label="Sales Type" value={salesType} options={salesTypeOptions}
+                            onchange={handleSalesTypeChange} variant="label-stacked" required>
+                        </lightning-combobox>
                     </div>
 
                     <div class="slds-col slds-size_1-of-2 slds-medium-size_1-of-4">
@@ -67,9 +73,8 @@
                     </div>
 
                     <div class="slds-col slds-size_1-of-2 slds-medium-size_1-of-4">
-                        <lightning-combobox name="currency" label="Currency" value={selectedCurrency} 
-                                            options={currencyOptions} onchange={handleCurrencyChange} 
-                                            variant="label-stacked" required>
+                        <lightning-combobox name="currency" label="Currency" value={selectedCurrency}
+                            options={currencyOptions} onchange={handleCurrencyChange} variant="label-stacked" required>
                         </lightning-combobox>
                     </div>
 
@@ -252,13 +257,9 @@
                                             <span class="slds-form-element__addon">
                                                 {currencySymbol}
                                             </span>
-                                            <lightning-input type="number"
-                                                            value={item.kmRate}
-                                                            data-index={index}
-                                                            onchange={handleKMRateChange}
-                                                            variant="label-hidden"
-                                                            step="0.01"
-                                                            required={showKMFields}>
+                                            <lightning-input type="number" value={item.kmRate} data-index={index}
+                                                onchange={handleKMRateChange} variant="label-hidden" step="0.01"
+                                                required={showKMFields}>
                                             </lightning-input>
                                         </div>
                                     </td>
@@ -267,13 +268,9 @@
                                             <span class="slds-form-element__addon">
                                                 {currencySymbol}
                                             </span>
-                                            <lightning-input type="number"
-                                                            value={item.tollParking}
-                                                            data-index={index}
-                                                            onchange={handleTollParkingChange}
-                                                            variant="label-hidden"
-                                                            step="0.01"
-                                                            disabled={item.disableTollParking}>
+                                            <lightning-input type="number" value={item.tollParking} data-index={index}
+                                                onchange={handleTollParkingChange} variant="label-hidden" step="0.01"
+                                                disabled={item.disableTollParking}>
                                             </lightning-input>
                                         </div>
                                     </td>
@@ -295,13 +292,9 @@
                                             <span class="slds-form-element__addon">
                                                 {currencySymbol}
                                             </span>
-                                            <lightning-input type="number"
-                                                            value={item.amountClaimed}
-                                                            data-index={index}
-                                                            onchange={handleAmountClaimedChange}
-                                                            variant="label-hidden"
-                                                            step="0.01"
-                                                            required>
+                                            <lightning-input type="number" value={item.amountClaimed} data-index={index}
+                                                onchange={handleAmountClaimedChange} variant="label-hidden" step="0.01"
+                                                required>
                                             </lightning-input>
                                         </div>
                                     </td>

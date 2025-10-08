@@ -2,120 +2,181 @@
 public class DocumentApprovalHandlerTest {
 
     @TestSetup
-    static void setupTestData() {
-        Profile p = [SELECT Id FROM Profile WHERE Name='Standard User' LIMIT 1];
+    static void setupData() {
+        Profile p = [SELECT Id FROM Profile WHERE Name = 'Standard User' LIMIT 1];
+
         List<User> users = new List<User>{
-            new User(FirstName='Test', LastName='User1', Alias='tuser1', Email='tuser1@example.com',
-                     Username='tuser1' + System.currentTimeMillis() + '@example.com', ProfileId=p.Id,
-                     TimeZoneSidKey='Asia/Kolkata', LocaleSidKey='en_US', EmailEncodingKey='UTF-8',
-                     LanguageLocaleKey='en_US', IsActive=true),
-            new User(FirstName='Test', LastName='User2', Alias='tuser2', Email='tuser2@example.com',
-                     Username='tuser2' + System.currentTimeMillis() + '@example.com', ProfileId=p.Id,
-                     TimeZoneSidKey='Asia/Kolkata', LocaleSidKey='en_US', EmailEncodingKey='UTF-8',
-                     LanguageLocaleKey='en_US', IsActive=true),
-            new User(FirstName='Test', LastName='User3', Alias='tuser3', Email='tuser3@example.com',
-                     Username='tuser3' + System.currentTimeMillis() + '@example.com', ProfileId=p.Id,
-                     TimeZoneSidKey='Asia/Kolkata', LocaleSidKey='en_US', EmailEncodingKey='UTF-8',
-                     LanguageLocaleKey='en_US', IsActive=true)
+            new User(
+                Alias = 'tdsu',
+                Email = 'tdsuser@example.com',
+                EmailEncodingKey = 'UTF-8',
+                LastName = 'TDSUser',
+                LanguageLocaleKey = 'en_US',
+                LocaleSidKey = 'en_US',
+                ProfileId = p.Id,
+                TimeZoneSidKey = 'America/Los_Angeles',
+                Username = 'tdsuser' + DateTime.now().getTime() + '@example.com'
+            ),
+            new User(
+                Alias = 'msdsu',
+                Email = 'msdsuser@example.com',
+                EmailEncodingKey = 'UTF-8',
+                LastName = 'MSDSUser',
+                LanguageLocaleKey = 'en_US',
+                LocaleSidKey = 'en_US',
+                ProfileId = p.Id,
+                TimeZoneSidKey = 'America/Los_Angeles',
+                Username = 'msdsuser' + DateTime.now().getTime() + '@example.com'
+            ),
+            new User(
+                Alias = 'techu',
+                Email = 'techuser@example.com',
+                EmailEncodingKey = 'UTF-8',
+                LastName = 'TechUser',
+                LanguageLocaleKey = 'en_US',
+                LocaleSidKey = 'en_US',
+                ProfileId = p.Id,
+                TimeZoneSidKey = 'America/Los_Angeles',
+                Username = 'techuser' + DateTime.now().getTime() + '@example.com'
+            ),
+            new User(
+                Alias = 'coau',
+                Email = 'coauser@example.com',
+                EmailEncodingKey = 'UTF-8',
+                LastName = 'COAUser',
+                LanguageLocaleKey = 'en_US',
+                LocaleSidKey = 'en_US',
+                ProfileId = p.Id,
+                TimeZoneSidKey = 'America/Los_Angeles',
+                Username = 'coauser' + DateTime.now().getTime() + '@example.com'
+            ),
+            new User(
+                Alias = 'ownr',
+                Email = 'owner@example.com',
+                EmailEncodingKey = 'UTF-8',
+                LastName = 'OwnerUser',
+                LanguageLocaleKey = 'en_US',
+                LocaleSidKey = 'en_US',
+                ProfileId = p.Id,
+                TimeZoneSidKey = 'America/Los_Angeles',
+                Username = 'owner' + DateTime.now().getTime() + '@example.com'
+            )
         };
         insert users;
+
+        Lead leadRecord = new Lead(
+            FirstName = 'Test',
+            LastName = 'Lead',
+            Company = 'TestCo_' + String.valueOf(Datetime.now().getTime()),
+            OwnerId = users[4].Id,
+            MobilePhone = '1234567890',
+            Email = 'leademail@example.com'
+        );
+        insert leadRecord;
     }
 
     @IsTest
-    static void testUpdateApproversAndSendEmails() {
-        List<User> users = [SELECT Id FROM User WHERE IsActive=true ORDER BY CreatedDate ASC LIMIT 3];
-        User u1 = users[0];
-        User u2 = users[1];
-        User u3 = users[2];
+    static void testAllFunctionalitiesTogether() {
+        // Query existing lead and users
+        Lead leadRecord = [SELECT Id, Owner.Email, Previous_View_Type__c FROM Lead LIMIT 1];
+        List<User> activeUsers = [SELECT Id FROM User WHERE IsActive = true LIMIT 5];
 
-        Country__c country = new Country__c(Name='India');
-        insert country;
-        State__c state = new State__c(Name='Maharashtra', Country__c=country.Id);
-        insert state;
-        City__c city = new City__c(Name='Mumbai', State__c=state.Id);
-        insert city;
-        Pin_Code__c pin = new Pin_Code__c(Name='400001', City__c=city.Id);
-        insert pin;
-        Company__c company = new Company__c(Name='Rossari Biotech Limited');
-        insert company;
+        DocumentApprovalHandler.ApproverModel model = new DocumentApprovalHandler.ApproverModel();
+        model.tdsApproverId = activeUsers[0].Id;
+        model.msdsApproverId = activeUsers[1].Id;
+        model.technicalDocApproverId = activeUsers[2].Id;
+        model.coaDocApproverId = activeUsers[3].Id;
+        String json = JSON.serialize(model);
 
-        Lead leadRec = new Lead(
-            FirstName='Test',
-            LastName='Lead',
-            Company='Test Company',
-            OwnerId=u1.Id,
-            Pin_Code__c=pin.Id,
-            City__c=city.Id,
-            State__c=state.Id,
-            Rossari_Company__c=company.Id,
-            MobilePhone='1234567890',
-            Email='testlead@example.com',
-            Status='Open - Not Contacted'
+        // Prepare files for upload
+        Map<Object, Object> m1 = new Map<Object, Object>{
+            'fileName' => 'tds.txt',
+            'base64' => EncodingUtil.base64Encode(Blob.valueOf('content1')),
+            'contentType' => 'text/plain',
+            'isReadOnly' => false
+        };
+        Map<Object, Object> m2 = new Map<Object, Object>{
+            'fileName' => 'msds.txt',
+            'base64' => EncodingUtil.base64Encode(Blob.valueOf('content2')),
+            'contentType' => 'text/plain',
+            'isReadOnly' => false
+        };
+        Map<Object, Object> m3 = new Map<Object, Object>{
+            'fileName' => 'tech.txt',
+            'base64' => EncodingUtil.base64Encode(Blob.valueOf('content3')),
+            'contentType' => 'text/plain',
+            'isReadOnly' => false
+        };
+        Map<Object, Object> m4 = new Map<Object, Object>{
+            'fileName' => 'coa.txt',
+            'base64' => EncodingUtil.base64Encode(Blob.valueOf('content4')),
+            'contentType' => 'text/plain',
+            'isReadOnly' => false
+        };
+
+        List<Object> tdsFiles = new List<Object>{ m1 };
+        List<Object> msdsFiles = new List<Object>{ m2 };
+        List<Object> techFiles = new List<Object>{ m3 };
+        List<Object> coaFiles = new List<Object>{ m4 };
+
+        // Prepare email test data
+        Profile p = [SELECT Id FROM Profile WHERE Name = 'Standard User' LIMIT 1];
+        User testOwner = new User(
+            Alias = 'towner',
+            Email = 'testowner@example.com',
+            EmailEncodingKey = 'UTF-8',
+            LastName = 'Owner',
+            LanguageLocaleKey = 'en_US',
+            LocaleSidKey = 'en_US',
+            ProfileId = p.Id,
+            TimeZoneSidKey = 'America/Los_Angeles',
+            Username = 'testowner' + DateTime.now().getTime() + '@example.com'
         );
-        insert leadRec;
+        insert testOwner;
 
-        DocumentApprovalHandler.ApproverModel approverModel = new DocumentApprovalHandler.ApproverModel();
-        approverModel.tdsApproverId = u1.Id;
-        approverModel.msdsApproverId = u2.Id;
-        approverModel.technicalDocApproverId = u3.Id;
-        String approverJson = JSON.serialize(approverModel);
+        Lead newLead = new Lead(
+            FirstName = 'Test',
+            LastName = 'Lead',
+            Company = 'TestCompany_' + String.valueOf(Datetime.now().getTime()),
+            OwnerId = testOwner.Id,
+            MobilePhone = '1234567800',
+            Email = 'leademail12@example.com'
+        );
+        insert newLead;
+
+        ContentVersion cv = new ContentVersion(
+            Title = 'TDS_test',
+            PathOnClient = 'TDS_test.txt',
+            VersionData = Blob.valueOf('Test file content')
+        );
+        insert cv;
+
+        ContentDocumentLink cdl = new ContentDocumentLink(
+            ContentDocumentId = [SELECT ContentDocumentId FROM ContentVersion WHERE Id = :cv.Id].ContentDocumentId,
+            LinkedEntityId = newLead.Id,
+            ShareType = 'V'
+        );
+        insert cdl;
+
+        List<String> toAddrs = new List<String>{ testOwner.Email };
+        List<String> ccAddrs = new List<String>{};
 
         Test.startTest();
-        DocumentApprovalHandler.updateApproversAndSendEmails(approverJson, leadRec.Id);
+
+        // Call all the methods to test
+        String res = DocumentApprovalHandler.updateApproversAndSendEmails(json, leadRecord.Id);
+        String uploadResult = DocumentApprovalHandler.uploadDocuments(tdsFiles, msdsFiles, techFiles, coaFiles, leadRecord.Id);
+        DocumentApprovalHandler.DocumentModel docModel = DocumentApprovalHandler.getDocumentModel(leadRecord.Id);
+        Boolean isSubmitted = DocumentApprovalHandler.isRequestDocumentSubmitted(leadRecord.Id);
+        String emailResult = DocumentApprovalHandler.sendLeadDocumentEmail(newLead.Id, toAddrs, ccAddrs, 'Test Subject', '<b>Test Body</b>');
+        String savePrevResult = DocumentApprovalHandler.savePreviousViewType(leadRecord.Id, 'TestView');
+        String viewType = DocumentApprovalHandler.getPreviousViewType(leadRecord.Id);
+        update new Lead(Id=leadRecord.Id, Previous_View_Type__c = null);
+        String nullViewType = DocumentApprovalHandler.getPreviousViewType(leadRecord.Id);
+        String remarksResult = DocumentApprovalHandler.saveRemarks('TDS Remark', 'MSDS Remark', 'TechDoc Remark', 'COA Remark', leadRecord.Id);
+
         Test.stopTest();
-    }
 
-    @IsTest
-    static void testUploadDocuments() {
-        User u = [SELECT Id FROM User WHERE IsActive=true ORDER BY CreatedDate ASC LIMIT 1];
-
-        Country__c country = new Country__c(Name='India');
-        insert country;
-        State__c state = new State__c(Name='Maharashtra', Country__c=country.Id);
-        insert state;
-        City__c city = new City__c(Name='Mumbai', State__c=state.Id);
-        insert city;
-        Pin_Code__c pin = new Pin_Code__c(Name='400001', City__c=city.Id);
-        insert pin;
-        Company__c company = new Company__c(Name='Rossari Biotech Limited');
-        insert company;
-
-        Lead leadRec = new Lead(
-            FirstName='Test',
-            LastName='Lead',
-            Company='Test Company',
-            OwnerId=u.Id,
-            Pin_Code__c=pin.Id,
-            City__c=city.Id,
-            State__c=state.Id,
-            Rossari_Company__c=company.Id,
-            MobilePhone='1234567890',
-            Email='testlead@example.com',
-            Status='Open - Not Contacted'
-        );
-        insert leadRec;
-
-        List<Object> tdsFiles = new List<Object>{ new Map<Object,Object>{
-            'fileName' => 'tdsfile.txt', 
-            'base64' => EncodingUtil.base64Encode(Blob.valueOf('Test Content')),
-            'contentType' => 'text/plain', 
-            'isReadOnly' => false
-        }};
-        List<Object> msdsFiles = new List<Object>{ new Map<Object,Object>{
-            'fileName' => 'msdsfile.txt', 
-            'base64' => EncodingUtil.base64Encode(Blob.valueOf('Test Content')),
-            'contentType' => 'text/plain', 
-            'isReadOnly' => false
-        }};
-        List<Object> techFiles = new List<Object>{ new Map<Object,Object>{
-            'fileName' => 'techfile.txt', 
-            'base64' => EncodingUtil.base64Encode(Blob.valueOf('Test Content')),
-            'contentType' => 'text/plain', 
-            'isReadOnly' => false
-        }};
-
-        Test.startTest();
-        DocumentApprovalHandler.uploadDocuments(tdsFiles, msdsFiles, techFiles, leadRec.Id);
-        Test.stopTest();
+        // No assertions as per request
     }
 }

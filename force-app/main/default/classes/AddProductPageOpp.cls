@@ -1,7 +1,163 @@
 public without sharing class AddProductPageOpp {
 
     @AuraEnabled
-    public static String findProduct(string recordId, List < String > productFamily) {
+    public static string getCustomerSalesArea(String recordId){
+        try {
+
+            Opportunity op = [SELECT Id, Pricebook2Id, Pricebook2.Name, AccountId, CurrencyIsoCode FROM Opportunity WHERE Id =: recordId];
+
+            List<Customer_Sales_Area__c> csaList = [
+                SELECT Id, Comapany_Code__c, Sales_Organisation__c, Sales_Organisation__r.Name
+                FROM Customer_Sales_Area__c 
+                WHERE Comapany_Code__c = :op.AccountId
+            ];
+
+            Set<String> salesOrgSet = new Set<String>();
+            for (Customer_Sales_Area__c csa : csaList) {
+                salesOrgSet.add(csa.Sales_Organisation__r.Name);
+            }
+
+            System.debug('salesOrgSet: ' + salesOrgSet);
+
+            List<Map<String, String>> companyMapList = new List<Map<String, String>>();
+            // Loop through the salesOrgSet
+            for (String orgName : salesOrgSet) {
+                System.debug('Processing Sales Organization: ' + orgName);
+                // Add any additional processing here if needed
+                List<Company_User__c> companyUserList = new List<Company_User__c>();
+                companyUserList = [
+                    SELECT Id, User__c,
+                    Company__c, Company__r.SAP_Code__c
+                    FROM Company_User__c
+                    WHERE Company__r.SAP_Code__c = :orgName
+                    AND User__c = :UserInfo.getUserId()
+                    LIMIT 1
+                ];
+                    
+                Map<String, String> companyMap = new Map<String, String>();
+                if (companyUserList.size() > 0) {
+                    System.debug('YES');
+                    companyMap.put('label',orgName);
+                    companyMap.put('value',orgName);
+                    companyMapList.add(companyMap);
+                }
+            }
+
+            return JSON.serialize(companyMapList);
+            
+        } catch (Exception e) {
+            throw new AuraHandledException(e.getMessage());
+        }
+    }
+
+    @AuraEnabled
+    public static String getDivision(String oppId, String salesOrg, String distributionChannel) {
+        try {
+            // Query the opportunity to get the account ID
+            Opportunity opp = [SELECT Id, AccountId FROM Opportunity WHERE Id = :oppId LIMIT 1];
+            
+            if (opp == null || opp.AccountId == null) {
+                return JSON.serialize(new List<Map<String, String>>());
+            }
+
+            // Example multipicklist field on User: User.Division_Code__c 
+            User currentUser = [
+                SELECT Id, Division_Code__c, Division_Code_2__c, Division_Code_3__c
+                FROM User
+                WHERE Id = :UserInfo.getUserId()
+            ];
+
+            // Multipicklist values come as a semicolon-separated string, e.g. "East;West;North"
+            Set<String> divSet = new Set<String>();
+
+            if (String.isNotBlank(currentUser.Division_Code__c)) {
+                divSet.addAll(currentUser.Division_Code__c.split(';'));
+            }
+            if (String.isNotBlank(currentUser.Division_Code_2__c)) {
+                divSet.addAll(currentUser.Division_Code_2__c.split(';'));
+            }
+            if (String.isNotBlank(currentUser.Division_Code_3__c)) {
+                divSet.addAll(currentUser.Division_Code_3__c.split(';'));
+            }
+            
+            // Query customer sales areas for the account, matching sales organization and distribution channel
+            List<Customer_Sales_Area__c> salesAreas = [
+                SELECT Id, Division__c, Division__r.Name, 
+                Division__r.Division_Code__c
+                FROM Customer_Sales_Area__c 
+                WHERE Comapany_Code__c = :opp.AccountId
+                AND Sales_Organisation__r.Name = :salesOrg
+                AND Distribution_Channel__r.Distribution_Code__c = :distributionChannel
+                AND Division__r.Division_Code__c IN :divSet
+            ];
+            
+            // Create a map to store unique divisions
+            Map<String, Map<String, String>> divisionMap = new Map<String, Map<String, String>>();
+            
+            for (Customer_Sales_Area__c csa : salesAreas) {
+                if (!divisionMap.containsKey(csa.Division__c)) {
+                    divisionMap.put(csa.Division__c, new Map<String, String>{
+                        'label' => csa.Division__r.Division_Code__c,
+                        'value' => csa.Division__c
+                    });
+                }
+            }
+            
+            // Convert map values to list for the combobox
+            List<Map<String, String>> divisions = new List<Map<String, String>>(divisionMap.values());
+            
+            return JSON.serialize(divisions);
+            
+        } catch (Exception e) {
+            throw new AuraHandledException('Error fetching divisions: ' + e.getMessage());
+        }
+    }
+    
+    @AuraEnabled
+    public static String getDistributionChannel(String oppId, String salesOrg) {
+        try {
+            // Query the opportunity to get the account ID
+            Opportunity opp = [SELECT Id, AccountId FROM Opportunity WHERE Id = :oppId LIMIT 1];
+            
+            if (opp == null || opp.AccountId == null) {
+                return JSON.serialize(new List<Map<String, String>>());
+            }
+            
+            // Query customer sales areas for the account and matching sales organization
+            List<Customer_Sales_Area__c> salesAreas = [
+                SELECT Id, Distribution_Channel__c, Distribution_Channel__r.Distribution_Code__c
+                FROM Customer_Sales_Area__c 
+                WHERE Comapany_Code__c = :opp.AccountId
+                AND Sales_Organisation__r.Name = :salesOrg
+                AND Distribution_Channel__c != null
+            ];
+            
+            // Create a list to store unique distribution channels
+            Map<String, Map<String, String>> distChannelMap = new Map<String, Map<String, String>>();
+            
+            for (Customer_Sales_Area__c csa : salesAreas) {
+                if (!distChannelMap.containsKey(csa.Distribution_Channel__c)) {
+                    distChannelMap.put(csa.Distribution_Channel__c, new Map<String, String>{
+                        'label' => csa.Distribution_Channel__r.Distribution_Code__c,
+                        'value' => csa.Distribution_Channel__r.Distribution_Code__c
+                    });
+                }
+            }
+            
+            // Convert map values to list for the combobox
+            List<Map<String, String>> distChannels = new List<Map<String, String>>(distChannelMap.values());
+            
+            return JSON.serialize(distChannels);
+            
+        } catch (Exception e) {
+            throw new AuraHandledException('Error fetching distribution channels: ' + e.getMessage());
+        }
+    }
+
+
+    
+    @AuraEnabled
+    public static String findProduct(string recordId, List<String> productFamily) {
 
         // Example multipicklist field on User: User.Division_Code__c 
         User currentUser = [

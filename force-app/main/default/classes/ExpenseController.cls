@@ -404,6 +404,60 @@ public with sharing class ExpenseController {
     }
 
 
-    
+    @AuraEnabled(cacheable=true)
+public static List<Map<String, String>> getSalesTypeOptions() {
+    try {
+        System.debug('Starting getSalesTypeOptions method');
+        
+        List<Map<String, String>> options = new List<Map<String, String>>();
+        
+        // First, let's check if Expense__c object is accessible
+        if (!Schema.getGlobalDescribe().containsKey('Expense__c')) {
+            throw new AuraHandledException('Expense__c object not found');
+        }
+        
+        // Get the object describe
+        Schema.DescribeSObjectResult objDescribe = Expense__c.sObjectType.getDescribe();
+        if (!objDescribe.isAccessible()) {
+            throw new AuraHandledException('Expense__c object is not accessible');
+        }
+        
+        // Check if Sales_Type__c field exists and is accessible
+        Map<String, Schema.SObjectField> fieldMap = objDescribe.fields.getMap();
+        if (!fieldMap.containsKey('Sales_Type__c')) {
+            throw new AuraHandledException('Sales_Type__c field not found on Expense__c object');
+        }
+        
+        Schema.SObjectField salesTypeField = fieldMap.get('Sales_Type__c');
+        Schema.DescribeFieldResult fieldResult = salesTypeField.getDescribe();
+        
+        if (!fieldResult.isAccessible()) {
+            throw new AuraHandledException('Sales_Type__c field is not accessible');
+        }
+        
+        // Get picklist values
+        List<Schema.PicklistEntry> ple = fieldResult.getPicklistValues();
+        System.debug('Number of picklist entries found: ' + ple.size());
+        
+        for (Schema.PicklistEntry entry : ple) {
+            System.debug('Processing picklist entry: ' + entry.getLabel() + ' - ' + entry.getValue() + ' - Active: ' + entry.isActive());
+            if (entry.isActive()) {
+                options.add(new Map<String, String>{
+                    'label' => entry.getLabel(),
+                    'value' => entry.getValue()
+                });
+            }
+        }
+        
+        System.debug('Final options count: ' + options.size());
+        
+        // If no active options found, return empty list
+        return options;
+        
+    } catch (Exception e) {
+        System.debug('Error in getSalesTypeOptions: ' + e.getMessage() + ' - Stack: ' + e.getStackTraceString());
+        throw new AuraHandledException('Failed to load Sales Type options: ' + e.getMessage());
+    }
+}
     
 }

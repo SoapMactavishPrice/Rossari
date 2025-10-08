@@ -25,6 +25,29 @@
                 </header>
                 <div class="slds-modal__content slds-p-around_medium" id="modal-content-id-1">
                     <template if:true={isFirstPage}>
+                        <!-- Sales Area Dropdown -->
+                        <div class="slds-grid slds-gutters slds-p-around_xxx-small">
+                            <div class="slds-col slds-size_1-of-4">
+                                <lightning-combobox name="salesArea" label="Sales Area" value={selectedSalesArea}
+                                    options={customerSalesArea} onchange={handleSalesAreaChange}
+                                    placeholder="Select Sales Area" variant="label-stacked" class="slds-m-bottom_small">
+                                </lightning-combobox>
+                            </div>
+                            <div class="slds-col slds-size_1-of-4">
+                                <lightning-combobox name="distributionChannel" label="Distribution Channel"
+                                    value={selectedDistributionChannel} options={distributionChannel}
+                                    onchange={handleDistributionChannelChange} placeholder="Select Distribution Channel"
+                                    variant="label-stacked" class="slds-m-bottom_small">
+                                </lightning-combobox>
+                            </div>
+                            <div class="slds-col slds-size_1-of-4">
+                                <lightning-combobox name="division" label="Division" value={selectedDivision}
+                                    options={division} onchange={handleDivisionChange} placeholder="Select Division"
+                                    variant="label-stacked" class="slds-m-bottom_small">
+                                </lightning-combobox>
+                            </div>
+                        </div>
+
                         <div class="slds-grid slds-gutters slds-p-around_xxx-small">
                             <div class="slds-col" style="width:100%">
                                 <div class="slds-form-element" onmouseleave={toggleResult}>
@@ -39,8 +62,7 @@
                                                     <lightning-input type="search" data-source="searchInputField"
                                                         onclick={toggleResult} value={searchKey} variant="label-hidden"
                                                         placeholder="Search Product here..."
-                                                        onkeyup={showFilteredProducts}
-                                                        onchange={showFilteredProducts}
+                                                        onkeyup={showFilteredProducts} onchange={showFilteredProducts}
                                                         class="searchBox"></lightning-input>
                                                     <span if:true={showErrorMsg} style="color:red">First, enter keywords
                                                         for a product. Then add filters and click Apply.</span>
@@ -187,7 +209,7 @@
                                                 class="slds-truncate">Sales
                                                 Price</span></div>
                                     </th>
-                                     <th class="" scope="col">
+                                    <th class="" scope="col">
                                         <div class="slds-truncate" title="Discount">Discount</div>
                                     </th>
 
@@ -234,12 +256,12 @@
                                                 data-target-id={product.Id} variant="label-hidden"
                                                 onchange={handleSalesPriceChange}></lightning-input>
                                         </td>
-                                         <td>
+                                        <td>
                                             <lightning-input type="number" value={product.Discount}
                                                 data-target-id={product.Id} variant="label-hidden"
                                                 onchange={handleDateChange}></lightning-input>
                                         </td>
-                                       <!-- <td>
+                                        <!-- <td>
                                             <lightning-input type="text" value={product.LineDescription}
                                                 variant="label-hidden" data-target-id={product.Id}
                                                 onchange={handleLineDescriptionChange}></lightning-input>

@@ -1,11 +1,18 @@
 public class CustomerOnboardingFormController {
     
-    @auraEnabled
-    public static Account getCustomerDetail(string Id){
-        //Search_term__c,Name_2__c,Street3__c,language__c
-        Account acc= [select Id,Name,Cust_Acct_Group__c,Account_Group__c,SE_Name__c,Title__c,SAP_Customer_Code__c,Pan_No__c,Street1__c,Postal_Code__c,Post_Code__c,City1__c,Sales_Organisation__r.Name,
-                      City__c, Country_Text__c , State__c, State1__c,Street2__c,Phone,Email_Id__c from Account where Id =:Id limit 1];
-        return acc;
+    // @auraEnabled
+    // public static Account getCustomerDetail(string Id){
+    //     //Search_term__c,Name_2__c,Street3__c,language__c
+    //     Account acc= [select Id,Name,Cust_Acct_Group__c,Account_Group__c,SE_Name__c,Title__c,SAP_Customer_Code__c,Pan_No__c,Street1__c,Postal_Code__c,Post_Code__c,City1__c,Sales_Organisation__r.Name,
+    //                   City__c, Country_Text__c , State__c, State1__c,Street2__c,Phone,Email_Id__c from Account where Id =:Id limit 1];
+    //     return acc;
+    // }
+
+        @auraEnabled
+    public static Quote getCustomerDetail(string Id){
+        Quote quo= [select Id,Name,Account.Cust_Acct_Group__c,Account.Account_Group__c,Account.SE_Name__c,Account.Title__c,Account.SAP_Customer_Code__c,Account.Pan_No__c,Account.Street1__c,Account.Postal_Code__c,Account.Post_Code__c,Account.City1__c,Account.Sales_Organisation__r.Name,
+                      Account.City__c,Account.Country_Text__c , Account.State__c, Account.State1__c,Account.Street2__c,Account.Phone,Account.Email_Id__c from Quote where Id =:Id limit 1];
+        return quo;
     }
     
     @auraEnabled
@@ -64,5 +71,28 @@ public class CustomerOnboardingFormController {
 
         // Send email
         Messaging.sendEmail(new Messaging.SingleEmailMessage[] { mail });
+    }
+    
+    @AuraEnabled
+    public static void sendXlsxEmail(String fileName, String base64Data, String recipientEmail) {
+        if (String.isBlank(fileName) || String.isBlank(base64Data) || String.isBlank(recipientEmail)) {
+            throw new AuraHandledException('Missing required parameters.');
+        }
+
+        Messaging.EmailFileAttachment attachment = new Messaging.EmailFileAttachment();
+        attachment.setFileName(fileName);
+        attachment.setBody(EncodingUtil.base64Decode(base64Data));
+        attachment.setContentType('application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+
+        Messaging.SingleEmailMessage mail = new Messaging.SingleEmailMessage();
+        mail.setToAddresses(new String[] { recipientEmail });
+        mail.setSubject('📎 XLSX File Attached');
+        mail.setPlainTextBody('Hello,\n\nPlease find the attached Excel file.\n\nRegards,\nSalesforce Bot');
+        mail.setFileAttachments(new Messaging.EmailFileAttachment[] { attachment });
+
+        Messaging.SendEmailResult[] results = Messaging.sendEmail(new Messaging.SingleEmailMessage[] { mail });
+        if (!results[0].isSuccess()) {
+            throw new AuraHandledException('Failed to send email: ' + results[0].getErrors()[0].getMessage());
+        }
     }
 }

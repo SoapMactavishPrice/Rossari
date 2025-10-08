@@ -1,132 +1,152 @@
 public class DocumentApprovalHandler {
     
     @AuraEnabled
-    public static String updateApproversAndSendEmails(String approverStringObject, String leadId) {
-        try {
-            
-            ApproverModel approvers = (ApproverModel)JSON.deserialize(approverStringObject, ApproverModel.class);
-            
-            
-            Lead leadRecord = [SELECT Id, FirstName, LastName, Company, Owner.Name, Owner.Email, Lead_Number__c,
-                             TDS_Approver__c, MSDS_Approver__c, Technical_Document_Approver__c, COA_Document_Approver__c,
-                             TDS_Remark__c, MSDS_Remark__c, Tech_Doc_Remark__c, COA_Doc_Remark__c
-                             FROM Lead WHERE Id = :leadId];
-            
-            if (approvers.tdsApproverId != null) {
-                leadRecord.TDS_Approver__c = approvers.tdsApproverId;
-            }
-            if (approvers.msdsApproverId != null) {
-                leadRecord.MSDS_Approver__c = approvers.msdsApproverId;
-            }
-            if (approvers.technicalDocApproverId != null) {
-                leadRecord.Technical_Document_Approver__c = approvers.technicalDocApproverId;
-            }
-            if (approvers.coaDocApproverId != null) {
-                leadRecord.COA_Document_Approver__c = approvers.coaDocApproverId;
-            }
-            
-            update leadRecord;
-            
-            
-            List<Messaging.SingleEmailMessage> emailMessages = new List<Messaging.SingleEmailMessage>();
-            
-            
-            Set<Id> approverIds = new Set<Id>();
-            if (approvers.tdsApproverId != null) approverIds.add(approvers.tdsApproverId);
-            if (approvers.msdsApproverId != null) approverIds.add(approvers.msdsApproverId);
-            if (approvers.technicalDocApproverId != null) approverIds.add(approvers.technicalDocApproverId);
-            if (approvers.coaDocApproverId != null) approverIds.add(approvers.coaDocApproverId);
-            
-            Map<Id, User> approverMap = new Map<Id, User>([
-                SELECT Id, Name, Email 
-                FROM User 
-                WHERE Id IN :approverIds
-            ]);
-            
-            
-            if (approvers.tdsApproverId != null) {
-                Messaging.SingleEmailMessage tdsEmail = createApprovalEmail(
-                    approverMap.get(approvers.tdsApproverId),
-                leadRecord,
-                'TDS'
-                    );
-                emailMessages.add(tdsEmail);
-            }
-            
-            
-            if (approvers.msdsApproverId != null) {
-                Messaging.SingleEmailMessage msdsEmail = createApprovalEmail(
-                    approverMap.get(approvers.msdsApproverId),
-                leadRecord,
-                'MSDS'
-                    );
-                emailMessages.add(msdsEmail);
-            }
-            
-            
-            if (approvers.technicalDocApproverId != null) {
-                Messaging.SingleEmailMessage techEmail = createApprovalEmail(
-                    approverMap.get(approvers.technicalDocApproverId),
-                leadRecord,
-                'Technical'
-                    );
-                emailMessages.add(techEmail);
-            }
+    public static String updateApproversAndSendEmails(String approverStringObject, String sampleDocumentStringObj, String leadId) {
+        
+        ApproverModel approvers = (ApproverModel)JSON.deserialize(approverStringObject, ApproverModel.class);
+        
+        
+        SampleDocumentWrapper uploadedFiles = (SampleDocumentWrapper)JSON.deserialize(sampleDocumentStringObj, SampleDocumentWrapper.class);
 
-            if (approvers.coaDocApproverId != null) {
-                Messaging.SingleEmailMessage techEmail = createApprovalEmail(
-                    approverMap.get(approvers.coaDocApproverId),
-                leadRecord,
-                'COA'
-                    );
-                emailMessages.add(techEmail);
+        Lead leadRecord = [
+            SELECT Id, FirstName, LastName, Company, Owner.Name, Owner.Email, Lead_Number__c,
+                TDS_Approver__c, MSDS_Approver__c, Technical_Document_Approver__c, COA_Document_Approver__c,
+                TDS_Remark__c, MSDS_Remark__c, Tech_Doc_Remark__c, COA_Doc_Remark__c
+            FROM Lead 
+            WHERE Id = :leadId
+        ];
+        
+        
+        if (approvers.tdsApproverId != null) leadRecord.TDS_Approver__c = approvers.tdsApproverId;
+        if (approvers.msdsApproverId != null) leadRecord.MSDS_Approver__c = approvers.msdsApproverId;
+        if (approvers.technicalDocApproverId != null) leadRecord.Technical_Document_Approver__c = approvers.technicalDocApproverId;
+        if (approvers.coaDocApproverId != null) leadRecord.COA_Document_Approver__c = approvers.coaDocApproverId;
+
+        update leadRecord;
+
+        
+        List<Messaging.SingleEmailMessage> emailMessages = new List<Messaging.SingleEmailMessage>();
+        Map<Id, User> approverMap = new Map<Id, User>([
+            SELECT Id, Name, Email FROM User 
+            WHERE Id IN :new Set<Id>{
+                approvers.tdsApproverId, 
+                approvers.msdsApproverId, 
+                approvers.technicalDocApproverId, 
+                approvers.coaDocApproverId
             }
-            
-            
-            if (!emailMessages.isEmpty()) {
-                Messaging.sendEmail(emailMessages);
+        ]);
+
+        saveUploadedFiles(uploadedFiles, leadId);
+        
+        if (approvers.tdsApproverId != null) {
+            emailMessages.add(createApprovalEmail(approverMap.get(approvers.tdsApproverId), leadRecord, 'TDS', uploadedFiles.tdsSampleFiles));
+        }
+        if (approvers.msdsApproverId != null) {
+            emailMessages.add(createApprovalEmail(approverMap.get(approvers.msdsApproverId), leadRecord, 'MSDS', uploadedFiles.msdsSampleFiles));
+        }
+        if (approvers.technicalDocApproverId != null) {
+            emailMessages.add(createApprovalEmail(approverMap.get(approvers.technicalDocApproverId), leadRecord, 'Technical', uploadedFiles.techDocSampleFiles));
+        }
+        if (approvers.coaDocApproverId != null) {
+            emailMessages.add(createApprovalEmail(approverMap.get(approvers.coaDocApproverId), leadRecord, 'COA', uploadedFiles.coaSampleFiles));
+        }
+
+        if (!emailMessages.isEmpty()) {
+            Messaging.sendEmail(emailMessages);
+        }
+
+        return 'Success';
+    }
+
+
+    private static void saveUploadedFiles(SampleDocumentWrapper uploadedFiles, Id leadId) {
+        List<ContentVersion> contentVersions = new List<ContentVersion>();
+
+        // Helper to process each category
+        processFileList(uploadedFiles.tdsSampleFiles, 'TDS Document', contentVersions);
+        processFileList(uploadedFiles.msdsSampleFiles, 'MSDS Document', contentVersions);
+        processFileList(uploadedFiles.techDocSampleFiles, 'Technical Document', contentVersions);
+        processFileList(uploadedFiles.coaSampleFiles, 'COA Document', contentVersions);
+
+        if (!contentVersions.isEmpty()) {
+            insert contentVersions;
+
+            List<ContentDocumentLink> links = new List<ContentDocumentLink>();
+            for (ContentVersion cv : [SELECT Id, ContentDocumentId FROM ContentVersion WHERE Id IN :contentVersions]) {
+                links.add(new ContentDocumentLink(
+                    ContentDocumentId = cv.ContentDocumentId,
+                    LinkedEntityId = leadId,
+                    ShareType = 'V', // View only
+                    Visibility = 'AllUsers'
+                ));
             }
-            
-            return 'Success';
-        } catch (Exception e) {
-            throw new AuraHandledException('Error: ' + e.getMessage());
+            insert links;
         }
     }
-    
-    private static Messaging.SingleEmailMessage createApprovalEmail(User approver, Lead leadRecord, String documentType) {
-        Messaging.SingleEmailMessage email = new Messaging.SingleEmailMessage();
 
+    private static void processFileList(List<ContentVersionWrapper> files, String description, List<ContentVersion> contentVersions) {
+        for (ContentVersionWrapper fw : files) {
+            if (fw.base64Data != null && fw.fileName != null) {
+                contentVersions.add(new ContentVersion(
+                    Title = fw.fileName,
+                    PathOnClient = fw.fileName,
+                    VersionData = EncodingUtil.base64Decode(fw.base64Data),
+                    Description = description
+                ));
+            }
+        }
+    }
+
+    
+    private static Messaging.SingleEmailMessage createApprovalEmail(
+            User approver, 
+            Lead leadRecord, 
+            String documentType, 
+            List<ContentVersionWrapper> files) 
+    {
+        Messaging.SingleEmailMessage email = new Messaging.SingleEmailMessage();
         email.setToAddresses(new List<String>{approver.Email});
         email.setCcAddresses(new List<String>{leadRecord.Owner.Email});
         email.setTargetObjectId(leadRecord.Id);
         email.setSaveAsActivity(true);
         email.setSubject('Request for ' + documentType + ' Document - ' + leadRecord.Company);
 
+        // Email body
         String htmlBody = 'Dear ' + approver.Name + ',<br/><br/>';
         htmlBody += 'There is a request for a ' + documentType + ' document for the below Lead:<br/><br/>';
         htmlBody += '<b>Lead Number:</b> ' + leadRecord.Lead_Number__c + '<br/>';
         htmlBody += '<b>Lead First Name:</b> ' + leadRecord.FirstName + '<br/>';
         htmlBody += '<b>Lead Last Name:</b> ' + leadRecord.LastName + '<br/>';
         htmlBody += '<b>Company:</b> ' + leadRecord.Company + '<br/>';
-        if (documentType == 'TDS') {
-            htmlBody += '<b>Remark:</b> ' + (leadRecord.TDS_Remark__c != null ? leadRecord.TDS_Remark__c : '') + '<br/>';
-        } else if (documentType == 'MSDS') {
-            htmlBody += '<b>Remark:</b> ' + (leadRecord.MSDS_Remark__c != null ? leadRecord.MSDS_Remark__c : '') + '<br/>';
-        } else if (documentType == 'Technical') {
-            htmlBody += '<b>Remark:</b> ' + (leadRecord.Tech_Doc_Remark__c != null ? leadRecord.Tech_Doc_Remark__c : '') + '<br/>';
-        } else if (documentType == 'COA') {
-            htmlBody += '<b>Remark:</b> ' + (leadRecord.COA_Doc_Remark__c != null ? leadRecord.COA_Doc_Remark__c : '') + '<br/>';
-        }
+
+        // Remark
+        if (documentType == 'TDS') htmlBody += '<b>Remark:</b> ' + (leadRecord.TDS_Remark__c != null ? leadRecord.TDS_Remark__c : '') + '<br/>';
+        else if (documentType == 'MSDS') htmlBody += '<b>Remark:</b> ' + (leadRecord.MSDS_Remark__c != null ? leadRecord.MSDS_Remark__c : '') + '<br/>';
+        else if (documentType == 'Technical') htmlBody += '<b>Remark:</b> ' + (leadRecord.Tech_Doc_Remark__c != null ? leadRecord.Tech_Doc_Remark__c : '') + '<br/>';
+        else if (documentType == 'COA') htmlBody += '<b>Remark:</b> ' + (leadRecord.COA_Doc_Remark__c != null ? leadRecord.COA_Doc_Remark__c : '') + '<br/>';
+
         htmlBody += '<b>URL:</b> <a href="https://rossari--devorg.sandbox.lightning.force.com/lightning/cmp/c__AttachTdsMsdsOnOppCaller?c__recordId=' 
                     + leadRecord.Id + '" target="_blank">Click here</a><br/><br/>';
         htmlBody += 'Kindly review and provide the required document.<br/><br/>';
-        htmlBody += 'Regards,<br/>';
-        htmlBody += leadRecord.Owner.Name;
+        htmlBody += 'Regards,<br/>' + leadRecord.Owner.Name;
 
         email.setHtmlBody(htmlBody);
 
+        // Attach files as email attachments
+        if (files != null && !files.isEmpty()) {
+            List<Messaging.EmailFileAttachment> attachments = new List<Messaging.EmailFileAttachment>();
+            for (ContentVersionWrapper f : files) {
+                Messaging.EmailFileAttachment attach = new Messaging.EmailFileAttachment();
+                attach.setFileName(f.fileName);
+                attach.setBody(EncodingUtil.base64Decode(f.base64Data));
+                attachments.add(attach);
+            }
+            email.setFileAttachments(attachments);
+        }
+
         return email;
     }
+
     
     @AuraEnabled
     public static String uploadDocuments(List<Object> tdsFiles, List<Object> msdsFiles, List<Object> technicalDocumentFiles, List<Object> coaDocumentFiles, String leadId) {
@@ -634,4 +654,17 @@ public class DocumentApprovalHandler {
             this.isSaveDisabled = this.isTdsDisabled && this.isMsdsDisabled && this.isTechnicalDocDisabled && this.isCoaDocDisabled;
         }
     }
+
+    public class SampleDocumentWrapper {
+        @AuraEnabled public List<ContentVersionWrapper> tdsSampleFiles { get; set; }
+        @AuraEnabled public List<ContentVersionWrapper> msdsSampleFiles { get; set; }
+        @AuraEnabled public List<ContentVersionWrapper> techDocSampleFiles { get; set; }
+        @AuraEnabled public List<ContentVersionWrapper> coaSampleFiles { get; set; }
+    }
+
+    public class ContentVersionWrapper {
+        @AuraEnabled public String fileName { get; set; }
+        @AuraEnabled public String base64Data { get; set; } // base64 string of file content
+    }
+
 }

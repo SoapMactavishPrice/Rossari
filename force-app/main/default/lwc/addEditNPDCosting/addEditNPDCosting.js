@@ -11,6 +11,8 @@ export default class NpdCostingLineItems extends NavigationMixin(LightningElemen
     @track lineItems = [];
     @track isLoading = false;
     @track yieldAndRMCChange = 0;
+    @track deletedItemIds = []; // Hold deleted IDs until save
+
 
     connectedCallback() {
         this.loadData();
@@ -199,6 +201,37 @@ export default class NpdCostingLineItems extends NavigationMixin(LightningElemen
         return item?.id ? '' : 'slds-hide';
     }
 
+    // handleDeleteItem(event) {
+    //     const index = event.target.dataset.index;
+    //     const item = this.lineItems[index];
+
+    //     if (this.lineItems.length <= 1) {
+    //         this.showError('Cannot delete', 'At least one item is required');
+    //         return;
+    //     }
+
+    //     // If record has been saved (has an Id), delete from Salesforce
+    //     if (item.id) {
+    //         this.isLoading = true;
+    //         deleteCostingItem({ costingItemId: item.id })
+    //             .then(() => {
+    //                 this.lineItems.splice(index, 1);
+    //                 this.lineItems = [...this.lineItems];
+    //                 this.showSuccess('Deleted', 'Costing item deleted successfully');
+    //             })
+    //             .catch(error => {
+    //                 this.showError('Delete Failed', error.body?.message || error.message);
+    //             })
+    //             .finally(() => {
+    //                 this.isLoading = false;
+    //             });
+    //     } else {
+    //         // Unsaved row — just remove from UI
+    //         this.lineItems.splice(index, 1);
+    //         this.lineItems = [...this.lineItems];
+    //     }
+    // }
+
     handleDeleteItem(event) {
         const index = event.target.dataset.index;
         const item = this.lineItems[index];
@@ -208,27 +241,53 @@ export default class NpdCostingLineItems extends NavigationMixin(LightningElemen
             return;
         }
 
-        // If record has been saved (has an Id), delete from Salesforce
+        // If record has been saved, track its ID for deletion on save
         if (item.id) {
-            this.isLoading = true;
-            deleteCostingItem({ costingItemId: item.id })
-                .then(() => {
-                    this.lineItems.splice(index, 1);
-                    this.lineItems = [...this.lineItems];
-                    this.showSuccess('Deleted', 'Costing item deleted successfully');
-                })
-                .catch(error => {
-                    this.showError('Delete Failed', error.body?.message || error.message);
-                })
-                .finally(() => {
-                    this.isLoading = false;
-                });
-        } else {
-            // Unsaved row — just remove from UI
-            this.lineItems.splice(index, 1);
-            this.lineItems = [...this.lineItems];
+            this.deletedItemIds.push(item.id);
         }
+
+        // Remove from UI
+        this.lineItems.splice(index, 1);
+        this.lineItems = [...this.lineItems];
     }
+
+
+    // handleSave() {
+    //     if (this.validateForm()) {
+    //         this.isLoading = true;
+
+    //         const itemsToSave = this.lineItems.map(item => ({
+    //             id: item.id || null,
+    //             name: item.name,
+    //             molWeight: item.molWeight,
+    //             usedInBatch: item.usedInBatch,
+    //             recovered: item.recovered,
+    //             consumed: item.consumed,
+    //             // DO NOT include kgRmPerKgProduct as it's a formula field
+    //             unitCostPerKg: item.unitCostPerKg,
+    //             costInBatch: item.costInBatch,
+    //             costPerKg: item.costPerKg,
+    //             gmoles: item.gmoles
+    //         }));
+
+    //         saveCostingItems({
+    //             recordId: this.recordId,
+    //             costingItems: JSON.stringify(itemsToSave)
+    //         })
+    //             .then(() => {
+    //                 this.showSuccess('Success', 'Costing items saved successfully');
+    //                 this.navigateToNPDRecord(); // <--- Redirect after save
+    //             })
+    //             .catch(error => {
+    //                 console.error('Detailed error:', JSON.stringify(error, null, 2));
+    //                 this.showError('Save Failed', error.body?.message || error.message);
+    //             })
+    //             .finally(() => {
+    //                 this.isLoading = false;
+    //             });
+
+    //     }
+    // }
 
     handleSave() {
         if (this.validateForm()) {
@@ -241,20 +300,29 @@ export default class NpdCostingLineItems extends NavigationMixin(LightningElemen
                 usedInBatch: item.usedInBatch,
                 recovered: item.recovered,
                 consumed: item.consumed,
-                // DO NOT include kgRmPerKgProduct as it's a formula field
                 unitCostPerKg: item.unitCostPerKg,
                 costInBatch: item.costInBatch,
                 costPerKg: item.costPerKg,
                 gmoles: item.gmoles
             }));
 
+            // 1. Call Apex method to save items
             saveCostingItems({
                 recordId: this.recordId,
                 costingItems: JSON.stringify(itemsToSave)
             })
                 .then(() => {
+                    // 2. After saving items, delete the marked ones
+                    if (this.deletedItemIds.length > 0) {
+                        return Promise.all(
+                            this.deletedItemIds.map(id => deleteCostingItem({ costingItemId: id }))
+                        );
+                    }
+                })
+                .then(() => {
                     this.showSuccess('Success', 'Costing items saved successfully');
-                    this.navigateToNPDRecord(); // <--- Redirect after save
+                    this.deletedItemIds = []; // clear deleted items tracker
+                    this.navigateToNPDRecord(); // Redirect
                 })
                 .catch(error => {
                     console.error('Detailed error:', JSON.stringify(error, null, 2));
@@ -263,7 +331,6 @@ export default class NpdCostingLineItems extends NavigationMixin(LightningElemen
                 .finally(() => {
                     this.isLoading = false;
                 });
-
         }
     }
 

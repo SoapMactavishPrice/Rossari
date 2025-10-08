@@ -1,5 +1,5 @@
 <aura:component
-    implements="flexipage:availableForAllPageTypes,flexipage:availableForRecordHome,force:hasRecordId,force:lightningQuickActionWithoutHeader"
+    implements="flexipage:availableForAllPageTypes,flexipage:availableForRecordHome,force:hasRecordId,force:hasSObjectName,force:lightningQuickActionWithoutHeader"
     access="global">
     <lightning:navigation aura:id="navService" />
     <aura:html tag="style">

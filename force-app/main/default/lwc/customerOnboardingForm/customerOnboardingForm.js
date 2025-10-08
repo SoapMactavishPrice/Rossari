@@ -3,7 +3,10 @@ import getCustomerDetail from '@salesforce/apex/CustomerOnboardingFormController
 import getSalesData from '@salesforce/apex/CustomerOnboardingFormController.getSalesData';
 import sendEmailWithAttachment from '@salesforce/apex/CustomerOnboardingFormController.sendEmailWithAttachment';
 import { ShowToastEvent } from 'lightning/platformShowToastEvent';
+import sendXlsxEmail from '@salesforce/apex/CustomerOnboardingFormController.sendXlsxEmail';
 
+import xlsxLib from '@salesforce/resourceUrl/xlsx';
+import { loadScript } from 'lightning/platformResourceLoader';
 
 
 
@@ -12,6 +15,23 @@ import { ShowToastEvent } from 'lightning/platformShowToastEvent';
 export default class CustomerOnboardingForm extends LightningElement {
 @api recordId;
     @track activeSection = 'general'; // Default open section
+
+    xlsxLoaded = false;
+
+    renderedCallback() {
+        if (this.xlsxLoaded) {
+            return;
+        }
+        this.xlsxLoaded = true;
+
+        loadScript(this, xlsxLib)
+            .then(() => {
+                console.log('✅ XLSX library loaded');
+            })
+            .catch(error => {
+                console.error('❌ Failed to load XLSX', error);
+            });
+    }
 
 handleSectionToggle(event) {
     const openSections = event.detail.openSections;
@@ -28,49 +48,45 @@ handleSectionToggle(event) {
 
 
 @track columns = [
-    { label: 'Customer Number', fieldName: 'customerNumber' },
-    { label: 'BP Role', fieldName: 'bpRole' }
+    { label: 'Customer Number', fieldName: 'customer_Number' },
+    { label: 'BP Role', fieldName: 'BP_Role' }
 ];
 
 @track companyHeader = [
-    { label: 'Customer Number', fieldName: 'customerNumber' },
-    { label: 'Company Code', fieldName: 'ccCode' },
-    { label: 'Payment Terms', fieldName: 'ptCode' },
-    { label: 'Reconciliation Account', fieldName: 'raRole' }
+    { label: 'Customer Number', fieldName: 'customer_Number' },
+    { label: 'Company Code', fieldName: 'Company_Code' },
+    { label: 'Payment Terms', fieldName: 'Payment_Terms' },
+    { label: 'Reconciliation Account', fieldName: 'Reconciliation_Account' }
 ];
 
-    @track companyHeaderata = [
-    { customerNumber: '', ccCode: '1000',ptCode:'C023',raRole:'20701010' },
-    { customerNumber: '', ccCode: '3000',ptCode:'C023',raRole:'20701010' }
-    
-];
+
 
 
 @track outputTaxHeader = [
-    { label: 'Customer Number', fieldName: 'customerNumber' },
-    { label: 'Country/Region', fieldName: 'countRegion' },
-    { label: 'Tax Category', fieldName: 'taxCat' },
-    { label: 'Tax Classification', fieldName: 'taxClass' }
+    { label: 'Customer Number', fieldName: 'customer_Number' },
+    { label: 'Country/Region', fieldName: 'Country_Region' },
+    { label: 'Tax Category', fieldName: 'Tax_Category' },
+    { label: 'Tax Classification', fieldName: 'Tax_Classification' }
 ];
 
     @track outputTaxdata = [
-    { customerNumber: '', countRegion: 'IN',taxCat:'JOIG',taxClass:'0' },
-    { customerNumber: '', countRegion: 'IN',taxCat:'JOUG',taxClass:'0' },
-    { customerNumber: '', countRegion: 'IN',taxCat:'JOSG',taxClass:'0' },
-    { customerNumber: '', countRegion: 'IN',taxCat:'JOCG',taxClass:'0' },
+    { customer_Number: '', Country_Region: 'IN',Tax_Category:'JOIG',Tax_Classification:'0' },
+    { customer_Number: '', Country_Region: 'IN',Tax_Category:'JOUG',Tax_Classification:'0' },
+    { customer_Number: '', Country_Region: 'IN',Tax_Category:'JOSG',Tax_Classification:'0' },
+    { customer_Number: '', Country_Region: 'IN',Tax_Category:'JOCG',Tax_Classification:'0' },
     
     
 ];
 
 @track TaxHeader = [
-    { label: 'Customer Number', fieldName: 'customerNumber' },
-    { label: 'Tax Number Category*', fieldName: 'taxCat' },
-    { label: 'Tax Number', fieldName: 'taxNum' },
+    { label: 'Customer Number', fieldName: 'customer_Number' },
+    { label: 'Tax Number Category*', fieldName: 'Tax_Number_Category' },
+    { label: 'Tax Number', fieldName: 'Tax_Number' },
     
 ];
 
     @track Taxdata = [
-    { customerNumber: '1999900', taxCat: 'IN3',taxNum:'27AANCM4754B1ZE'},
+    { customer_Number: '1999900', Tax_Number_Category: 'IN3',Tax_Number:'27AANCM4754B1ZE'},
     
     
 ];
@@ -134,6 +150,7 @@ handleGetRecordId() {
     getCustomerDetail({Id:this.recordId}).then(result=>{
         let data= JSON.parse(JSON.stringify(result));
         console.log('Current fieldMap:', data);
+         this.fieldMap.SF_Customer_Id = data.Id|| null;
         this.fieldMap.account_Group = data.Cust_Acct_Group__c|| null;
         this.fieldMap.name = data.Name|| null;
         this.fieldMap.name_2 = data.name_2__c|| null;
@@ -144,7 +161,7 @@ handleGetRecordId() {
             this.fieldMap.city = data.city|| null;
         this.fieldMap.country = data.Country_Text__c|| null;
         this.fieldMap.state = data.State1__c|| null;
-        this.fieldMap.SAP_Customer_Code =data.SAP_Customer_Code__c || null;
+        //this.fieldMap.SAP_Customer_Code =data.SAP_Customer_Code__c || null;
         this.fieldMap.street_2 = data.Street2__c|| null;
             this.fieldMap.street_3 = data.Street3__c|| null;
             this.fieldMap.language = data.language__c|| null;
@@ -169,28 +186,21 @@ handleGetRecordId() {
 createTableData(){
     this.tableData = this.bpRole.map(role => {
             return {
-                customerNumber: this.fieldMap.SAP_Customer_Code,
-                bpRole: role
+                Customer_Number: this.fieldMap.SAP_Customer_Code,
+                BP_Role: role
             };
         });
 
 
             this.outputTaxdata.forEach(ele=>{
-                ele.customerNumber = this.fieldMap.SAP_Customer_Code;
+                ele.customer_Number = this.fieldMap.SAP_Customer_Code;
             })
 
 
             this.Taxdata.forEach(ele=>{
-                ele.customerNumber = this.fieldMap.SAP_Customer_Code;
+                ele.customer_Number = this.fieldMap.SAP_Customer_Code;
             })
 
-            this.Taxdata.forEach(ele=>{
-                ele.customerNumber = this.fieldMap.SAP_Customer_Code;
-            })
-
-            this.companyHeaderata.forEach(ele=>{
-                ele.customerNumber = this.fieldMap.SAP_Customer_Code;
-            })
             this.addSalesRow();
             this.bypassValidation = false;
 
@@ -202,10 +212,7 @@ createTableData(){
         const field = event.target.dataset.field;
         const value = event.target.value;
 
-        // Update the specific row and field
         this.Taxdata[index][field] = value;
-
-        // Force reactivity in @track array
         this.Taxdata = [...this.Taxdata];
 
         console.log('Updated Taxdata:', JSON.stringify(this.Taxdata));
@@ -213,20 +220,25 @@ createTableData(){
     }
 
 
-    onCompanyDataChange(event){
-        const index = event.target.dataset.index;
-        const field = event.target.dataset.field;
-        const value = event.target.value;
+    onCompanyDataChange(event) {
+    const uniqueId = event.target.dataset.index; // use uniqueId from dataset
+    const field = event.target.dataset.field;
+    const value = event.target.value;
 
-        // Update the specific row and field
-        this.companyHeaderata[index][field] = value;
+    // Find index dynamically using uniqueId
+    const cIndex = this.companyHeaderData.findIndex(ele => ele.uniqueId === uniqueId);
+    console.log('cIndex-->',cIndex);
+    
+    if (cIndex !== -1) {
+        this.companyHeaderData[cIndex][field] = value;
+        this.companyHeaderData = [...this.companyHeaderData]; // trigger reactivity
 
-        // Force reactivity in @track array
-        this.companyHeaderata = [...this.companyHeaderata];
-
-        console.log('Updated companyHeaderata:', JSON.stringify(this.companyHeaderata));
-
+        console.log('✅ Updated companyHeaderData:', JSON.stringify(this.companyHeaderData));
+    } else {
+        console.warn('❌ UniqueId not found in companyHeaderData:', uniqueId);
     }
+}
+
 
 
     usedIds = new Set();
@@ -304,46 +316,148 @@ get isMoreThanOneRow() {
 
 
 addSalesRow() {
-    let isaddValid =  false;
-    // if(!this.bypassValidation){
-    //   isaddValid = this.validateExistingRows();
-       
-    // }
     this.bypassValidation = false;
-    
 
-      //if(isaddValid){
-        const newRow = {
-            uniqueId: this.generateUniqueId(),
-            Customer_Number: this.fieldMap.SAP_Customer_Code, // example, can be dynamic
-            Sales_Organization: '', // example
-            Distribution_Channel: '',
-            Division: '',
-            Customer_Group: '',
-            Sales_District: '',
-            Order_Probability: '',
-            Currency: '',
-            Exchange_Rate_Type: '',
-            Price_Group: '',
-            Price_Procedure_Dterm: '',
-            Customer_Statistics_Group: '',
-            Delivery_Priority: '',
-            Order_Combination: '',
-            Shipping_Conditions: '',
-            Delivery_Plant: '',
-            Incoterms: '',
-            Inco_Location1: '',
-            Payment_Terms: '',
-            Account_Assignment_Group: '',
-            Customer_Group1: ''
-        };
-    
+    const customerNumber = this.fieldMap.SAP_Customer_Code || '';
 
+    // Create new sales row
+    const newRow = {
+        uniqueId: this.generateUniqueId(),
+        Customer_Number: customerNumber,
+        Sales_Organization: '', // can be set dynamically later
+        Distribution_Channel: '',
+        Division: '',
+        Customer_Group: '',
+        Sales_District: '',
+        Order_Probability: '',
+        Currency: '',
+        Exchange_Rate_Type: '',
+        Price_Group: '',
+        Price_Procedure_Dterm: '',
+        Customer_Statistics_Group: '',
+        Delivery_Priority: '',
+        Order_Combination: '',
+        Shipping_Conditions: '',
+        Delivery_Plant: '',
+        Incoterms: '',
+        Inco_Location1: '',
+        Payment_Terms: '',
+        Account_Assignment_Group: '',
+        Customer_Group1: ''
+    };
 
+   
+    this.salesData = [...this.salesData, newRow];
+    setTimeout(() => {
+        if(this.salesData.length == 1) {
+        this.makeCompanyHeaderData();
+        this.makeSalesData();
+        }
         
-        this.salesData = [...this.salesData, newRow];
-    //}
+    }, 4000);
+
+
+    
+    
+    
+}
+@track salesManualData = [];
+
+
+
+makeSalesData() {
+    if (!this.salesData || this.salesData.length === 0) return;
+
+    console.log('this.salesData-->',JSON.stringify(this.salesData));
+    const uniqueSalesOrg = [
+        ...new Set(this.salesData.map(row => row.Sales_Organization).filter(Boolean))
+    ];
+    // Step 1: Extract unique Divisions and Distribution Channels
+    const uniqueDivisions = [
+        ...new Set(this.salesData.map(row => row.Division).filter(Boolean))
+    ];
+
+    const uniqueDistChannels = [
+        ...new Set(this.salesData.map(row => row.Distribution_Channel).filter(Boolean))
+    ];
+
+    // Step 2: Define fixed partner function pairs
+    const partnerPairs = ['RE', 'WE', 'AG', 'VE', 'RG'];
+    
+    
+    // Step 3: Generate all combinations
+    const combinations = [];
+console.log('uniqueDivisions',uniqueDivisions);
+console.log('uniqueDistChannels',uniqueDistChannels);
+uniqueSalesOrg.forEach(org => {
+    uniqueDivisions.forEach(div => {
+        uniqueDistChannels.forEach(dist => {
+            partnerPairs.forEach(pair => {
+                combinations.push({
+                    customer_Number:this.fieldMap.SAP_Customer_Code,
+                    
+                    Sales_Organization:org,
+                    Distribution_Channel: dist,
+                    Division: div,
+                    Partner_Function: pair,
+                    Employee_Id : null,
+                    uniqueId:this.generateUniqueId(),
+                });
+            });
+        });
+    });
+     });
+
+    // Step 4: Store in component variable (reactive)
+    this.salesManualData = combinations;
+
+    console.log('--> All Combinations -->', JSON.stringify(this.salesManualData));
+}
+
+
+
+
+@track companyHeaderData = [];
+makeCompanyHeaderData() {
+    if (!this.salesData || this.salesData.length === 0) return;
+
+    const customerNumber = this.salesData[0]?.customer_Number || '';
+
+    // Get unique Sales Organizations
+    const uniqueSalesOrgs = [
+        ...new Set(
+            this.salesData
+                .filter(row => row.Sales_Organization)
+                .map(row => row.Sales_Organization)
+        )
+    ];
+
+    // Filter out already existing company codes
+    const newHeaders = uniqueSalesOrgs
+        .filter(org => 
+            !this.companyHeaderData?.some(row => row.Company_Code === org)
+        )
+        .map(org => ({
+            uniqueId: this.generateUniqueId(),
+            customer_Number: this.fieldMap.SAP_Customer_Code,
+            Company_Code: org,
+            Payment_Terms: 'C023',
+            Reconciliation_Account: '20701010'
+        }));
+
+    // Append new headers if any
+    if (newHeaders.length > 0) {
+        this.companyHeaderData = [
+            ...(this.companyHeaderData || []),
+            ...newHeaders
+        ];
     }
+
+    console.log('-->JSON-->', JSON.stringify(this.companyHeaderData));
+}
+
+
+
 
     //this.salesOrgNames,this.divisionNames,this.distributionChannelNames
     // Remove specific row
@@ -367,7 +481,28 @@ addSalesRow() {
             return row;
         });
 
-        console.log('Updated Sales Data:', JSON.stringify(this.salesData));
+
+        if(field=='Sales_Organization'){
+        setTimeout(() => {
+            
+        this.makeCompanyHeaderData();
+        //this.makeSalesData();
+        
+       }, 4000);
+        
+        
+}
+
+if(field=='Distribution_Channel' || field=='Division'){
+setTimeout(() => {
+            
+        this.makeSalesData();
+        //this.makeSalesData();
+        
+       }, 1000);
+}
+
+        ///console.log('Updated Sales Data:', JSON.stringify(this.salesData));
     }
 
       @track isModalOpen = false;
@@ -412,6 +547,159 @@ addSalesRow() {
         this.showToast('Success', `Email sent to ${this.toEmail}`, 'success');
         this.closeModal();
     }
+
+    formatHeader(header) {
+    if (!header) return '';
+    // Replace underscores with spaces
+    let formatted = header.replace(/_/g, ' ');
+    // Lowercase everything first
+    formatted = formatted.toLowerCase();
+    // Capitalize first letter
+    formatted = formatted.charAt(0).toUpperCase() + formatted.slice(1);
+    return formatted;
+}
+
+
+     handleSendEmail() {
+    console.log('fieldMap -->', JSON.stringify(this.fieldMap));
+    console.log('salesData -->', JSON.stringify(this.salesData));
+    console.log('tableData -->', JSON.stringify(this.tableData));
+    console.log('companyHeaderData -->', JSON.stringify(this.companyHeaderData));
+    console.log('outputTaxdata -->', JSON.stringify(this.outputTaxdata));
+    console.log('Taxdata -->', JSON.stringify(this.Taxdata));
+
+    if (typeof XLSX === 'undefined') {
+        console.error('❌ XLSX not loaded yet!');
+        return;
+    }
+
+    const workbook = XLSX.utils.book_new();
+
+    // ✅ Helper function to format headers
+    const formatHeader = (header) => {
+        if (!header) return '';
+        let formatted = header.replace(/_/g, ' ');
+        formatted = formatted.toLowerCase();
+        formatted = formatted.charAt(0).toUpperCase() + formatted.slice(1);
+        return formatted;
+    };
+
+    // ✅ Helper function to format sheet headers from JSON array
+    const createFormattedSheet = (data) => {
+        if (!data || data.length === 0) return null;
+        // Get original headers
+        const originalHeaders = Object.keys(data[0]);
+        // Map to formatted headers
+        const formattedHeaders = originalHeaders.map(formatHeader);
+        // Convert to sheet
+        const sheet = XLSX.utils.json_to_sheet(data, { header: originalHeaders });
+        // Replace header row with formatted names
+        XLSX.utils.sheet_add_aoa(sheet, [formattedHeaders], { origin: 'A1' });
+        return sheet;
+    };
+
+    // 🧾  FIELD MAP → Key/Value table with formatted headers
+    if (this.fieldMap) {
+        const keys = Object.keys(this.fieldMap);
+        const formattedKeys = keys.map(formatHeader);
+        const values = Object.values(this.fieldMap);
+
+        const fieldMapRows = [formattedKeys, values];
+        const fieldMapSheet = XLSX.utils.aoa_to_sheet(fieldMapRows);
+        XLSX.utils.book_append_sheet(workbook, fieldMapSheet, 'General Data');
+    }
+
+    
+    // 🧾 BP ROLE DATA
+    const bpSheet = createFormattedSheet(this.tableData);
+    if (bpSheet) {
+        XLSX.utils.book_append_sheet(workbook, bpSheet, 'BP Role');
+    }
+
+    // 🧾  SALES DATA
+
+ const cleansalesData= this.salesData.map(({ uniqueId, ...rest }) => rest);
+    const salesSheet = createFormattedSheet(cleansalesData);
+    if (salesSheet) {
+        XLSX.utils.book_append_sheet(workbook, salesSheet, 'Sales Data');
+    }
+
+    // 🧾 COMPANY Saless Partner
+
+   const cleanSalesPartnerData = this.salesManualData.map(({ uniqueId, ...rest }) => rest);
+
+const SalessPartnerSheet = createFormattedSheet(cleanSalesPartnerData);
+if (SalessPartnerSheet) {
+    XLSX.utils.book_append_sheet(workbook, SalessPartnerSheet, 'Sales Partner');
+}
+
+
+const cleancompanySheetData = this.companyHeaderData.map(({ uniqueId, ...rest }) => rest);
+    // 🧾 COMPANY HEADER DATA
+    const companySheet = createFormattedSheet(cleancompanySheetData);
+    if (companySheet) {
+        XLSX.utils.book_append_sheet(workbook, companySheet, 'Company Data');
+    }
+
+    // 🧾  OUTPUT TAX
+    const outputTaxSheet = createFormattedSheet(this.outputTaxdata);
+    if (outputTaxSheet) {
+        XLSX.utils.book_append_sheet(workbook, outputTaxSheet, 'Output Tax');
+    }
+
+    const cleanTaxdata = this.Taxdata.map(({ uniqueId, ...rest }) => rest);
+    // 🧾 6️⃣ TAX DATA
+    const taxSheet = createFormattedSheet(cleanTaxdata);
+    if (taxSheet) {
+        XLSX.utils.book_append_sheet(workbook, taxSheet, 'Tax Numbers');
+    }
+
+    // 📎 Generate XLSX binary
+    const wbout = XLSX.write(workbook, { bookType: 'xlsx', type: 'array' });
+
+    // 🧠 Convert to Base64
+    let binary = '';
+    const bytes = new Uint8Array(wbout);
+    const chunkSize = 0x8000;
+    for (let i = 0; i < bytes.length; i += chunkSize) {
+        const chunk = bytes.subarray(i, i + chunkSize);
+        binary += String.fromCharCode.apply(null, chunk);
+    }
+    const base64File = btoa(binary);
+
+    // 📤 Send to Apex
+    sendXlsxEmail({
+        fileName: 'Customer_Onboarding_Data.xlsx',
+        base64Data: base64File,
+        recipientEmail: 'Rishikesh.Korade@finessedirect.com'
+    })
+    .then(() => {
+        console.log('✅ Excel with formatted headers emailed successfully!');
+    })
+    .catch(error => {
+        console.error('❌ Error sending email', error);
+    });
+}
+
+
+handleEmpChange(event){
+    console.log('temp-->',JSON.stringify(event.detail));
+  const data =  JSON.parse(JSON.stringify(event.detail));
+  console.log('data-->',data.subField,event.currentTarget.dataset.uniqueid);
+
+  let index =  this.salesManualData.findIndex(ele=>ele.uniqueId == event.currentTarget.dataset.uniqueid);
+  console.log('index-->',index);
+  
+  if(index != -1){
+    this.salesManualData[index].Employee_Id = data.subField;
+    console.log('data--1->',JSON.stringify(this.salesManualData[index]));
+  }
+
+  
+
+  
+}
+   
 
     validateRequired() {
         if (!this.toEmail) {

@@ -305,24 +305,88 @@
             <template if:false={isRequestDocumentSubmittedFlag}>
                 <div class="slds-grid slds-gutters slds-p-around_medium">
             
+                    <!-- TDS Column -->
                     <div class="slds-col slds-size_1-of-4">
                         <c-user-lookup onuserselect={handleApproverChange} data-id="tdsApproverId" label="TDS Approver"></c-user-lookup>
                         <lightning-input type="text" label="TDS Remark" value={documentModel.tdsApproverRemark} onchange={handleRemarkChange} data-id="tdsApproverRemark" disabled={tdsRemarkDisabled}></lightning-input>
+
+                        <div style="text-align: center; padding-top: 10px;">
+                            <lightning-button label="Upload" onclick={handleSampleUpload} data-type="tdsSampleFiles" class="slds-m-top_small" disabled={tdsRemarkDisabled}></lightning-button>
+                        </div>
+                        
+                        <div if:true={uploadedFiles.tdsSampleFiles} style="text-align: center;">
+                            <ul class="slds-m-top_small">
+                                <template for:each={uploadedFiles.tdsSampleFiles} for:item="file">
+                                    <li key={file.fileName}>
+                                        {file.fileName}
+                                        <lightning-button-icon icon-name="utility:close" alternative-text="Remove" onclick={handleRemoveFile} data-type="tdsSampleFiles" data-name={file.name} class="slds-m-left_x-small" size="x-small"></lightning-button-icon>
+                                    </li>
+                                </template>
+                            </ul>
+                        </div>
                     </div>
-    
+
+                    <!-- MSDS Column -->
                     <div class="slds-col slds-size_1-of-4">
                         <c-user-lookup onuserselect={handleApproverChange} data-id="msdsApproverId" label="MSDS Approver"></c-user-lookup>
                         <lightning-input type="text" label="MSDS Remark" value={documentModel.msdsApproverRemark} onchange={handleRemarkChange} data-id="msdsApproverRemark" disabled={msdsRemarkDisabled}></lightning-input>
+                        
+                        <div style="text-align: center; padding-top: 10px;">
+                            <lightning-button label="Upload" onclick={handleSampleUpload} data-type="msdsSampleFiles" class="slds-m-top_small" disabled={msdsRemarkDisabled}></lightning-button>
+                        </div>
+                        
+                        <div if:true={uploadedFiles.msdsSampleFiles} style="text-align: center;">
+                            <ul class="slds-m-top_small">
+                                <template for:each={uploadedFiles.msdsSampleFiles} for:item="file">
+                                    <li key={file.fileName}>
+                                        {file.fileName}
+                                        <lightning-button-icon icon-name="utility:close" alternative-text="Remove" onclick={handleRemoveFile} data-type="msdsSampleFiles" data-name={file.name} class="slds-m-left_x-small" size="x-small"></lightning-button-icon>
+                                    </li>
+                                </template>
+                            </ul>
+                        </div>
                     </div>
-    
+
+                    <!-- Technical Doc Column -->
                     <div class="slds-col slds-size_1-of-4">
                         <c-user-lookup onuserselect={handleApproverChange} data-id="technicalDocApproverId" label="Technical Document Approver"></c-user-lookup>
                         <lightning-input type="text" label="Tech Doc Remark" value={documentModel.technicalDocApproverRemark} onchange={handleRemarkChange} data-id="technicalDocApproverRemark" disabled={techDocRemarkDisabled}></lightning-input>
+                        
+                        <div style="text-align: center; padding-top: 10px;">
+                            <lightning-button label="Upload" onclick={handleSampleUpload} data-type="techDocSampleFiles" class="slds-m-top_small" disabled={techDocRemarkDisabled}></lightning-button>
+                        </div>
+                        
+                        <div if:true={uploadedFiles.techDocSampleFiles} style="text-align: center;">
+                            <ul class="slds-m-top_small">
+                                <template for:each={uploadedFiles.techDocSampleFiles} for:item="file">
+                                    <li key={file.fileName}>
+                                        {file.fileName}
+                                        <lightning-button-icon icon-name="utility:close" alternative-text="Remove" onclick={handleRemoveFile} data-type="techDocSampleFiles" data-name={file.name} class="slds-m-left_x-small" size="x-small"></lightning-button-icon>
+                                    </li>
+                                </template>
+                            </ul>
+                        </div>
                     </div>
 
+                    <!-- COA Doc Column -->
                     <div class="slds-col slds-size_1-of-4">
                         <c-user-lookup onuserselect={handleApproverChange} data-id="coaDocApproverId" label="COA Document Approver"></c-user-lookup>
                         <lightning-input type="text" label="COA Doc Remark" value={documentModel.coaDocApproverRemark} onchange={handleRemarkChange} data-id="coaDocApproverRemark" disabled={coaRemarkDisabled}></lightning-input>
+                        
+                        <div style="text-align: center; padding-top: 10px;">
+                            <lightning-button label="Upload" onclick={handleSampleUpload} data-type="coaSampleFiles" class="slds-m-top_small" disabled={coaRemarkDisabled}></lightning-button>
+                        </div>
+                        
+                        <div if:true={uploadedFiles.coaSampleFiles} style="text-align: center;">
+                            <ul class="slds-m-top_small">
+                                <template for:each={uploadedFiles.coaSampleFiles} for:item="file">
+                                    <li key={file.fileName}>
+                                        {file.fileName}
+                                        <lightning-button-icon icon-name="utility:close" alternative-text="Remove" onclick={handleRemoveFile} data-type="coaSampleFiles" data-name={file.name} class="slds-m-left_x-small" size="x-small"></lightning-button-icon>
+                                    </li>
+                                </template>
+                            </ul>
+                        </div>
                     </div>
     
                 </div>

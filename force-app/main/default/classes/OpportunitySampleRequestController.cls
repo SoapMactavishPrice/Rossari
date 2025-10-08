@@ -166,8 +166,8 @@ public static String saveSample(String leadId, String sampleJs,
             List<ContentVersion> contentVersions = new List<ContentVersion>();
             
             for(Object fileObj : attachmentsFromUploadFile) {
-                if(fileObj instanceof Map<String, Object>) {
-                    Map<String, Object> file = (Map<String, Object>)fileObj;
+                // if(fileObj instanceof Map<String, Object>) {
+                    Map<Object, Object> file = (Map<Object, Object>)fileObj;
                     System.debug('Processing file: ' + file.get('filename'));
                     
                     // Validate base64 data
@@ -189,7 +189,7 @@ public static String saveSample(String leadId, String sampleJs,
                         System.debug('Error creating ContentVersion for file: ' + file.get('filename') + 
                                      ' Error: ' + e.getMessage());
                     }
-                }
+                // }
             }
             
             if(!contentVersions.isEmpty()) {
@@ -225,6 +225,7 @@ public static String saveSample(String leadId, String sampleJs,
         }
         
         System.debug('=== APEX SAVE COMPLETED ===');
+        Utility.sendSampleRequestEmail(sampleRequest.Id);
         return sampleRequest.Id;
         
     } catch(Exception e) {

@@ -208,9 +208,100 @@ public with sharing class Utility {
         return productIds;
     }
 
-    public String ns(Object val) {
+    public static String ns(Object val) {
         return val == null ? '' : String.valueOf(val);
     }
+
+    public static void sendSampleRequestEmail(Id sampleRequestId) {
+
+        Sample_Request__c sampleRequest = [
+            SELECT Id, Name, Additional_Email__c, Sales_HOD__r.Email, Sample_Request_Date__c, Sample_Expected_Date__c
+            FROM Sample_Request__c
+            WHERE Id = :sampleRequestId
+        ];
+
+        List<Sample_Request_Line_Item__c> sampleRequestLineItems = [
+            SELECT Id, Name, Product__c, Product__r.Name, Product__r.ProductCode, Product__r.Description,
+                Sample_Qty_in_Kgs__c, Sales_Price__c
+            FROM Sample_Request_Line_Item__c
+            WHERE Sample_Request__c = :sampleRequestId
+        ];
+
+        List<String> recipientEmails = new List<String>();
+        if (!String.isBlank(sampleRequest.Additional_Email__c)) {
+            List<String> temp = sampleRequest.Additional_Email__c.split('[,;]');
+            for (String e : temp) {
+                if (!String.isBlank(e)) recipientEmails.add(e.trim());
+            }
+        }
+
+        if (sampleRequest.Sales_HOD__r != null && !String.isBlank(sampleRequest.Sales_HOD__r.Email)) {
+            recipientEmails.add(sampleRequest.Sales_HOD__r.Email);
+        }
+
+        String productTable = 
+            '<table border="1" cellpadding="5" cellspacing="0" style="border-collapse: collapse;">' +
+            '<tr style="background-color: #f2f2f2;">' +
+            '<th>Name</th><th>Product Name</th><th>Product Code</th><th>Rate</th><th>Quantity</th></tr>';
+
+        for (Sample_Request_Line_Item__c each : sampleRequestLineItems) {
+            productTable += '<tr>' +
+                            '<td>' + ns(each.Name) + '</td>' +
+                            '<td>' + ns(each.Product__r.Name) + '</td>' +
+                            '<td>' + ns(each.Product__r.ProductCode) + '</td>' +
+                            '<td>' + ns(each.Sales_Price__c) + '</td>' +
+                            '<td>' + ns(each.Sample_Qty_in_Kgs__c) + '</td>' +
+                            '</tr>';
+        }
+        productTable += '</table>';
+
+        String emailBody =
+            '<b>Sample Request No:</b> ' + sampleRequest.Name + '<br/>' +
+            '<b>Requested Date:</b> ' + sampleRequest.Sample_Request_Date__c.format() + '<br/>' +
+            '<b>Expected Date:</b> ' + sampleRequest.Sample_Expected_Date__c.format() + '<br/><br/>' +
+            '<b>Requested Product Records:</b><br/>' +
+            'Below are the product details for your reference:<br/><br/>' +
+            productTable;
+
+        List<Messaging.EmailFileAttachment> attachments = new List<Messaging.EmailFileAttachment>();
+
+        List<ContentDocumentLink> docLinks = [
+            SELECT ContentDocument.LatestPublishedVersionId, ContentDocument.Title
+            FROM ContentDocumentLink
+            WHERE LinkedEntityId = :sampleRequestId
+        ];
+
+        if (!docLinks.isEmpty()) {
+            List<Id> versionIds = new List<Id>();
+            for (ContentDocumentLink link : docLinks) {
+                versionIds.add(link.ContentDocument.LatestPublishedVersionId);
+            }
+
+            // Get actual file content
+            List<ContentVersion> versions = [
+                SELECT Title, VersionData, FileExtension
+                FROM ContentVersion
+                WHERE Id IN :versionIds
+            ];
+
+            for (ContentVersion v : versions) {
+                Messaging.EmailFileAttachment efa = new Messaging.EmailFileAttachment();
+                efa.setFileName(v.Title + '.' + v.FileExtension);
+                efa.setBody(v.VersionData);
+                attachments.add(efa);
+            }
+        }
+
+        Messaging.SingleEmailMessage mail = new Messaging.SingleEmailMessage();
+        mail.setToAddresses(recipientEmails);
+        mail.setSubject('Sample Request Details - ' + sampleRequest.Name);
+        mail.setHtmlBody(emailBody);
+        mail.setWhatId(sampleRequest.Id);
+        mail.setFileAttachments(attachments);
+
+        Messaging.sendEmail(new Messaging.SingleEmailMessage[] { mail });
+    }
+
 
     public class OpportunityHeaderWrapper {
         @AuraEnabled public String plantLocation;

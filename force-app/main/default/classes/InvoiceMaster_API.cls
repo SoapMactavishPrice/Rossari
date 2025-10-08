@@ -70,8 +70,8 @@ global class InvoiceMaster_API {
             }
 
             map < string, string > userCodeMap = new map < string, string > ();
-            for (user so: [SELECT Id, Name, EmployeeNumber, Employee_Code__c FROM user WHERE EmployeeNumber != null]) {
-                userCodeMap.put(so.EmployeeNumber, so.Id);
+            for (user so: [SELECT Id, Name, SAP_User_Id__c, Employee_Code__c FROM user WHERE SAP_User_Id__c != null]) {
+                userCodeMap.put(so.SAP_User_Id__c, so.Id);
             }
 
             map < string, string > baseCodeMap = new map < string, string > ();
@@ -142,7 +142,7 @@ global class InvoiceMaster_API {
             invRec.Total_Tax_Value__c = inv.totalTaxValue != null ? inv.totalTaxValue : 0;
             invRec.Total_Gross_Value__c = inv.totalGrossValue != null ? inv.totalGrossValue : 0;
 
-            //invRec.Invoice_Status__c = String.isNotBlank(inv.invoiceStatus) ? inv.invoiceStatus : null;
+            invRec.Invoice_Status__c = String.isNotBlank(inv.invoiceStatus) ? inv.invoiceStatus : null;
             invRec.Sales_Person__c = String.isNotBlank(inv.salesPerson) ? (Id) userCodeMap.get(inv.salesPerson) : null;
 
             //invoiceToInsert.add(invRec);

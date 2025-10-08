@@ -60,16 +60,16 @@ public class CreateQuotation_ToSAP {
         Map<String, Object> salesInquiry = new Map<String, Object>();
 
         salesInquiry.put('DocType', 'ZINQ');
-        salesInquiry.put('SalesOrg', '1000');
-        salesInquiry.put('DistrChan', '10');
-        salesInquiry.put('Division', '10');
-        salesInquiry.put('SoldToParty_buyer', '100010');
-        salesInquiry.put('ShipToParty', '100010');
-        // salesInquiry.put('SalesOrg', quote.Sales_Organisations__r.Name);
-        // salesInquiry.put('DistrChan', quote.Distribution_Channel__r.Distribution_Code__c);
-        // salesInquiry.put('Division', quote.Division__r.Division_Code__c);
-        // salesInquiry.put('SoldToParty_buyer', quote.Account.SAP_Customer_Code__c);
-        // salesInquiry.put('ShipToParty', quote.Account.SAP_Customer_Code__c);
+        // salesInquiry.put('SalesOrg', '1000');
+        // salesInquiry.put('DistrChan', '10');
+        // salesInquiry.put('Division', '10');
+        // salesInquiry.put('SoldToParty_buyer', '100010');
+        // salesInquiry.put('ShipToParty', '100010');
+        salesInquiry.put('SalesOrg', quote.Sales_Organisations__r.Name);
+        salesInquiry.put('DistrChan', quote.Distribution_Channel__r.Distribution_Code__c);
+        salesInquiry.put('Division', quote.Division__r.Division_Code__c);
+        salesInquiry.put('SoldToParty_buyer', quote.Account.SAP_Customer_Code__c);
+        salesInquiry.put('ShipToParty', quote.Account.SAP_Customer_Code__c);
         salesInquiry.put('SalesDocument', '');
         salesInquiry.put('Inco_term', '');
         salesInquiry.put('Payment_terms', '');
@@ -132,81 +132,120 @@ public class CreateQuotation_ToSAP {
         }
     }
     
-    // STEP 2: Add Items
-    @future(callout=true)
-    public static void addItems(String qLineId) {
-
-        QuoteLineItem item = [
-            SELECT Id, LineNumber, Product2Id, QuoteId, Product2.ProductCode,
-            Quantity, Quote.SAP_Order_No__c
-            FROM QuoteLineItem
-            WHERE Id = :qLineId
-        ];
-
+    // Global method to add a single item (called from Queueable)
+    @TestVisible
+    public static void addItem(QuoteLineItem item) {
+        // Validate required fields
+        // if (item == null) {
+        //     throw new CalloutException('Quote line item cannot be null');
+        // }
+        
+        // if (item.Product2 == null) {
+        //     throw new CalloutException('Product not found for quote line item: ' + item.Id);
+        // }
+        
+        // if (String.isBlank(item.Product2.ProductCode)) {
+        //     throw new CalloutException('Product code is required for product: ' + item.Product2Id);
+        // }
+        
+        // if (String.isBlank(item.Quote.SAP_Order_No__c)) {
+        //     throw new CalloutException('SAP Order Number is required for quote: ' + item.QuoteId);
+        // }
+        
         API_log__c apiLog = new API_log__c();
-        apiLog.Name = 'Create_Quotation_Line : ' +item.Id;
-        // Define API URL
-        String apiUrl = label.CreateQuotationItem_ToSAP;
-
-        // Authentication Header
-        String username = label.CreateQuotation_ToSAP_Username;
-        String password = label.CreateQuotation_ToSAP_Pass;
-        String authHeader = 'Basic ' + EncodingUtil.base64Encode(Blob.valueOf(username + ':' + password));
-
-        HttpRequest req = new HttpRequest();
-        req.setEndpoint(apiUrl); // Setup Named Credential for Create INQ
-        req.setMethod('POST');
-        req.setHeader('Authorization', authHeader);
-        req.setHeader('Content-Type', 'application/json');
-        req.setHeader('Accept', 'application/json');
-        req.setTimeout(120000);
+        apiLog.Name = 'Create_Quotation_Line : ' + item.Id;
         
-        // Build JSON dynamically
-        String body = JSON.serialize(new Map<String, Object>{
-            'Sales_Inquiry_ItemSet' => new Map<String, Object>{
-                'Sales_Inquiry_Item' => new Map<String, Object>{
-                    'SalesDocument' => item.Quote.SAP_Order_No__c,
-                    'Material' => item.Product2.ProductCode,
-                    'Req_Qty' => item.Quantity,
-                    'LR_Details_Text' => 'Test',
-                    'Production_Instructions_Text' => 'Test'
+        try {
+            // Define API URL
+            String apiUrl = label.CreateQuotationItem_ToSAP;
+
+            // Authentication Header
+            String username = label.CreateQuotation_ToSAP_Username;
+            String password = label.CreateQuotation_ToSAP_Pass;
+            String authHeader = 'Basic ' + EncodingUtil.base64Encode(Blob.valueOf(username + ':' + password));
+
+            HttpRequest req = new HttpRequest();
+            req.setEndpoint(apiUrl);
+            req.setMethod('POST');
+            req.setHeader('Authorization', authHeader);
+            req.setHeader('Content-Type', 'application/json');
+            req.setHeader('Accept', 'application/json');
+            req.setTimeout(120000);
+            
+            // Build JSON dynamically with all required fields
+            Map<String, Object> requestBody = new Map<String, Object>{
+                'Sales_Inquiry_ItemSet' => new Map<String, Object>{
+                    'Sales_Inquiry_Item' => new Map<String, Object>{
+                        'SalesDocument' => item.Quote.SAP_Order_No__c,
+                        'Material' => item.Product2.ProductCode,
+                        'Req_Qty' => item.Quantity,
+                        'LR_Details_Text' => 'Test',
+                        'Production_Instructions_Text' => 'Test'
+                    }
                 }
-            }
-        });
-        
-        req.setBody(body);
-        
-        Http http = new Http();
-        HttpResponse res = http.send(req);
+            };
+            
+            String body = JSON.serialize(requestBody);
+            
+            req.setBody(body);
+            
+            Http http = new Http();
+            HttpResponse res = http.send(req);
 
-        apiLog.Request__c = body;
-        apiLog.Response__c = res.getBody();
-        
-        if (res.getStatusCode() == 201) {
-            apiLog.Status__c = 'Success';
-            insert apiLog;
-            System.debug('Item added successfully: ' + res.getBody());
-        } else {
+            apiLog.Request__c = body;
+            apiLog.Response__c = res.getBody();
+            
+            if (res.getStatusCode() == 201) {
+                apiLog.Status__c = 'Success';
+                System.debug('Item added successfully: ' + res.getBody());
+            } else {
+                apiLog.Status__c = 'Failed';
+                apiLog.Exception_Description__c = res.getBody();
+                System.debug('Failed to add item: ' + res.getBody());
+                throw new CalloutException('Error adding item: ' + res.getBody());
+            }
+        } catch(Exception e) {
             apiLog.Status__c = 'Failed';
-            apiLog.Exception_Description__c = res.getBody();
+            apiLog.Exception_Description__c = e.getMessage() + '\n' + e.getStackTraceString();
+            throw e;
+        } finally {
+            // Insert the log in finally block to ensure it's always recorded
             insert apiLog;
-            System.debug('Failed to add item: ' + res.getBody());
-            throw new CalloutException('Error adding item: ' + res.getBody());
         }
     }
 
     @AuraEnabled
-    public static void syncQuoteLineItems(String quoteId) {
-        // String salesDoc = createQuotation(quoteId);
-        List<QuoteLineItem> quoteItems = [
-            SELECT Id, LineNumber, Product2Id, QuoteId, Product2.ProductCode,
-            Quantity, Quote.SAP_Order_No__c
-            FROM QuoteLineItem
-            WHERE QuoteId = :quoteId
-        ];
+    public static String syncQuoteLineItems(String quoteId) {
+        try {
+            // Get all quote line items that need to be processed
+            List<QuoteLineItem> quoteItems = [
+                SELECT Id, LineNumber, Product2Id, Product2.Name, Product2.ProductCode,
+                       Quantity, QuoteId, Quote.SAP_Order_No__c, Quote.Account.SAP_Customer_Code__c
+                FROM QuoteLineItem
+                WHERE QuoteId = :quoteId
+                AND Product2Id != NULL
+                AND Quantity > 0
+                ORDER BY LineNumber
+            ];
+            
+            if (quoteItems.isEmpty()) {
+                return 'No valid quote line items found. Please ensure all items have a product and quantity.';
+            }
 
-        for (QuoteLineItem item : quoteItems) {
-            addItems(item.Id);
+            // Extract just the IDs for processing
+            List<Id> quoteLineItemIds = new List<Id>();
+            for (QuoteLineItem item : quoteItems) {
+                quoteLineItemIds.add(item.Id);
+            }
+
+            // Start the sequential processing with the first item
+            System.enqueueJob(new QuoteLineItemProcessor(quoteLineItemIds));
+            
+            return 'Started processing ' + quoteItems.size() + ' items sequentially. The system is processing them one by one in the background. You will receive a notification when complete.';
+            
+        } catch(Exception e) {
+            System.debug('Error in syncQuoteLineItems: ' + e.getMessage() + '\n' + e.getStackTraceString());
+            return 'Error: ' + e.getMessage();
         }
     }
 

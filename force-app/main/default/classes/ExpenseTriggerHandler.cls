@@ -2,71 +2,129 @@ public class ExpenseTriggerHandler {
     public static void populateExpenseName(List<Expense__c> newExpenses) {
         System.debug('*** ExpenseTriggerHandler.populateExpenseName, # of recs: ' + newExpenses.size());
 
-        // Get current user info
+        // Get current user with required fields
         User currentUser = [
-            SELECT Id, Division_Code__c, Sales_Type_Code1__c 
+            SELECT Id, Division_Code__c, Sales_Type_Code1__c, Cost_Center__c
             FROM User 
             WHERE Id = :UserInfo.getUserId()
+            LIMIT 1
         ];
-        System.debug('Current User Division: ' + currentUser.Division_Code__c + ', SalesType: ' + currentUser.Sales_Type_Code1__c);
 
         String userDivision = currentUser.Division_Code__c;
-        String userSalesType = currentUser.Sales_Type_Code1__c;
+        String userCostCenter = currentUser.Cost_Center__c;
 
-        if (String.isBlank(userDivision) || String.isBlank(userSalesType)) {
-            System.debug('Skipping because division or sales type is blank');
+        if (String.isBlank(userDivision) || String.isBlank(userCostCenter)) {
+            System.debug('Missing user Division or Cost Center');
             return;
         }
 
-        // Fetch Code_Master__c record
+        // Fetch Cost Center to get Sales Org
+        Cost_Center__c userCostCenterRecord = [
+            SELECT Id, Name, Sales_Org__r.Name
+            FROM Cost_Center__c 
+            WHERE Name = :userCostCenter
+            LIMIT 1
+        ];
+
+        String salesOrgName = userCostCenterRecord.Sales_Org__r?.Name;
+        if (String.isBlank(salesOrgName)) {
+            System.debug('Sales Org is blank');
+            return;
+        }
+
+        // 🔁 Convert sales org name to full company name
+        String companyName = getCompanyNameFromSalesOrgName(salesOrgName);
+        if (String.isBlank(companyName)) {
+            System.debug('Could not determine Company Name from Sales Org: ' + salesOrgName);
+            return;
+        }
+
+        // Group expenses by Sales Type
+        Map<String, List<Expense__c>> salesTypeToExpenses = new Map<String, List<Expense__c>>();
+        Set<String> salesTypeCodes = new Set<String>();
+
+        for (Expense__c exp : newExpenses) {
+            String salesTypeCode = getSalesTypeCode(exp.Sales_Type__c);
+            if (String.isBlank(salesTypeCode)) continue;
+
+            salesTypeCodes.add(salesTypeCode);
+            if (!salesTypeToExpenses.containsKey(salesTypeCode)) {
+                salesTypeToExpenses.put(salesTypeCode, new List<Expense__c>());
+            }
+            salesTypeToExpenses.get(salesTypeCode).add(exp);
+        }
+
+        // Query Code_Master__c using Company Name and Sales Type
         List<Code_Master__c> codeMasters = [
-            SELECT Id, Current_Sequence__c 
-            FROM Code_Master__c 
-            WHERE Division__c = :userDivision 
-              AND Sales_Type__c = :userSalesType 
-            LIMIT 1 
+            SELECT Id, Backend_Current_Sequence__c, Current_Sequence__c, Sales_Type__c, Company__r.Name
+            FROM Code_Master__c
+            WHERE Sales_Type__c IN :salesTypeCodes
+              
+              AND Company__r.Name = :companyName
+              AND IsActive__c = true
             FOR UPDATE
         ];
-        System.debug('Found codeMasters count: ' + codeMasters.size());
 
-        if (codeMasters.isEmpty()) {
-            System.debug('No Code_Master__c record found for key: Division=' + userDivision + ' / SalesType=' + userSalesType);
-            return;
+        // Build map for lookup
+        Map<String, Code_Master__c> keyToCodeMaster = new Map<String, Code_Master__c>();
+        for (Code_Master__c cm : codeMasters) {
+            String key = cm.Company__r.Name + '_' + cm.Sales_Type__c;
+            keyToCodeMaster.put(key, cm);
         }
 
-        Code_Master__c cm = codeMasters[0];
-        Integer currentSequence = (cm.Current_Sequence__c == null) ? 1 : Integer.valueOf(cm.Current_Sequence__c);
-        
-        System.debug('Starting sequence: ' + currentSequence);
+        // Assign name from backend sequence and increment sequence
+        List<Code_Master__c> cmsToUpdate = new List<Code_Master__c>();
 
-        // Generate prefix
-        String prefix = getPrefix(userDivision, userSalesType);
-        System.debug('Using prefix: ' + prefix);
+        for (String salesTypeCode : salesTypeToExpenses.keySet()) {
+            String key = companyName + '_' + salesTypeCode;
+            Code_Master__c cm = keyToCodeMaster.get(key);
 
-        // Assign names and increment sequence
-        for (Expense__c exp : newExpenses) {
-            exp.Name = prefix + String.valueOf(currentSequence);
-            System.debug('Setting Name for expense record: Id=' + exp.Id + ', Name=' + exp.Name);
-            currentSequence++;
+            if (cm == null) {
+                System.debug('⚠️ No Code_Master__c found for Company=' + companyName + ', SalesType=' + salesTypeCode);
+                continue;
+            }
+
+            Decimal currentSeq = (cm.Current_Sequence__c == null) ? 1 : cm.Current_Sequence__c;
+
+            for (Expense__c exp : salesTypeToExpenses.get(salesTypeCode)) {
+                exp.Name = cm.Backend_Current_Sequence__c;
+                System.debug('✅ Assigned Expense Name: ' + exp.Name);
+                currentSeq++;
+            }
+
+            cm.Current_Sequence__c = currentSeq;
+            cmsToUpdate.add(cm);
         }
 
-        // Update Code_Master__c with new sequence
-        cm.Current_Sequence__c = currentSequence;
-        update cm;
-        System.debug('Updated Code_Master__c sequence to: ' + currentSequence);
+        if (!cmsToUpdate.isEmpty()) {
+            update cmsToUpdate;
+            System.debug('✅ Updated Code_Master__c sequence values');
+        }
     }
 
-    private static String getPrefix(String division, String salesType) {
-        if (salesType == '10' && (division == '10' || division == '11')) {
-            return 'TEXT_DOM_FY25-25_';
-        } else if (salesType == '20' && (division == '10' || division == '11')) {
-            return 'TEXT_EXP_FY25-25_';
-        } else if (salesType == '20' && division == '22') {
-            return 'AHN_EXP_FY25-25_';
-        } else if (salesType == '10' && division == '22') {
-            return 'AHN_DOM_FY25-25_';
+    // 🔁 Map Sales Org Name to Company Name
+    private static String getCompanyNameFromSalesOrgName(String salesOrgName) {
+        if (String.isNotBlank(salesOrgName)) {
+            salesOrgName = salesOrgName.toLowerCase().trim();
+            if (salesOrgName.contains('rossari') || salesOrgName == '1000' || salesOrgName.contains('rbl')) {
+                return 'Rossari Biotech Limited';
+            } else if (salesOrgName.contains('unitop') || salesOrgName == '3000' || salesOrgName.contains('uni')) {
+                return 'Unitop Chemicals Private Limited';
+            } else if (salesOrgName.contains('tristar') || salesOrgName == '4000' || salesOrgName.contains('tri')) {
+                return 'Tristar Intermediates Private Limited';
+            }
         }
-        return 'GEN_FY25-25_';
+        return null;
+    }
+
+    // 🔁 Map Picklist values to Sales Type codes
+    private static String getSalesTypeCode(String salesType) {
+        if (salesType == 'Domestic') {
+            return '10';
+        } else if (salesType == 'Export') {
+            return '20';
+        }
+        return null;
     }
     
     public static void statusChangeToSubmitted(List<Expense__c> newList, Map<Id, Expense__c> oldMap) {

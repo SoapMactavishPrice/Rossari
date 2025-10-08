@@ -55,6 +55,16 @@
                         </lightning-combobox>
                     </div>
 
+                    <template if:true={sendEmailToPlant}>
+                        <div class="slds-col slds-size_1-of-4 slds-p-around_x-small">
+                            <lightning-textarea label="Additional Email"
+                                data-name="Email__c"
+                                placeholder="Enter one or more email addresses"
+                                field-level-help="Enter one or more email addresses separated by commas (,) or semicolons (;)."
+                                rows="3"></lightning-textarea>
+                        </div>
+                    </template>
+
                     <div class="slds-col slds-size_1-of-4 slds-p-around_x-small">
                         <lightning-record-picker label="Sales HOD" object-api-name="User" onchange={handleSalesHodChange} value={salesHod}></lightning-record-picker>
                     </div>

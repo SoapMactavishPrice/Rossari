@@ -66,6 +66,20 @@
                     onchange={handlePaymentTermSelected} variant="label-stacked" required="false">
                 </lightning-record-picker>
             </div>
+
+            <div class="slds-col slds-size_1-of-4 slds-p-around_x-small" style="margin-left: -21px;margin-right: 22px;">
+                <lightning-input type="number" label="Transportation Cost" value={quoteFields.transportationCost}
+                    step="0.01" onchange={handleTransportationCostChange}>
+                </lightning-input>
+            </div>
+
+            <!-- Add Container Type Field -->
+            <div class="slds-col slds-size_1-of-4 slds-p-around_x-small" style="margin-right: -34px;">
+                <lightning-input type="text" label="Container Type" value={quoteFields.containerType}
+                    onchange={handleContainerTypeChange} maxlength="255"
+                    style="margin-left: -22px;margin-right: -14px;">
+                </lightning-input>
+            </div>
             <!-- </template> -->
         </div>
 
@@ -82,13 +96,17 @@
                             style="text-align: center; font-size: 13px; background-color: #9d0b0f; font-weight: bold; padding: 4px 6px; color: white; width: 25%;">
                             Product Name
                         </th>
-                        <th
+                        <!-- <th
                             style="text-align: center; font-size: 13px; background-color: #9d0b0f; font-weight: bold; padding: 4px 6px; color: white;">
                             Product Description
-                        </th>
+                        </th> -->
                         <th
                             style="text-align: center; font-size: 13px; background-color: #9d0b0f; font-weight: bold; padding: 4px 6px; color: white;">
                             Customer Product Name
+                        </th>
+                        <th
+                            style="text-align: center; font-size: 13px; background-color: #9d0b0f; font-weight: bold; padding: 4px 6px; color: white;">
+                            Customer HS Code
                         </th>
                         <th
                             style="text-align: center; font-size: 13px; background-color: #9d0b0f; font-weight: bold; padding: 4px 6px; color: white;">
@@ -96,7 +114,7 @@
                         </th>
                         <th
                             style="text-align: center; font-size: 13px; background-color: #9d0b0f; font-weight: bold; padding: 4px 6px; color: white;">
-                            Customer Target Price ({quoteFields.currencyCode})
+                            Customer Price ({quoteFields.currencyCode})
                         </th>
                         <th
                             style="text-align: center; font-size: 13px; background-color: #9d0b0f; font-weight: bold; padding: 4px 6px; color: white;">
@@ -110,10 +128,10 @@
                             style="text-align: center; font-size: 13px; background-color: #9d0b0f; font-weight: bold; padding: 4px 6px; color: white;">
                             Discount %
                         </th>
-                        <th
+                        <!-- <th
                             style="text-align: center; font-size: 13px; background-color: #9d0b0f; font-weight: bold; padding: 4px 6px; color: white;">
                             Container Type
-                        </th>
+                        </th> -->
                         <th
                             style="text-align: center; font-size: 13px; background-color: #9d0b0f; font-weight: bold; padding: 4px 6px; color: white;">
                             Actions
@@ -140,14 +158,19 @@
                                     </c-reusable-lookup>
                                 </div>
                             </td>
-                            <td style="width: 15%;">
+                            <!-- <td style="width: 15%;">
                                 <lightning-input type="text" value={item.Description} disabled
                                     variant="label-hidden"></lightning-input>
-                            </td>
+                            </td> -->
                             <td class="slds-text-align_center" data-label="Customer Product Name">
                                 <lightning-input type="text" variant="label-hidden"
                                     value={item.Customer_Product_Name__c} data-index={item.index}
                                     onchange={handleProductNameChange} maxlength="255">
+                                </lightning-input>
+                            </td>
+                            <td class="slds-text-align_center" data-label="Customer HS Code">
+                                <lightning-input type="text" variant="label-hidden" value={item.Customer_HS_Code__c}
+                                    data-index={item.index} onchange={handleHSCodeChange} maxlength="255">
                                 </lightning-input>
                             </td>
                             <td class="slds-text-align_center" data-label="List Price">
@@ -177,11 +200,11 @@
                                     onchange={handleDiscountChange}>
                                 </lightning-input>
                             </td>
-                            <td class="slds-text-align_center" data-label="Container Type" style="width: 12%;">
+                            <!-- <td class="slds-text-align_center" data-label="Container Type" style="width: 12%;">
                                 <lightning-input type="text" variant="label-hidden" value={item.Container_Type__c}
                                     data-index={item.index} onchange={handleContainerTypeChange} maxlength="255">
                                 </lightning-input>
-                            </td>
+                            </td> -->
 
                             <td class="slds-text-align_center">
                                 <div style="display:flex; gap: 5px; justify-content: center;">

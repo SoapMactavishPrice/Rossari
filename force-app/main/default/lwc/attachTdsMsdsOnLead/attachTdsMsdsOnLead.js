@@ -43,6 +43,13 @@ export default class AttachTdsMsdsOnLead extends NavigationMixin(LightningElemen
 
     @track documentModel = {};
 
+    @track uploadedFiles = {
+        tdsSampleFiles: [],
+        msdsSampleFiles: [],
+        techDocSampleFiles: [],
+        coaSampleFiles: []
+    };
+
     filesData = [];
 
     get isViewTypeProduct() {
@@ -110,6 +117,42 @@ export default class AttachTdsMsdsOnLead extends NavigationMixin(LightningElemen
         }).catch((error)=>{
             this.showToast('Error', 'error', error?.body?.message);
         })
+    }
+
+    // Generic upload handler for all types
+    handleSampleUpload(event) {
+        const type = event.target.dataset.type;
+
+        const input = document.createElement('input');
+        input.type = 'file';
+        input.multiple = true;
+
+        input.onchange = () => {
+            const files = Array.from(input.files);
+
+            files.forEach(file => {
+                const reader = new FileReader();
+                reader.onload = () => {
+                    const base64 = reader.result.split(',')[1]; // remove "data:*/*;base64,"
+                    if (!this.uploadedFiles[type]) this.uploadedFiles[type] = [];
+                    this.uploadedFiles[type].push({
+                        fileName: file.name,
+                        base64Data: base64
+                    });
+                };
+                reader.readAsDataURL(file);
+            });
+        };
+
+        input.click();
+    }
+
+    // Remove a file from the JSON object
+    handleRemoveFile(event) {
+        const type = event.target.dataset.type;
+        const fileName = event.target.dataset.name;
+
+        this.uploadedFiles[type] = this.uploadedFiles[type].filter(f => f.name !== fileName);
     }
 
     sendLeadDocument() {
@@ -370,9 +413,11 @@ export default class AttachTdsMsdsOnLead extends NavigationMixin(LightningElemen
     }
 
     handleRequestDocument() {
+        this.isLoading = true;
         saveRemarks({tdsRemark: this.documentModel.tdsApproverRemark, msdsRemark: this.documentModel.msdsApproverRemark, techDocRemark: this.documentModel.technicalDocApproverRemark, coaDocRemark: this.documentModel.coaDocApproverRemark, leadId: this.rId}).then((result)=>{
             if (result == 'Success') {
-                updateApproversAndSendEmails({ approverStringObject: JSON.stringify(this.approverModel), leadId: this.rId }).then((result)=>{
+                console.log('uploadedFiles', JSON.parse(JSON.stringify(this.uploadedFiles)));
+                updateApproversAndSendEmails({ approverStringObject: JSON.stringify(this.approverModel), sampleDocumentStringObj: JSON.stringify(this.uploadedFiles), leadId: this.rId }).then((result)=>{
                     if (result == 'Success') {
                         this.showToast('Success', 'success', 'Request for approval sent successfully');
                         this.backTorecord();
@@ -382,7 +427,7 @@ export default class AttachTdsMsdsOnLead extends NavigationMixin(LightningElemen
                 })
             }
         }).catch((error)=>{
-            this.isSaveDisabled = false;
+            this.isLoading = false;
             this.showToast('Error', 'error', error.body.message);
         })
     }

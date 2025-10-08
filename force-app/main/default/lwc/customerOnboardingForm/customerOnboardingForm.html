@@ -31,7 +31,7 @@
                             <lightning-input label="PAN Number" data-label="pan_Number" onchange={handleCustomerChange} value ={fieldMap.pan_Number}></lightning-input>
                         </lightning-layout-item>
                         <lightning-layout-item size="12" large-device-size="2" class="slds-p-around_small">
-                            <lightning-input label="Street" data-label="street" onchange={handleCustomerChange} value ={fieldMap.name} ></lightning-input>
+                            <lightning-input label="Street" data-label="street" onchange={handleCustomerChange} value ={fieldMap.Street} ></lightning-input>
                         </lightning-layout-item>
                         <lightning-layout-item size="12" large-device-size="2" class="slds-p-around_small">
                             <lightning-input label="Postal Code" data-label="postal_Code" onchange={handleCustomerChange} value ={fieldMap.postal_Code} ></lightning-input>
@@ -85,8 +85,8 @@
                             <tbody>
                                 <template for:each={tableData} for:item="row">
                                     <tr key={row.bpRole}>
-                                        <td>{row.customerNumber}</td>
-                                        <td>{row.bpRole}</td>
+                                        <td>{row.Customer_Number}</td>
+                                        <td>{row.BP_Role}</td>
                                     </tr>
                                 </template>
                             </tbody>
@@ -118,7 +118,8 @@
                                 value={row.Sales_Organization}
                                 data-id={row.uniqueId}
                                 data-field="Sales_Organization"
-                                disabled>
+                                 onchange={handleSalesRowChange}
+                                >
                             </lightning-input>
                         </lightning-layout-item>
 
@@ -343,15 +344,41 @@
 
                 <!-- Sales Partner -->
                 <lightning-accordion-section name="salesPartner" label="Sales Partner">
-                    <lightning-layout horizontal-align="spread">
-                        <lightning-layout-item size="2" large-device-size="2">Customer Number</lightning-layout-item>
-                        <lightning-layout-item size="2" large-device-size="2">Sales Organization</lightning-layout-item>
-                        <lightning-layout-item size="2" large-device-size="2">Distribution
-                            Channel</lightning-layout-item>
-                        <lightning-layout-item size="2" large-device-size="2">Division</lightning-layout-item>
-                        <lightning-layout-item size="2" large-device-size="2">Partner Function</lightning-layout-item>
-                        <lightning-layout-item size="2" large-device-size="2">Employee Id</lightning-layout-item>
-                    </lightning-layout>
+                  
+
+                    <div class="slds-m-around_medium">
+                        <table class="slds-table slds-table_cell-buffer custom-bordered-table">
+                            <thead>
+                                <tr class="slds-text-title_caps">
+                                    <th >Customer Number</th>
+                                    <th >Sales Organization</th>
+                                    <th >Distribution Channel</th>
+                                    <th >Division</th>
+                                    <th >Partner Function</th>
+                                    <th >Employee Id</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <template for:each={salesManualData} for:item="row">
+                                    <tr key={row.uniqueId}>
+                                        <td>{row.customer_Number}</td>
+                                        <td>{row.Sales_Organization}</td>
+                                        <td>{row.Distribution_Channel}</td>
+                                        <td>{row.Division}</td>
+                                        <td>{row.Partner_Function}</td>
+                                        <td>
+                                             <c-reusable-lookup label="Parent Account" data-uniqueid={row.uniqueId}
+                                             object-api-name="user" selected-icon-name="standard:account" object-label="Employee Number"
+        field-api-name="Name" other-field-api-name="EmployeeNumber"
+        onvalueselected={handleEmpChange}>
+    </c-reusable-lookup>
+                                        </td>
+                                    </tr>
+                                </template>
+                            </tbody>
+                        </table>
+                    </div>
+
 
                 </lightning-accordion-section>
 
@@ -367,15 +394,15 @@
                                 </tr>
                             </thead>
                             <tbody>
-                                <template for:each={companyHeaderata} for:item="row" for:index="index">
-                                    <tr key={row.bpRole}>
-                                        <td>{row.customerNumber}</td>
-                                        <td>{row.ccCode}</td>
-                                        <td>{row.ptCode}</td>
+                                <template for:each={companyHeaderData} for:item="row" for:index="index">
+                                    <tr key={row.uniqueId}>
+                                        <td>{row.customer_Number}</td>
+                                        <td>{row.Company_Code}</td>
+                                        <td>{row.Payment_Terms}</td>
                                         
 
                                         <td>
-                                            <lightning-input data-index={index} data-feild="raRole" variant="label-hidden" onchange={onCompanyDataChange} value={row.raRole}></lightning-input>
+                                            <lightning-input data-index={row.uniqueId} data-feild="Reconciliation_Account" variant="label-hidden" onchange={onCompanyDataChange} value={row.Reconciliation_Account}></lightning-input>
                                          </td>
                                     </tr>
                                 </template>
@@ -398,10 +425,10 @@
                             <tbody>
                                 <template for:each={outputTaxdata} for:item="row">
                                     <tr key={row.bpRole}>
-                                        <td>{row.customerNumber}</td>
-                                        <td>{row.countRegion}</td>
-                                        <td>{row.taxCat}</td>
-                                        <td>{row.taxClass}</td>
+                                        <td>{row.customer_Number}</td>
+                                        <td>{row.Country_Region}</td>
+                                        <td>{row.Tax_Category}</td>
+                                        <td>{row.Tax_Classification}</td>
                                     </tr>
                                 </template>
                             </tbody>
@@ -422,11 +449,11 @@
                             </thead>
                             <tbody>
                                 <template for:each={Taxdata} for:item="row"  for:index="index">
-                                    <tr key={row.bpRole}>
-                                        <td>{row.customerNumber}</td>
-                                        <td>{row.taxCat}</td>
+                                    <tr key={row.Tax_Number}>
+                                        <td>{row.customer_Number}</td>
+                                        <td>{row.Tax_Number_Category}</td>
                                         <td>
-                                            <lightning-input data-index={index} variant="label-hidden" onchange={onTaxDataChange} data-feild="taxNum" value={row.taxNum}></lightning-input>
+                                            <lightning-input data-index={index} variant="label-hidden" onchange={onTaxDataChange} data-field="Tax_Number" value={row.Tax_Number}></lightning-input>
                                          </td>
                                         
                                     </tr>
@@ -439,11 +466,8 @@
         </div>
         
          <footer class="slds-modal__footer slds-grid slds-grid_align-end slds-p-around_small">
-            
-                    <lightning-button variant="neutral" label="Cancel" onclick={closeModal}></lightning-button>
                     <lightning-button variant="neutral" label="Refresh" onclick={handleRefresh}></lightning-button>
-                    <lightning-button variant="brand" label="Save" onclick={handleSave}></lightning-button>
-                    <lightning-button variant="brand" label="Save & Send" onclick={sendXlsEmail}></lightning-button>
+                    <lightning-button variant="brand" class="slds-m-left_small" label="Send" onclick={handleSendEmail}></lightning-button>
         </footer>
         
     </lightning-card>

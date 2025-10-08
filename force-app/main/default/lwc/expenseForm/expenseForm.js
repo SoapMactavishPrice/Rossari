@@ -8,7 +8,7 @@ import createExpenseWithFiles from '@salesforce/apex/ExpenseController.createExp
 import getTransportModes from '@salesforce/apex/ExpenseController.getTransportModes';
 import createCustomerVisit from '@salesforce/apex/ExpenseController.createCustomerVisit';
 import searchTours from '@salesforce/apex/TourLookupController.searchTours';
-
+import getSalesTypeOptions from '@salesforce/apex/ExpenseController.getSalesTypeOptions';
 import { loadStyle } from 'lightning/platformResourceLoader';
 import LightningFileUploadHideLabelCss from '@salesforce/resourceUrl/LightningFileUploadHideLabelCss';
 
@@ -22,6 +22,8 @@ export default class ExpenseForm extends NavigationMixin(LightningElement) {
     @track selectedVoucherType = '';
     @track userCostCenter = '';
     @track costCenterId = '';
+    @track salesType = '';
+    @track salesTypeOptions = [];
 
     @track employeeOptions = [];
     @track typeOfExpenseOptions = [];
@@ -126,8 +128,25 @@ export default class ExpenseForm extends NavigationMixin(LightningElement) {
         this.todayDate = new Date().toISOString().split('T')[0];
         this.initializeData();
         this.addLineItem();
+        this.loadSalesTypeOptions();
 
-       // loadStyle(this, LightningFileUploadHideLabelCss);
+        // loadStyle(this, LightningFileUploadHideLabelCss);
+    }
+
+    loadSalesTypeOptions() {
+        // You'll need to create an Apex method to get these picklist values
+        getSalesTypeOptions()
+            .then(result => {
+                this.salesTypeOptions = result;
+            })
+            .catch(error => {
+                console.error('Error loading sales type options:', error);
+            });
+    }
+
+    // Add handler for sales type change
+    handleSalesTypeChange(event) {
+        this.salesType = event.detail.value;
     }
 
     async initializeData() {
@@ -564,11 +583,12 @@ export default class ExpenseForm extends NavigationMixin(LightningElement) {
                 Type_of_Voucher__c: this.selectedVoucherType,
                 Division__c: this.division,
                 Zone__c: this.zone,
+                Sales_Type__c: this.salesType,
                 Tour__c: this.selectedTourId,
                 Customer_Visited__c: customerVisitIds.length > 0 ? customerVisitIds[0] : null,
                 Visit_Report__c: this.visitReportId,
                 Cost_Center__c: this.costCenterId,
-                CurrencyIsoCode: this.selectedCurrency 
+                CurrencyIsoCode: this.selectedCurrency
             };
 
             const lineItemsToSend = this.lineItems.map(item => ({
@@ -591,7 +611,7 @@ export default class ExpenseForm extends NavigationMixin(LightningElement) {
                 Ticket_Booked_By_Company__c: this.selectedVoucherType === 'Outstation' ? item.ticketBookedByCompany : false,
                 Description__c: this.selectedVoucherType === 'Outstation' ? item.outstationDescription :
                     (this.selectedVoucherType === 'Cash' ? item.cashDescription : null),
-                    CurrencyIsoCode: this.selectedCurrency
+                CurrencyIsoCode: this.selectedCurrency
             }));
 
             // FIXED: Create filesPerLineItem using the correct structure
@@ -633,10 +653,11 @@ export default class ExpenseForm extends NavigationMixin(LightningElement) {
             }
         });
 
-        if (!this.expenseName) {
-            this.showToast('Error', 'Enter Voucher No', 'error');
-            return false;
-        }
+        // if (!this.expenseName) {
+        //     this.showToast('Error', 'Enter Voucher No', 'error');
+        //     return false;
+        // }
+
         if (!this.todayDate) {
             this.showToast('Error', 'Select Expense Date', 'error');
             return false;
@@ -647,6 +668,11 @@ export default class ExpenseForm extends NavigationMixin(LightningElement) {
         }
         if (!this.selectedVoucherType) {
             this.showToast('Error', 'Select Type of Voucher', 'error');
+            return false;
+        }
+
+        if (!this.salesType) {
+            this.showToast('Error', 'Please select Sales Type', 'error');
             return false;
         }
 
@@ -675,7 +701,7 @@ export default class ExpenseForm extends NavigationMixin(LightningElement) {
             // FILE VALIDATION FOR CAR TRANSPORT MODE
             const transportMode = this.selectedVoucherType === 'Local' ? item.transportMode : item.outstationTransportMode;
             const hasFiles = this.filesMap.has(item.key) && this.filesMap.get(item.key).length > 0;
-            
+
             if (transportMode === 'Car' && !hasFiles) {
                 this.showToast('Error', `Meter Photo upload is mandatory for Car transport mode in row ${i + 1}`, 'error');
                 return false;

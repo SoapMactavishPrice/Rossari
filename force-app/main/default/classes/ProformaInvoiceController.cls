@@ -43,12 +43,12 @@ public class ProformaInvoiceController {
                 return null;
             }	*/
             
-            if (quote.Status != 'Accepted') {
+       /*     if (quote.Status != 'Accepted') {
                 ApexPages.addMessage(new ApexPages.Message(ApexPages.Severity.ERROR, 
                                                            'Proforma Invoice can only be created for Accepted Quotes.'));
                 showCancelButton = true;
                 return null;
-            }
+            }		*/
             
             List<Proforma_Invoice__c> existingInvoices = [
                 SELECT Id FROM Proforma_Invoice__c WHERE Quote__c = :quote.Id LIMIT 1

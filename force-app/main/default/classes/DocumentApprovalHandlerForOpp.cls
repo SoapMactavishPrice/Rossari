@@ -1,10 +1,11 @@
 public with sharing class DocumentApprovalHandlerForOpp {
     @AuraEnabled
-    public static String updateApproversAndSendEmails(String approverStringObject, String leadId) {
+    public static String updateApproversAndSendEmails(String approverStringObject, String sampleDocumentStringObj, String leadId) {
         try {
             
             ApproverModel approvers = (ApproverModel)JSON.deserialize(approverStringObject, ApproverModel.class);
-            
+
+            SampleDocumentWrapper uploadedFiles = (SampleDocumentWrapper)JSON.deserialize(sampleDocumentStringObj, SampleDocumentWrapper.class);
             
             Opportunity leadRecord = [SELECT Id, Name, Company__c, Owner.Name, Owner.Email, Enquiry_Document_No__c, Account.Name, 
                              TDS_Approver__c, MSDS_Approver__c, Technical_Document_Approver__c, COA_Document_Approver__c, Contact__r.Name,
@@ -41,14 +42,14 @@ public with sharing class DocumentApprovalHandlerForOpp {
                 FROM User 
                 WHERE Id IN :approverIds
             ]);
-            
+
+            saveUploadedFiles(uploadedFiles, leadId);
             
             if (approvers.tdsApproverId != null) {
                 Messaging.SingleEmailMessage tdsEmail = createApprovalEmail(
                     approverMap.get(approvers.tdsApproverId),
                 leadRecord,
-                'TDS'
-                    );
+                'TDS', uploadedFiles.tdsSampleFiles);
                 emailMessages.add(tdsEmail);
             }
             
@@ -57,8 +58,7 @@ public with sharing class DocumentApprovalHandlerForOpp {
                 Messaging.SingleEmailMessage msdsEmail = createApprovalEmail(
                     approverMap.get(approvers.msdsApproverId),
                 leadRecord,
-                'MSDS'
-                    );
+                'MSDS', uploadedFiles.msdsSampleFiles);
                 emailMessages.add(msdsEmail);
             }
             
@@ -67,8 +67,7 @@ public with sharing class DocumentApprovalHandlerForOpp {
                 Messaging.SingleEmailMessage techEmail = createApprovalEmail(
                     approverMap.get(approvers.technicalDocApproverId),
                 leadRecord,
-                'Technical'
-                    );
+                'Technical', uploadedFiles.techDocSampleFiles);
                 emailMessages.add(techEmail);
             }
 
@@ -76,8 +75,7 @@ public with sharing class DocumentApprovalHandlerForOpp {
                 Messaging.SingleEmailMessage techEmail = createApprovalEmail(
                     approverMap.get(approvers.coaDocApproverId),
                 leadRecord,
-                'COA'
-                    );
+                'COA', uploadedFiles.coaSampleFiles);
                 emailMessages.add(techEmail);
             }
             
@@ -91,8 +89,70 @@ public with sharing class DocumentApprovalHandlerForOpp {
             throw new AuraHandledException('Error: ' + e.getMessage());
         }
     }
+
+    private static void saveUploadedFiles(SampleDocumentWrapper uploadedFiles, Id leadId) {
+        List<ContentVersion> contentVersions = new List<ContentVersion>();
+
+        // Helper to process each category
+        processFileList(uploadedFiles.tdsSampleFiles, 'TDS Document', contentVersions);
+        processFileList(uploadedFiles.msdsSampleFiles, 'MSDS Document', contentVersions);
+        processFileList(uploadedFiles.techDocSampleFiles, 'Technical Document', contentVersions);
+        processFileList(uploadedFiles.coaSampleFiles, 'COA Document', contentVersions);
+
+        if (!contentVersions.isEmpty()) {
+            insert contentVersions;
+
+            List<ContentDocumentLink> links = new List<ContentDocumentLink>();
+            for (ContentVersion cv : [SELECT Id, ContentDocumentId FROM ContentVersion WHERE Id IN :contentVersions]) {
+                links.add(new ContentDocumentLink(
+                    ContentDocumentId = cv.ContentDocumentId,
+                    LinkedEntityId = leadId,
+                    ShareType = 'V', // View only
+                    Visibility = 'AllUsers'
+                ));
+            }
+            insert links;
+        }
+    }
+
+    private static void processFileList(List<ContentVersionWrapper> files, String description, List<ContentVersion> contentVersions) {
+        for (ContentVersionWrapper fw : files) {
+            if (fw.base64Data != null && fw.fileName != null) {
+                contentVersions.add(new ContentVersion(
+                    Title = fw.fileName,
+                    PathOnClient = fw.fileName,
+                    VersionData = EncodingUtil.base64Decode(fw.base64Data),
+                    Description = description
+                ));
+            }
+        }
+    }
+
+    private static void saveFilesToLead(SampleDocumentWrapper uploadedFiles, Id leadId) {
+        List<ContentVersion> contentVersions = new List<ContentVersion>();
+
+        // Collect all files across all document types
+        List<ContentVersionWrapper> allFiles = new List<ContentVersionWrapper>();
+        if (uploadedFiles.tdsSampleFiles != null) allFiles.addAll(uploadedFiles.tdsSampleFiles);
+        if (uploadedFiles.msdsSampleFiles != null) allFiles.addAll(uploadedFiles.msdsSampleFiles);
+        if (uploadedFiles.techDocSampleFiles != null) allFiles.addAll(uploadedFiles.techDocSampleFiles);
+        if (uploadedFiles.coaSampleFiles != null) allFiles.addAll(uploadedFiles.coaSampleFiles);
+
+        for (ContentVersionWrapper file : allFiles) {
+            if (String.isBlank(file.base64Data) || String.isBlank(file.fileName)) continue;
+            
+            ContentVersion cv = new ContentVersion();
+            cv.Title = file.fileName;
+            cv.PathOnClient = file.fileName;
+            cv.VersionData = EncodingUtil.base64Decode(file.base64Data);
+            cv.FirstPublishLocationId = leadId; // directly links to Lead
+            contentVersions.add(cv);
+        }
+
+        if (!contentVersions.isEmpty()) insert contentVersions;
+    }
     
-    private static Messaging.SingleEmailMessage createApprovalEmail(User approver, Opportunity leadRecord, String documentType) {
+    private static Messaging.SingleEmailMessage createApprovalEmail(User approver, Opportunity leadRecord, String documentType, List<ContentVersionWrapper> files) {
         Messaging.SingleEmailMessage email = new Messaging.SingleEmailMessage();
 
         email.setToAddresses(new List<String>{approver.Email});
@@ -125,6 +185,18 @@ public with sharing class DocumentApprovalHandlerForOpp {
         System.debug('html body ==>' + htmlBody);
 
         email.setHtmlBody(htmlBody);
+
+        // Attach files as email attachments
+        if (files != null && !files.isEmpty()) {
+            List<Messaging.EmailFileAttachment> attachments = new List<Messaging.EmailFileAttachment>();
+            for (ContentVersionWrapper f : files) {
+                Messaging.EmailFileAttachment attach = new Messaging.EmailFileAttachment();
+                attach.setFileName(f.fileName);
+                attach.setBody(EncodingUtil.base64Decode(f.base64Data));
+                attachments.add(attach);
+            }
+            email.setFileAttachments(attachments);
+        }
 
         return email;
     }
@@ -658,5 +730,17 @@ public with sharing class DocumentApprovalHandlerForOpp {
             
             this.isSaveDisabled = this.isTdsDisabled && this.isMsdsDisabled && this.isTechnicalDocDisabled && this.isCoaDocDisabled;
         }
+    }
+
+    public class SampleDocumentWrapper {
+        @AuraEnabled public List<ContentVersionWrapper> tdsSampleFiles { get; set; }
+        @AuraEnabled public List<ContentVersionWrapper> msdsSampleFiles { get; set; }
+        @AuraEnabled public List<ContentVersionWrapper> techDocSampleFiles { get; set; }
+        @AuraEnabled public List<ContentVersionWrapper> coaSampleFiles { get; set; }
+    }
+
+    public class ContentVersionWrapper {
+        @AuraEnabled public String fileName { get; set; }
+        @AuraEnabled public String base64Data { get; set; } // base64 string of file content
     }
 }

@@ -31,7 +31,7 @@ global class SalesOrderAPI {
         SalesOrderJson soRequest = parse(jSONRequestBody);
 
         if (String.isBlank(soRequest.QUOTE_NUM)) {
-            throw new CustomException('QUOTE_NUM cannot be blank!');
+            // throw new CustomException('QUOTE_NUM cannot be blank!');
         }
 
         List < Quote > quoteList = [
@@ -41,7 +41,7 @@ global class SalesOrderAPI {
         ];
 
         if (quoteList.isEmpty()) {
-            throw new CustomException('QUOTE_NUM :' +soRequest.QUOTE_NUM+ ' is not valid!');
+            // throw new CustomException('QUOTE_NUM :' +soRequest.QUOTE_NUM+ ' is not valid!');
         }
 
         Map < String, Object > quoteMap = new Map < String, Object > ();
@@ -69,8 +69,14 @@ global class SalesOrderAPI {
 
             Map<String, String> ohpfMap = new Map<String, String>();
             Map<String, String> ordItemMap = new Map<String, String>();
+            List<Order_Header_Text__c> exOrderHeaderText = new List<Order_Header_Text__c>();
             if (exOrd.size() > 0) {
                 ord.Id = exOrd[0].Id;
+
+                exOrderHeaderText = [
+                    SELECT Id, Name FROM Order_Header_Text__c
+                    WHERE Order__c = :ord.Id
+                ];
 
                 List<Order_Header_Partner_Function__c> exOrderHeaderPF = new List<Order_Header_Partner_Function__c>();
                 exOrderHeaderPF = [
@@ -251,6 +257,9 @@ global class SalesOrderAPI {
 
                         if (orderHeaderTextList.size() > 0) {
                             upsert orderHeaderTextList;
+                            if (exOrderHeaderText.size()>0) {
+                                delete exOrderHeaderText;
+                            }
                         }
 
                         List < Order_Header_Partner_Function__c > partnerFuncList = new List < Order_Header_Partner_Function__c > ();
@@ -258,8 +267,9 @@ global class SalesOrderAPI {
                             Order_Header_Partner_Function__c partnerFunc = new Order_Header_Partner_Function__c();
                             if (ohpfMap.containsKey(partnerFunctionItem.PARTNER_FUNCTION+'-'+partnerFunctionItem.PARTNER_CODE)) {
                                 partnerFunc.Id = ohpfMap.get(partnerFunctionItem.PARTNER_FUNCTION+'-'+partnerFunctionItem.PARTNER_CODE);
+                            } else {
+                                partnerFunc.Order__c = ord.Id;
                             }
-                            partnerFunc.Order__c = ord.Id;
                             partnerFunc.Name = partnerFunctionItem.PARTNER_FUNCTION+'-'+partnerFunctionItem.PARTNER_NAME;
                             partnerFunc.Partner_code__c = partnerFunctionItem.PARTNER_CODE;
                             partnerFunc.Partner_function__c = partnerFunctionItem.PARTNER_FUNCTION;
