@@ -256,10 +256,10 @@ public with sharing class Utility {
         productTable += '</table>';
 
         String emailBody =
-            '<b>Sample Request No:</b> ' + sampleRequest.Name + '<br/>' +
-            '<b>Requested Date:</b> ' + sampleRequest.Sample_Request_Date__c.format() + '<br/>' +
-            '<b>Expected Date:</b> ' + sampleRequest.Sample_Expected_Date__c.format() + '<br/><br/>' +
-            '<b>Requested Product Records:</b><br/>' +
+            'Sample Request No: ' + sampleRequest.Name + '<br/>' +
+            'Requested Date: ' + sampleRequest.Sample_Request_Date__c.format() + '<br/>' +
+            'Expected Date: ' + sampleRequest.Sample_Expected_Date__c.format() + '<br/><br/>' +
+            'Requested Product Records:<br/>' +
             'Below are the product details for your reference:<br/><br/>' +
             productTable;
 
@@ -294,7 +294,7 @@ public with sharing class Utility {
 
         Messaging.SingleEmailMessage mail = new Messaging.SingleEmailMessage();
         mail.setToAddresses(recipientEmails);
-        mail.setSubject('Sample Request Details - ' + sampleRequest.Name);
+        mail.setSubject('Sample Request Created');
         mail.setHtmlBody(emailBody);
         mail.setWhatId(sampleRequest.Id);
         mail.setFileAttachments(attachments);

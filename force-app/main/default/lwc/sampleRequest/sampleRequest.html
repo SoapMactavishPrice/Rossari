@@ -55,6 +55,10 @@
                         </lightning-combobox>
                     </div>
 
+                    <div class="slds-col slds-size_1-of-4 slds-p-around_x-small">
+                        <lightning-record-picker label="Sales HOD" object-api-name="User" onchange={handleSalesHodChange} value={salesHod}></lightning-record-picker>
+                    </div>
+
                     <template if:true={sendEmailToPlant}>
                         <div class="slds-col slds-size_1-of-4 slds-p-around_x-small">
                             <lightning-textarea label="Additional Email"
@@ -64,10 +68,6 @@
                                 rows="3"></lightning-textarea>
                         </div>
                     </template>
-
-                    <div class="slds-col slds-size_1-of-4 slds-p-around_x-small">
-                        <lightning-record-picker label="Sales HOD" object-api-name="User" onchange={handleSalesHodChange} value={salesHod}></lightning-record-picker>
-                    </div>
 
                     <div class="slds-col slds-size_1-of-4 slds-p-around_x-small">
                         <lightning-textarea label="Remark" data-name="Remark__c"></lightning-textarea>
