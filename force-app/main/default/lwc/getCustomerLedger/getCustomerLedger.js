@@ -139,9 +139,15 @@ export default class GetCustomerLedger extends LightningElement {
             toDate: toDate
         }).then((result) => {
             console.log('>>> Result:', result);
-            this.showSpinner = false;
-            this.xString = result;
-            this.handleDownloadPDF();
+            if (result == '') {
+                this.showSpinner = false;
+                this.showToast('Error', 'No Data Found', 'error');
+            } else {
+                this.xString = result;
+                this.handleDownloadPDF();
+                this.showSpinner = false;
+                
+            }
         }).catch((error) => {
             this.showSpinner = false;
         })

@@ -127,21 +127,21 @@ public class LeadTriggerHandlerTest {
         );
         insert standardPbe;
         
-        Country__c country = new Country__c(
+        Country__c country1 = new Country__c(
             Name = 'India'
         );
-        insert country;
+        insert country1;
         
         State__c state = new State__c(
             Name = 'Maharashtra',
-            Country__c = country.Id
+            Country__c = country1.Id
         );
         insert state;
         
         City__c testCity = new City__c(
             Name = 'Test City',
             State__c = state.id,
-            Country__c = country.id
+            Country__c = country1.id
         );
         insert testCity;
         

@@ -106,33 +106,33 @@ export default class AddProductPage extends NavigationMixin(LightningElement) {
         this.getCustomerSalesArea();
 
         // this.openModal();
-        // this.showSpinner = true;
-        // findProducts({ recordId: this.recId, productFamily: [] }).then(result => {
-        //     // console.log('connectedCallback = ', result);
-        //     let dataObj = JSON.parse(result);
-        //     // console.log(result);
-        //     this.AllProductData = dataObj.productList;
-        //     this.ShowTableData = dataObj.productList;
+        this.showSpinner = true;
+        findProducts({ recordId: this.recId, productFamily: [] }).then(result => {
+            // console.log('connectedCallback = ', result);
+            let dataObj = JSON.parse(result);
+            // console.log(result);
+            this.AllProductData = dataObj.productList;
+            this.ShowTableData = dataObj.productList;
 
 
-        //     // this.ShowTableData = result.map(pbe => {
-        //     //     return {
-        //     //         Id: pbe.Id, // PricebookEntry Id
-        //     //         purl: '/lightning/r/Product2/' + pbe.Product2Id + '/view',
-        //     //         Name: pbe.Product2.Name,
-        //     //         ProductCode: pbe.Product2.ProductCode,
-        //     //         Family: pbe.Product2.Family,
-        //     //         Price: pbe.UnitPrice,
-        //     //         Description: pbe.Product2.Description
-        //     //     };
-        //     // });
+            // this.ShowTableData = result.map(pbe => {
+            //     return {
+            //         Id: pbe.Id, // PricebookEntry Id
+            //         purl: '/lightning/r/Product2/' + pbe.Product2Id + '/view',
+            //         Name: pbe.Product2.Name,
+            //         ProductCode: pbe.Product2.ProductCode,
+            //         Family: pbe.Product2.Family,
+            //         Price: pbe.UnitPrice,
+            //         Description: pbe.Product2.Description
+            //     };
+            // });
 
-        //     // console.log('ShowTableData', JSON.parse(JSON.stringify(this.ShowTableData)));
+            // console.log('ShowTableData', JSON.parse(JSON.stringify(this.ShowTableData)));
 
-        //     this.paginiateData(JSON.stringify(this.AllProductData));
+            this.paginiateData(JSON.stringify(this.AllProductData));
 
-        //     // this.PriceBook = dataObj.priceBook;
-        // });
+            // this.PriceBook = dataObj.priceBook;
+        });
     }
 
     getCustomerSalesArea() {

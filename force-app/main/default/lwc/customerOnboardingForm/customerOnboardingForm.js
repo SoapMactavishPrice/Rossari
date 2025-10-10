@@ -4,15 +4,18 @@ import getSalesData from '@salesforce/apex/CustomerOnboardingFormController.getS
 import sendEmailWithAttachment from '@salesforce/apex/CustomerOnboardingFormController.sendEmailWithAttachment';
 import { ShowToastEvent } from 'lightning/platformShowToastEvent';
 import sendXlsxEmail from '@salesforce/apex/CustomerOnboardingFormController.sendXlsxEmail';
-
+import deletefile from '@salesforce/apex/CustomerOnboardingFormController.deletefile';
+import getDocumentUrl from '@salesforce/apex/CustomerOnboardingFormController.getDocumentUrl';
+import { NavigationMixin } from 'lightning/navigation';
 import xlsxLib from '@salesforce/resourceUrl/xlsx';
 import { loadScript } from 'lightning/platformResourceLoader';
 
+import CUSTOMER_ONBOARDING_EMAIL from '@salesforce/label/c.CutomerOnboardingEmail';
 
 
 
 
-export default class CustomerOnboardingForm extends LightningElement {
+export default class CustomerOnboardingForm extends NavigationMixin(LightningElement) {
 @api recordId;
     @track activeSection = 'general'; // Default open section
 
@@ -114,6 +117,9 @@ handleCustomerChange(event) {
     console.log('Current fieldMap object:', this.fieldMap);
 }
 
+@track label = {
+        CUSTOMER_ONBOARDING_EMAIL
+    };
 connectedCallback(){
 this.handleGetRecordId();
 this.loadSalesData();
@@ -506,9 +512,9 @@ setTimeout(() => {
     }
 
       @track isModalOpen = false;
-    @track toEmail = '';
+    @track toEmail = this.label.CUSTOMER_ONBOARDING_EMAIL;
     @track ccEmail = '';
-    @track subject = '';
+    @track subject = 'Customer Onboarding Form';
     @track body = ''
 
     openModal() {
@@ -666,14 +672,25 @@ const cleancompanySheetData = this.companyHeaderData.map(({ uniqueId, ...rest })
         binary += String.fromCharCode.apply(null, chunk);
     }
     const base64File = btoa(binary);
-
+    
+    let uploadedFileIds = this.uploadedFiles.map(f => f.id);
+    console.log('uploadedFileIds-->',JSON.stringify(uploadedFileIds));
+    
     // 📤 Send to Apex
     sendXlsxEmail({
         fileName: 'Customer_Onboarding_Data.xlsx',
         base64Data: base64File,
-        recipientEmail: 'Rishikesh.Korade@finessedirect.com'
+        recipientEmail: this.toEmail,
+        body:this.body,
+        subject:this.subject,
+        ccEmail:this.ccEmail,
+        contentDocumentIds: uploadedFileIds
     })
     .then(() => {
+        this.showToast('Success', 'Email Send !!!', 'Success');
+        setTimeout(() => {
+            this.handleNavigateToRecord();
+        }, 1000);
         console.log('✅ Excel with formatted headers emailed successfully!');
     })
     .catch(error => {
@@ -736,9 +753,7 @@ handleEmpChange(event){
     }
 
     handleRefresh() {
-        this.toEmail = '';
         this.ccEmail = '';
-        this.subject = '';
         this.body = '';
         this.showToast('Refreshed', 'All fields cleared', 'info');
     }
@@ -844,7 +859,168 @@ handleEmpChange(event){
 
 
 
+  
+     @track isFileUpload = false;
+    @track uploadedFiles = [];
+    uploadFile(){
+        this.isFileUpload =true;
+    }
 
+
+     closeFileModal() {
+        this.isFileUpload = false;
+    }
+
+    @track uploadedFiles = [];
+
+    handleFilesChange(event) {
+        const files = event.target.files;
+        for (let i = 0; i < files.length; i++) {
+            const file = files[i];
+
+            // Avoid duplicates by name
+            if (!this.uploadedFiles.find(f => f.name === file.name)) {
+                this.uploadedFiles = [
+                    ...this.uploadedFiles,
+                    {
+                        index: this.generateUniqueId(),
+                        id:file.name,
+                        name: file.name,
+                        type: file.type,
+                        file: file, // store original File object
+                        url: URL.createObjectURL(file)
+                    }
+                ];
+            }
+        }
+    }
+
+
+    handleRemoveFile(event) {
+        const fileId = event.target.dataset.id;
+        
+
+        deletefile({ prodId: fileId }).then(result => {
+
+            if (result) {
+                this.uploadedFiles = this.uploadedFiles.filter(f => f.id !== fileId);
+                this.showToast('Success', `File Deleted Successfully`, 'success');
+            }
+        })
+    }
+
+    handleSelectFile(event) {
+        const fileId = event.target.dataset.id;
+        const file = this.uploadedFiles.find(f => f.id === fileId);
+        if (file) {
+            this.showToast('Selected', `Selected file: ${file.name}`);
+            // Implement selection logic if needed
+        }
+    }
+
+    handleUpload() {
+        // Implement upload logic (e.g., Apex call or Files API)
+        this.showToast('Upload', `${this.uploadedFiles.length} file(s) ready to upload`);
+        this.closeModal();
+    }
+
+    showToast(title, message) {
+        this.dispatchEvent(
+            new ShowToastEvent({
+                title: title,
+                message: message,
+                variant: 'success'
+            })
+        );
+    }
+
+    viewFile(event) {
+    let contentDocumentId = event.target.dataset.id; // this should be the 069C... ID
+    console.log('ContentDocumentId:', contentDocumentId);
+
+    getDocumentUrl({ Id: contentDocumentId }).then(result => {
+        if (result) {
+            console.log('Result from Apex:', result);
+
+            this[NavigationMixin.Navigate]({
+                type: 'standard__namedPage',
+                attributes: {
+                    pageName: 'filePreview'
+                },
+                state: {
+                    selectedRecordId: result // pass the ContentDocumentId here
+                }
+            });
+        }
+    }).catch(error => {
+        console.error('Error fetching file URL:', error);
+    });
+}
+
+    deleteFile(event) {
+        let fileIds = event.target.dataset.id;
+        deletefile({ prodId: fileIds }).then(result => {
+            if (result) {
+                this.showToast('Success', `File Deleted Successfully`, 'success');
+                this.fileViewdata = this.fileViewdata.filter(file => file.Id !== fileIds);
+                if (this.fileViewdata.length == 0) {
+                    this.isOpenFileView = false;
+                }
+            }
+        })
+
+    }
+
+     get acceptedFormats() {
+        return ['.pdf', '.png','.jpg','.jpeg','.xls','.xlsx'];
+    }
+
+
+    handleUploadFinished(event) {
+        const uploaded = event.detail.files;
+        
+        
+        uploaded.forEach(file => {
+            // Avoid duplicates by ID
+            console.log('file.documentId-->',JSON.stringify(file));
+            if (!this.uploadedFiles.find(f => f.id === file.documentId)) {
+                this.uploadedFiles = [
+                    ...this.uploadedFiles,
+                    {
+                        id: file.documentId,
+                        name: file.name,
+                        type: this.getFileType(file.name),
+                        url: `/sfc/servlet.shepherd/document/download/${file.documentId}` // direct preview URL
+                    }
+                ];
+            }
+        });
+
+        this.showToast('Success', `${uploaded.length} file(s) uploaded`);
+    }
+
+    getFileType(fileName) {
+        const ext = fileName.split('.').pop().toLowerCase();
+        if (['png', 'jpg', 'jpeg'].includes(ext)) return 'Image';
+        if (ext === 'pdf') return 'PDF';
+        if (['xls', 'xlsx'].includes(ext)) return 'Excel';
+        return 'Other';
+    }
+
+
+
+
+    
+handleNavigateToRecord() {
+
+        this[NavigationMixin.Navigate]({
+            type: 'standard__recordPage',
+            attributes: {
+                recordId: this.recordId,
+                actionName: 'view'       // view / edit / clone
+            }
+        });
+    }
 
 
 

@@ -3,12 +3,16 @@ public class NPDCostingControllerTest {
 
     @isTest
     static void testNPDCostingController_AllInOne() {
+        // Step 1: Create test NPD record
         New_Product_Development__c npd = new New_Product_Development__c(
             Name = 'Test NPD',
-            Yield_and_RMC_change__c = 100
+            Yield_and_RMC_change__c = 100,
+            Molecular_wt_of_the_Product__c = 200,
+            Profit_Expected_Per_Kg__c = 50
         );
         insert npd;
 
+        // Step 2: Create test costing item
         NPD_Costing__c costing = new NPD_Costing__c(
             Name = 'Test Costing',
             New_Product_Development__c = npd.Id,
@@ -21,13 +25,17 @@ public class NPDCostingControllerTest {
 
         Test.startTest();
 
-        // 1. Get Existing Costing Items
-        List<NPD_Costing__c> existingItems = NPDCostingController.getExistingCostingItems(npd.Id);
+        // 3. Get Existing Costing Items
+        Map<String, Object> resultMap = NPDCostingController.getExistingCostingItems(npd.Id);
+        List<NPD_Costing__c> existingItems = (List<NPD_Costing__c>) resultMap.get('costingItems');
+        System.assertNotEquals(null, existingItems);
+        System.assert(!existingItems.isEmpty(), 'Existing costing items should not be empty');
 
-        // 2. Get Yield and RMC Change
+        // 4. Get Yield and RMC Change
         Decimal yield = NPDCostingController.getYieldAndRMCChange(npd.Id);
+        System.assertEquals(100, yield);
 
-        // 3. Save Costing Items with various data types (Decimal, Integer, Double, String)
+        // 5. Save Costing Items with various data types
         List<Map<String, Object>> costingList = new List<Map<String, Object>>{
             new Map<String, Object>{
                 'id' => costing.Id,
@@ -39,26 +47,42 @@ public class NPDCostingControllerTest {
             }
         };
         String costingJson = JSON.serialize(costingList);
-        NPDCostingController.saveCostingItems(npd.Id, costingJson);
 
-        // 4. Save Costing Items with invalid decimal value to test exception block
+        NPDCostingController.saveCostingItems(
+            npd.Id,
+            costingJson,
+            Decimal.valueOf('210.5'),         // updated molecularWeight
+            Decimal.valueOf('90.2'),          // updated yieldAndRMCChange
+            Decimal.valueOf('60.75')          // updated profitExpectedPerKg
+        );
+
+        // 6. Save Costing Items with invalid decimal value to test exception block
         List<Map<String, Object>> invalidCostingList = new List<Map<String, Object>>{
             new Map<String, Object>{
                 'name' => 'Invalid Decimal',
-                'molWeight' => 'invalid_value',
+                'molWeight' => 'invalid_value',   // should trigger parseDecimal failure
                 'usedInBatch' => 10,
                 'recovered' => 2,
                 'unitCostPerKg' => 50
             }
         };
         String invalidJson = JSON.serialize(invalidCostingList);
-        try {
-            NPDCostingController.saveCostingItems(npd.Id, invalidJson);
-        } catch (AuraHandledException e) {
-            // Expected
-        }
 
-        // 5. Delete costing item
+        Boolean exceptionThrown = false;
+        try {
+            NPDCostingController.saveCostingItems(
+                npd.Id,
+                invalidJson,
+                Decimal.valueOf('210'),
+                Decimal.valueOf('85'),
+                Decimal.valueOf('45')
+            );
+        } catch (AuraHandledException e) {
+            exceptionThrown = true;
+        }
+        System.assert(exceptionThrown, 'Expected exception for invalid decimal input');
+
+        // 7. Delete costing item
         NPDCostingController.deleteCostingItem(costing.Id);
 
         Test.stopTest();

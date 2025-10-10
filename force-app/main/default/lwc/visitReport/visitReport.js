@@ -76,9 +76,9 @@ export default class VisitReport extends LightningElement {
     @track visitReportTypeOptions = [
         { label: 'Planned', value: 'New' },
         { label: 'Unplanned', value: 'Unplanned' },
-        { label: 'Choose Existing', value: 'Existing' }
-        
-        
+        { label: 'Existing Visit', value: 'Existing' }
+
+
     ];
     @track disableExistingVisitReport = true;
     @track selectedVisitReportType = 'New';
@@ -87,6 +87,14 @@ export default class VisitReport extends LightningElement {
     @track isFormDisabled = false;
     @track showRemainingSections = false;
     @track customer_Attendees = []
+    @track showExistingCustomerFields = false;
+    @track showNewCustomerField = false;
+    @track recordTypeName = ''; 
+    @track accountContacts = [];
+    @track ProjectId = '';
+    @track selectedExistingVisitReportName = '';
+    @track customerRecordType = '';
+    @track showSpinner = false;
 
     @track isLead = true;
     @track selectedType = 'Lead'
@@ -479,14 +487,47 @@ export default class VisitReport extends LightningElement {
         }
     }
 
+    handleCustomerTypeChange(event) {
+        const customerType = event.detail.value;
+        this.dataMap.Customer_Type = customerType;
+        
+        // Show/hide fields based on customer type
+        if (customerType === 'Existing') {
+            this.showExistingCustomerFields = true;
+            this.showNewCustomerField = false;
+            // Clear new customer field when switching to existing
+            this.dataMap.New_Customer = '';
+        } else if (customerType === 'New') {
+            this.showExistingCustomerFields = false;
+            this.showNewCustomerField = true;
+            // Clear existing customer fields when switching to new
+            this.dataMap.Customer_Name = '';
+            this.dataMap.Customer_Name_Display = '';
+            this.sapCustomerCode = '';
+            this.recordTypeName = '';
+            this.customerId = '';
+        } else {
+            // If no selection, hide both
+            this.showExistingCustomerFields = false;
+            this.showNewCustomerField = false;
+        }
+        
+        console.log('Customer Type changed to:', customerType);
+    }
 
     // handles other fields (record-edit-form, inputs, etc.)
     handleVisitChange(event) {
         const fieldName = event.target.dataset.label;
-        const fieldValue = event.detail.value; // ✅ Always use detail.value
+        const fieldValue = event.detail.value;
 
         console.log('➡️ handleVisitChange called');
         console.log('Field:', fieldName, 'Value:', fieldValue);
+
+        // Handle Customer_Type separately
+        if (fieldName === 'Customer_Type') {
+            this.handleCustomerTypeChange(event);
+            return;
+        }
 
         if (!fieldValue) {
             delete this.dataMap[fieldName];
@@ -532,13 +573,13 @@ export default class VisitReport extends LightningElement {
         if (fieldName === 'Customer_Name') {
             if (!fieldValue) {
                 this.sapCustomerCode = '';
-                this.customerRecordType = '';
+                this.recordTypeName = '';
             } else {
                 getCustomerDetails({ accountId: fieldValue })
                     .then(result => {
                         if (result) {
                             this.sapCustomerCode = result.SAP_Customer_Code__c;
-                            this.customerRecordType = result.RecordTypeName;
+                            this.recordTypeName = result.RecordType;
                             console.log('Fetched Customer Details:', result);
                         }
                     })
@@ -960,7 +1001,7 @@ export default class VisitReport extends LightningElement {
     // Add this getter for Unplanned logic
     get isUnplannedVisitReport() {
         return this.selectedVisitReportType === 'Unplanned';
-    }
+    }   
 
     // Handle Visit Report Type Change
     handleVisitReportTypeChange(event) {
@@ -972,7 +1013,7 @@ export default class VisitReport extends LightningElement {
         this.showRemainingSections = (this.selectedVisitReportType === 'Existing' || this.selectedVisitReportType === 'Unplanned');
 
         // ✅ FIX: Reload page when switching FROM Existing or Unplanned TO any other type
-        if ((previousType === 'Existing' || previousType === 'Unplanned') && 
+        if ((previousType === 'Existing' || previousType === 'Unplanned') &&
             (this.selectedVisitReportType === 'New' || this.selectedVisitReportType === 'Unplanned')) {
             console.log('Reloading page due to type change from', previousType, 'to', this.selectedVisitReportType);
             window.location.reload();
@@ -984,18 +1025,18 @@ export default class VisitReport extends LightningElement {
             this.clearForm();
             this.isFormDisabled = true; // Disable basic fields initially
         } else if (this.selectedVisitReportType === 'Unplanned') {
-        // For Unplanned, clear form but keep fields enabled
+            // For Unplanned, clear form but keep fields enabled
             this.clearForm();
             this.isFormDisabled = false;
             this.selectedExistingVisitReportId = null;
-            
+
             // Clear any existing visit report selection
             const lookupCmp = this.template.querySelector('c-visit-report-lookup');
             if (lookupCmp) {
                 lookupCmp.clearSelection();
             }
-            
-        }else {
+
+        } else {
             // 👉 If switching back from Existing → New, reload the page
             if (previousType === 'Existing' || previousType === 'Unplanned') {
                 window.location.reload();
@@ -1133,6 +1174,8 @@ export default class VisitReport extends LightningElement {
             Category: visitReport.Visit_Category__c || '',
             Nature: visitReport.Nature_of_Visit__c || '',
 
+            Customer_Type: visitReport.Customer_Type__c || '',
+            New_Customer: visitReport.New_Customer__c || '',
             // For lookups store both Id + Name
             Customer_Name: visitReport.Customer_Name__c || '',
             Customer_Name_Display: visitReport.Customer_Name__r ? visitReport.Customer_Name__r.Name : '',
@@ -1161,6 +1204,11 @@ export default class VisitReport extends LightningElement {
 
         // ✅ FIX: Wait for user data to be available before filtering nature options
         this.waitForUserDataAndFilterNature(visitReport.Nature_of_Visit__c);
+
+        if (visitReport.Customer_Type__c) {
+            this.dataMap.Customer_Type = visitReport.Customer_Type__c;
+            this.handleCustomerTypeChange({ detail: { value: visitReport.Customer_Type__c } });
+        }
 
         // Update customer details if customer exists
         if (visitReport.Customer_Name__c) {
@@ -1212,10 +1260,10 @@ export default class VisitReport extends LightningElement {
             if (this.userEntityCode1 !== undefined && this.userDivisionCode !== undefined) {
                 clearInterval(waitForData);
                 console.log('User data loaded, filtering nature options...');
-                
+
                 // Now filter nature options
                 this.filterNatureOptions();
-                
+
                 // Set the existing nature value after options are populated
                 if (existingNatureValue) {
                     // Use setTimeout to ensure the combobox is rendered with options
@@ -1256,6 +1304,8 @@ export default class VisitReport extends LightningElement {
             End_Date_Time: '',
             Category: '',
             Nature: '',
+            Customer_Type: '',
+            New_Customer: '',
             Customer_Name: '',
             Competition_Name: '',
             tourId: '',
@@ -1263,7 +1313,7 @@ export default class VisitReport extends LightningElement {
             Reason: '',
             Seminar: '',
             Discussion_Details_from_the_Meeting: '',
-            Next_Meeting_Date_agreed_with_Customer: ''
+            Next_Meeting_Date_agreed_with_Customer: '',
         };
         this.Attendees = [{
             index: this.generateUniqueCode(),
@@ -1283,16 +1333,19 @@ export default class VisitReport extends LightningElement {
         }];
 
         // Clear other properties
+        this.showExistingCustomerFields = false;
+        this.showNewCustomerField = false;
         this.customerId = '';
         this.competitorId = '';
         this.selectedTourId = '';
         this.ProjectId = '';
         this.sapCustomerCode = '';
-        this.recordTypeDevName = '';
+        this.recordTypeName = '';
         this.competitorCode = '';
         this.visitCategory = '';
         this.accountContacts = [];
         this.selectedExistingVisitReportId = null;
+        this.selectedExistingVisitReportName = '';
 
     }
 
@@ -1337,8 +1390,6 @@ export default class VisitReport extends LightningElement {
     handleRefresh() {
         window.location.reload();
     }
-
-    @track showSpinner = false;
 
     async handleSave() {
         if (!this.validateVisitReport()) {

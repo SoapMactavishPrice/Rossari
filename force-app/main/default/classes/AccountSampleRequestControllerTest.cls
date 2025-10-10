@@ -23,24 +23,36 @@ private class AccountSampleRequestControllerTest {
         Test.stopTest();
     }
 
-    @isTest
+   @isTest
     static void testSaveSample() {
-        Account acc = new Account(Name = 'Test Account', CurrencyIsoCode = 'USD');
-        insert acc;
-
-        Pricebook2 standardPricebook = new Pricebook2(Id = Test.getStandardPricebookId(), IsActive = true);
+        Pricebook2 standardPricebook = new Pricebook2(
+            Id = Test.getStandardPricebookId(),
+            IsActive = true
+        );
         update standardPricebook;
 
-        Product2 prod = new Product2(Name = 'Test Product', ProductCode = 'TP01', IsActive = true);
+        Base_UoM_Master__c baseUom = new Base_UoM_Master__c(Name = 'Kilogram');
+        insert baseUom;
+
+        Product2 prod = new Product2(
+            Name = 'Test Product',
+            ProductCode = 'TP001',
+            Pack_Size__c = '10kg',
+            Base_UOM__c = baseUom.Id,
+            IsActive = true
+        );
         insert prod;
 
         PricebookEntry pbe = new PricebookEntry(
             Pricebook2Id = standardPricebook.Id,
             Product2Id = prod.Id,
-            UnitPrice = 150,
+            UnitPrice = 100,
             IsActive = true
         );
         insert pbe;
+        
+        Account acc = new Account(Name = 'Test Account', CurrencyIsoCode = 'USD');
+        insert acc;
 
         Plant__c plant = new Plant__c(Name = 'Test Plant');
         insert plant;

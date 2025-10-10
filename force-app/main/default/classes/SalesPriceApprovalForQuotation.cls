@@ -123,7 +123,6 @@ public without sharing class SalesPriceApprovalForQuotation {
     private void sendEmail(QuotationWrapper quotation, String status) {
         Messaging.SingleEmailMessage email = new Messaging.SingleEmailMessage();
         email.setToAddresses(new String[]{quotation.quoteOwnerEmail});
-        email.setCCAddresses(new String[]{'sahil@finessedirect.com', 'praveen@finessedirect.com'});
         email.setSubject('Sales Price ' + status + ' - ' + quotation.quoteName);
 
         String body = 'Dear ' + quotation.quoteOwnerName + ',<br/><br/>';

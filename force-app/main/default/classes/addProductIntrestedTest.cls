@@ -22,12 +22,7 @@ public class addProductIntrestedTest {
         );
         insert testLead;
         
-        //  Insert test Product2
-         Product2 prod = new Product2(Name = 'Test Product');
-        insert prod;
-        
-        //  Ensure Standard Pricebook is Active
-        Id stdPricebookId = Test.getStandardPricebookId();
+        /*Id stdPricebookId = Test.getStandardPricebookId();
         
         Pricebook2 standardpricebook = new Pricebook2(
             Name = 'Test Pricebook 2',
@@ -40,14 +35,40 @@ public class addProductIntrestedTest {
             update standardpricebook;
         }
         
-        //  Insert PricebookEntry
-        PricebookEntry pbe = new PricebookEntry(
+         Product2 prod = new Product2(Name = 'Test Product');
+        insert prod;
+        
+
+            PricebookEntry pbe = new PricebookEntry(
             Product2Id = prod.Id,
             Pricebook2Id = stdPricebookId,
             UnitPrice = 100,
             IsActive = true
         );
-        insert pbe;
+        insert pbe;*/
+        
+         Pricebook2 standardPricebook = new Pricebook2(
+            Id = Test.getStandardPricebookId(),
+            IsActive = true
+        );
+        update standardPricebook;
+        
+        System.debug('check'+[SELECT Id FROM Pricebook2 WHERE IsStandard = true LIMIT 1]);
+        
+        Product2 prod = new Product2(
+            Name = 'Test Product',
+            IsActive = true
+        );
+        insert prod;
+        
+        PricebookEntry standardPBE = new PricebookEntry(
+            Pricebook2Id = standardPricebook.Id,
+            Product2Id = prod.Id,
+            UnitPrice = 100.00,
+            IsActive = true
+        );
+        insert standardPBE;
+    
         
         Product_Interested__c pi = new Product_Interested__c(
             Lead__c = testLead.Id, // Ensure this is a valid Lead record

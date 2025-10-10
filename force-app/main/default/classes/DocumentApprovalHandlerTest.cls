@@ -77,7 +77,6 @@ public class DocumentApprovalHandlerTest {
 
     @IsTest
     static void testAllFunctionalitiesTogether() {
-        // Query existing lead and users
         Lead leadRecord = [SELECT Id, Owner.Email, Previous_View_Type__c FROM Lead LIMIT 1];
         List<User> activeUsers = [SELECT Id FROM User WHERE IsActive = true LIMIT 5];
 
@@ -86,7 +85,20 @@ public class DocumentApprovalHandlerTest {
         model.msdsApproverId = activeUsers[1].Id;
         model.technicalDocApproverId = activeUsers[2].Id;
         model.coaDocApproverId = activeUsers[3].Id;
-        String json = JSON.serialize(model);
+        String approverJson = JSON.serialize(model);
+
+        DocumentApprovalHandler.SampleDocumentWrapper sampleDocs = new DocumentApprovalHandler.SampleDocumentWrapper();
+        sampleDocs.tdsSampleFiles = new List<DocumentApprovalHandler.ContentVersionWrapper>();
+        sampleDocs.msdsSampleFiles = new List<DocumentApprovalHandler.ContentVersionWrapper>();
+        sampleDocs.techDocSampleFiles = new List<DocumentApprovalHandler.ContentVersionWrapper>();
+        sampleDocs.coaSampleFiles = new List<DocumentApprovalHandler.ContentVersionWrapper>();
+        
+        DocumentApprovalHandler.ContentVersionWrapper sampleFile = new DocumentApprovalHandler.ContentVersionWrapper();
+        sampleFile.fileName = 'sample.txt';
+        sampleFile.base64Data = EncodingUtil.base64Encode(Blob.valueOf('sample content'));
+        sampleDocs.tdsSampleFiles.add(sampleFile);
+        
+        String sampleDocsJson = JSON.serialize(sampleDocs);
 
         // Prepare files for upload
         Map<Object, Object> m1 = new Map<Object, Object>{
@@ -163,20 +175,31 @@ public class DocumentApprovalHandlerTest {
 
         Test.startTest();
 
-        // Call all the methods to test
-        String res = DocumentApprovalHandler.updateApproversAndSendEmails(json, leadRecord.Id);
+        Test.setMock(HttpCalloutMock.class, new MockHttpResponseGenerator());
+        
+        String res = DocumentApprovalHandler.updateApproversAndSendEmails(approverJson, sampleDocsJson, leadRecord.Id);
         String uploadResult = DocumentApprovalHandler.uploadDocuments(tdsFiles, msdsFiles, techFiles, coaFiles, leadRecord.Id);
         DocumentApprovalHandler.DocumentModel docModel = DocumentApprovalHandler.getDocumentModel(leadRecord.Id);
         Boolean isSubmitted = DocumentApprovalHandler.isRequestDocumentSubmitted(leadRecord.Id);
         String emailResult = DocumentApprovalHandler.sendLeadDocumentEmail(newLead.Id, toAddrs, ccAddrs, 'Test Subject', '<b>Test Body</b>');
         String savePrevResult = DocumentApprovalHandler.savePreviousViewType(leadRecord.Id, 'TestView');
         String viewType = DocumentApprovalHandler.getPreviousViewType(leadRecord.Id);
+        
         update new Lead(Id=leadRecord.Id, Previous_View_Type__c = null);
         String nullViewType = DocumentApprovalHandler.getPreviousViewType(leadRecord.Id);
+        
         String remarksResult = DocumentApprovalHandler.saveRemarks('TDS Remark', 'MSDS Remark', 'TechDoc Remark', 'COA Remark', leadRecord.Id);
 
         Test.stopTest();
+    }
 
-        // No assertions as per request
+    public class MockHttpResponseGenerator implements HttpCalloutMock {
+        public HTTPResponse respond(HTTPRequest req) {
+            HttpResponse res = new HttpResponse();
+            res.setHeader('Content-Type', 'application/json');
+            res.setBody('{"success":true}');
+            res.setStatusCode(200);
+            return res;
+        }
     }
 }

@@ -212,10 +212,18 @@ public with sharing class Utility {
         return val == null ? '' : String.valueOf(val);
     }
 
+    /**
+     * Sample Request Code -----------------------------------------------------
+     */
+
     public static void sendSampleRequestEmail(Id sampleRequestId) {
 
         Sample_Request__c sampleRequest = [
-            SELECT Id, Name, Additional_Email__c, Sales_HOD__r.Email, Sample_Request_Date__c, Sample_Expected_Date__c
+            SELECT Id, Name, Additional_Email__c, Sales_HOD__r.Email,
+                Sample_Request_Date__c, Sample_Expected_Date__c, Lead__r.Company,
+                Lead__r.Name, Lead__r.Rossari_Company__r.Name, Lead__r.Lead_Number__c,
+                Opportunity__r.Enquiry_Document_No__c, Opportunity__r.Account.Name,
+                Customer_Name__r.Name
             FROM Sample_Request__c
             WHERE Id = :sampleRequestId
         ];
@@ -227,18 +235,18 @@ public with sharing class Utility {
             WHERE Sample_Request__c = :sampleRequestId
         ];
 
+        
         List<String> recipientEmails = new List<String>();
         if (!String.isBlank(sampleRequest.Additional_Email__c)) {
-            List<String> temp = sampleRequest.Additional_Email__c.split('[,;]');
-            for (String e : temp) {
+            for (String e : sampleRequest.Additional_Email__c.split('[,;]')) {
                 if (!String.isBlank(e)) recipientEmails.add(e.trim());
             }
         }
-
         if (sampleRequest.Sales_HOD__r != null && !String.isBlank(sampleRequest.Sales_HOD__r.Email)) {
             recipientEmails.add(sampleRequest.Sales_HOD__r.Email);
         }
 
+        
         String productTable = 
             '<table border="1" cellpadding="5" cellspacing="0" style="border-collapse: collapse;">' +
             '<tr style="background-color: #f2f2f2;">' +
@@ -255,16 +263,34 @@ public with sharing class Utility {
         }
         productTable += '</table>';
 
-        String emailBody =
-            'Sample Request No: ' + sampleRequest.Name + '<br/>' +
-            'Requested Date: ' + sampleRequest.Sample_Request_Date__c.format() + '<br/>' +
-            'Expected Date: ' + sampleRequest.Sample_Expected_Date__c.format() + '<br/><br/>' +
-            'Requested Product Records:<br/>' +
-            'Below are the product details for your reference:<br/><br/>' +
-            productTable;
+        
+        String emailBody = ''
+            + 'Dear Sir/Madam,<br/>'
+            + 'Sample Request has been created. Please find details below for your reference.<br/><br/>'
+            + '<b>Sample Request No:</b> ' + ns(sampleRequest.Name) + '<br/>';
 
+        if (sampleRequest.Lead__r != null && !String.isBlank(sampleRequest.Lead__r.Lead_Number__c)) {
+            emailBody += '<b>Lead Number:</b> ' + ns(sampleRequest.Lead__r.Lead_Number__c) + '<br/>';
+        }
+        if (sampleRequest.Lead__r != null && sampleRequest.Lead__r.Rossari_Company__r != null && !String.isBlank(sampleRequest.Lead__r.Rossari_Company__r.Name)) {
+            emailBody += '<b>Customer Name:</b> ' + ns(sampleRequest.Lead__r.Company) + '<br/>';
+        }
+        if (sampleRequest.Opportunity__r != null && !String.isBlank(sampleRequest.Opportunity__r.Enquiry_Document_No__c)) {
+            emailBody += '<b>Opportunity Number:</b> ' + ns(sampleRequest.Opportunity__r.Enquiry_Document_No__c) + '<br/>';
+        }
+        if (sampleRequest.Opportunity__r != null && sampleRequest.Opportunity__r.Account != null && !String.isBlank(sampleRequest.Opportunity__r.Account.Name)) {
+            emailBody += '<b>Account Name:</b> ' + ns(sampleRequest.Opportunity__r.Account.Name) + '<br/>';
+        }
+        if (sampleRequest.Customer_Name__r != null && !String.isBlank(sampleRequest.Customer_Name__r.Name)) {
+            emailBody += '<b>Customer Name:</b> ' + ns(sampleRequest.Customer_Name__r.Name) + '<br/>';
+        }
+
+        emailBody += '<br/><b>Requested Date:</b> ' + sampleRequest.Sample_Request_Date__c.format() + '<br/>';
+        emailBody += '<b>Expected Date:</b> ' + sampleRequest.Sample_Expected_Date__c.format() + '<br/><br/>';
+        emailBody += 'Below are the product details for your reference:<br/><br/>' + productTable;
+
+        
         List<Messaging.EmailFileAttachment> attachments = new List<Messaging.EmailFileAttachment>();
-
         List<ContentDocumentLink> docLinks = [
             SELECT ContentDocument.LatestPublishedVersionId, ContentDocument.Title
             FROM ContentDocumentLink
@@ -277,7 +303,6 @@ public with sharing class Utility {
                 versionIds.add(link.ContentDocument.LatestPublishedVersionId);
             }
 
-            // Get actual file content
             List<ContentVersion> versions = [
                 SELECT Title, VersionData, FileExtension
                 FROM ContentVersion
@@ -292,6 +317,7 @@ public with sharing class Utility {
             }
         }
 
+        // Send email
         Messaging.SingleEmailMessage mail = new Messaging.SingleEmailMessage();
         mail.setToAddresses(recipientEmails);
         mail.setSubject('Sample Request Created');
@@ -301,6 +327,135 @@ public with sharing class Utility {
 
         Messaging.sendEmail(new Messaging.SingleEmailMessage[] { mail });
     }
+
+    public static Boolean sendSampleRequestApprovalEmail(String sampleRequestId) {
+    
+        if (String.isBlank(sampleRequestId)) {
+            System.debug('Sample Request Id is blank');
+            return false;
+        }
+        
+        
+        Sample_Request__c sr = [
+            SELECT Id, Name, Sales_HOD__r.Email, Lead__r.RecordType.Name,
+                Lead__r.Business_Type__c, Lead__r.Rossari_Company__r.Name,
+                Opportunity__r.Account.Business_Type__c, Opportunity__r.Account.Rossari_Company__r.Name,
+                Customer_Name__r.Business_Type__c, Customer_Name__r.Rossari_Company__r.Name
+            FROM Sample_Request__c
+            WHERE Id = :sampleRequestId
+            LIMIT 1
+        ];
+
+        
+        List<Sample_Request_Line_Item__c> allLineItems = [
+            SELECT Id, Name, Product__r.Name, Product__r.ProductCode, Sales_Price__c, Sample_Qty_in_Kgs__c
+            FROM Sample_Request_Line_Item__c
+            WHERE Sample_Request__c = :sr.Id
+        ];
+
+        
+        if (sr.Sales_HOD__r == null || String.isBlank(sr.Sales_HOD__r.Email)){
+            System.debug('Sales HOD is null or email is blank');
+            return false;
+        }
+
+        
+        Boolean isTargetCompany = (
+            (sr.Lead__r != null && sr.Lead__r.RecordType != null && 
+                (sr.Lead__r.RecordType.Name == 'Tristar' || 
+                sr.Lead__r.RecordType.Name == 'Unitop')) ||
+
+            (sr.Opportunity__r != null && sr.Opportunity__r.Account != null && sr.Opportunity__r.Account.Rossari_Company__r != null &&
+                (sr.Opportunity__r.Account.Rossari_Company__r.Name == 'Tristar Intermediates Private Limited' || 
+                sr.Opportunity__r.Account.Rossari_Company__r.Name == 'Unitop Chemicals Private Limited')) ||
+
+            (sr.Customer_Name__r != null && sr.Customer_Name__r.Rossari_Company__r != null &&
+                (sr.Customer_Name__r.Rossari_Company__r.Name == 'Tristar Intermediates Private Limited' || 
+                sr.Customer_Name__r.Rossari_Company__r.Name == 'Unitop Chemicals Private Limited'))
+        );
+
+        if (!isTargetCompany) {
+            System.debug('Target Company not matched');
+            return false;
+        }
+
+        
+        List<Sample_Request_Line_Item__c> matchedItems = new List<Sample_Request_Line_Item__c>();
+
+        for (Sample_Request_Line_Item__c li : allLineItems) {
+            Decimal qty = li.Sample_Qty_in_Kgs__c == null ? 0 : li.Sample_Qty_in_Kgs__c;
+
+            Boolean isDomestic = (
+                (sr.Lead__r != null && sr.Lead__r.Business_Type__c == 'Domestic') ||
+                (sr.Opportunity__r != null && sr.Opportunity__r.Account != null && sr.Opportunity__r.Account.Business_Type__c == 'Domestic') ||
+                (sr.Customer_Name__r != null && sr.Customer_Name__r.Business_Type__c == 'Domestic')
+            );
+
+            Boolean isExport = (
+                (sr.Lead__r != null && sr.Lead__r.Business_Type__c == 'Export') ||
+                (sr.Opportunity__r != null && sr.Opportunity__r.Account != null && sr.Opportunity__r.Account.Business_Type__c == 'Export') ||
+                (sr.Customer_Name__r != null && sr.Customer_Name__r.Business_Type__c == 'Export')
+            );
+
+            if ((isDomestic && qty > 5) || (isExport && qty > 10)) {
+                matchedItems.add(li);
+            }
+        }
+
+        
+        if (matchedItems.isEmpty()) {
+            System.debug('No matched items found');
+            return false;
+        }
+
+        
+        String productTable =
+            '<table border="1" cellpadding="5" cellspacing="0" style="border-collapse: collapse;">' +
+            '<tr style="background-color: #f2f2f2;">' +
+            '<th>Name</th><th>Product Name</th><th>Product Code</th><th>Rate</th><th>Quantity</th></tr>';
+
+        List<Sample_Request_Line_Item__c> toBeUpdated = new List<Sample_Request_Line_Item__c>(); 
+        for (Sample_Request_Line_Item__c li : matchedItems) {
+            productTable += '<tr>' +
+                            '<td>' + ns(li.Name) + '</td>' +
+                            '<td>' + ns(li.Product__r.Name) + '</td>' +
+                            '<td>' + ns(li.Product__r.ProductCode) + '</td>' +
+                            '<td>' + ns(li.Sales_Price__c) + '</td>' +
+                            '<td>' + ns(li.Sample_Qty_in_Kgs__c) + '</td>' +
+                            '</tr>';
+            li.Approval_Status__c = 'Pending';
+            toBeUpdated.add(li);
+        }
+
+        UPDATE toBeUpdated;
+
+        productTable += '</table>';
+
+        
+        String emailBody = ''
+            + 'Dear Sir/Madam,<br/>'
+            + 'A new Sample Request has been created and needs your approval. Some products have higher quantities than usual.<br/><br/>'
+            + '<b>This is for Sales HOD when quantity more than 5 and 10 kg for Domestic and Export in Unitop and Tristar.</b><br/><br/>'
+            + '<b>Sample Request:</b> ' + ns(sr.Name) + '<br/><br/>'
+            + productTable;
+
+            
+        Messaging.SingleEmailMessage mail = new Messaging.SingleEmailMessage();
+        mail.setToAddresses(new List<String>{ sr.Sales_HOD__r.Email });
+        mail.setSubject('Sample Request Requires Approval - ' + sr.Name);
+        mail.setHtmlBody(emailBody);
+        mail.setWhatId(sr.Id);
+
+        Messaging.sendEmail(new Messaging.SingleEmailMessage[] { mail });
+
+        return true;
+    }
+
+
+
+    /**
+     * End of Sample Request Code ----------------------------------------
+     */
 
 
     public class OpportunityHeaderWrapper {

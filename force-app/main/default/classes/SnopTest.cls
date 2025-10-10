@@ -1,157 +1,294 @@
 @isTest
 public class SnopTest {
-
-    @isTest
-    static void testGetOrdersWithLineItems() {
-        // Create Account with Business_Type__c = 'Domestic'
-        Account acc = new Account(Name = 'Test Account', Business_Type__c = 'Domestic');
-        insert acc;
-
-        // Create Ship To and Bill To Address
-        Address_Information__c shipToAddress = new Address_Information__c(
-            Name = 'Ship To Address',
-            Account__c = acc.Id,
-            Address_Type__c = 'Payer'
+    
+    @testSetup
+    static void setupData() {
+        // Activate Standard Pricebook
+        Pricebook2 standardPricebook = new Pricebook2(
+            Id = Test.getStandardPricebookId(),
+            IsActive = true
         );
-        insert shipToAddress;
-
-        Address_Information__c billToAddress = new Address_Information__c(
-            Name = 'Bill To Address',
-            Account__c = acc.Id,
-            Address_Type__c = 'Payer'
+        update standardPricebook;
+        
+        // Create Base UOM
+        Base_UoM_Master__c baseUom = new Base_UoM_Master__c(Name = 'Kilogram');
+        insert baseUom;
+        
+        // Create Product
+        Product2 prod = new Product2(
+            Name = 'Test Product',
+            ProductCode = 'TP001',
+            Base_UOM__c = baseUom.Id,
+            IsActive = true
         );
-        insert billToAddress;
-
-        // Get Standard Pricebook ID
-        Id stdPBId = Test.getStandardPricebookId();
-
-        // Insert active Product2
-        Product2 p = new Product2(Name = 'Test Product', ProductCode = 'TP001', IsActive = true);
-        insert p;
-
-        // Insert PricebookEntry in Standard Pricebook with CurrencyIsoCode (optional if multicurrency)
+        insert prod;
+        
+        // Create Pricebook Entry
         PricebookEntry pbe = new PricebookEntry(
-            Pricebook2Id = stdPBId,
-            Product2Id = p.Id,
+            Pricebook2Id = standardPricebook.Id,
+            Product2Id = prod.Id,
             UnitPrice = 100,
-            IsActive = true,
-            UseStandardPrice = false
-            // Optionally add CurrencyIsoCode = 'USD' if multicurrency enabled
+            IsActive = true
         );
         insert pbe;
-
-        // Create Order
+        
+        // Create Account
+        Account acc = new Account(
+            Name = 'Test Account',
+            Business_Type__c = 'SEZ'
+        );
+        insert acc;
+        
+        // ✅ Create Order (with Pricebook2Id)
         Order ord = new Order(
             AccountId = acc.Id,
+            Status = 'Draft',
+            EffectiveDate = Date.today(),
             SBU__c = 'SBU1',
-            Ship_to_party__c = shipToAddress.Id,
-            Bill_to_party__c = billToAddress.Id,
             Pricing_Status__c = 'Block',
             COGS_Status__c = 'Block',
             Credit_Status__c = 'Block',
-            EffectiveDate = Date.today(),
-            Status = 'Draft',
-            Document_No__c = 'DOC001',
-            Name = 'Test Order',
-            Pricebook2Id = stdPBId
+            Pricebook2Id = standardPricebook.Id
         );
         insert ord;
-
-        // Create OrderItem — must have PricebookEntryId, Product2Id is optional here
+        
+        // Create Order Item
         OrderItem oi = new OrderItem(
-            OrderId = ord.Id, 
-            Quantity = 5, 
-            UnitPrice = 100, 
+            OrderId = ord.Id,
+            Quantity = 1,
+            UnitPrice = 100,
             PricebookEntryId = pbe.Id
         );
         insert oi;
-
-        // Create Order Scheduling Line Item Wise record
-        Order_Scheduling_Line_Item_wise__c li = new Order_Scheduling_Line_Item_wise__c(
+        
+        // Create Order Scheduling Line Item
+        Order_Scheduling_Line_Item_wise__c lineItem = new Order_Scheduling_Line_Item_wise__c(
+            Name = 'Test Line Item',
+            Confirmed_Quantity__c = 10,
+            Scheduled_Quantity__c = 5,
+            Delivery_Date__c = Date.today().addDays(7),
             Order__c = ord.Id,
-            Order_Product__c = oi.Id,
-            Confirmed_Quantity__c = 3,
-            Scheduled_Quantity__c = 2,
-            Delivery_Date__c = Date.today().addDays(5)
+            Order_Product__c = oi.Id
         );
-        insert li;
-
+        insert lineItem;
+    }
+    
+    
+    // ✅ getOrdersWithLineItems
+    @isTest
+    static void testGetOrdersWithLineItems() {
         Test.startTest();
-        Snop.getOrdersWithLineItems('Domestic');
+        List<Snop.OrderWrapper> result = Snop.getOrdersWithLineItems('SEZ');
         Test.stopTest();
     }
-
+    
+    // ✅ saveHeader
     @isTest
     static void testSaveHeader() {
-        Account acc = new Account(Name = 'Test Account');
-        insert acc;
-
-        Address_Information__c shipToAddress = new Address_Information__c(
-            Name = 'Ship To Address',
-            Account__c = acc.Id,
-            Address_Type__c = 'Payer'
+        Order ord = [SELECT Id FROM Order LIMIT 1];
+        List<Snop.HeaderWrapper> headerList = new List<Snop.HeaderWrapper>{
+            new Snop.HeaderWrapper()
+                };
+                    headerList[0].id = ord.Id;
+        headerList[0].pricingStatus = 'Block';
+        headerList[0].cogsStatus = 'Block';
+        headerList[0].creditStatus = 'Block';
+        
+        String jsonStr = JSON.serialize(headerList);
+        
+        Test.startTest();
+        String result = Snop.saveHeader(jsonStr);
+        Test.stopTest();
+        
+    }
+    
+    // ✅ savePartialDisptach
+    @isTest
+    static void testSavePartialDisptach() {
+        Order ord = [SELECT Id FROM Order LIMIT 1];
+        OrderItem oi = [SELECT Id FROM OrderItem LIMIT 1];
+        
+        List<Map<String, Object>> listData = new List<Map<String, Object>>();
+        listData.add(new Map<String, Object>{
+            'Id' => 'create1',
+                'Disptach_Qty__c' => 10,
+                'Planning_Ready_by_Date__c' => String.valueOf(Date.today()),
+                'Planning_Dispatch_Remark__c' => 'Ready',
+                'Deviation_Reason__c' => 'Urgent'
+                });
+        
+        String jsonStr = JSON.serialize(listData);
+        
+        Test.startTest();
+        Boolean result = Snop.savePartialDisptach(ord.Id, oi.Id, jsonStr);
+        Test.stopTest();
+        
+    }
+    
+    // ✅ getPartialData
+    @isTest
+    static void testGetPartialData() {
+        Order ord = [SELECT Id FROM Order LIMIT 1];
+        OrderItem oi = [SELECT Id FROM OrderItem LIMIT 1];
+        
+        Partial_Disptach_Qty__c pd = new Partial_Disptach_Qty__c(
+            Order__c = ord.Id,
+            Order_Product__c = oi.Id,
+            Disptach_Qty__c = 5,
+            Planning_Dispatch_Remark__c = 'Sample'
         );
-        insert shipToAddress;
-
-        Address_Information__c billToAddress = new Address_Information__c(
-            Name = 'Bill To Address',
-            Account__c = acc.Id,
-            Address_Type__c = 'Payer'
+        insert pd;
+        
+        Test.startTest();
+        List<Partial_Disptach_Qty__c> data = Snop.getPartialData(ord.Id, oi.Id);
+        Test.stopTest();
+        
+    }
+    
+    // ✅ getDisptachList
+    @isTest
+    static void testGetDisptachList() {
+        Order ord = [SELECT Id FROM Order LIMIT 1];
+        OrderItem oi = [SELECT Id FROM OrderItem LIMIT 1];
+        
+        List<Map<String, Object>> listData = new List<Map<String, Object>>();
+        listData.add(new Map<String, Object>{
+            'OrderId' => ord.Id,
+                'Id' => oi.Id
+                });
+        
+        String jsonStr = JSON.serialize(listData);
+        
+        Test.startTest();
+        List<Partial_Disptach_Qty__c> result = Snop.getDisptachList(jsonStr);
+        Test.stopTest();
+    }
+    
+    // ✅ removeALlPartialData
+    @isTest
+    static void testRemoveALlPartialData() {
+        Order ord = [SELECT Id FROM Order LIMIT 1];
+        OrderItem oi = [SELECT Id FROM OrderItem LIMIT 1];
+        
+        Partial_Disptach_Qty__c pd = new Partial_Disptach_Qty__c(
+            Order__c = ord.Id,
+            Order_Product__c = oi.Id,
+            Disptach_Qty__c = 10
         );
-        insert billToAddress;
-
-        Order ord = new Order(
-            AccountId = acc.Id,
-            Ship_to_party__c = shipToAddress.Id,
-            Bill_to_party__c = billToAddress.Id,
-            Pricing_Status__c = 'Block',
-            COGS_Status__c = 'Block',
-            Credit_Status__c = 'Block',
-            EffectiveDate = Date.today(),
-            Status = 'Draft',
-            Name = 'Test Order'
+        insert pd;
+        
+        Test.startTest();
+        Boolean result = Snop.removeALlPartialData(ord.Id, oi.Id);
+        Test.stopTest();
+        
+    }
+    
+    // ✅ removeRowPartialData
+    @isTest
+    static void testRemoveRowPartialData() {
+        Order ord = [SELECT Id FROM Order LIMIT 1];
+        OrderItem oi = [SELECT Id FROM OrderItem LIMIT 1];
+        
+        Partial_Disptach_Qty__c pd = new Partial_Disptach_Qty__c(
+            Order__c = ord.Id,
+            Order_Product__c = oi.Id,
+            Disptach_Qty__c = 5
         );
-        insert ord;
-
-        String jsonString = '[{"id":"' + ord.Id + '","pricingStatus":"Block","cogsStatus":"Block","creditStatus":"Block"}]';
+        insert pd;
+        
+        Test.startTest();
+        Boolean result = Snop.removeRowPartialData(pd.Id);
+        Test.stopTest();
+        
+    }
+    
+    // ✅ saveline
+    @isTest
+    static void testSaveline() {
+        Order ord = [SELECT Id FROM Order LIMIT 1];
+        OrderItem oi = [SELECT Id FROM OrderItem LIMIT 1];
+        
+        List<Map<String, Object>> listData = new List<Map<String, Object>>();
+        listData.add(new Map<String, Object>{
+            'OrderId' => ord.Id,
+                'Id' => oi.Id,
+                'Lead_time__c' => '5 days'
+                });
+        
+        String jsonStr = JSON.serialize(listData);
+        
+        Test.startTest();
+        String result = Snop.saveline(jsonStr);
+        Test.stopTest();
+        
+    }
+    
+    
+     @isTest
+    static void testGetFilteredOrders() {
+        // Prepare a fake JSON for filters
+        String filterJSON = JSON.serialize(new Map<String, Object>{
+            'sbuFilter' => 'SBU1',
+            'statusFilter' => 'Draft',
+            'orderNumberFilter' => null,
+            'plantFilter' => null,
+            'customerFilter' => null,
+            'billToFilter' => null,
+            'shipToFilter' => null
+        });
 
         Test.startTest();
-        Snop.saveHeader(jsonString);
+        List<Order> orders = Snop.getFilteredOrders(filterJSON, 'SEZ');
         Test.stopTest();
+
+           }
+    @isTest
+    static void testGetOrderPicklistOptions() {
+        Test.startTest();
+
+        // Call the method with the existing Business Type
+        Snop.OptionWrapper picklistOptions = Snop.getOrderPicklistOptions('SEZ');
+
+        Test.stopTest();
+
+       
+
+    }
+    
+    
+    @isTest
+    static void testHeaderWrapper() {
+        // Instantiate HeaderWrapper
+        Snop.HeaderWrapper header = new Snop.HeaderWrapper();
+        header.id = '001xx000003DGbV';
+        header.pricingStatus = 'Block';
+        header.cogsStatus = 'Block';
+        header.creditStatus = 'Approved';
+
+        // Serialize to JSON
+        String jsonHeader = JSON.serialize(header);
+
+        // Deserialize back to object
+        Snop.HeaderWrapper deserializedHeader = (Snop.HeaderWrapper) JSON.deserialize(jsonHeader, Snop.HeaderWrapper.class);
+       
     }
 
     @isTest
-    static void testGetOrderPicklistOptions() {
-        Account acc = new Account(Name = 'Test Account', Business_Type__c = 'Domestic');
-        insert acc;
+    static void testOptionWrapperAndChild() {
+        // Instantiate OptionWrapper
+        Snop.OptionWrapper options = new Snop.OptionWrapper();
+        options.orderNumberPicklist = new List<Snop.OptionChildWrapper>();
+        options.sbuPicklist = new List<Snop.OptionChildWrapper>();
 
-        Address_Information__c shipToAddress = new Address_Information__c(
-            Name = 'Ship To Address',
-            Account__c = acc.Id,
-            Address_Type__c = 'Payer'
-        );
-        insert shipToAddress;
+        // Add OptionChildWrapper
+        options.orderNumberPicklist.add(new Snop.OptionChildWrapper('Order1', '001'));
+        options.sbuPicklist.add(new Snop.OptionChildWrapper('SBU1', 'SBU001'));
 
-        Address_Information__c billToAddress = new Address_Information__c(
-            Name = 'Bill To Address',
-            Account__c = acc.Id,
-            Address_Type__c = 'Payer'
-        );
-        insert billToAddress;
+        // Serialize OptionWrapper to JSON
+        String jsonOptions = JSON.serialize(options);
 
-        Order ord = new Order(
-            AccountId = acc.Id,
-            Bill_to_party__c = billToAddress.Id,
-            Ship_to_party__c = shipToAddress.Id,
-            SBU__c = 'SBU1',
-            Status = 'Draft',
-            EffectiveDate = Date.today(),
-            Name = 'Test Order'
-        );
-        insert ord;
-
-        Test.startTest();
-        Snop.getOrderPicklistOptions('Domestic');
-        Test.stopTest();
+        // Deserialize back to object
+        Snop.OptionWrapper deserializedOptions = (Snop.OptionWrapper) JSON.deserialize(jsonOptions, Snop.OptionWrapper.class);
+       
     }
 }

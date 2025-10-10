@@ -75,6 +75,12 @@ public class VisitReportController {
                 if(visitMap.containsKey('lead_Name') && String.isNotBlank(String.valueOf(visitMap.get('lead_Name'))))
                     vrc.Lead__c = (Id)visitMap.get('lead_Name');
                 
+                if(visitMap.containsKey('Customer_Type') && String.isNotBlank(String.valueOf(visitMap.get('Customer_Type'))))
+                    vrc.Customer_Type__c = (string)visitMap.get('Customer_Type');
+                
+                if(visitMap.containsKey('New_Customer') && String.isNotBlank(String.valueOf(visitMap.get('New_Customer'))))
+                    vrc.New_Customer_Name__c = (string)visitMap.get('New_Customer');
+                
                 if(visitMap.containsKey('Customer_Name') && String.isNotBlank(String.valueOf(visitMap.get('Customer_Name'))))
                     vrc.Customer_Name__c = (Id)visitMap.get('Customer_Name');
                 
@@ -450,7 +456,7 @@ if(!pIList.isEmpty()) insert pIList;
             Reason__c, Name_of_the_Conference_Seminar__c, 
             Discussion_Details_from_the_Meeting__c,
             Start_Date_Time__c, End_Date_Time__c,
-            Next_Meeting_Date_agreed_with_Customer__c
+            Next_Meeting_Date_agreed_with_Customer__c, Customer_Type__c, New_Customer_Name__c
             FROM Visit_Report__c
             WHERE Id = :visitReportId
         ];

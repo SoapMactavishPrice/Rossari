@@ -2,6 +2,7 @@
 global class AccountMaster_API {
 
     public static Map < String, Account > accountMap = new Map < String, Account > ();
+    public static Map < String, Account > accountIdMap = new Map < String, Account > ();
     public static Map < String, City__c > cityMap = new Map < String, City__c > ();
     public static map < String, Contact > mapContaccTemp = new map < String, Contact > ();
     public static map < String, Bank_Information__c > bankInfoMap = new map < String, Bank_Information__c > ();
@@ -16,6 +17,7 @@ global class AccountMaster_API {
     public static Map<String, Payment_Term__c> ptMap = new Map<String, Payment_Term__c>();
     public static Map<String, Sales_District__c> sdMap = new Map<String, Sales_District__c>();
     public static Set < String > custNumberSet = new Set < String > ();
+    public static Set < String > customerSFIDSet = new Set < String > ();
     
     @HttpPost
     global static void upsertAccountMaster() {
@@ -59,6 +61,7 @@ global class AccountMaster_API {
             Set < String > companyCodeSet = new Set < String > ();
 
             for (AccountMasterRequest accMaster : accountRequests) {
+                customerSFIDSet.add(accMaster.SFDC_ID);
                 custNumberSet.add(accMaster.CUSTOMER_NO);
                 cityNameSet.add(accMaster.CITY);
                 for (SalesArea sa : accMaster.SALES_AREA) {
@@ -82,11 +85,17 @@ global class AccountMaster_API {
 
             // Get Existing Account list
             List < Account > accountList = new List < Account > ();
-            accountList = [SELECT Id, Name, SAP_Customer_Code__c FROM Account WHERE SAP_Customer_Code__c IN: custNumberSet];
+            accountList = [
+                SELECT Id, Name, SAP_Customer_Code__c
+                FROM Account
+                WHERE SAP_Customer_Code__c IN: custNumberSet
+                OR Id IN: customerSFIDSet
+            ];
 
             // Map < String, Account > accountMap = new Map < String, Account > ();
             for (Account va: accountList) {
                 accountMap.put(va.SAP_Customer_Code__c, va);
+                accountIdMap.put(va.Id, va);
             }
 
             // Get Existing City list
@@ -217,6 +226,9 @@ global class AccountMaster_API {
                 Account acc = new Account();
                 if (accountMap.containsKey(accMaster.CUSTOMER_NO)) {
                     acc.Id = accountMap.get(accMaster.CUSTOMER_NO).id;    
+                }
+                if (accountIdMap.containsKey(accMaster.SFDC_ID)) {
+                    acc.Id = accountIdMap.get(accMaster.SFDC_ID).id;    
                 }
                 // Map fields from request to Account object
                 // acc.SAP_Customer_Code__c = accMaster.Account_ID; //NTC
@@ -545,6 +557,12 @@ global class AccountMaster_API {
             salesArea.Cust_Stat_Gr__c = saData.CUSTSTATGR;
             salesArea.INVOIC_DAT__c = saData.INVOIC_DAT;
             salesArea.INVLISTSCH__c = saData.INVLISTSCH;
+            if (String.isNotBlank(saData.CRED_LIMIT)) {
+                String cl = saData.CRED_LIMIT.replace(',', '');
+                cl = cl.replace(' ', '');
+                salesArea.Credit_Limit__c = String.isNotBlank(saData.CRED_LIMIT) ? Decimal.valueOf(cl) : null;
+            }
+            salesArea.CurrencyIsoCode = String.isNotBlank(saData.CURR) ? saData.CURR : 'INR';
 
             salesArea.External_Id__c = externalId;
             
@@ -861,6 +879,7 @@ global class AccountMaster_API {
     // }
 
     global class AccountMasterRequest {
+        public String SFDC_ID;
         public String CUSTOMER_NO;
         public String Account_ID;
         public String CUST_ACCT_GROUP;
@@ -927,6 +946,8 @@ global class AccountMaster_API {
         public String CUSTSTATGR;
         public String INVOIC_DAT;
         public String INVLISTSCH;
+        public String CRED_LIMIT;
+        public String CURR;
         public List<PartnerFunction> PARTNER_FUNCTIONS;
     }
     

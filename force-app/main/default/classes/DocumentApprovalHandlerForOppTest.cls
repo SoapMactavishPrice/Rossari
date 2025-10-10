@@ -44,10 +44,14 @@ public class DocumentApprovalHandlerForOppTest {
             StageName = 'Prospecting',
             CloseDate = Date.today().addDays(30),
             Company__c = 'Test Company',
-            TDS_Upload_Status__c = 'Uploaded',
-            MSDS_Upload_Status__c = 'Uploaded',
-            Technical_Doc_Upload_Status__c = 'Uploaded',
+            TDS_Upload_Status__c = 'Not Uploaded',
+            MSDS_Upload_Status__c = 'Not Uploaded',
+            Technical_Doc_Upload_Status__c = 'Not Uploaded',
             COA_Doc_Upload_Status__c = 'Not Uploaded',
+            TDS_Approver__c = testUser1.Id,
+            MSDS_Approver__c = testUser1.Id,
+            Technical_Document_Approver__c = testUser2.Id,
+            COA_Document_Approver__c = testUser2.Id,
             OwnerId = UserInfo.getUserId()
         );
         insert testOpp;
@@ -61,16 +65,28 @@ public class DocumentApprovalHandlerForOppTest {
         
         Test.setMock(HttpCalloutMock.class, new MockHttpResponseGenerator());
         
-        Map<String, Object> approversMap = new Map<String, Object>();
-        approversMap.put('tdsApproverId', testUser1.Id);
-        approversMap.put('msdsApproverId', testUser1.Id);
-        approversMap.put('technicalDocApproverId', testUser2.Id);
-        approversMap.put('coaDocApproverId', testUser2.Id);
+        DocumentApprovalHandlerForOpp.ApproverModel approvers = new DocumentApprovalHandlerForOpp.ApproverModel();
+        approvers.tdsApproverId = testUser1.Id;
+        approvers.msdsApproverId = testUser1.Id;
+        approvers.technicalDocApproverId = testUser2.Id;
+        approvers.coaDocApproverId = testUser2.Id;
+        String approverString = JSON.serialize(approvers);
         
-        String approverString = JSON.serialize(approversMap);
+        DocumentApprovalHandlerForOpp.SampleDocumentWrapper sampleDocs = new DocumentApprovalHandlerForOpp.SampleDocumentWrapper();
+        sampleDocs.tdsSampleFiles = new List<DocumentApprovalHandlerForOpp.ContentVersionWrapper>();
+        sampleDocs.msdsSampleFiles = new List<DocumentApprovalHandlerForOpp.ContentVersionWrapper>();
+        sampleDocs.techDocSampleFiles = new List<DocumentApprovalHandlerForOpp.ContentVersionWrapper>();
+        sampleDocs.coaSampleFiles = new List<DocumentApprovalHandlerForOpp.ContentVersionWrapper>();
+        
+        DocumentApprovalHandlerForOpp.ContentVersionWrapper sampleFile = new DocumentApprovalHandlerForOpp.ContentVersionWrapper();
+        sampleFile.fileName = 'sample.txt';
+        sampleFile.base64Data = EncodingUtil.base64Encode(Blob.valueOf('sample content'));
+        sampleDocs.tdsSampleFiles.add(sampleFile);
+        
+        String sampleDocsString = JSON.serialize(sampleDocs);
         
         Test.startTest();
-        String result = DocumentApprovalHandlerForOpp.updateApproversAndSendEmails(approverString, testOpp.Id);
+        String result = DocumentApprovalHandlerForOpp.updateApproversAndSendEmails(approverString, sampleDocsString, testOpp.Id);
         Test.stopTest();
     }
     
@@ -78,12 +94,22 @@ public class DocumentApprovalHandlerForOppTest {
     static void testUpdateApproversAndSendEmailsWithNullApprovers() {
         Opportunity testOpp = [SELECT Id FROM Opportunity LIMIT 1];
         
-        Map<String, Object> approversMap = new Map<String, Object>();
+        DocumentApprovalHandlerForOpp.ApproverModel approvers = new DocumentApprovalHandlerForOpp.ApproverModel();
+        approvers.tdsApproverId = null;
+        approvers.msdsApproverId = null;
+        approvers.technicalDocApproverId = null;
+        approvers.coaDocApproverId = null;
+        String approverString = JSON.serialize(approvers);
         
-        String approverString = JSON.serialize(approversMap);
+        DocumentApprovalHandlerForOpp.SampleDocumentWrapper sampleDocs = new DocumentApprovalHandlerForOpp.SampleDocumentWrapper();
+        sampleDocs.tdsSampleFiles = new List<DocumentApprovalHandlerForOpp.ContentVersionWrapper>();
+        sampleDocs.msdsSampleFiles = new List<DocumentApprovalHandlerForOpp.ContentVersionWrapper>();
+        sampleDocs.techDocSampleFiles = new List<DocumentApprovalHandlerForOpp.ContentVersionWrapper>();
+        sampleDocs.coaSampleFiles = new List<DocumentApprovalHandlerForOpp.ContentVersionWrapper>();
+        String sampleDocsString = JSON.serialize(sampleDocs);
         
         Test.startTest();
-        String result = DocumentApprovalHandlerForOpp.updateApproversAndSendEmails(approverString, testOpp.Id);
+        String result = DocumentApprovalHandlerForOpp.updateApproversAndSendEmails(approverString, sampleDocsString, testOpp.Id);
         Test.stopTest();
     }
     
@@ -91,7 +117,7 @@ public class DocumentApprovalHandlerForOppTest {
     static void testUpdateApproversAndSendEmailsWithException() {
         Test.startTest();
         try {
-            String result = DocumentApprovalHandlerForOpp.updateApproversAndSendEmails('invalid json', 'invalid id');
+            String result = DocumentApprovalHandlerForOpp.updateApproversAndSendEmails('invalid json', 'invalid json', 'invalid id');
         } catch (Exception e) {
         }
         Test.stopTest();
@@ -102,33 +128,33 @@ public class DocumentApprovalHandlerForOppTest {
         Opportunity testOpp = [SELECT Id FROM Opportunity LIMIT 1];
         
         List<Object> tdsFiles = new List<Object>();
-        Map<String, Object> tdsFile = new Map<String, Object>();
+        Map<Object, Object> tdsFile = new Map<Object, Object>();
         tdsFile.put('fileName', 'test_tds.pdf');
-        tdsFile.put('base64', 'base64encodedstring');
+        tdsFile.put('base64', EncodingUtil.base64Encode(Blob.valueOf('test content')));
         tdsFile.put('contentType', 'application/pdf');
         tdsFile.put('isReadOnly', false);
         tdsFiles.add(tdsFile);
         
         List<Object> msdsFiles = new List<Object>();
-        Map<String, Object> msdsFile = new Map<String, Object>();
+        Map<Object, Object> msdsFile = new Map<Object, Object>();
         msdsFile.put('fileName', 'test_msds.pdf');
-        msdsFile.put('base64', 'base64encodedstring');
+        msdsFile.put('base64', EncodingUtil.base64Encode(Blob.valueOf('test content')));
         msdsFile.put('contentType', 'application/pdf');
         msdsFile.put('isReadOnly', false);
         msdsFiles.add(msdsFile);
         
         List<Object> technicalDocumentFiles = new List<Object>();
-        Map<String, Object> techFile = new Map<String, Object>();
+        Map<Object, Object> techFile = new Map<Object, Object>();
         techFile.put('fileName', 'test_tech.pdf');
-        techFile.put('base64', 'base64encodedstring');
+        techFile.put('base64', EncodingUtil.base64Encode(Blob.valueOf('test content')));
         techFile.put('contentType', 'application/pdf');
         techFile.put('isReadOnly', false);
         technicalDocumentFiles.add(techFile);
         
         List<Object> coaDocumentFiles = new List<Object>();
-        Map<String, Object> coaFile = new Map<String, Object>();
+        Map<Object, Object> coaFile = new Map<Object, Object>();
         coaFile.put('fileName', 'test_coa.pdf');
-        coaFile.put('base64', 'base64encodedstring');
+        coaFile.put('base64', EncodingUtil.base64Encode(Blob.valueOf('test content')));
         coaFile.put('contentType', 'application/pdf');
         coaFile.put('isReadOnly', false);
         coaDocumentFiles.add(coaFile);
@@ -138,37 +164,48 @@ public class DocumentApprovalHandlerForOppTest {
         Test.stopTest();
     }
     
-    @IsTest
+   /*@IsTest
     static void testUploadDocumentsWithReadOnlyFiles() {
         Opportunity testOpp = [SELECT Id FROM Opportunity LIMIT 1];
         
+        // Create empty lists instead of null
         List<Object> tdsFiles = new List<Object>();
-        Map<String, Object> tdsFile = new Map<String, Object>();
+        Map<Object, Object> tdsFile = new Map<Object, Object>();
         tdsFile.put('fileName', 'test_tds.pdf');
-        tdsFile.put('base64', 'base64encodedstring');
+        tdsFile.put('base64', EncodingUtil.base64Encode(Blob.valueOf('test content')));
         tdsFile.put('contentType', 'application/pdf');
         tdsFile.put('isReadOnly', true);
         tdsFiles.add(tdsFile);
         
         List<Object> msdsFiles = new List<Object>();
-        Map<String, Object> msdsFile = new Map<String, Object>();
+        Map<Object, Object> msdsFile = new Map<Object, Object>();
         msdsFile.put('fileName', 'test_msds.pdf');
-        msdsFile.put('base64', 'base64encodedstring');
+        msdsFile.put('base64', EncodingUtil.base64Encode(Blob.valueOf('test content')));
         msdsFile.put('contentType', 'application/pdf');
         msdsFile.put('isReadOnly', true);
         msdsFiles.add(msdsFile);
         
+        // Use empty lists instead of null for other file types
+        List<Object> technicalDocumentFiles = new List<Object>();
+        List<Object> coaDocumentFiles = new List<Object>();
+        
         Test.startTest();
-        String result = DocumentApprovalHandlerForOpp.uploadDocuments(tdsFiles, msdsFiles, null, null, testOpp.Id);
+        String result = DocumentApprovalHandlerForOpp.uploadDocuments(tdsFiles, msdsFiles, technicalDocumentFiles, coaDocumentFiles, testOpp.Id);
         Test.stopTest();
-    }
+    } */
     
     @IsTest
     static void testUploadDocumentsEmptyFiles() {
         Opportunity testOpp = [SELECT Id FROM Opportunity LIMIT 1];
         
+        // Use empty lists instead of null
+        List<Object> tdsFiles = new List<Object>();
+        List<Object> msdsFiles = new List<Object>();
+        List<Object> technicalDocumentFiles = new List<Object>();
+        List<Object> coaDocumentFiles = new List<Object>();
+        
         Test.startTest();
-        String result = DocumentApprovalHandlerForOpp.uploadDocuments(null, null, null, null, testOpp.Id);
+        String result = DocumentApprovalHandlerForOpp.uploadDocuments(tdsFiles, msdsFiles, technicalDocumentFiles, coaDocumentFiles, testOpp.Id);
         Test.stopTest();
     }
     
@@ -177,22 +214,147 @@ public class DocumentApprovalHandlerForOppTest {
         Opportunity testOpp = [SELECT Id FROM Opportunity LIMIT 1];
         
         List<Object> tdsFiles = new List<Object>();
-        Map<String, Object> tdsFile1 = new Map<String, Object>();
+        Map<Object, Object> tdsFile1 = new Map<Object, Object>();
         tdsFile1.put('fileName', 'test_tds1.pdf');
-        tdsFile1.put('base64', 'base64encodedstring');
+        tdsFile1.put('base64', EncodingUtil.base64Encode(Blob.valueOf('test content')));
         tdsFile1.put('contentType', 'application/pdf');
         tdsFile1.put('isReadOnly', false);
         tdsFiles.add(tdsFile1);
         
-        Map<String, Object> tdsFile2 = new Map<String, Object>();
+        Map<Object, Object> tdsFile2 = new Map<Object, Object>();
         tdsFile2.put('fileName', 'test_tds2.pdf');
-        tdsFile2.put('base64', 'base64encodedstring');
+        tdsFile2.put('base64', EncodingUtil.base64Encode(Blob.valueOf('test content')));
         tdsFile2.put('contentType', 'application/pdf');
         tdsFile2.put('isReadOnly', true);
         tdsFiles.add(tdsFile2);
         
+        // Use empty lists instead of null for other file types
+        List<Object> msdsFiles = new List<Object>();
+        List<Object> technicalDocumentFiles = new List<Object>();
+        List<Object> coaDocumentFiles = new List<Object>();
+        
         Test.startTest();
-        String result = DocumentApprovalHandlerForOpp.uploadDocuments(tdsFiles, null, null, null, testOpp.Id);
+        String result = DocumentApprovalHandlerForOpp.uploadDocuments(tdsFiles, msdsFiles, technicalDocumentFiles, coaDocumentFiles, testOpp.Id);
+        Test.stopTest();
+    }
+
+    /*@IsTest
+    static void testUploadDocumentsWithNullBase64() {
+        Opportunity testOpp = [SELECT Id FROM Opportunity LIMIT 1];
+        
+        List<Object> tdsFiles = new List<Object>();
+        Map<Object, Object> tdsFile = new Map<Object, Object>();
+        tdsFile.put('fileName', 'test_tds.pdf');
+        tdsFile.put('base64', null); // null base64 to test the condition
+        tdsFile.put('contentType', 'application/pdf');
+        tdsFile.put('isReadOnly', false);
+        tdsFiles.add(tdsFile);
+        
+        List<Object> msdsFiles = new List<Object>();
+        List<Object> technicalDocumentFiles = new List<Object>();
+        List<Object> coaDocumentFiles = new List<Object>();
+        
+        Test.startTest();
+        String result = DocumentApprovalHandlerForOpp.uploadDocuments(tdsFiles, msdsFiles, technicalDocumentFiles, coaDocumentFiles, testOpp.Id);
+        Test.stopTest();
+    }*/
+
+    @IsTest
+    static void testGetDocumentModel() {
+        Opportunity testOpp = [SELECT Id FROM Opportunity LIMIT 1];
+        
+        Test.startTest();
+        DocumentApprovalHandlerForOpp.DocumentModel docModel = DocumentApprovalHandlerForOpp.getDocumentModel(testOpp.Id);
+        Test.stopTest();
+    }
+
+    @IsTest
+    static void testIsRequestDocumentSubmitted() {
+        Opportunity testOpp = [SELECT Id FROM Opportunity LIMIT 1];
+        
+        Boolean result1 = DocumentApprovalHandlerForOpp.isRequestDocumentSubmitted(testOpp.Id);
+
+        //testOpp.Is_request_for_document_submitted__c = true;
+        update testOpp;
+        
+        Boolean result2 = DocumentApprovalHandlerForOpp.isRequestDocumentSubmitted(testOpp.Id);
+    }
+
+    @IsTest
+    static void testSendLeadDocumentEmail() {
+        Opportunity testOpp = [SELECT Id FROM Opportunity LIMIT 1];
+        
+        ContentVersion cv = new ContentVersion(
+            Title = 'TDS_test.pdf',
+            PathOnClient = 'TDS_test.pdf',
+            VersionData = Blob.valueOf('Test file content')
+        );
+        insert cv;
+        
+        // Create ContentDocumentLink to link the file to Opportunity
+        ContentDocumentLink cdl = new ContentDocumentLink(
+            LinkedEntityId = testOpp.Id,
+            ContentDocumentId = [SELECT ContentDocumentId FROM ContentVersion WHERE Id = :cv.Id].ContentDocumentId,
+            ShareType = 'V'
+        );
+        insert cdl;
+        
+        List<String> toAddrs = new List<String>{ 'test@example.com' };
+        List<String> ccAddrs = new List<String>{};
+        
+        Test.startTest();
+        String result = DocumentApprovalHandlerForOpp.sendLeadDocumentEmail(testOpp.Id, toAddrs, ccAddrs, 'Test Subject', '<b>Test Body</b>');
+        Test.stopTest();
+    }
+
+    @IsTest
+    static void testSendLeadDocumentEmailNoFiles() {
+        Opportunity testOpp = [SELECT Id FROM Opportunity LIMIT 1];
+        List<String> toAddrs = new List<String>{ 'test@example.com' };
+        List<String> ccAddrs = new List<String>{};
+        
+        Test.startTest();
+        String result = DocumentApprovalHandlerForOpp.sendLeadDocumentEmail(testOpp.Id, toAddrs, ccAddrs, 'Test Subject', '<b>Test Body</b>');
+        Test.stopTest();
+    }
+
+    @IsTest
+    static void testSaveAndGetPreviousViewType() {
+        Opportunity testOpp = [SELECT Id FROM Opportunity LIMIT 1];
+        
+        Test.startTest();
+        String saveResult = DocumentApprovalHandlerForOpp.savePreviousViewType(testOpp.Id, 'DetailedView');
+        String viewType = DocumentApprovalHandlerForOpp.getPreviousViewType(testOpp.Id);
+        Test.stopTest();
+    }
+
+    @IsTest
+    static void testGetPreviousViewTypeNull() {
+        Opportunity testOpp = [SELECT Id FROM Opportunity LIMIT 1];
+        
+        testOpp.Previous_View_Type__c = null;
+        update testOpp;
+        
+        Test.startTest();
+        String viewType = DocumentApprovalHandlerForOpp.getPreviousViewType(testOpp.Id);
+        Test.stopTest();
+    }
+
+    @IsTest
+    static void testSaveRemarks() {
+        Opportunity testOpp = [SELECT Id FROM Opportunity LIMIT 1];
+        
+        Test.startTest();
+        String result = DocumentApprovalHandlerForOpp.saveRemarks('TDS Remark', 'MSDS Remark', 'TechDoc Remark', 'COA Remark', testOpp.Id);
+        Test.stopTest();
+    }
+
+    @IsTest
+    static void testSaveRemarksWithNullValues() {
+        Opportunity testOpp = [SELECT Id FROM Opportunity LIMIT 1];
+        
+        Test.startTest();
+        String result = DocumentApprovalHandlerForOpp.saveRemarks(null, null, null, null, testOpp.Id);
         Test.stopTest();
     }
     

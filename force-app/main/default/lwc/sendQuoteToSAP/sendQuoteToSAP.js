@@ -1,7 +1,7 @@
 import { LightningElement, track, api, wire } from 'lwc';
 import { ShowToastEvent } from "lightning/platformShowToastEvent";
 import getLineItem from '@salesforce/apex/CreateQuotation_ToSAP.getLineItem';
-// import quoteValidation from '@salesforce/apex/CreateQuotation_ToSAP.quoteValidation';
+import quoteValidation from '@salesforce/apex/CreateQuotation_ToSAP.quoteValidation';
 import createQuotation from '@salesforce/apex/CreateQuotation_ToSAP.createQuotation';
 import syncQuoteLineItems from '@salesforce/apex/CreateQuotation_ToSAP.syncQuoteLineItems';
 import getInventoryData from '@salesforce/apex/GetInventory_FromSAP.fetchInventoryData';
@@ -18,10 +18,10 @@ export default class SendQuoteToSAP extends LightningElement {
     @track recTypeName = '';
     @track ResponseMessage = '';
     @track errorResponseMessage = '';
-    @track syncDataResponseFlag = false;
+    @track syncDataResponseFlag = true;
     @track partnerfunctionOptions = [];
     @track partnerfunctionValue = '';
-    
+
     // Inventory Modal Properties
     @track showInventoryModal = false;
     @track isLoading = false;
@@ -44,16 +44,38 @@ export default class SendQuoteToSAP extends LightningElement {
     }
 
     connectedCallback() {
+        this.showSpinner = true;
         setTimeout(() => {
             console.log('recordId ', this.recordId);
             console.log('objectApiName ', this.objectApiName);
             if (this.recordId) {
-                // this.handleQuoteCheck();
-                this.handleGetLineItems();
+                this.handleQuoteCheck();
+                // this.handleGetLineItems();
             } else {
                 this.showToast('Error', 'Invalid Record Id', 'error');
             }
         }, 2000);
+    }
+
+    handleQuoteCheck() {
+        quoteValidation({
+            qId: this.recordId
+        }).then((result) => {
+            console.log('quoteValidation result ', result);
+            let data = JSON.parse(result);
+            if (data.status == 'true') {
+                // this.showToast('Please wait for callout response', '', 'info');
+                this.syncDataResponseFlag = false;
+                this.handleGetLineItems();
+            } else {
+                this.showToast(data.message, '', 'error');
+                this.errorResponseMessage = data.message;
+                this.showSpinner = false;
+            }
+        }).catch((error) => {
+            console.log('= erorr quoteValidation : ', error);
+            this.showSpinner = false;
+        });
     }
 
     @track orderLineItemList = [];
@@ -65,9 +87,11 @@ export default class SendQuoteToSAP extends LightningElement {
             console.log('data:>>> ', data);
             this.orderLineItemList = data.quoteLineItemList;
             console.log('orderLineItemList ', this.orderLineItemList);
+            this.showSpinner = false;
         }).catch(error => {
             console.error('Error fetching line items:', error);
             this.showToast('Error', 'Failed to load line items', 'error');
+            this.showSpinner = false;
         });
     }
 
@@ -76,7 +100,7 @@ export default class SendQuoteToSAP extends LightningElement {
         const productId = event.currentTarget.dataset.productId;
         const material = event.currentTarget.dataset.material;
         const productName = this.orderLineItemList.find(item => item.Product2Id === productId)?.Product2?.Name;
-        
+
         if (material) {
             this.selectedProductId = productId;
             this.selectedProductName = productName;
@@ -84,7 +108,7 @@ export default class SendQuoteToSAP extends LightningElement {
             this.loadInventoryData(material);
         }
     }
-    
+
     // Load inventory data for the selected product
     // Calculate total stock and value
     calculateTotals() {
@@ -93,57 +117,57 @@ export default class SendQuoteToSAP extends LightningElement {
             this.totalValue = 0;
             return;
         }
-        
+
         // Calculate total stock
         this.totalStock = this.inventoryData.reduce((sum, item) => {
             return sum + (item.unrestrictedUseStock || 0);
         }, 0);
-        
+
         // Calculate total value
         this.totalValue = this.inventoryData.reduce((sum, item) => {
             return sum + (item.valueOfUnrestrictedStock || 0);
         }, 0);
-        
+
         // Get the unit of measure and currency from the first item
         this.unitOfMeasure = this.inventoryData[0]?.baseUnitOfMeasure || '';
         this.currency = this.inventoryData[0]?.currencyKey || '';
     }
-    
+
     loadInventoryData(material) {
         this.isLoading = true;
         this.inventoryData = [];
-        
+
         // Call the Apex method to get inventory data
         getInventoryData({
             materialNumber: material
         })
-        .then(result => {
-            if (result && result.length > 0) {
-                this.inventoryData = result.map(item => ({
-                    ...item,
-                    // Format dates if needed
-                    formattedManufactureDate: item.dateOfManufacture ? 
-                        new Date(item.dateOfManufacture).toLocaleDateString() : 'N/A',
-                    formattedExpiryDate: item.shelfLifeExpirationDate ? 
-                        new Date(item.shelfLifeExpirationDate).toLocaleDateString() : 'N/A'
-                }));
-                
-                // Calculate totals
-                this.calculateTotals();
-            } else {
-                this.inventoryData = [];
-                this.totalStock = 0;
-                this.totalValue = 0;
-            }
-            this.isLoading = false;
-        })
-        .catch(error => {
-            console.error('Error loading inventory data:', error);
-            this.showToast('Error', 'Failed to load inventory data', 'error');
-            this.isLoading = false;
-        });
+            .then(result => {
+                if (result && result.length > 0) {
+                    this.inventoryData = result.map(item => ({
+                        ...item,
+                        // Format dates if needed
+                        formattedManufactureDate: item.dateOfManufacture ?
+                            new Date(item.dateOfManufacture).toLocaleDateString() : 'N/A',
+                        formattedExpiryDate: item.shelfLifeExpirationDate ?
+                            new Date(item.shelfLifeExpirationDate).toLocaleDateString() : 'N/A'
+                    }));
+
+                    // Calculate totals
+                    // this.calculateTotals();
+                } else {
+                    this.inventoryData = [];
+                    this.totalStock = 0;
+                    this.totalValue = 0;
+                }
+                this.isLoading = false;
+            })
+            .catch(error => {
+                console.error('Error loading inventory data:', error);
+                this.showToast('Error', 'Failed to load inventory data', 'error');
+                this.isLoading = false;
+            });
     }
-    
+
     // Close the inventory modal
     closeInventoryModal() {
         this.showInventoryModal = false;
@@ -151,17 +175,17 @@ export default class SendQuoteToSAP extends LightningElement {
         this.selectedProductId = '';
         this.selectedProductName = '';
     }
-    
+
     // Check if there is inventory data to display
     get hasInventoryData() {
         return this.inventoryData && this.inventoryData.length > 0;
     }
-    
+
     get totalsDisplay() {
         if (!this.hasInventoryData) return '';
         return `${this.totalStock.toFixed(2)} ${this.unitOfMeasure} | ${this.currency} ${this.totalValue.toFixed(2)}`;
     }
-    
+
     // Format date for display
     formatDate(dateString) {
         if (!dateString) return 'N/A';
@@ -178,7 +202,7 @@ export default class SendQuoteToSAP extends LightningElement {
     handleMainSubmit(event) {
         this.showSpinner = true;
         event.preventDefault();
-        const mandatoryFields = ['Quote_Date__c', 'Quote_Valid_Till__c', 'CustomerPurchaseOrderDate__c', 'RequestedDeliveryDate__c'];
+        const mandatoryFields = ['Sales_Organisations__c', 'Distribution_Channel__c', 'Division__c', 'RequestedDeliveryDate__c'];
         const lwcInputFields = this.template.querySelectorAll('lightning-input-field');
         let validationFlag = false;
         if (lwcInputFields) {
@@ -189,9 +213,9 @@ export default class SendQuoteToSAP extends LightningElement {
                 }
                 field.reportValidity();
             });
-            if (this.partnerfunctionValue == '') {
-                validationFlag = true;
-            }
+            // if (this.partnerfunctionValue == '') {
+            //     validationFlag = true;
+            // }
             if (validationFlag) {
                 console.log('validation flag trigger');
                 // Optionally show a toast message for validation errors
@@ -221,13 +245,13 @@ export default class SendQuoteToSAP extends LightningElement {
 
     }
 
-    // handleMainSuccess(event) {
-    //     // this.showToast('Customer Details Save', '', 'success');
-    //     this.showToast('Please wait for callout response', '', 'info');
-    //     this.syncDataResponseFlag = true;
-    //     // this.showSpinner = false;
-    //     this.handleCallout();
-    // }
+    handleMainSuccess(event) {
+        // this.showToast('Customer Details Save', '', 'success');
+        this.showToast('Please wait for callout response', '', 'info');
+        this.syncDataResponseFlag = true;
+        // this.showSpinner = false;
+        this.handleCallout();
+    }
 
     handleCallout() {
         this.syncDataResponseFlag = true;
@@ -239,15 +263,21 @@ export default class SendQuoteToSAP extends LightningElement {
             let data = JSON.parse(result);
             console.log('createQuotation parse data:>>> ', data);
             if (data.StatusCode == 201) {
-                this.handlerSendLineItem(data.SalesDocument);
-                this.showToast('Quotation created in SAP succesfully!', '', 'success');
-                this.ResponseMessage = 'SAP Quotation Number: ' + data.SalesDocument;
+                if (data.SalesDocument) {
+                    this.handlerSendLineItem(data.SalesDocument);
+                    this.showToast('Enquiry created in SAP succesfully!', '', 'success');
+                    this.ResponseMessage = 'SAP Enquiry Number: ' + data.SalesDocument;
+                } else {
+                    this.showToast('Something went wrong while creating Enquiry in SAP', '', 'info');
+                    // this.errorResponseMessage = 'Something went wrong while creating Enquiry in SAP';
+                    this.errorResponseMessage = data.message;
+                }
             } else {
-                this.showSpinner = false;
                 this.syncDataResponseFlag = false;
                 this.errorResponseMessage = data.message;
                 this.showToast('Error', 'Something went wrong!!!', 'error');
             }
+            this.showSpinner = false;
 
         }).catch((error) => {
             console.log('= erorr createQuotation', error);

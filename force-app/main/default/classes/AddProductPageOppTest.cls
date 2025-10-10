@@ -176,7 +176,6 @@ public class AddProductPageOppTest {
     static void testInsertLineItemsException() {
         Opportunity opp = [SELECT Id FROM Opportunity LIMIT 1];
 
-        // Create invalid ProductWrapper (invalid Product2Id to force exception)
         AddProductPageOpp.ProductWrapper pw = new AddProductPageOpp.ProductWrapper();
         pw.Id = '01uInvalidId';
         pw.Product2Id = '01tInvalidId';
@@ -209,7 +208,5 @@ public class AddProductPageOppTest {
         }
         Test.stopTest();
 
-    }
-    
-    
+    } 
 }

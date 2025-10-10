@@ -10,11 +10,15 @@ public class ExpenseTriggerHandler {
             LIMIT 1
         ];
 
-        String userDivision = currentUser.Division_Code__c;
+   //     String userDivision = currentUser.Division_Code__c;
         String userCostCenter = currentUser.Cost_Center__c;
 
-        if (String.isBlank(userDivision) || String.isBlank(userCostCenter)) {
-            System.debug('Missing user Division or Cost Center');
+        if (String.isBlank(userCostCenter)) {
+            System.debug('Missing user Cost Center');
+            for (Expense__c e : newExpenses) {
+               // e.Name = '';
+                e.Name = 'TEMP-' + String.valueOf(Datetime.now().getTime());
+            }
             return;
         }
 
@@ -32,7 +36,7 @@ public class ExpenseTriggerHandler {
             return;
         }
 
-        // 🔁 Convert sales org name to full company name
+        //  Convert sales org name to full company name
         String companyName = getCompanyNameFromSalesOrgName(salesOrgName);
         if (String.isBlank(companyName)) {
             System.debug('Could not determine Company Name from Sales Org: ' + salesOrgName);
@@ -80,7 +84,7 @@ public class ExpenseTriggerHandler {
             Code_Master__c cm = keyToCodeMaster.get(key);
 
             if (cm == null) {
-                System.debug('⚠️ No Code_Master__c found for Company=' + companyName + ', SalesType=' + salesTypeCode);
+                System.debug(' No Code_Master__c found for Company=' + companyName + ', SalesType=' + salesTypeCode);
                 continue;
             }
 
@@ -88,7 +92,7 @@ public class ExpenseTriggerHandler {
 
             for (Expense__c exp : salesTypeToExpenses.get(salesTypeCode)) {
                 exp.Name = cm.Backend_Current_Sequence__c;
-                System.debug('✅ Assigned Expense Name: ' + exp.Name);
+                System.debug(' Assigned Expense Name: ' + exp.Name);
                 currentSeq++;
             }
 
@@ -98,11 +102,11 @@ public class ExpenseTriggerHandler {
 
         if (!cmsToUpdate.isEmpty()) {
             update cmsToUpdate;
-            System.debug('✅ Updated Code_Master__c sequence values');
+            System.debug(' Updated Code_Master__c sequence values');
         }
     }
 
-    // 🔁 Map Sales Org Name to Company Name
+    //  Map Sales Org Name to Company Name
     private static String getCompanyNameFromSalesOrgName(String salesOrgName) {
         if (String.isNotBlank(salesOrgName)) {
             salesOrgName = salesOrgName.toLowerCase().trim();
@@ -117,7 +121,7 @@ public class ExpenseTriggerHandler {
         return null;
     }
 
-    // 🔁 Map Picklist values to Sales Type codes
+    //  Map Picklist values to Sales Type codes
     private static String getSalesTypeCode(String salesType) {
         if (salesType == 'Domestic') {
             return '10';

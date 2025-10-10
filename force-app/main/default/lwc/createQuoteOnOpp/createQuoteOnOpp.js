@@ -25,6 +25,7 @@ export default class CreateQuoteFromOpportunity extends NavigationMixin(Lightnin
         transportationCost: 0,
         containerType: ''
     };
+    @track showContainerType = false;
     @track paymetTermField = true;
     @track statusOptions = [];
     @track currencyOptions = [];
@@ -334,22 +335,43 @@ export default class CreateQuoteFromOpportunity extends NavigationMixin(Lightnin
         }
     }
 
+    handleIncoTermsChange(event) {
+        const field = event.target.dataset.field;
+        const newValue = event.detail.value;
+
+        this.quoteFields = {
+            ...this.quoteFields,
+            [field]: newValue
+        };
+
+        // Show container type only when CIF is selected
+        this.showContainerType = newValue === 'CIF';
+
+        // Optional: Clear container type when CIF is not selected
+        if (!this.showContainerType) {
+            this.quoteFields.containerType = '';
+        }
+
+        console.log('Inco Terms changed to:', newValue, 'Show Container Type:', this.showContainerType);
+    }
+
     handleFieldChange(event) {
         const field = event.target.dataset.field;
 
-        // Don't handle paymentTermId here as it's handled by the lookup component
-        if (field === 'paymentTermId') return;
+        // Skip handling for incoTerms as it's now handled by handleIncoTermsChange
+        if (field === 'incoTerms' || field === 'paymentTermId') return;
 
         this.quoteFields = {
             ...this.quoteFields,
             [field]: event.detail.value
         };
 
-        // If currency changes, we may want to refresh prices
+        // Your existing currency change logic
         if (field === 'currencyCode') {
             console.log('Currency changed to:', this.quoteFields.currencyCode);
         }
 
+        // Your existing sales area logic
         if (field === 'salesOrg') {
             this.salesOrgValue = event.detail.value;
             console.log('salesOrg:', this.salesOrgValue);
@@ -371,7 +393,6 @@ export default class CreateQuoteFromOpportunity extends NavigationMixin(Lightnin
             console.log('division:', this.divisionValue);
             this.handleGetSalesArea();
         }
-
     }
 
     // handleFieldChange(event) {

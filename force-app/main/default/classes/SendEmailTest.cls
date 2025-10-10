@@ -1,5 +1,6 @@
 @isTest
 private class SendEmailTest {
+
     @testSetup
     static void setupTestData() {
         Pricebook2 standardPricebook = new Pricebook2(
@@ -7,283 +8,130 @@ private class SendEmailTest {
             IsActive = true
         );
         update standardPricebook;
-        
-        Profile stdProfile = [SELECT Id FROM Profile WHERE Name = 'Standard User' LIMIT 1];
-        
+
+        Product2 testProduct = new Product2(
+            Name = 'Test Product',
+            IsActive = true
+        );
+        insert testProduct;
+
+        PricebookEntry standardPBE = new PricebookEntry(
+            Pricebook2Id = standardPricebook.Id,
+            Product2Id = testProduct.Id,
+            UnitPrice = 100.00,
+            IsActive = true
+        );
+        insert standardPBE;
+
+        Profile stdProfile = [SELECT Id FROM Profile WHERE Name='Standard User' LIMIT 1];
+
         User testManager = new User(
-            Alias = 'testmgr', 
-            Email = 'manager@example.com', 
-            ProfileId = stdProfile.Id, 
-            Username = 'managerkdlf2008@example.com', 
-            FirstName = 'Manager', 
-            LastName = 'Test', 
-            TimeZoneSidKey = 'America/New_York', 
-            LocaleSidKey = 'en_US', 
-            EmailEncodingKey = 'UTF-8', 
-            LanguageLocaleKey = 'en_US', 
-            CommunityNickname = 'manager'
+            Alias = 'mgruser', Email='manager@example.com', ProfileId=stdProfile.Id,
+            Username='manager'+System.currentTimeMillis()+'@example.com', FirstName='Manager', LastName='Test',
+            TimeZoneSidKey='America/New_York', LocaleSidKey='en_US', EmailEncodingKey='UTF-8', LanguageLocaleKey='en_US',
+            CommunityNickname='manager'
         );
         insert testManager;
-        
+
         User testOwner = new User(
-            Alias = 'dlftest', 
-            Email = 'owner@example.com', 
-            ProfileId = stdProfile.Id, 
-            Username = 'managerkdlf2012@example.com', 
-            FirstName = 'Owner', 
-            LastName = 'Test', 
-            TimeZoneSidKey = 'America/New_York', 
-            LocaleSidKey = 'en_US', 
-            EmailEncodingKey = 'UTF-8', 
-            LanguageLocaleKey = 'en_US', 
-            CommunityNickname = 'owner',
-            ManagerId = testManager.Id
+            Alias = 'ownuser', Email='owner@example.com', ProfileId=stdProfile.Id,
+            Username='owner'+System.currentTimeMillis()+'@example.com', FirstName='Owner', LastName='Test',
+            TimeZoneSidKey='America/New_York', LocaleSidKey='en_US', EmailEncodingKey='UTF-8', LanguageLocaleKey='en_US',
+            CommunityNickname='owner', ManagerId = testManager.Id
         );
         insert testOwner;
-        
-        Pricebook2 testPricebook = new Pricebook2(
-            Name = 'Test Pricebook',
+
+        Account acc = new Account(Name='Test Account');
+        insert acc;
+
+        Pricebook2 customPB = new Pricebook2(Name='Custom Pricebook', IsActive=true);
+        insert customPB;
+
+        PricebookEntry customPBE = new PricebookEntry(
+            Pricebook2Id = customPB.Id,
+            Product2Id = testProduct.Id,
+            UnitPrice = 0,
             IsActive = true
         );
-        insert testPricebook;
-        
-        Pricebook2 testPricebook1 = new Pricebook2(
-            Name = 'Test Pricebook 2',
-            IsActive = true
+        insert customPBE;
+
+        Opportunity opp = new Opportunity(
+            Name='Test Opportunity', StageName='Prospecting', CloseDate=Date.today(),
+            AccountId=acc.Id, OwnerId=testOwner.Id, Pricebook2Id=customPB.Id
         );
-        insert testPricebook1;
-        
-        Account testAccount = new Account(
-            Name = 'Test Account', 
-            CurrencyIsoCode = 'USD'
+        insert opp;
+
+        OpportunityLineItem oli = new OpportunityLineItem(
+            OpportunityId = opp.Id, Product2Id = testProduct.Id, Quantity = 1,
+            UnitPrice = 0, PricebookEntryId = customPBE.Id, Quality__c='High'
         );
-        insert testAccount;
-        
-        Product2 prod = new Product2(
-            Name = 'Test Product', 
-            Family = 'Test Family', 
-            IsActive = true
+        insert oli;
+
+        Quote quote = new Quote(
+            Name='Test Quote', OpportunityId = opp.Id, Status='Draft', Pricebook2Id=customPB.Id,
+            OwnerId = testOwner.Id
         );
-        insert prod;
-        
-        PricebookEntry standardPbe = new PricebookEntry(
-            Pricebook2Id = standardPricebook.Id, 
-            Product2Id = prod.Id, 
-            UnitPrice = 100, 
-            IsActive = true
+        insert quote;
+
+        QuoteLineItem qli = new QuoteLineItem(
+            QuoteId = quote.Id, Product2Id = testProduct.Id, Quantity=1, UnitPrice=0,
+            PricebookEntryId = customPBE.Id, Quality__c='Standard'
         );
-        insert standardPbe;
-        
-        PricebookEntry customPbe = new PricebookEntry(
-            Pricebook2Id = testPricebook.Id, 
-            Product2Id = prod.Id, 
-            UnitPrice = 0, 
-            IsActive = true
-        );
-        insert customPbe;
-        
-        PricebookEntry customPbe1 = new PricebookEntry(
-            Pricebook2Id = testPricebook1.Id, 
-            Product2Id = prod.Id, 
-            UnitPrice = 10,
-            IsActive = true
-        );
-        insert customPbe1;
-        
-        Opportunity testOpportunity = new Opportunity(
-            Name = 'Test Opportunity', 
-            StageName = 'Prospecting', 
-            CloseDate = Date.today(), 
-            AccountId = testAccount.Id, 
-            OwnerId = testOwner.Id,
-            Pricebook2Id = testPricebook.Id
-        );
-        insert testOpportunity;
-        
-        Opportunity testOpportunityWithPriceAlert = new Opportunity(
-            Name = 'Test Opportunity With Price Alert', 
-            StageName = 'Prospecting', 
-            CloseDate = Date.today(), 
-            AccountId = testAccount.Id, 
-            OwnerId = testOwner.Id,
-            Pricebook2Id = testPricebook1.Id
-        );
-        insert testOpportunityWithPriceAlert;
-        
-        OpportunityLineItem oppLineItem = new OpportunityLineItem(
-            OpportunityId = testOpportunity.Id, 
-            Product2Id = prod.Id, 
-            Quantity = 1, 
-            UnitPrice = 0, 
-            Quality__c = 'High',
-            PricebookEntryId = customPbe.Id
-        );
-        insert oppLineItem;
-        
-        OpportunityLineItem oppLineItemWithPriceAlert = new OpportunityLineItem(
-            OpportunityId = testOpportunityWithPriceAlert.Id, 
-            Product2Id = prod.Id, 
-            Quantity = 1, 
-            UnitPrice = 5,
-            //      ListPrice = 10,
-            Quality__c = 'Medium',
-            PricebookEntryId = customPbe1.Id
-        );
-        insert oppLineItemWithPriceAlert;
-        
-        Quote testQuote = new Quote(
-            OpportunityId = testOpportunity.Id, 
-            Name = 'Test Quote', 
-            Status = 'Draft',
-            Pricebook2Id = testPricebook.Id
-        );
-        insert testQuote;
-        
-        QuoteLineItem quoteLineItem = new QuoteLineItem(
-            QuoteId = testQuote.Id, 
-            Product2Id = prod.Id, 
-            Quantity = 1, 
-            UnitPrice = 0, 
-            Quality__c = 'Standard',
-            PricebookEntryId = customPbe.Id
-        );
-        insert quoteLineItem;
+        insert qli;
     }
-    
+
     @isTest
-    static void testSendEmailNotification_ValidOppId() {
-        
-        Pricebook2 standardPricebook = new Pricebook2(
-            Id = Test.getStandardPricebookId(),
-            IsActive = true
-        );
-        update standardPricebook;
-        
-        Opportunity opp1 = new Opportunity(
-            Name = 'Test Opportunity', 
-            CloseDate = Date.today(), 
-            StageName = 'Prospecting',
-            Pricebook2Id = standardPricebook.Id
-        );
-        insert opp1;
-        
+    static void testSendEmailNotification_ValidOpportunity() {
+        Opportunity opp = [SELECT Id FROM Opportunity LIMIT 1];
         Test.startTest();
-        SendEmail.sendEmailNotification(opp1.Id);
+        SendEmail.sendEmailNotification(opp.Id);
         Test.stopTest();
     }
-    
+
     @isTest
-    static void testSendEmailNotification_NullOppId() {
+    static void testSendEmailNotification_NullOpportunity() {
         Test.startTest();
         SendEmail.sendEmailNotification(null);
         Test.stopTest();
     }
-    
+
     @isTest
-    static void testSendEmailNotification_NoZeroPrice() {
-        Pricebook2 standardPricebook = new Pricebook2(
-            Id = Test.getStandardPricebookId(),
-            IsActive = true
-        );
-        update standardPricebook;
-        
-        Opportunity opp1 = new Opportunity(
-            Name = 'Test Opportunity', 
-            CloseDate = Date.today(), 
-            StageName = 'Prospecting',
-            Pricebook2Id = standardPricebook.Id
-        );
-        insert opp1;
-        
-         OpportunityLineItem testOli = new OpportunityLineItem(
-            OpportunityId = opp1.Id,
-            PricebookEntryId = standardPricebook.Id,
-            Quantity = 1,
-            UnitPrice = 100
-        );
-        insert testOli;
-        
-        testOli.UnitPrice = 100;
-        update testOli;
-        
+    static void testSendEmailNotification_UnitPriceNotZero() {
+        Opportunity opp = [SELECT Id FROM Opportunity LIMIT 1];
+
+        OpportunityLineItem oli = [SELECT Id, UnitPrice FROM OpportunityLineItem WHERE OpportunityId=:opp.Id LIMIT 1];
+        oli.UnitPrice = 50;
+        update oli;
+
         Test.startTest();
-        SendEmail.sendEmailNotification(opp1.Id);
+        SendEmail.sendEmailNotification(opp.Id);
         Test.stopTest();
     }
-    
+
     @isTest
-    static void testSendEmailNotification_ManagerEmail() {
-        Pricebook2 standardPricebook = new Pricebook2(
-            Id = Test.getStandardPricebookId(),
-            IsActive = true
-        );
-        update standardPricebook;
-        
-        Opportunity opp1 = new Opportunity(
-            Name = 'Test Opportunity', 
-            CloseDate = Date.today(), 
-            StageName = 'Prospecting',
-            Pricebook2Id = standardPricebook.Id
-        );
-        insert opp1;
-        
+    static void testSendEmailNotificationQuote_ValidQuote() {
+        Quote q = [SELECT Id FROM Quote LIMIT 1];
         Test.startTest();
-        SendEmail.sendEmailNotification(opp1.Id);
+        SendEmail.sendEmailNotificationQuote(q.Id);
         Test.stopTest();
     }
-    
+
     @isTest
-    static void testSendEmailNotification_ManagerEmailNoManager() {
-        User testOwner = [SELECT Id FROM User WHERE Username = 'managerkdlf2012@example.com' LIMIT 1];
-        testOwner.ManagerId = null;
-        update testOwner;
-        
-        Pricebook2 standardPricebook = new Pricebook2(
-            Id = Test.getStandardPricebookId(),
-            IsActive = true
-        );
-        update standardPricebook;
-        
-        Opportunity opp1 = new Opportunity(
-            Name = 'Test Opportunity', 
-            CloseDate = Date.today(), 
-            StageName = 'Prospecting',
-            Pricebook2Id = standardPricebook.Id
-        );
-        insert opp1;
-        
-        Test.startTest();
-        SendEmail.sendEmailNotification(opp1.Id);
-        Test.stopTest();
-    }
-    
-    @isTest
-    static void testSendEmailNotificationQuote_ValidQuoteId() {
-        Quote testQuote = [SELECT Id FROM Quote LIMIT 1];
-        
-        Test.startTest();
-        SendEmail.sendEmailNotificationQuote(testQuote.Id);
-        Test.stopTest();
-    }
-    
-    @isTest
-    static void testSendEmailNotificationQuote_NullQuoteId() {
+    static void testSendEmailNotificationQuote_NullQuote() {
         Test.startTest();
         SendEmail.sendEmailNotificationQuote(null);
         Test.stopTest();
     }
-    
+
     @isTest
-    static void testSendEmailNotificationQuote_NoZeroPrice() {
-        Quote testQuote = [SELECT Id FROM Quote LIMIT 1];
-        QuoteLineItem qli = [SELECT Id FROM QuoteLineItem WHERE QuoteId = :testQuote.Id LIMIT 1];
-        qli.UnitPrice = 100;
+    static void testSendEmailNotificationQuote_UnitPriceNotZero() {
+        QuoteLineItem qli = [SELECT Id, UnitPrice FROM QuoteLineItem LIMIT 1];
+        qli.UnitPrice = 50;
         update qli;
-        
+
+        Quote q = [SELECT Id FROM Quote LIMIT 1];
         Test.startTest();
-        SendEmail.sendEmailNotificationQuote(testQuote.Id);
+        SendEmail.sendEmailNotificationQuote(q.Id);
         Test.stopTest();
     }
-    
-    
 }

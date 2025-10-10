@@ -11,6 +11,7 @@ global class InvoiceMaster_API {
         try {
 
             String jSONRequestBody = request.requestBody.toString().replace('\n', '');
+            api_log.Request__c = jSONRequestBody;
 
             wrapper inv = parse(jSONRequestBody);
 
@@ -125,7 +126,7 @@ global class InvoiceMaster_API {
             if (String.isNotBlank(inv.salesOrderNo) && orderCodeMap.containsKey(inv.salesOrderNo)) {
                 invRec.SF_Sales_Order_No__c = (Id) orderCodeMap.get(inv.salesOrderNo); //String.isNotBlank(inv.sfSalesOrderNo) ? inv.sfSalesOrderNo : null;
             } else {
-                throw new CustomException('Sales Order No is invalid');
+                // throw new CustomException('Sales Order No is invalid');
             }
             invRec.Exchange_Rate__c = inv.exchangeRate != null ? inv.exchangeRate : 0;
             invRec.Company_Code__c = String.isNotBlank(inv.companyCode) ? inv.companyCode : null;
@@ -142,7 +143,7 @@ global class InvoiceMaster_API {
             invRec.Total_Tax_Value__c = inv.totalTaxValue != null ? inv.totalTaxValue : 0;
             invRec.Total_Gross_Value__c = inv.totalGrossValue != null ? inv.totalGrossValue : 0;
 
-            invRec.Invoice_Status__c = String.isNotBlank(inv.invoiceStatus) ? inv.invoiceStatus : null;
+            invRec.InvoiceStatus__c = String.isNotBlank(inv.invoiceStatus) ? inv.invoiceStatus : '';
             invRec.Sales_Person__c = String.isNotBlank(inv.salesPerson) ? (Id) userCodeMap.get(inv.salesPerson) : null;
 
             //invoiceToInsert.add(invRec);
@@ -175,7 +176,7 @@ global class InvoiceMaster_API {
                 } else {
                     lineRec.Invoice__c = invRec.Id; //
                 }
-                lineRec.Name = invRec.Name+'/'+line.salesItemNo;
+                lineRec.Name = line.salesItemNo;
                 lineRec.Base_UOM__c = String.isNotBlank(line.baseUOM) ? (Id) baseCodeMap.get(line.baseUOM) : null;
                 lineRec.CGST_Rate__c = line.cgstRate != null ? line.cgstRate : null;
                 lineRec.CGST_Value__c = line.cgstValue != null ? line.cgstValue : null;
@@ -216,7 +217,7 @@ global class InvoiceMaster_API {
 
             response.responseBody = Blob.valueOf(JSON.serialize(result));
             api_log.Status__c = 'Success';
-            api_log.Request__c = jSONRequestBody;
+            
             api_log.Response__c = JSON.serialize(result);
 
         } catch (exception e) {

@@ -99,7 +99,9 @@ global class SalesOrderAPI {
                     ordItemMap.put(ordItem.Product2.ProductCode, ordItem.Id);
                 }
             } else {
-                ord.QuoteId = String.valueOf(quoteMap.get(soRequest.QUOTE_NUM));
+                if (String.isNotBlank(soRequest.QUOTE_NUM) && quoteMap.containsKey(soRequest.QUOTE_NUM)) {
+                    ord.QuoteId = String.valueOf(quoteMap.get(soRequest.QUOTE_NUM));
+                }
             }
 
             Map < String, Product2 > product2Map_v1 = new Map < String, Product2 > ();

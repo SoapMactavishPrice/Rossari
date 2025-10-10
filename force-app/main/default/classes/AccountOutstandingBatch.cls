@@ -4,10 +4,6 @@ global class AccountOutstandingBatch implements Database.Batchable<SObject>, Dat
     Map<String, String> companyCodes = new Map<String, String>();
     List<String> errorLogs = new List<String>();
     
-    // Track the current account index for chaining
-    private Integer currentAccountIndex = 0;
-    private List<Account> accountsToProcess = new List<Account>();
-
     public AccountOutstandingBatch(Date fd, Date td) {
         this.fromDate = fd;
         this.toDate = td;
@@ -17,43 +13,34 @@ global class AccountOutstandingBatch implements Database.Batchable<SObject>, Dat
             companyCodes.put(com.Id, com.SAP_Code__c);
         }
     }
-    
-    // Additional constructor for chaining
-    public AccountOutstandingBatch(Date fd, Date td, List<Account> accounts, Integer startIndex) {
-        this(fd, td);
-        this.accountsToProcess = accounts;
-        this.currentAccountIndex = startIndex;
-    }
 
     global Database.QueryLocator start(Database.BatchableContext bc) {
         // Get all accounts that need processing
         return Database.getQueryLocator(
-            'SELECT Id, SAP_Customer_Code__c FROM Account WHERE SAP_Customer_Code__c != null AND Id = \'001C100000NEl3cIAD\''
+            'SELECT Id, SAP_Customer_Code__c FROM Account WHERE SAP_Customer_Code__c != null LIMIT 100'
         );
     }
 
     global void execute(Database.BatchableContext bc, List<Account> scope) {
-        // Store accounts for processing
-        if (accountsToProcess.isEmpty()) {
-            accountsToProcess = scope;
-        }
-        
-        // Process one account at a time
-        if (currentAccountIndex < accountsToProcess.size()) {
-            Account acc = accountsToProcess[currentAccountIndex];
-            
-            // Process all companies for this account in a single Queueable job
-            System.enqueueJob(new AccountOutstandingQueueable(
-                acc.SAP_Customer_Code__c,
-                companyCodes.values()[0], // Process first company
-                fromDate,
-                toDate,
-                acc.Id,
-                new List<String>(companyCodes.keySet())
-            ));
-            
-            // Increment for next batch execution
-            currentAccountIndex++;
+        // Process each account in the current batch scope
+        for (Account acc : scope) {
+            if (String.isNotBlank(acc.SAP_Customer_Code__c)) {
+                try {
+                    // Process all companies for this account in a single Queueable job
+                    System.enqueueJob(new AccountOutstandingQueueable(
+                        acc.SAP_Customer_Code__c,
+                        companyCodes.values()[0], // Start with first company
+                        fromDate,
+                        toDate,
+                        acc.Id,
+                        new List<String>(companyCodes.keySet())
+                    ));
+                } catch (Exception e) {
+                    String errorMsg = 'Error processing account ' + acc.Id + ': ' + e.getMessage();
+                    errorLogs.add(errorMsg);
+                    System.debug(errorMsg);
+                }
+            }
         }
     }
 

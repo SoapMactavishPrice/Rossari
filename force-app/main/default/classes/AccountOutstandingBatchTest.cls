@@ -1,7 +1,6 @@
-@isTest
+/*@isTest
 public class AccountOutstandingBatchTest {
 
-    // Mock class for callouts
     public class MockHttpResponseGenerator implements HttpCalloutMock {
         public HTTPResponse respond(HTTPRequest req) {
             HttpResponse res = new HttpResponse();
@@ -14,7 +13,6 @@ public class AccountOutstandingBatchTest {
 
     @testSetup
     static void setupTestData() {
-        // Create Company__c records
         List<Company__c> companies = new List<Company__c>();
         for(Integer i = 0; i < 2; i++){
             companies.add(new Company__c(
@@ -24,7 +22,6 @@ public class AccountOutstandingBatchTest {
         }
         insert companies;
         
-        // Create Account records
         List<Account> accounts = new List<Account>();
         for(Integer i = 0; i < 3; i++){
             accounts.add(new Account(
@@ -37,18 +34,15 @@ public class AccountOutstandingBatchTest {
 
     @isTest
     static void testBatchExecution() {
-        // Set callout mock for queueable execution
         Test.setMock(HttpCalloutMock.class, new MockHttpResponseGenerator());
 
         Date fromDate = Date.today().addDays(-10);
         Date toDate = Date.today();
 
-        // Instantiate batch
         AccountOutstandingBatch batch = new AccountOutstandingBatch(fromDate, toDate);
 
-        // Run the batch
         Test.startTest();
-        Database.executeBatch(batch, 2); // batch size 2
+        Database.executeBatch(batch, 2);
         Test.stopTest();
 
        
@@ -62,15 +56,54 @@ public class AccountOutstandingBatchTest {
         Date fromDate = Date.today().addDays(-5);
         Date toDate = Date.today();
 
-        // Instantiate batch with accounts and index
         AccountOutstandingBatch batch = new AccountOutstandingBatch(fromDate, toDate, accounts, 0);
 
         Test.startTest();
-        // Execute manually one batch execution to simulate chaining
         batch.execute(null, accounts);
         Test.stopTest();
 
-        // Should have queued a job for first account
-        // You can verify queued jobs like this:
+    }
+}*/
+
+@IsTest
+private class AccountOutstandingBatchTest {
+
+    @IsTest
+    static void testBatchExecutionSingleAccount() {
+        // Step 1: Create Company__c records
+        Company__c company = new Company__c(
+            Name = 'Company 1',
+            SAP_Code__c = 'COM1'
+        );
+        insert company;
+
+        // Step 2: Create a single Account with SAP_Customer_Code__c
+        Account acc = new Account(
+            Name = 'Test Account 1',
+            SAP_Customer_Code__c = 'CUST1'
+        );
+        insert acc;
+
+        // Step 3: Set fromDate and toDate
+        Date fromDate = Date.today().addDays(-30);
+        Date toDate = Date.today();
+
+        // Step 4: Execute batch
+        Test.startTest();
+            AccountOutstandingBatch batchJob = new AccountOutstandingBatch(fromDate, toDate);
+            Database.executeBatch(batchJob, 1); // batch size = 1
+        Test.stopTest();
+    }
+
+    @IsTest
+    static void testBatchWithNoAccounts() {
+        // No Account records inserted
+        Date fromDate = Date.today().addDays(-30);
+        Date toDate = Date.today();
+
+        Test.startTest();
+            AccountOutstandingBatch batchJob = new AccountOutstandingBatch(fromDate, toDate);
+            Database.executeBatch(batchJob, 1);
+        Test.stopTest();
     }
 }

@@ -87,10 +87,11 @@ public class AccountOutstandingQueueable implements Queueable, Database.AllowsCa
             req.setHeader('cocode', companyCode);
             req.setHeader('fd', fdDT.formatGmt('yyyy-MM-dd\'T\'HH:mm:ss'));
             req.setHeader('td', tdDT.formatGmt('yyyy-MM-dd\'T\'HH:mm:ss'));
+            req.SetTimeout(120000); // 2 minutes timeout
             
             // Add basic auth if needed
-            String username = 'saansu.sahoo@rossari.com';
-            String password = 'Saansu97@1';
+            String username = System.Label.CreateQuotation_ToSAP_Username;
+            String password = System.Label.CreateQuotation_ToSAP_Pass;
             String authHeader = 'Basic ' + EncodingUtil.base64Encode(Blob.valueOf(username + ':' + password));
             req.setHeader('Authorization', authHeader);
             

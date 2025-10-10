@@ -240,6 +240,13 @@ export default class ExpenseForm extends NavigationMixin(LightningElement) {
         return hasBusTransport ? 'Fare' : 'KM Rate';
     }
 
+    // Add this method to check if expense type contains 'Food'
+    isFoodExpense(typeOfExpenseId) {
+        if (!typeOfExpenseId) return false;
+        const expenseType = this.typeOfExpenseOptions.find(opt => opt.value === typeOfExpenseId);
+        return expenseType && expenseType.label && expenseType.label.toLowerCase().includes('food');
+    }
+
     handleTypeOfExpenseChange(event) {
         const idx = parseInt(event.currentTarget.dataset.index, 10);
         const value = event.detail.value;
@@ -247,13 +254,13 @@ export default class ExpenseForm extends NavigationMixin(LightningElement) {
         const expenseType = this.typeOfExpenseOptions.find(opt => opt.value === value);
         const isPrivate = expenseType && expenseType.name === 'Private';
         const isPublic = expenseType && expenseType.name === 'Public';
-
-
+        const isFood = this.isFoodExpense(value);
 
         // Update line item
         this.updateLineItem(idx, 'typeOfExpenseId', value);
         this.updateLineItem(idx, 'isPrivate', isPrivate);
         this.updateLineItem(idx, 'isPublic', isPublic);
+        this.updateLineItem(idx, 'isFood', isFood);
         this.updateLineItem(idx, 'transportOptions', this.getTransportOptionsForItem(value));
 
         // Store GL Code information for the selected expense type
@@ -267,6 +274,14 @@ export default class ExpenseForm extends NavigationMixin(LightningElement) {
         const validTransportModes = this.getTransportOptionsForItem(value).map(opt => opt.value);
         if (currentTransportMode && !validTransportModes.includes(currentTransportMode)) {
             this.updateLineItem(idx, 'transportMode', '');
+        }
+
+        // If it's a food expense, disable transport mode
+        if (isFood) {
+            this.updateLineItem(idx, 'transportMode', ''); // Clear transport mode
+            this.updateLineItem(idx, 'disableTransportMode', true); // Disable the field
+        } else {
+            this.updateLineItem(idx, 'disableTransportMode', false); // Enable the field
         }
 
         // Force refresh to update the header text
@@ -437,6 +452,16 @@ export default class ExpenseForm extends NavigationMixin(LightningElement) {
     }
 
 
+    get showRemarkColumn() {
+        return this.selectedVoucherType === 'Special';
+    }
+
+    // Add this handler method
+    handleRemarkChange(event) {
+        const idx = parseInt(event.target.dataset.index, 10);
+        const value = event.target.value;
+        this.updateLineItem(idx, 'remark', value);
+    }
 
     addLineItem() {
         const newItem = {
@@ -453,6 +478,7 @@ export default class ExpenseForm extends NavigationMixin(LightningElement) {
             fileCount: 0,
             isPrivate: false,
             isPublic: false,
+            isFood: false,
             transportOptions: this.allTransportModeOptions,
             disableKMFields: false,
             showTollParking: false,
@@ -466,7 +492,8 @@ export default class ExpenseForm extends NavigationMixin(LightningElement) {
             outstationReason: '',
             cashDescription: '',
             glCodeId: '', // Add GL Code fields
-            glCodeName: ''
+            glCodeName: '',
+            remark: '',
         };
         this.lineItems = [...this.lineItems, newItem];
 
@@ -532,7 +559,8 @@ export default class ExpenseForm extends NavigationMixin(LightningElement) {
                 outstationReason: '',
                 cashDescription: '',
                 glCodeId: '', // Add GL Code fields
-                glCodeName: ''
+                glCodeName: '',
+                remark: '',
             }));
 
         } catch (error) {
@@ -577,7 +605,7 @@ export default class ExpenseForm extends NavigationMixin(LightningElement) {
             }
 
             const expense = {
-                Name: this.expenseName,
+                // Name: this.expenseName,
                 Date__c: this.todayDate,
                 Employee_Name__c: this.selectedEmployeeId,
                 Type_of_Voucher__c: this.selectedVoucherType,
@@ -611,7 +639,8 @@ export default class ExpenseForm extends NavigationMixin(LightningElement) {
                 Ticket_Booked_By_Company__c: this.selectedVoucherType === 'Outstation' ? item.ticketBookedByCompany : false,
                 Description__c: this.selectedVoucherType === 'Outstation' ? item.outstationDescription :
                     (this.selectedVoucherType === 'Cash' ? item.cashDescription : null),
-                CurrencyIsoCode: this.selectedCurrency
+                CurrencyIsoCode: this.selectedCurrency,
+                Remark__c: this.selectedVoucherType === 'Special' ? item.remark : null
             }));
 
             // FIXED: Create filesPerLineItem using the correct structure
@@ -707,7 +736,7 @@ export default class ExpenseForm extends NavigationMixin(LightningElement) {
                 return false;
             }
             // Validate transport mode for local vouchers
-            if (this.selectedVoucherType === 'Local') {
+            if (this.selectedVoucherType === 'Local' && !this.isFoodExpense(item.typeOfExpenseId)) {
                 if (!item.transportMode) {
                     this.showToast('Error', `Select Mode of Transport for Local expense in row ${i + 1}`, 'error');
                     return false;
@@ -751,6 +780,7 @@ export default class ExpenseForm extends NavigationMixin(LightningElement) {
             if (this.selectedVoucherType === 'Outstation') {
                 for (let i = 0; i < this.lineItems.length; i++) {
                     const item = this.lineItems[i];
+                    const isFood = this.isFoodExpense(item.typeOfExpenseId);
 
                     if (!item.outstationDate) {
                         this.showToast('Error', `Select Date for Outstation expense in row ${i + 1}`, 'error');
@@ -764,9 +794,14 @@ export default class ExpenseForm extends NavigationMixin(LightningElement) {
                         this.showToast('Error', `Enter To Location for Outstation expense in row ${i + 1}`, 'error');
                         return false;
                     }
-                    if (!item.outstationTransportMode) {
+                    if (!isFood && !item.outstationTransportMode) {
                         this.showToast('Error', `Select Transport Mode for Outstation expense in row ${i + 1}`, 'error');
                         return false;
+                    }
+
+                    // If it's a food expense, clear any transport mode value
+                    if (isFood && item.outstationTransportMode) {
+                        this.updateLineItem(i, 'outstationTransportMode', '');
                     }
                 }
             }

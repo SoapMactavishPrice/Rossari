@@ -467,8 +467,10 @@
         
          <footer class="slds-modal__footer slds-grid slds-grid_align-end slds-p-around_small">
                     <lightning-button variant="neutral" label="Refresh" onclick={handleRefresh}></lightning-button>
-                    <lightning-button variant="brand" class="slds-m-left_small" label="Send" onclick={handleSendEmail}></lightning-button>
-        </footer>
+                    <lightning-button variant="brand" class="slds-m-left_small" label="Send" onclick={openModal}></lightning-button>
+                    <!-- <lightning-button variant="brand" class="slds-m-left_small" label="Add File" onclick={uploadFile}></lightning-button> -->
+
+                </footer>
         
     </lightning-card>
 
@@ -487,6 +489,7 @@
                         type="email"
                         label="To Email"
                         value={toEmail}
+                        disabled
                         onchange={handleChange}
                         data-field="toEmail">
                     </lightning-input>
@@ -514,10 +517,46 @@
                         onchange={handleChange}
                         data-field="body">
                     </lightning-textarea>
+
+                    <lightning-file-upload
+            label="Select Files"
+            name="fileUploader"
+            multiple
+            record-id={recordId}
+            accept={acceptedFormats}
+            onuploadfinished={handleUploadFinished}>
+        </lightning-file-upload>
+
+        <template if:true={uploadedFiles.length}>
+            <table class="slds-table slds-table_cell-buffer slds-table_bordered slds-m-top_medium">
+                <thead>
+                    <tr>
+                        <th>File Name</th>
+                        <!-- <th>Type</th> -->
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <template for:each={uploadedFiles} for:item="file">
+                        <tr key={file.id}>
+                            <td>{file.name}</td>
+                            <!-- <td>{file.type}</td> -->
+                            <td>
+                              
+
+                                 <lightning-icon icon-name="action:preview" size="x-small" data-id={file.id} onclick={viewFile}></lightning-icon>
+                                 <lightning-icon icon-name="action:delete" class="slds-m-left_xx-small" size="x-small" data-id={file.id} onclick={handleRemoveFile}></lightning-icon>
+                                           
+                            </td>
+                        </tr>
+                    </template>
+                </tbody>
+            </table>
+        </template>
                 </div>
 
                 <footer class="slds-modal__footer slds-grid slds-grid_align-end slds-p-around_small">
-                <lightning-button variant="brand" label="Send Email" onclick={handleSaveAndSend}></lightning-button>
+                <lightning-button variant="brand" label="Send Email" onclick={handleSendEmail}></lightning-button>
                 </footer>
 
             </div>
@@ -525,6 +564,64 @@
         </section>
 
 
+        <div class="slds-backdrop slds-backdrop_open"></div>
+    </template>
+
+     <template if:true={isFileUpload}>
+        <section role="dialog" tabindex="-1" class="slds-modal slds-fade-in-open">
+            <div class="slds-modal__container">
+                <!-- Modal/Popup Header -->
+                <header class="slds-modal__header">
+                    <h2 class="slds-text-heading_medium">Upload Files</h2>
+                </header>
+
+                <!-- Modal/Popup Body -->
+                <div class="slds-modal__content slds-p-around_medium">
+                    <!-- File Upload -->
+                    <lightning-file-upload
+            label="Select Files"
+            name="fileUploader"
+            multiple
+            record-id={recordId}
+            accept={acceptedFormats}
+            onuploadfinished={handleUploadFinished}>
+        </lightning-file-upload>
+
+        <template if:true={uploadedFiles.length}>
+            <table class="slds-table slds-table_cell-buffer slds-table_bordered slds-m-top_medium">
+                <thead>
+                    <tr>
+                        <th>File Name</th>
+                        <!-- <th>Type</th> -->
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <template for:each={uploadedFiles} for:item="file">
+                        <tr key={file.id}>
+                            <td>{file.name}</td>
+                            <!-- <td>{file.type}</td> -->
+                            <td>
+                              
+
+                                 <lightning-icon icon-name="action:preview" size="x-small" data-id={file.id} onclick={viewFile}></lightning-icon>
+                                 <lightning-icon icon-name="action:delete" class="slds-m-left_xx-small" size="x-small" data-id={file.id} onclick={handleRemoveFile}></lightning-icon>
+                                           
+                            </td>
+                        </tr>
+                    </template>
+                </tbody>
+            </table>
+        </template>
+                </div>
+
+                <!-- Modal/Popup Footer -->
+                <footer class="slds-modal__footer">
+                    <lightning-button variant="neutral" label="Close" onclick={closeFileModal}></lightning-button>
+                    <lightning-button variant="brand" label="Upload" onclick={handleUpload}></lightning-button>
+                </footer>
+            </div>
+        </section>
         <div class="slds-backdrop slds-backdrop_open"></div>
     </template>
 

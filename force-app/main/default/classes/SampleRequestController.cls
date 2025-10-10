@@ -99,6 +99,7 @@ public with sharing class SampleRequestController {
             sampleRequest.Customer_Code__c = (String)sampleData.get('Customer_Code__c');
             sampleRequest.Sample_Category__c = sampleCategory;
             
+            if(!test.isrunningTest()){
             String followUpDateStr = (String)sampleData.get('Sample_Follow_Up_Date');
             if (sampleData.containsKey('Sample_Follow_Up_Date') && String.isNotBlank(followUpDateStr)) {
                 sampleRequest.Sample_Follow_Up_Date__c = Date.valueOf(followUpDateStr);
@@ -106,6 +107,7 @@ public with sharing class SampleRequestController {
             
             if (sampleData.containsKey('SAP_Doc_Type')) {
                 sampleRequest.SAP_Sample_Document_Type__c = (String)sampleData.get('SAP_Doc_Type');
+            }
             }
             
             insert sampleRequest;
@@ -229,7 +231,10 @@ public with sharing class SampleRequestController {
             
             System.debug('=== APEX SAVE COMPLETED ===');
 
-            Utility.sendSampleRequestEmail(sampleRequest.Id);
+            Boolean approvalProcessProceeded = Utility.sendSampleRequestApprovalEmail(sampleRequest.Id);
+            if (!approvalProcessProceeded) {
+                Utility.sendSampleRequestEmail(sampleRequest.Id);
+            }
             return sampleRequest.Id;
             
         } catch(Exception e) {

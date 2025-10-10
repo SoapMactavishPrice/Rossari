@@ -158,12 +158,24 @@
 
                     <!-- Customer Visit Fields -->
                     <template if:true={isCustomerVisit}>
-                        <lightning-layout-item size="12" large-device-size="5" small-device-size="5"
+
+                        <lightning-layout-item size="12" large-device-size="2" small-device-size="2"
+                        class="slds-m-around_small">Customer Type <abbr class="slds-required" title="required">*</abbr>
+                            <lightning-record-edit-form object-api-name="Visit_Report__c">
+                                <lightning-input-field field-name="Customer_Type__c" variant="label-hidden"
+                                    data-label="Customer_Type" onchange={handleCustomerTypeChange}></lightning-input-field>
+                            </lightning-record-edit-form>
+                        </lightning-layout-item>
+
+                        <!-- Existing Customer Fields - Show when Customer Type is 'Existing' -->
+                        <template if:true={showExistingCustomerFields}>
+
+                        <lightning-layout-item size="12" large-device-size="3" small-device-size="3"
                             class="slds-m-around_small">
                             <br />
                             <c-custom-account-lookup placeholder="Search by Customer..." data-label="Customer_Name"
                                 record-id={dataMap.Customer_Name} record-name={dataMap.Customer_Name_Display}
-                                onrecordselected={handleAccountSelectedForBillTo}>
+                                onrecordselected={handleAccountSelectedForBillTo} style="margin-top: -6px;">
                             </c-custom-account-lookup>
 
                         </lightning-layout-item>
@@ -171,7 +183,6 @@
                         <lightning-layout-item size="12" large-device-size="2" small-device-size="2"
                             class="slds-m-around_small">
                             <br />
-
                             <lightning-input type="text" label="Customer Code" value={sapCustomerCode}
                                 style="margin-top: -19px;" disabled>
                             </lightning-input>
@@ -185,6 +196,20 @@
                                 style="margin-top: -19px;" disabled>
                             </lightning-input>
                         </lightning-layout-item>
+                    </template>
+
+                        <!-- New Customer Field - Show when Customer Type is 'New' -->
+                        <template if:true={showNewCustomerField}>
+                            <lightning-layout-item size="12" large-device-size="5" small-device-size="5"
+                                class="slds-m-around_small">
+                                New Customer Name <abbr class="slds-required" title="required">*</abbr>
+                                <br />
+                                <lightning-record-edit-form object-api-name="Visit_Report__c">
+                                    <lightning-input-field field-name="New_Customer_Name__c" variant="label-hidden"
+                                        data-label="New_Customer" onchange={handleVisitChange}></lightning-input-field>
+                                </lightning-record-edit-form>
+                            </lightning-layout-item>
+                        </template>
                     </template>
 
                     <!-- Competitor Tracking Fields -->

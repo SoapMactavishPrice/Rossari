@@ -35,6 +35,7 @@ public class CustomerLedgerController {
         Account acc = [SELECT Id, Name, SAP_Customer_Code__c FROM Account WHERE Id = :accId];
 
         String filter = 'Company eq \''+company+'\' and Customer eq \''+acc.SAP_Customer_Code__c+'\' and DateFrom eq \''+fromDate+'\' and DateTo eq \''+toDate+'\'';
+        // String filter = 'Company eq \'1000\' and Customer eq \'1000374\' and DateFrom eq \'20.09.2024\' and DateTo eq \'15.12.2025\'';
         
         // URL encode the filter
         String encodedFilter = EncodingUtil.urlEncode(filter, 'UTF-8');
@@ -48,8 +49,8 @@ public class CustomerLedgerController {
         req.setMethod('GET');
         // req.setHeader('Accept', 'application/xml');
         // Add basic auth if needed
-        String username = 'saansu.sahoo@rossari.com';
-        String password = 'Saansu97@1';
+        String username = System.Label.CreateQuotation_ToSAP_Username;
+        String password = System.Label.CreateQuotation_ToSAP_Pass;
         String authHeader = 'Basic ' + EncodingUtil.base64Encode(Blob.valueOf(username + ':' + password));
         req.setHeader('Authorization', authHeader);
 
@@ -78,13 +79,14 @@ public class CustomerLedgerController {
                 }
             }
             // If no XString found
-            throw new AuraHandledException('XString element not found in response');
+            // throw new AuraHandledException('XString element not found in response');
         } else {
             // Log error or throw
             String err = 'Callout failed, status: ' + res.getStatusCode() + ' body: ' + res.getBody();
             System.debug(err);
-            throw new AuraHandledException(err);
+            // throw new AuraHandledException(err);
         }
+        return '';
     }
 
 

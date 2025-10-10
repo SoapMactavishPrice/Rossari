@@ -1,5 +1,39 @@
 public class CreateQuotation_ToSAP {
 
+
+    @AuraEnabled
+    public static string quoteValidation(String qId){
+        try {
+
+            Map<String, String> retResData = new Map<String, String>();
+            retResData.put('status', 'true');
+            retResData.put('message', '');
+
+            Quote q = [SELECT Id, SAP_Order_No__c, Status FROM Quote WHERE Id = :qId];
+
+            if (q.Status != 'Accepted') {
+                retResData.put('status', 'false');
+                retResData.put('sync', 'false');
+                retResData.put('message', 'Quote status is not Accepted');
+            } else
+            // if(q.PO_PI_Number__c == null || q.PO_Date__c == null){
+            //     retResData.put('status', 'false');
+            //     retResData.put('sync', 'false');
+            //     retResData.put('message', 'PO Number, PO Date cannot blank');
+            // } else
+            if(q.SAP_Order_No__c != null){
+                retResData.put('status', 'false');
+                retResData.put('sync', 'false');
+                retResData.put('message', 'Quotation already sent to SAP');
+            }
+
+            return JSON.serialize(retResData);
+            
+        } catch (Exception e) {
+            throw new AuraHandledException(e.getMessage());
+        }
+    }
+
     @AuraEnabled
     public static string getLineItem(String qId){
         try {
@@ -63,8 +97,8 @@ public class CreateQuotation_ToSAP {
         // salesInquiry.put('SalesOrg', '1000');
         // salesInquiry.put('DistrChan', '10');
         // salesInquiry.put('Division', '10');
-        // salesInquiry.put('SoldToParty_buyer', '100010');
-        // salesInquiry.put('ShipToParty', '100010');
+        // salesInquiry.put('SoldToParty_buyer', '1001017');
+        // salesInquiry.put('ShipToParty', '1001017');
         salesInquiry.put('SalesOrg', quote.Sales_Organisations__r.Name);
         salesInquiry.put('DistrChan', quote.Distribution_Channel__r.Distribution_Code__c);
         salesInquiry.put('Division', quote.Division__r.Division_Code__c);
@@ -73,11 +107,11 @@ public class CreateQuotation_ToSAP {
         salesInquiry.put('SalesDocument', '');
         salesInquiry.put('Inco_term', '');
         salesInquiry.put('Payment_terms', '');
-        salesInquiry.put('PurchNoC', '');
+        salesInquiry.put('PurchNoC', 'PO123456');
         salesInquiry.put('SalesPerson', '');
         salesInquiry.put('BillTo', '');
         salesInquiry.put('payer', '');
-        salesInquiry.put('Date', '');
+        salesInquiry.put('Date', '20251009');
         salesInquiry.put('Destination_Text', '');
         salesInquiry.put('Sales_Note_Text', '');
         salesInquiry.put('Transpoter', '');
@@ -101,8 +135,10 @@ public class CreateQuotation_ToSAP {
             Dom.Document doc = res.getBodyDocument();
             Dom.XMLNode root = doc.getRootElement(); // <Sales_InquirySet>
             Dom.XMLNode inquiry = root.getChildElement('Sales_Inquiry', null);
+            Dom.XMLNode returnnode = inquiry.getChildElement('Return', null);
+            String msg = returnnode.getChildElement('Message', null).getText();
             String salesDoc = inquiry.getChildElement('SalesDocument', null).getText();
-            
+
             quote.SAP_Order_No__c = salesDoc;
             update quote;
 
@@ -113,7 +149,7 @@ public class CreateQuotation_ToSAP {
 
             responseMap.put('SalesDocument', salesDoc);
             responseMap.put('StatusCode', res.getStatusCode());
-            responseMap.put('message', '');
+            responseMap.put('message', msg);
 
             return JSON.serialize(responseMap);
         } else {

@@ -4,34 +4,48 @@ import { NavigationMixin } from 'lightning/navigation';
 import getExistingCostingItems from '@salesforce/apex/NPDCostingController.getExistingCostingItems';
 import saveCostingItems from '@salesforce/apex/NPDCostingController.saveCostingItems';
 import deleteCostingItem from '@salesforce/apex/NPDCostingController.deleteCostingItem';
-import getYieldAndRMCChange from '@salesforce/apex/NPDCostingController.getYieldAndRMCChange';
 
 export default class NpdCostingLineItems extends NavigationMixin(LightningElement) {
     @api recordId; // New_Product_Development__c record Id
     @track lineItems = [];
     @track isLoading = false;
     @track yieldAndRMCChange = 0;
-    @track deletedItemIds = []; // Hold deleted IDs until save
+    @track parentMolecularWeight = 0;
+    @track deletedItemIds = [];
 
+    // New fields for additional parent object fields
+    @track yieldField = 0;
+    @track manufacturingCost = 0;
+    @track profitExpectedPerKg = 0;
+    @track sellingPrice = 0;
+
+    // Reference table properties
+    @track referenceRows = [];
 
     connectedCallback() {
         this.loadData();
+        this.addEmptyReferenceRow(); // Start with one empty row
     }
 
     loadData() {
         this.isLoading = true;
 
         if (this.recordId) {
-            // First get the Yield_and_RMC_change__c value
-            getYieldAndRMCChange({ recordId: this.recordId })
-                .then(yieldValue => {
-                    this.yieldAndRMCChange = yieldValue || 0;
+            getExistingCostingItems({ recordId: this.recordId })
+                .then(result => {
+                    console.log('Full result:', JSON.stringify(result));
 
-                    // Then load existing costing items
-                    return getExistingCostingItems({ recordId: this.recordId });
-                })
-                .then(existingItems => {
-                    console.log('Existing items:', JSON.stringify(existingItems));
+                    // Set parent fields from the result
+                    this.parentMolecularWeight = result.parentMolecularWeight || 0;
+                    this.yieldAndRMCChange = result.yieldAndRMCChange || 0;
+
+                    // Set additional parent fields
+                    this.yieldField = result.yieldField || 0;
+                    this.manufacturingCost = result.manufacturingCost || 0;
+                    this.profitExpectedPerKg = result.profitExpectedPerKg || 0;
+                    this.sellingPrice = result.sellingPrice || 0;
+
+                    const existingItems = result.costingItems;
 
                     if (existingItems && existingItems.length > 0) {
                         this.lineItems = existingItems.map(item => ({
@@ -42,11 +56,12 @@ export default class NpdCostingLineItems extends NavigationMixin(LightningElemen
                             usedInBatch: item.Used_in_Batch_Kgs__c || null,
                             recovered: item.Recoverd__c || null,
                             consumed: item.Consumed_Kgs__c || null,
-                            kgRmPerKgProduct: item.Kg_RM_Kg_product__c, // This comes from formula field
+                            kgRmPerKgProduct: item.Kg_RM_Kg_Product__c,
                             unitCostPerKg: item.Unit_Cost_Per_Kg__c || null,
                             costInBatch: item.Cost_in_Batch__c || null,
                             costPerKg: item.Cost_Per_Kg__c || null,
-                            gmoles: item.Gmoles__c || null
+                            gmoles: item.Gmoles__c || null,
+                            useForYieldCalc: item.Use_for_Yield_Calc__c || false
                         }));
                         console.log('lineItems items:', JSON.stringify(this.lineItems));
                     } else {
@@ -66,7 +81,115 @@ export default class NpdCostingLineItems extends NavigationMixin(LightningElemen
         }
     }
 
-    // Handler methods for each field
+    // Reference table methods
+    addEmptyReferenceRow() {
+        const newRow = {
+            key: this.generateId(),
+            molarYield: null,
+            rmc: null,
+            cost: null,
+            sellingPrice: null
+        };
+        this.referenceRows = [...this.referenceRows, newRow];
+        this.updateDeleteButtonVisibility();
+    }
+
+    updateDeleteButtonVisibility() {
+        const total = this.referenceRows.length;
+        this.referenceRows = this.referenceRows.map((row, index) => {
+            return {
+                ...row,
+                shouldShowDeleteButton: total > 1 && index !== total - 1
+            };
+        });
+    }
+
+
+    handleMolarYieldChange(event) {
+        const index = event.target.dataset.index;
+        this.referenceRows[index].molarYield = event.detail.value ? parseFloat(event.detail.value) : null;
+        this.calculateReferenceRow(index);
+    }
+
+    handleRMCChange(event) {
+        const index = event.target.dataset.index;
+        this.referenceRows[index].rmc = event.detail.value ? parseFloat(event.detail.value) : null;
+        this.calculateReferenceRow(index);
+    }
+
+    calculateReferenceRow(index) {
+        const row = this.referenceRows[index];
+
+        // Cost = RMC * (1 + 0.15) = RMC * 1.15
+        if (row.rmc !== null) {
+            row.cost = row.rmc * 1.15;
+        } else {
+            row.cost = null;
+        }
+
+        // Selling Price = Cost + Profit Expected Per Kg
+        if (row.cost !== null && this.profitExpectedPerKg !== null) {
+            row.sellingPrice = row.cost + this.profitExpectedPerKg;
+        } else {
+            row.sellingPrice = null;
+        }
+
+        this.referenceRows = [...this.referenceRows];
+    }
+
+    handleAddReferenceRow() {
+        this.addEmptyReferenceRow();
+    }
+
+    handleDeleteReferenceRow(event) {
+        const index = event.target.dataset.index;
+        if (this.referenceRows.length > 1) {
+            this.referenceRows.splice(index, 1);
+            this.referenceRows = [...this.referenceRows];
+            this.updateDeleteButtonVisibility();
+        }
+    }
+
+
+    // Method to determine if delete button should be shown for reference rows
+    getShowDeleteReferenceButton(index) {
+        return index !== this.referenceRows.length - 1;
+    }
+
+    // Handler for Use for Yield Calc checkbox
+    handleUseForYieldCalcChange(event) {
+        const index = event.target.dataset.index;
+        this.lineItems[index].useForYieldCalc = event.detail.checked;
+        this.lineItems = [...this.lineItems];
+    }
+
+    // Parent field handlers
+    handleParentMolecularWeightChange(event) {
+        this.parentMolecularWeight = event.detail.value ? parseFloat(event.detail.value) : null;
+        this.recalculateAllDerivedFields();
+    }
+
+    handleYieldAndRMCChange(event) {
+        this.yieldAndRMCChange = event.detail.value ? parseFloat(event.detail.value) : null;
+        this.recalculateAllDerivedFields();
+    }
+
+    handleProfitExpectedPerKgChange(event) {
+        this.profitExpectedPerKg = event.detail.value ? parseFloat(event.detail.value) : null;
+        // Recalculate all reference rows when profit changes
+        this.referenceRows.forEach((row, index) => {
+            this.calculateReferenceRow(index);
+        });
+    }
+
+    // Recalculate all derived fields when parent fields change
+    recalculateAllDerivedFields() {
+        this.lineItems.forEach((item, index) => {
+            this.calculateDerivedFields(index);
+        });
+    }
+
+    // Line item handlers
     handleNameChange(event) {
         const index = event.target.dataset.index;
         const value = event.detail.value;
@@ -141,9 +264,6 @@ export default class NpdCostingLineItems extends NavigationMixin(LightningElemen
         }
 
         // Calculate Kg RM / Kg Product for UI display only
-        // This matches the formula: Consumed_Kgs__c / New_Product_Development__r.Yield_and_RMC_change__c
-        console.log('item.consumed', item.consumed + '  - ' + this.yieldAndRMCChange);
-
         if (item.consumed !== null && this.yieldAndRMCChange !== null && this.yieldAndRMCChange !== 0) {
             item.kgRmPerKgProduct = item.consumed / this.yieldAndRMCChange;
         } else {
@@ -165,8 +285,9 @@ export default class NpdCostingLineItems extends NavigationMixin(LightningElemen
         }
 
         // Gmoles = (Consumed * 1000) / Molecular Weight
-        if (item.consumed !== null && item.molWeight !== null && item.molWeight !== 0) {
-            item.gmoles = (item.consumed * 1000) / item.molWeight;
+        const molecularWeight = item.molWeight !== null ? item.molWeight : this.parentMolecularWeight;
+        if (item.consumed !== null && molecularWeight !== null && molecularWeight !== 0) {
+            item.gmoles = (item.consumed * 1000) / molecularWeight;
         } else {
             item.gmoles = null;
         }
@@ -188,49 +309,46 @@ export default class NpdCostingLineItems extends NavigationMixin(LightningElemen
             unitCostPerKg: null,
             costInBatch: null,
             costPerKg: null,
-            gmoles: null
+            gmoles: null,
+            useForYieldCalc: false
         }];
     }
 
-    handleAddItem() {
-        this.addEmptyRow();
+    handleAddItem(event) {
+        const index = parseInt(event.target.dataset.index, 10);
+        const originalItem = this.lineItems[index];
+
+        if (!originalItem) {
+            console.error('Item not found for index:', index);
+            return;
+        }
+
+        const newItem = {
+            ...originalItem,
+            key: this.generateId(),
+            id: null,
+            name: '',
+            molWeight: null,
+            usedInBatch: null,
+            recovered: null,
+            consumed: null,
+            kgRmPerKgProduct: null,
+            unitCostPerKg: null,
+            costInBatch: null,
+            costPerKg: null,
+            gmoles: null,
+            useForYieldCalc: false
+        };
+
+        const originalIndex = this.lineItems.findIndex(item => item.key === originalItem.key);
+        this.lineItems.splice(originalIndex + 1, 0, newItem);
+        this.lineItems = [...this.lineItems];
     }
 
     getDeleteButtonClass(index) {
         const item = this.lineItems[index];
         return item?.id ? '' : 'slds-hide';
     }
-
-    // handleDeleteItem(event) {
-    //     const index = event.target.dataset.index;
-    //     const item = this.lineItems[index];
-
-    //     if (this.lineItems.length <= 1) {
-    //         this.showError('Cannot delete', 'At least one item is required');
-    //         return;
-    //     }
-
-    //     // If record has been saved (has an Id), delete from Salesforce
-    //     if (item.id) {
-    //         this.isLoading = true;
-    //         deleteCostingItem({ costingItemId: item.id })
-    //             .then(() => {
-    //                 this.lineItems.splice(index, 1);
-    //                 this.lineItems = [...this.lineItems];
-    //                 this.showSuccess('Deleted', 'Costing item deleted successfully');
-    //             })
-    //             .catch(error => {
-    //                 this.showError('Delete Failed', error.body?.message || error.message);
-    //             })
-    //             .finally(() => {
-    //                 this.isLoading = false;
-    //             });
-    //     } else {
-    //         // Unsaved row — just remove from UI
-    //         this.lineItems.splice(index, 1);
-    //         this.lineItems = [...this.lineItems];
-    //     }
-    // }
 
     handleDeleteItem(event) {
         const index = event.target.dataset.index;
@@ -251,45 +369,18 @@ export default class NpdCostingLineItems extends NavigationMixin(LightningElemen
         this.lineItems = [...this.lineItems];
     }
 
+    // Save and Refresh - Stay on the same page and reload data
+    handleSaveAndRefresh() {
+        this.saveData(false);
+    }
 
-    // handleSave() {
-    //     if (this.validateForm()) {
-    //         this.isLoading = true;
+    // Save and Exit - Save and redirect to NPD record
+    handleSaveAndExit() {
+        this.saveData(true);
+    }
 
-    //         const itemsToSave = this.lineItems.map(item => ({
-    //             id: item.id || null,
-    //             name: item.name,
-    //             molWeight: item.molWeight,
-    //             usedInBatch: item.usedInBatch,
-    //             recovered: item.recovered,
-    //             consumed: item.consumed,
-    //             // DO NOT include kgRmPerKgProduct as it's a formula field
-    //             unitCostPerKg: item.unitCostPerKg,
-    //             costInBatch: item.costInBatch,
-    //             costPerKg: item.costPerKg,
-    //             gmoles: item.gmoles
-    //         }));
-
-    //         saveCostingItems({
-    //             recordId: this.recordId,
-    //             costingItems: JSON.stringify(itemsToSave)
-    //         })
-    //             .then(() => {
-    //                 this.showSuccess('Success', 'Costing items saved successfully');
-    //                 this.navigateToNPDRecord(); // <--- Redirect after save
-    //             })
-    //             .catch(error => {
-    //                 console.error('Detailed error:', JSON.stringify(error, null, 2));
-    //                 this.showError('Save Failed', error.body?.message || error.message);
-    //             })
-    //             .finally(() => {
-    //                 this.isLoading = false;
-    //             });
-
-    //     }
-    // }
-
-    handleSave() {
+    // Common save method with navigation flag
+    saveData(shouldNavigateAway) {
         if (this.validateForm()) {
             this.isLoading = true;
 
@@ -303,13 +394,17 @@ export default class NpdCostingLineItems extends NavigationMixin(LightningElemen
                 unitCostPerKg: item.unitCostPerKg,
                 costInBatch: item.costInBatch,
                 costPerKg: item.costPerKg,
-                gmoles: item.gmoles
+                gmoles: item.gmoles,
+                useForYieldCalc: item.useForYieldCalc
             }));
 
-            // 1. Call Apex method to save items
+            // 1. Call Apex method to save items AND parent fields
             saveCostingItems({
                 recordId: this.recordId,
-                costingItems: JSON.stringify(itemsToSave)
+                costingItems: JSON.stringify(itemsToSave),
+                molecularWeight: this.parentMolecularWeight,
+                yieldAndRMCChange: this.yieldAndRMCChange,
+                profitExpectedPerKg: this.profitExpectedPerKg
             })
                 .then(() => {
                     // 2. After saving items, delete the marked ones
@@ -320,9 +415,14 @@ export default class NpdCostingLineItems extends NavigationMixin(LightningElemen
                     }
                 })
                 .then(() => {
-                    this.showSuccess('Success', 'Costing items saved successfully');
-                    this.deletedItemIds = []; // clear deleted items tracker
-                    this.navigateToNPDRecord(); // Redirect
+                    this.showSuccess('Success', 'Records Saved successfully');
+                    this.deletedItemIds = [];
+
+                    if (shouldNavigateAway) {
+                        this.navigateToNPDRecord();
+                    } else {
+                        this.refreshCurrentPage();
+                    }
                 })
                 .catch(error => {
                     console.error('Detailed error:', JSON.stringify(error, null, 2));
@@ -332,6 +432,13 @@ export default class NpdCostingLineItems extends NavigationMixin(LightningElemen
                     this.isLoading = false;
                 });
         }
+    }
+
+    // Refresh current page without navigation
+    refreshCurrentPage() {
+        setTimeout(() => {
+            window.location.reload();
+        }, 1000);
     }
 
     handleCancel() {
@@ -356,6 +463,23 @@ export default class NpdCostingLineItems extends NavigationMixin(LightningElemen
         let isValid = true;
         let errorMessage = '';
 
+        // Validate parent fields
+        if (this.parentMolecularWeight !== null && isNaN(this.parentMolecularWeight)) {
+            errorMessage = 'Please enter a valid number for Molecular Weight of the Product';
+            isValid = false;
+        }
+
+        if (this.yieldAndRMCChange !== null && isNaN(this.yieldAndRMCChange)) {
+            errorMessage = 'Please enter a valid number for Yield and RMC Change';
+            isValid = false;
+        }
+
+        if (this.profitExpectedPerKg !== null && isNaN(this.profitExpectedPerKg)) {
+            errorMessage = 'Please enter a valid number for Profit Expected Per Kg';
+            isValid = false;
+        }
+
+        // Validate line items
         this.lineItems.forEach((item, index) => {
             if (!item.name) {
                 errorMessage = `Please enter a Name for row ${index + 1}`;
@@ -363,7 +487,6 @@ export default class NpdCostingLineItems extends NavigationMixin(LightningElemen
                 return;
             }
 
-            // Validate numeric fields
             const numericFields = [
                 { field: item.molWeight, name: 'Molecular Weight' },
                 { field: item.usedInBatch, name: 'Used in Batch' },

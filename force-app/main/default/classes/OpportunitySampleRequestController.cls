@@ -225,7 +225,10 @@ public static String saveSample(String leadId, String sampleJs,
         }
         
         System.debug('=== APEX SAVE COMPLETED ===');
-        Utility.sendSampleRequestEmail(sampleRequest.Id);
+        Boolean approvalProcessProceeded = Utility.sendSampleRequestApprovalEmail(sampleRequest.Id);
+        if (!approvalProcessProceeded) {
+            Utility.sendSampleRequestEmail(sampleRequest.Id);
+        }
         return sampleRequest.Id;
         
     } catch(Exception e) {

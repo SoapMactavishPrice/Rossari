@@ -162,6 +162,11 @@
                                     style="text-align: center; font-size: 13px; background-color: #9d0b0f; font-weight: bold; padding: 4px 6px; color: white;">
                                     Amount Claimed
                                 </th>
+
+                                <th class="remark" if:true={showRemarkColumn}
+                                    style="text-align: center; font-size: 13px; background-color: #9d0b0f; font-weight: bold; padding: 4px 6px; color: white;">
+                                    Remark
+                                </th>
                                 <th class="reason" if:true={showReasonColumn}
                                     style="text-align: center; font-size: 13px; background-color: #9d0b0f; font-weight: bold; padding: 4px 6px; color: white;">
                                     Reason
@@ -204,7 +209,7 @@
                                         <lightning-combobox name="transportMode" value={item.transportMode}
                                             data-index={index} options={item.transportOptions}
                                             onchange={handleTransportModeChange} variant="label-hidden"
-                                            required={showLocalFields}>
+                                            required={showLocalFields} disabled={item.disableTransportMode}>
                                         </lightning-combobox>
                                     </td>
                                     <td if:true={showOutstationFields}>
@@ -212,7 +217,7 @@
                                             value={item.outstationTransportMode} data-index={index}
                                             options={allTransportModeOptions}
                                             onchange={handleOutstationTransportModeChange} variant="label-hidden"
-                                            required={showOutstationFields}>
+                                            required={showOutstationFields} disabled={item.disableTransportMode}>
                                         </lightning-combobox>
                                     </td>
                                     <td if:true={showLocalFields}>
@@ -298,6 +303,15 @@
                                             </lightning-input>
                                         </div>
                                     </td>
+
+                                    <td if:true={showRemarkColumn} style="width: 20%;">
+                                        <lightning-input value={item.remark}
+                                            placeholder="Enter remark for Special voucher" data-index={index}
+                                            onchange={handleRemarkChange} variant="label-hidden"
+                                            required={showRemarkColumn}>
+                                        </lightning-input>
+                                    </td>
+
                                     <td if:true={showReasonColumn}>
                                         <lightning-textarea value={item.reason}
                                             placeholder="Enter reason for Misc expense" data-index={index}

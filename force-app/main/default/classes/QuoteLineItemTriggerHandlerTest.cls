@@ -4,6 +4,32 @@ public class QuoteLineItemTriggerHandlerTest {
     @testSetup
     static void setupData() {
         // Create Account
+        Pricebook2 standardPricebook = new Pricebook2(
+            Id = Test.getStandardPricebookId(),
+            IsActive = true
+        );
+        update standardPricebook;
+
+        Base_UoM_Master__c baseUom = new Base_UoM_Master__c(Name = 'Kilogram');
+        insert baseUom;
+
+        Product2 prod = new Product2(
+            Name = 'Test Product',
+            ProductCode = 'TP001',
+            Pack_Size__c = '10kg',
+            Base_UOM__c = baseUom.Id,
+            IsActive = true
+        );
+        insert prod;
+
+        PricebookEntry pbe = new PricebookEntry(
+            Pricebook2Id = standardPricebook.Id,
+            Product2Id = prod.Id,
+            UnitPrice = 100,
+            IsActive = true
+        );
+        insert pbe;
+
         Account acc = new Account(Name = 'Test Account');
         insert acc;
 
@@ -16,38 +42,12 @@ public class QuoteLineItemTriggerHandlerTest {
         );
         insert opp;
 
-        // Create Product
-        Product2 prod = new Product2(
-            Name = 'Test Product',
-            IsActive = true
-        );
-        insert prod;
-
-        // Activate Standard Pricebook
-        Id stdPbId = Test.getStandardPricebookId();
-        
-        Pricebook2 standardpricebook = new Pricebook2(Name = 'Test Pricebook 2', IsActive = true);
-        insert standardpricebook ;
-        
-        if (!standardpricebook.IsActive) {
-            standardpricebook.IsActive = true;
-            update standardpricebook;
-        }
-
-        // Create PricebookEntry
-        PricebookEntry pbe = new PricebookEntry(
-            Product2Id = prod.Id,
-            Pricebook2Id = stdPbId,
-            UnitPrice = 100,
-            IsActive = true
-        );
-        insert pbe;
 
         // Create Quote
         Quote quote = new Quote(
             Name = 'Test Quote',
             OpportunityId = opp.Id,
-            Pricebook2Id = stdPbId,
+            Pricebook2Id = standardPricebook.Id,
             Status = 'Draft'
         );
         insert quote;

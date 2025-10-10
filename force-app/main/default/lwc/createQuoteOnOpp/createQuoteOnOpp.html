@@ -55,10 +55,9 @@
 
             <div class="slds-col slds-size_1-of-4 slds-p-around_x-small" style="margin-left: -21px;margin-right: 22px;">
                 <lightning-combobox label="Inco Terms" value={quoteFields.incoTerms} options={incoTermsOptions}
-                    data-field="incoTerms" onchange={handleFieldChange}>
+                    data-field="incoTerms" onchange={handleIncoTermsChange}>
                 </lightning-combobox>
             </div>
-
             <!-- <template if:true={paymetTermField}> -->
             <div class="slds-col slds-size_1-of-4 slds-p-around_x-small" style="margin-left: -21px;margin-right: 22px;">
                 <lightning-record-picker label="Payment Term" placeholder="Search Payment Terms..."
@@ -74,12 +73,14 @@
             </div>
 
             <!-- Add Container Type Field -->
-            <div class="slds-col slds-size_1-of-4 slds-p-around_x-small" style="margin-right: -34px;">
-                <lightning-input type="text" label="Container Type" value={quoteFields.containerType}
-                    onchange={handleContainerTypeChange} maxlength="255"
-                    style="margin-left: -22px;margin-right: -14px;">
-                </lightning-input>
-            </div>
+            <template if:true={showContainerType}>
+                <div class="slds-col slds-size_1-of-4 slds-p-around_x-small" style="margin-right: -34px;">
+                    <lightning-input type="text" label="Container Type" value={quoteFields.containerType}
+                        onchange={handleContainerTypeChange} maxlength="255"
+                        style="margin-left: -22px;margin-right: -14px;">
+                    </lightning-input>
+                </div>
+            </template>
             <!-- </template> -->
         </div>
 

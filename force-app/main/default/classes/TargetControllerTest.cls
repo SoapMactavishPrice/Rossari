@@ -3,11 +3,26 @@ private class TargetControllerTest {
 
     @testSetup
     static void setupData() {
-        // Create a test Product
-        Product2 prod = new Product2(Name='Test Product', IsActive=true);
-        insert prod;
+        Pricebook2 standardPricebook = new Pricebook2(
+            Id = Test.getStandardPricebookId(),
+            IsActive = true
+        );
+        update standardPricebook;
 
-        // Create test User (Sales Employee)
+        Product2 testProduct = new Product2(
+            Name = 'Test Product',
+            IsActive = true
+        );
+        insert testProduct;
+
+        PricebookEntry standardPBE = new PricebookEntry(
+            Pricebook2Id = standardPricebook.Id,
+            Product2Id = testProduct.Id,
+            UnitPrice = 100.00,
+            IsActive = true
+        );
+        insert standardPBE;
+
         Profile p = [SELECT Id FROM Profile WHERE Name = 'Standard User' LIMIT 1];
         User u = new User(
             FirstName = 'Test',
@@ -23,13 +38,11 @@ private class TargetControllerTest {
         );
         insert u;
 
-        // Create a test FY record (assuming FY__c is a custom object)
         FY__c fy = new FY__c(Name='FY25');
         insert fy;
 
-        // Create a Target record
         Target__c target = new Target__c(
-            Product__c = prod.Id,
+            Product__c = testProduct.Id,
             Month__c = 'January',
             Year__c = '2025',
             Quantity__c = 10,
@@ -46,7 +59,6 @@ private class TargetControllerTest {
         List<Product2> products = TargetController.getAllProducts();
         Test.stopTest();
 
-        
     }
 
     @isTest
@@ -58,7 +70,6 @@ private class TargetControllerTest {
         List<Target__c> targets = TargetController.getExistingTargets(fy.Id, u.Id);
         Test.stopTest();
 
-        
     }
 
     @isTest
@@ -66,7 +77,6 @@ private class TargetControllerTest {
         Test.startTest();
         TargetController.PicklistValues values = TargetController.getPicklistValues();
         Test.stopTest();
-
     }
 
     @isTest
@@ -75,7 +85,6 @@ private class TargetControllerTest {
         FY__c fy = [SELECT Id FROM FY__c LIMIT 1];
         User u = [SELECT Id FROM User WHERE Username LIKE 'testuser%@example.com' LIMIT 1];
 
-        // Create a new Target to upsert
         Target__c newTarget = new Target__c(
             Product__c = prod.Id,
             Month__c = 'February',
@@ -92,7 +101,6 @@ private class TargetControllerTest {
 
         Target__c insertedTarget = [SELECT Id, Quantity__c FROM Target__c WHERE Month__c = 'February' LIMIT 1];
 
-        // Negative case - pass empty list
         Boolean exceptionThrown = false;
         try {
             TargetController.saveTargets(new List<Target__c>());

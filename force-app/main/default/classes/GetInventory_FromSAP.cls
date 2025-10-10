@@ -22,14 +22,15 @@ public class GetInventory_FromSAP {
     
     // @future(callout=true)
     @auraEnabled
-    public static List<InventoryData> fetchInventoryData() {
+    public static List<InventoryData> fetchInventoryData(String materialNumber) {
         try {
             Http http = new Http();
             HttpRequest req = new HttpRequest();
 
             // Build the endpoint with filter
             String baseUrl = System.Label.SAP_Inventory_API; 
-            String filter = 'MaterialNumber eq \'170000000003\' and Plant eq \' \' and MaterialType eq \'ZFG\'';
+            // String filter = 'MaterialNumber eq \'170000000003\' and Plant eq \' \' and MaterialType eq \'ZFG\'';
+            String filter = 'MaterialNumber eq \''+materialNumber+'\' and Plant eq \' \' and MaterialType eq \'ZFG\'';
             String endpoint = baseUrl + EncodingUtil.urlEncode(filter, 'UTF-8');
 
             System.debug('Final SAP URL: ' + endpoint);

@@ -70,7 +70,15 @@ public with sharing class SAPOutstandingParser {
             rec.Sales_District__c = getValue(cell, 'SalesDistrict');
             rec.Sales_District_Text__c = getValue(cell, 'SalesDistrictText');
             rec.Sales_Group_Des__c = getValue(cell, 'SalesGroupDes');
+            rec.Sales_Group__c = getValue(cell, 'SalesGroup');
+            rec.Reference__c = getValue(cell, 'Reference');
+            rec.ProfitCentreDes__c = getValue(cell, 'ProfitCentreDes');
+            rec.Recon_Account__c = getValue(cell, 'ReconAccount');
+            rec.Document_Number__c = getValue(cell, 'DocumentNumber');
+            rec.Document_Type__c = getValue(cell, 'DocumentType');
+            rec.GI_Account__c = getValue(cell, 'GlAccount');
             rec.Original_Doc__c = getValue(cell, 'OriginalDoc');
+            rec.Line_Item__c = getValue(cell, 'LineItem');
             if (profitCenterDesMap.containsKey(getValue(cell, 'ProfitCenter'))) {
                 rec.Profit_Center_Des__c = profitCenterDesMap.get(getValue(cell, 'ProfitCenter')).Id;
             }
@@ -78,7 +86,8 @@ public with sharing class SAPOutstandingParser {
             rec.Material_Text__c = getValue(cell, 'MaterialText');
             rec.Gl_Account_Des__c = getValue(cell, 'GlAccountDes');
             rec.Sal_Dis_Des__c = getValue(cell, 'SalDisDes');
-            rec.Customer_Group__c = getValue(cell, 'CustomerGroupt');
+            rec.Customer_Group__c = getValue(cell, 'CustomerGroup');
+            rec.Customer_Group_Des__c = getValue(cell, 'CustomerGroupDes');
             rec.City__c = getValue(cell, 'City');
             rec.Division_Des__c = getValue(cell, 'DivisionDes');
             rec.Sales_Office_Des__c = getValue(cell, 'SalesOfficeDes');
@@ -90,10 +99,15 @@ public with sharing class SAPOutstandingParser {
             rec.Not_Overdue_Bucket_7__c = getValue(cell, 'NotOverdueBucket7');
             rec.Segment__c = getValue(cell, 'Segment');
             rec.Credit_Control_Area__c = getValue(cell, 'CreditControlArea');
-            rec.Overdue_Bucket_3__c = getValue(cell, 'OverdueBucket3');
             rec.Special_GL__c = getValue(cell, 'SpecialGL');
+            rec.Overdue_Bucket_3__c = getValue(cell, 'OverdueBucket3');
+            rec.Overdue_Bucket_2__c = getValue(cell, 'OverdueBucket2');
             rec.Overdue_Bucket_5__c = getValue(cell, 'OverdueBucket5');
             rec.Overdue_Bucket_4__c = getValue(cell, 'OverdueBucket4');
+            rec.Overdue_Bucket_7__c = getValue(cell, 'OverdueBucket7');
+            rec.Overdue_Bucket_6__c = getValue(cell, 'OverdueBucket6');
+            rec.Overdue_Bucket_8__c = getValue(cell, 'OverdueBucket8');
+            rec.Overdue_Bucket_1__c = getValue(cell, 'OverdueBucket1');
             rec.Payment_Term_Des__c = getValue(cell, 'PaymentTerms');
             rec.Sales_Office__c = getValue(cell, 'SalesOfficee');
             rec.Segment_Des__c = getValue(cell, 'SegmentsDes');
