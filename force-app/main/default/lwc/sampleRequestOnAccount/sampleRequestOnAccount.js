@@ -282,6 +282,15 @@ export default class AccountSampleRequest extends NavigationMixin(LightningEleme
         this.navigateToRecord(this.recordId);
     }
 
+    handleCustomerProductNameChange(event) {
+        const sqNo = event.target.dataset.id;
+        const value = event.target.value;
+        const index = this.SampleLine.findIndex(line => line.sqNo === sqNo);
+        if (index === -1) return;
+        this.SampleLine[index].customerProductName = value;
+        this.SampleLine = [...this.SampleLine];
+    }
+
     viewFile() {
         if (this.filesData.length > 0) {
             this.isViewFile = true;

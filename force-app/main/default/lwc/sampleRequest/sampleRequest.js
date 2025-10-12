@@ -269,6 +269,16 @@ export default class SampleRequestForm extends NavigationMixin(LightningElement)
         this.SampleLine = [...this.SampleLine];
     }
 
+    handleCustomerProductNameChange(event) {
+        const sqNo = event.target.dataset.id;
+        const value = event.target.value;
+        const index = this.SampleLine.findIndex(line => line.sqNo === sqNo);
+        if (index === -1) return;
+        this.SampleLine[index].customerProductName = value;
+        this.SampleLine = [...this.SampleLine];
+    }
+
+
     handleUploadClick() {
         this.template.querySelector('.hiddenFileInput').click();
     }

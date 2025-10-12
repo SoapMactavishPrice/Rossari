@@ -89,6 +89,8 @@ public static String saveSample(String accountId, String sampleJs,
             }
             
             srlItems.add(new Sample_Request_Line_Item__c(
+                Customer_Product_Name__c = item.containsKey('customerProductName') && String.isNotEmpty(String.valueOf(item.get('customerProductName')))
+                                ? String.valueOf(item.get('customerProductName')) : '',
                 Sample_Request__c = sampleRequest.Id,
                 Product__c = (String)item.get('prodId'),
                 Sample_Qty_in_Kgs__c = sampleQty,
@@ -128,9 +130,11 @@ public static String saveSample(String accountId, String sampleJs,
                 insert contentVersions;
             }
         }
-        Boolean approvalProcessProceeded = Utility.sendSampleRequestApprovalEmail(sampleRequest.Id);
-        if (!approvalProcessProceeded) {
-            Utility.sendSampleRequestEmail(sampleRequest.Id);
+        if (sampleRequest.Sales_HOD__c != null || sampleRequest.Additional_Email__c != null) {
+            Boolean approvalProcessProceeded = Utility.sendSampleRequestApprovalEmail(sampleRequest.Id);
+            if (!approvalProcessProceeded) {
+                Utility.sendSampleRequestEmail(sampleRequest.Id);
+            }
         }
         return sampleRequest.Id;
         

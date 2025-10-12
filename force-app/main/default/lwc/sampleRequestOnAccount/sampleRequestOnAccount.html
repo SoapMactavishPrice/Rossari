@@ -104,7 +104,9 @@
                                 <th
                                     style="text-align: center; font-size: 13px; background-color: #9d0b0f; font-weight: bold; padding: 4px 6px; color: white;">
                                     Description</th>
-
+                                <th
+                                    style="text-align: center; font-size: 13px; background-color: #9d0b0f; font-weight: bold; padding: 4px 6px; color: white;">
+                                    Customer Product Name</th>
                                 <th
                                     style="text-align: center; font-size: 13px; background-color: #9d0b0f; font-weight: bold; padding: 4px 6px; color: white;">
                                     Rate({currencyIsoCode})</th>
@@ -134,6 +136,15 @@
                                     <td>
                                         <lightning-input type="text" value={item.Description} disabled
                                             variant="label-hidden"></lightning-input>
+                                    </td>
+                                    <td>
+                                        <lightning-input 
+                                            type="text" 
+                                            value={item.customerProductName}
+                                            data-id={item.sqNo}
+                                            onchange={handleCustomerProductNameChange}
+                                            variant="label-hidden">
+                                        </lightning-input>
                                     </td>
                                     <td>
                                         <lightning-input type="number" value={item.Sales_Price}

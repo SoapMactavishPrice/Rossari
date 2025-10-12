@@ -139,6 +139,8 @@ public with sharing class SampleRequestController {
                         }
                         
                         lineItems.add(new Sample_Request_Line_Item__c(
+                            Customer_Product_Name__c = line.containsKey('customerProductName') && String.isNotEmpty(String.valueOf(line.get('customerProductName')))
+                                ? String.valueOf(line.get('customerProductName')) : '',
                             Sample_Request__c = sampleRequest.Id,
                             Product__c = (String)line.get('prodId'),
                             Sample_Qty_in_Kgs__c = line.containsKey('Sample_Qty_in_Kgs') && String.isNotEmpty(String.valueOf(line.get('Sample_Qty_in_Kgs')))
@@ -230,10 +232,11 @@ public with sharing class SampleRequestController {
             }
             
             System.debug('=== APEX SAVE COMPLETED ===');
-
-            Boolean approvalProcessProceeded = Utility.sendSampleRequestApprovalEmail(sampleRequest.Id);
-            if (!approvalProcessProceeded) {
-                Utility.sendSampleRequestEmail(sampleRequest.Id);
+            if (sampleRequest.Sales_HOD__c != null || sampleRequest.Additional_Email__c != null) {
+                Boolean approvalProcessProceeded = Utility.sendSampleRequestApprovalEmail(sampleRequest.Id);
+                if (!approvalProcessProceeded) {
+                    Utility.sendSampleRequestEmail(sampleRequest.Id);
+                }
             }
             return sampleRequest.Id;
             

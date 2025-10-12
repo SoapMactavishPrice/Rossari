@@ -252,6 +252,7 @@ public with sharing class Utility {
             '<tr style="background-color: #f2f2f2;">' +
             '<th>Name</th><th>Product Name</th><th>Product Code</th><th>Rate</th><th>Quantity</th></tr>';
 
+        List<Sample_Request_Line_Item__c> toBeUpdated = new List<Sample_Request_Line_Item__c>();
         for (Sample_Request_Line_Item__c each : sampleRequestLineItems) {
             productTable += '<tr>' +
                             '<td>' + ns(each.Name) + '</td>' +
@@ -260,7 +261,11 @@ public with sharing class Utility {
                             '<td>' + ns(each.Sales_Price__c) + '</td>' +
                             '<td>' + ns(each.Sample_Qty_in_Kgs__c) + '</td>' +
                             '</tr>';
+            each.Approval_Status__c = 'Approved';
+            toBeUpdated.add(each);
         }
+        UPDATE toBeUpdated;
+        
         productTable += '</table>';
 
         
