@@ -1,145 +1,171 @@
-@IsTest
+/*@isTest
 public class AddProductPageQuoteTest {
-    
-    @TestSetup
-    static void setupTestData() {
-        Test.startTest();
-        // Get a valid Profile Id
-        Profile p = [SELECT Id FROM Profile WHERE Name='Standard User' LIMIT 1];
-        
-        // Create test user with required ProfileId
-        User testUser = new User(
-            FirstName = 'Test',
-            LastName = 'User',
-            Email = 'testuser@test.com',
-            Username = 'testuser' + System.currentTimeMillis() + '@test.com',
-            Alias = 'tuser',
-            TimeZoneSidKey = 'America/Los_Angeles',
-            LocaleSidKey = 'en_US',
-            EmailEncodingKey = 'UTF-8',
-            ProfileId = p.Id,
-            LanguageLocaleKey = 'en_US',
-            IsActive = true
-        );
-        insert testUser;
-        
-        // Create Account
-        Account acc = new Account(Name='Test Account');
+
+    @isTest
+    static void testFindProduct() {
+        User u = [SELECT Id FROM User WHERE Id = :UserInfo.getUserId()];
+        //u.Division_Code__c = 'DIV1';
+        //u.Division_Code_2__c = 'DIV2';
+        //u.Division_Code_3__c = 'DIV3';
+        update u;
+
+        Pricebook2 stdPB = [SELECT Id, IsActive FROM Pricebook2 WHERE IsStandard = true LIMIT 1];
+        stdPB.IsActive = true;
+        update stdPB;
+
+        Account acc = new Account(Name = 'Test Account');
         insert acc;
-        
+
+        Quote q = new Quote(Name = 'Test Quote', Pricebook2Id = stdPB.Id, CurrencyIsoCode = 'USD');
+        insert q;
+
+        Product2 p = new Product2(Name = 'Test Product', ProductCode = 'PRD-' + DateTime.now().getTime(), IsActive = true, Create_PricebookEntry__c = true);
+        insert p;
+
+        PricebookEntry pbe = [SELECT Id FROM PricebookEntry WHERE Product2Id = :p.Id AND Pricebook2Id = :stdPB.Id LIMIT 1];
+
+        Customer_Material_Pricelist__c cmp = new Customer_Material_Pricelist__c(
+            Customer__c = acc.Id,
+            Material__c = p.Id
+        );
+        insert cmp;
+
+        List<String> families = new List<String>{ p.Family };
+        AddProductPageQuote.findProduct(q.Id, families);
+    }
+
+    @isTest
+    static void testGetProductFamily() {
+        AddProductPageQuote.getproductfamily();
+    }
+
+    @isTest
+    static void testSaveProducts() {
+        Pricebook2 stdPB = [SELECT Id FROM Pricebook2 WHERE IsStandard = true LIMIT 1];
+        stdPB.IsActive = true;
+        update stdPB;
+
+        Account acc = new Account(Name = 'Test Account');
+        insert acc;
+
+        Quote q = new Quote(Name = 'Test Quote', Pricebook2Id = stdPB.Id, CurrencyIsoCode = 'USD');
+        insert q;
+
+        Product2 p = new Product2(Name = 'Test Product', ProductCode = 'PRD-' + DateTime.now().getTime(), IsActive = true, Create_PricebookEntry__c = true);
+        insert p;
+
+        PricebookEntry pbe = [SELECT Id FROM PricebookEntry WHERE Product2Id = :p.Id AND Pricebook2Id = :stdPB.Id LIMIT 1];
+
+        AddProductPageQuote.ProductWrapper pw = new AddProductPageQuote.ProductWrapper();
+        pw.Id = pbe.Id;
+        pw.Product2Id = p.Id;
+        pw.Price = 100;
+        pw.Quantity = 2;
+        pw.Discount = 0;
+        pw.LineDescription = 'Test Line';
+
+        List<AddProductPageQuote.ProductWrapper> pwList = new List<AddProductPageQuote.ProductWrapper>{ pw };
+        String recordData = JSON.serialize(pwList);
+        AddProductPageQuote.saveProducts(recordData, q.Id);
+    }
+}*/
+@isTest
+public class AddProductPageQuoteTest {
+
+    @testSetup
+    static void setupTestData() {
         // Activate Standard Pricebook
         Pricebook2 standardPricebook = new Pricebook2(
             Id = Test.getStandardPricebookId(),
             IsActive = true
         );
         update standardPricebook;
-        
-        // Create Products
-        Product2 prod1 = new Product2(
-            Name='Product A', Family='Hardware', ProductCode='PA', IsActive=true
+
+        System.debug('check ' + [SELECT Id FROM Pricebook2 WHERE IsStandard = true LIMIT 1]);
+
+        // Create Product
+        Product2 testProduct = new Product2(
+            Name = 'Test Product',
+            IsActive = true
         );
-        Product2 prod2 = new Product2(
-            Name='Product B', Family='Software', ProductCode='PB', IsActive=true
-        );
-        insert new List<Product2>{prod1, prod2};
-        
-        // Create Pricebook Entries
-        PricebookEntry pbe1 = new PricebookEntry(
-            Product2Id = prod1.Id,
+        insert testProduct;
+
+        // Create PricebookEntry
+        PricebookEntry standardPBE = new PricebookEntry(
             Pricebook2Id = standardPricebook.Id,
-            UnitPrice = 100,
-            IsActive = true,
-            CurrencyIsoCode = 'USD'
+            Product2Id = testProduct.Id,
+            UnitPrice = 100.00,
+            IsActive = true
         );
-        PricebookEntry pbe2 = new PricebookEntry(
-            Product2Id = prod2.Id,
-            Pricebook2Id = standardPricebook.Id,
-            UnitPrice = 200,
-            IsActive = true,
-            CurrencyIsoCode = 'USD'
-        );
-        insert new List<PricebookEntry>{pbe1, pbe2};
-        
+        insert standardPBE;
+
+        // Create Account
+        Account acc = new Account(Name = 'Test Account');
+        insert acc;
+
         // Create Opportunity
         Opportunity opp = new Opportunity(
-            Name = 'Test Opportunity', 
-            StageName = 'Prospecting', 
-            CloseDate = Date.today().addDays(30), 
-            AccountId = acc.Id
+            Name = 'Test Opportunity',
+            StageName = 'Prospecting',
+            CloseDate = Date.today().addDays(10),
+            AccountId = acc.Id,
+            Pricebook2Id = standardPricebook.Id
         );
         insert opp;
-        
-        // Create Quote
+
+        // Create Quote linked to Opportunity
         Quote q = new Quote(
             Name = 'Test Quote',
             OpportunityId = opp.Id,
             Pricebook2Id = standardPricebook.Id,
-            CurrencyIsoCode = 'USD'
+            //AccountId = acc.Id,
+            Status = 'Draft'
         );
         insert q;
-        
-        // Customer Material Pricelist (to test price override)
-        Customer_Material_Pricelist__c cmpl = new Customer_Material_Pricelist__c(
-            Customer__c = acc.Id,
-            Material__c = prod1.Id,
-            Material_Price__c = 90
-        );
-        insert cmpl;
-        Test.stopTest();
     }
-    
-    @IsTest
-    static void testFindProduct() {
-        User u = [SELECT Id FROM User WHERE Alias='tuser' LIMIT 1];
-        System.runAs(u) {
-            
-            Test.startTest();
-            
-            // Fetch Account
-            Account acc = [SELECT Id FROM Account WHERE Name='Test Account' LIMIT 1];
-            
-            // Fetch Standard Pricebook
-            Pricebook2 standardPricebook = [SELECT Id FROM Pricebook2 WHERE IsStandard=true LIMIT 1];
-            
-            // Create Opportunity
-            Opportunity opp = new Opportunity(
-                Name = 'Test Opportunity 2', 
-                StageName = 'Prospecting', 
-                CloseDate = Date.today().addDays(30), 
-                AccountId = acc.Id
-            );
-            insert opp;
-            
-            // Create Quote
-            Quote q = new Quote(
-                Name = 'Test Quote 2',
-                OpportunityId = opp.Id,
-                Pricebook2Id = standardPricebook.Id,
-                CurrencyIsoCode = 'USD'
-            );
-            insert q;
-            
-            // Call method under test
-            List<String> families = new List<String>{'Hardware', 'Software'};
-            String resultJson = AddProductPageQuote.findProduct(q.Id, families);
-            
-            // Deserialize to verify
-            AddProductPageQuote.wrapperClass wc = (AddProductPageQuote.wrapperClass) 
-                JSON.deserialize(resultJson, AddProductPageQuote.wrapperClass.class);
-            
-            // Fetch Product A Id
-            Product2 prodA = [SELECT Id FROM Product2 WHERE Name='Product A' LIMIT 1];
-            
-            // Check price override from CMPL
-            Boolean foundCMPL = false;
-            for (AddProductPageQuote.ProductWrapper pw : wc.productList) {
-                if (pw.Product2Id == prodA.Id) {
-                    foundCMPL = true;
-                }
-            }
-            
-            
-            Test.stopTest();
+
+    @isTest
+    static void testFindProductAndSaveProducts() {
+        // Fetch Quote
+        Quote q = [SELECT Id, Pricebook2Id, AccountId FROM Quote LIMIT 1];
+
+        // Prepare productFamily list
+        List<String> productFamily = new List<String>();
+
+        // Call findProduct
+        String jsonResult = AddProductPageQuote.findProduct(q.Id, productFamily);
+        System.debug('findProduct result: ' + jsonResult);
+        System.assert(jsonResult.contains('productList'), 'Product list should be returned');
+
+        // Deserialize result to get a product wrapper
+        AddProductPageQuote.wrapperClass wc = (AddProductPageQuote.wrapperClass) JSON.deserialize(jsonResult, AddProductPageQuote.wrapperClass.class);
+        System.assert(wc.productList.size() > 0, 'There should be at least one product');
+
+        // Set Quantity and Price for testing saveProducts
+        for (AddProductPageQuote.ProductWrapper pw : wc.productList) {
+            pw.Quantity = 2;
+            pw.Price = 120;
         }
+
+        // Serialize product list
+        String recordData = JSON.serialize(wc.productList);
+
+        // Call saveProducts
+        String result = AddProductPageQuote.saveProducts(recordData, q.Id);
+        System.debug('saveProducts result: ' + result);
+        System.assertEquals('success', result, 'Products should be saved successfully');
+
+        // Verify QuoteLineItem created
+        List<QuoteLineItem> qliList = [SELECT Id, Product2Id, Quantity, UnitPrice FROM QuoteLineItem WHERE QuoteId = :q.Id];
+        System.assert(qliList.size() > 0, 'QuoteLineItem should be inserted');
+        System.assertEquals(2, qliList[0].Quantity, 'Quantity should match');
+        System.assertEquals(120, qliList[0].UnitPrice, 'Price should match');
+    }
+
+    @isTest
+    static void testGetProductFamily() {
+        List<AddProductPageQuote.PicklistValue> familyList = AddProductPageQuote.getproductfamily();
+        System.debug('Product Family Picklist: ' + familyList);
+        System.assert(familyList.size() > 0, 'Picklist should return values');
     }
 }

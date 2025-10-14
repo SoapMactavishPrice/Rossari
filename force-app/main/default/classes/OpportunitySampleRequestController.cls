@@ -187,9 +187,7 @@ public static String saveSample(String leadId, String sampleJs,
                         );
                         contentVersions.add(cv);
                         System.debug('Created ContentVersion for file: ' + file.get('filename'));
-                    } catch(Exception e) {
-                        System.debug('Error creating ContentVersion for file: ' + file.get('filename') + 
-                                     ' Error: ' + e.getMessage());
+                    } catch(Exception e) {System.debug('Error creating ContentVersion for file: ' + file.get('filename') + ' Error: ' + e.getMessage());
                     }
                 // }
             }
@@ -240,8 +238,7 @@ public static String saveSample(String leadId, String sampleJs,
         System.debug('Error message: ' + e.getMessage());
         System.debug('Line number: ' + e.getLineNumber());
         System.debug('Stack trace: ' + e.getStackTraceString());
-        throw new AuraHandledException('Error creating sample request: ' + e.getMessage() + 
-                                       ' [Line: ' + e.getLineNumber() + ']');
+        throw new AuraHandledException('Error creating sample request: ' + e.getMessage() + ' [Line: ' + e.getLineNumber() + ']');
     }
 }
     
@@ -320,8 +317,7 @@ public static String saveSample(String leadId, String sampleJs,
                 } else {
                     quantity = (Decimal)itemData.get('quantity');
                 }
-            } catch(Exception e) {
-                quantity = 0; // Default value if conversion fails
+            } catch(Exception e) {quantity = 0;
             }
             
             String status = (String) itemData.get('status');
@@ -346,9 +342,7 @@ public static String saveSample(String leadId, String sampleJs,
         if (!itemsToUpsert.isEmpty()) {
             try {
                 upsert itemsToUpsert;
-            } catch(DmlException e) {
-                throw new AuraHandledException('Error saving line items: ' + e.getMessage());
-            }
+            } catch(DmlException e) {throw new AuraHandledException('Error saving line items: ' + e.getMessage());}
         }
     }
     
@@ -408,10 +402,7 @@ public static String saveSample(String leadId, String sampleJs,
         try {
             Sample_Request_Line_Item__c itemToDelete = [SELECT Id FROM Sample_Request_Line_Item__c WHERE Id = :lineItemId LIMIT 1];
             delete itemToDelete;
-        } catch (Exception e) {
-            throw new AuraHandledException('Error deleting line item: ' + e.getMessage());
-        }
-    }
+        } catch (Exception e) {throw new AuraHandledException('Error deleting line item: ' + e.getMessage());}}
     
     
     @AuraEnabled(cacheable=true)

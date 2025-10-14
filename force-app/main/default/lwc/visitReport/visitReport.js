@@ -89,7 +89,7 @@ export default class VisitReport extends LightningElement {
     @track customer_Attendees = []
     @track showExistingCustomerFields = false;
     @track showNewCustomerField = false;
-    @track recordTypeName = ''; 
+    @track recordTypeName = '';
     @track accountContacts = [];
     @track ProjectId = '';
     @track selectedExistingVisitReportName = '';
@@ -147,16 +147,16 @@ export default class VisitReport extends LightningElement {
     visitNatureMapping = {
         'Customer Visit': {
             // Entity_Code_1__c (1000) & Division_Code__c (10, 11)
-            '1000_10_11': ['Distributor Visit', 'B2B Visit', 'Industry Visit', 'Technician'],
+            '1000_10_11': ['Distributor Visit', 'B2B Visit', 'B2C Visit', 'Industry Visit', 'Technician'],
 
             // Entity_Code_1__c (1000) & Division_Code__c (22)
             '1000_22': ['Distributor Visit', 'B2B Customer Visit', 'Farm Visit', 'Consultant', 'Farmer Meeting'],
 
             // Entity_Code_1__c (1000) & Division_Code__c (10, 11, 22) - Combined
-            '1000_10_11_22': ['Distributor Visit', 'B2B Visit', 'Industry Visit', 'Technician', 'B2B Customer Visit', 'Farm Visit', 'Consultant', 'Farmer Meeting'],
+            '1000_10_11_22': ['Distributor Visit', 'B2B Visit', 'B2C Visit', 'Industry Visit', 'Technician', 'B2B Customer Visit', 'Farm Visit', 'Consultant', 'Farmer Meeting'],
 
             // Entity_Code_2__c (3000) or Entity_Code_3__c (4000)
-            '3000_4000': ['Distributor Visit', 'B2B Visit'],
+            '3000_4000': ['Distributor Visit', 'B2B Visit', 'B2C Visit'],
 
             // Default/Other Entity Codes
             'DEFAULT': ['Distributor Visit', 'B2B Customer Visit']
@@ -490,7 +490,7 @@ export default class VisitReport extends LightningElement {
     handleCustomerTypeChange(event) {
         const customerType = event.detail.value;
         this.dataMap.Customer_Type = customerType;
-        
+
         // Show/hide fields based on customer type
         if (customerType === 'Existing') {
             this.showExistingCustomerFields = true;
@@ -511,7 +511,7 @@ export default class VisitReport extends LightningElement {
             this.showExistingCustomerFields = false;
             this.showNewCustomerField = false;
         }
-        
+
         console.log('Customer Type changed to:', customerType);
     }
 
@@ -1001,7 +1001,7 @@ export default class VisitReport extends LightningElement {
     // Add this getter for Unplanned logic
     get isUnplannedVisitReport() {
         return this.selectedVisitReportType === 'Unplanned';
-    }   
+    }
 
     // Handle Visit Report Type Change
     handleVisitReportTypeChange(event) {
@@ -1175,7 +1175,8 @@ export default class VisitReport extends LightningElement {
             Nature: visitReport.Nature_of_Visit__c || '',
 
             Customer_Type: visitReport.Customer_Type__c || '',
-            New_Customer: visitReport.New_Customer__c || '',
+            New_Customer: visitReport.New_Customer_Name__c || '',
+            //  New_Customer: visitReport.New_Customer__c || '',
             // For lookups store both Id + Name
             Customer_Name: visitReport.Customer_Name__c || '',
             Customer_Name_Display: visitReport.Customer_Name__r ? visitReport.Customer_Name__r.Name : '',
@@ -1202,13 +1203,29 @@ export default class VisitReport extends LightningElement {
         this.selectedTourId = visitReport.Name_of_the_Tour__c;
         this.ProjectId = visitReport.Name_of_the_Project__c;
 
-        // ✅ FIX: Wait for user data to be available before filtering nature options
-        this.waitForUserDataAndFilterNature(visitReport.Nature_of_Visit__c);
-
+        // ✅ Handle Customer Type UI visibility
         if (visitReport.Customer_Type__c) {
             this.dataMap.Customer_Type = visitReport.Customer_Type__c;
-            this.handleCustomerTypeChange({ detail: { value: visitReport.Customer_Type__c } });
+
+            // ✅ FIXED: Properly show/hide fields based on customer type
+            if (visitReport.Customer_Type__c === 'Existing') {
+                this.showExistingCustomerFields = true;
+                this.showNewCustomerField = false;
+            } else if (visitReport.Customer_Type__c === 'New') {
+                this.showExistingCustomerFields = false;
+                this.showNewCustomerField = true;
+            } else {
+                this.showExistingCustomerFields = false;
+                this.showNewCustomerField = false;
+            }
+
+            console.log('Customer Type loaded:', visitReport.Customer_Type__c);
+            console.log('showNewCustomerField:', this.showNewCustomerField);
+            console.log('showExistingCustomerFields:', this.showExistingCustomerFields);
         }
+
+        // ✅ FIX: Wait for user data to be available before filtering nature options
+        this.waitForUserDataAndFilterNature(visitReport.Nature_of_Visit__c);
 
         // Update customer details if customer exists
         if (visitReport.Customer_Name__c) {
@@ -1216,21 +1233,10 @@ export default class VisitReport extends LightningElement {
         }
 
         // Update competitor code if competitor exists
-        if (visitReport.Attendees__r && visitReport.Attendees__r.length > 0) {
-            this.Attendees = visitReport.Attendees__r.map((att, index) => {
-                console.log('Attendee contact Id:', att.Contact_Name__c); // ✅ correct scope
-                return {
-                    index: index,
-                    Id: att.Id,
-                    isInternalExisting: att.Type__c === 'Internal',
-                    isExternalExisting: att.Type__c === 'External',
-                    User__c: att.User__c || '',
-                    Contact_Name__c: att.Contact_Name__c || ''  // must match option.value
-                };
-            });
-        } else {
-            this.Attendees = [];
+        if (visitReport.Competition_Name__c && visitReport.Competition_Name__r) {
+            this.competitorCode = visitReport.Competition_Name__r.Competitor_Code__c || '';
         }
+
         // Update UI fields manually since they might not react to dataMap changes
         this.updateUIFields();
     }

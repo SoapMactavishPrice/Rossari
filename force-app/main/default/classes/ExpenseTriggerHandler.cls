@@ -107,6 +107,7 @@ public class ExpenseTriggerHandler {
     }
 
     //  Map Sales Org Name to Company Name
+    @TestVisible
     private static String getCompanyNameFromSalesOrgName(String salesOrgName) {
         if (String.isNotBlank(salesOrgName)) {
             salesOrgName = salesOrgName.toLowerCase().trim();
@@ -122,6 +123,7 @@ public class ExpenseTriggerHandler {
     }
 
     //  Map Picklist values to Sales Type codes
+    @TestVisible
     private static String getSalesTypeCode(String salesType) {
         if (salesType == 'Domestic') {
             return '10';

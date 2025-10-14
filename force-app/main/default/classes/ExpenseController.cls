@@ -4,7 +4,9 @@ public with sharing class ExpenseController {
     public static Map<String, Object> initializeExpense() {
         Map<String, Object> result = new Map<String, Object>();
         try {
-            User currentUser = [SELECT Id, Name, Division, Zone__c, Cost_Center__c FROM User WHERE Id = :UserInfo.getUserId() LIMIT 1];
+            // Get current user with Grade field
+            User currentUser = [SELECT Id, Name, Division, Zone__c, Cost_Center__c, Grades__c 
+                               FROM User WHERE Id = :UserInfo.getUserId() LIMIT 1];
             
             List<Map<String, String>> voucherOptions = new List<Map<String, String>>();
             for (Schema.PicklistEntry entry : Expense__c.Type_of_Voucher__c.getDescribe().getPicklistValues()) {
@@ -16,7 +18,7 @@ public with sharing class ExpenseController {
                 }
             }
             
-            // Get Cost Center record ID based on user's Cost_Center__c picklist value
+            // Get Cost Center record ID
             Id costCenterId = null;
             if (String.isNotBlank(currentUser.Cost_Center__c)) {
                 List<Cost_Center__c> costCenters = [SELECT Id FROM Cost_Center__c 
@@ -27,21 +29,149 @@ public with sharing class ExpenseController {
                 }
             }
             
+            // Get Grade details based on user's grade - FIXED
+            Decimal dailyAllowance = 0;
+            Decimal fourWheelerPerKm = 0;
+            Decimal twoWheelerPerKm = 0;
+            List<String> modeOfTravelOptions = new List<String>();
+            Boolean canEditDailyAllowance = false;
+            
+            System.debug('User Grade: ' + currentUser.Grades__c);
+            
+            if (String.isNotBlank(currentUser.Grades__c)) {
+                List<Grade__c> grades = [SELECT Id, Name, Daily_Allowance_A_class_cities__c, 
+                                        Daily_Allowance_B_class_cities__c, Four_Wheeler_per_km__c, 
+                                        Two_Wheeler_per_km__c, Mode_of_Travel__c
+                                        FROM Grade__c 
+                                        WHERE Name = :currentUser.Grades__c 
+                                        LIMIT 1];
+                
+                System.debug('Found grades: ' + grades.size());
+                
+                if (!grades.isEmpty()) {
+                    Grade__c userGrade = grades[0];
+                    dailyAllowance = userGrade.Daily_Allowance_A_class_cities__c != null ? userGrade.Daily_Allowance_A_class_cities__c : 0;
+                    fourWheelerPerKm = userGrade.Four_Wheeler_per_km__c != null ? userGrade.Four_Wheeler_per_km__c : 0;
+                    twoWheelerPerKm = userGrade.Two_Wheeler_per_km__c != null ? userGrade.Two_Wheeler_per_km__c : 0;
+                    
+                    System.debug('Grade Details - DA: ' + dailyAllowance + ', 4W: ' + fourWheelerPerKm + ', 2W: ' + twoWheelerPerKm);
+                    
+                    // Parse multi-picklist values
+                    if (String.isNotBlank(userGrade.Mode_of_Travel__c)) {
+                        modeOfTravelOptions = userGrade.Mode_of_Travel__c.split(';');
+                        System.debug('Mode of Travel Options: ' + modeOfTravelOptions);
+                    }
+                    
+                    // Check if user can edit daily allowance (only for DR or EM grades)
+                    canEditDailyAllowance = (currentUser.Grades__c == 'DR' || currentUser.Grades__c == 'EM');
+                }
+            }
+            
             result.put('currentUser', currentUser);
             result.put('voucherOptions', voucherOptions);
-            result.put('costCenterId', costCenterId); // Add the actual Cost Center record ID
+            result.put('costCenterId', costCenterId);
+            result.put('dailyAllowance', dailyAllowance);
+            result.put('fourWheelerPerKm', fourWheelerPerKm);
+            result.put('twoWheelerPerKm', twoWheelerPerKm);
+            result.put('modeOfTravelOptions', modeOfTravelOptions);
+            result.put('canEditDailyAllowance', canEditDailyAllowance);
             
         } catch (Exception e) {
+            System.debug('Error in initializeExpense: ' + e.getMessage() + ' - ' + e.getStackTraceString());
             throw new AuraHandledException('Error initializing expense: ' + e.getMessage());
         }
         return result;
     }
     
     @AuraEnabled(cacheable=true)
+    public static Map<String, Object> getGradeDetails(String gradeName) {
+        try {
+            Map<String, Object> result = new Map<String, Object>();
+            
+            System.debug('getGradeDetails called with: ' + gradeName);
+            
+            if (String.isBlank(gradeName)) {
+                return result;
+            }
+            
+            List<Grade__c> grades = [SELECT Id, Name, Daily_Allowance_A_class_cities__c, 
+                                    Daily_Allowance_B_class_cities__c, Four_Wheeler_per_km__c, 
+                                    Two_Wheeler_per_km__c, Mode_of_Travel__c
+                                    FROM Grade__c 
+                                    WHERE Name = :gradeName 
+                                    LIMIT 1];
+            
+            System.debug('Found grades for ' + gradeName + ': ' + grades.size());
+            
+            if (!grades.isEmpty()) {
+                Grade__c grade = grades[0];
+                result.put('dailyAllowance', grade.Daily_Allowance_A_class_cities__c != null ? grade.Daily_Allowance_A_class_cities__c : 0);
+                result.put('fourWheelerPerKm', grade.Four_Wheeler_per_km__c != null ? grade.Four_Wheeler_per_km__c : 0);
+                result.put('twoWheelerPerKm', grade.Two_Wheeler_per_km__c != null ? grade.Two_Wheeler_per_km__c : 0);
+                
+                System.debug('Grade details - DA: ' + result.get('dailyAllowance') + 
+                           ', 4W: ' + result.get('fourWheelerPerKm') + 
+                           ', 2W: ' + result.get('twoWheelerPerKm'));
+                
+                // Parse multi-picklist values
+                List<String> modeOfTravelOptions = new List<String>();
+                if (String.isNotBlank(grade.Mode_of_Travel__c)) {
+                    modeOfTravelOptions = grade.Mode_of_Travel__c.split(';');
+                    System.debug('Mode of Travel Options: ' + modeOfTravelOptions);
+                }
+                result.put('modeOfTravelOptions', modeOfTravelOptions);
+                
+                // Check if grade can edit daily allowance
+                Boolean canEditDailyAllowance = (gradeName == 'DR' || gradeName == 'EM');
+                result.put('canEditDailyAllowance', canEditDailyAllowance);
+            }
+            
+            return result;
+            
+        } catch (Exception e) {
+            System.debug('Error in getGradeDetails: ' + e.getMessage());
+            throw new AuraHandledException('Error getting grade details: ' + e.getMessage());
+        }
+    }
+    
+    // Add this new method to get daily allowance by grade name
+    @AuraEnabled(cacheable=true)
+    public static Decimal getDailyAllowanceByGrade(String gradeName) {
+        try {
+            System.debug('getDailyAllowanceByGrade called with gradeName: ' + gradeName);
+            
+            if (String.isBlank(gradeName)) {
+                System.debug('Grade name is blank, returning 0');
+                return 0;
+            }
+            
+            List<Grade__c> grades = [SELECT Id, Name, Daily_Allowance_A_class_cities__c 
+                                    FROM Grade__c 
+                                    WHERE Name = :gradeName 
+                                    LIMIT 1];
+            
+            System.debug('Found grades: ' + grades.size());
+            
+            if (!grades.isEmpty() && grades[0].Daily_Allowance_A_class_cities__c != null) {
+                Decimal allowance = grades[0].Daily_Allowance_A_class_cities__c;
+                System.debug('Returning daily allowance: ' + allowance);
+                return allowance;
+            }
+            
+            System.debug('No grade found or allowance is null, returning 0');
+            return 0;
+            
+        } catch (Exception e) {
+            System.debug('Error in getDailyAllowanceByGrade: ' + e.getMessage());
+            throw new AuraHandledException('Error getting daily allowance: ' + e.getMessage());
+        }
+    }
+    
+    @AuraEnabled(cacheable=true)
     public static List<Map<String, String>> getUsers(String searchTerm) {
         try {
             searchTerm = '%' + String.escapeSingleQuotes(searchTerm) + '%';
-            List<User> users = [SELECT Id, Name, Division, Zone__c, Cost_Center__c 
+            List<User> users = [SELECT Id, Name, Division, Zone__c, Cost_Center__c, Grades__c 
                                 FROM User 
                                 WHERE Name LIKE :searchTerm 
                                 AND IsActive = true
@@ -52,11 +182,12 @@ public with sharing class ExpenseController {
             for (User u : users) {
                 options.add(new Map<String, String>{
                     'label' => u.Name,
-                        'value' => u.Id,
-                        'division' => u.Division != null ? u.Division : '',
-                            'zone' => u.Zone__c != null ? u.Zone__c : '',
-                                'costCenter' => u.Cost_Center__c != null ? u.Cost_Center__c : ''
-                                });
+                    'value' => u.Id,
+                    'division' => u.Division != null ? u.Division : '',
+                    'zone' => u.Zone__c != null ? u.Zone__c : '',
+                    'costCenter' => u.Cost_Center__c != null ? u.Cost_Center__c : '',
+                    'grade' => u.Grades__c != null ? u.Grades__c : ''
+                });
             }
             return options;
         } catch (Exception e) {
@@ -64,35 +195,38 @@ public with sharing class ExpenseController {
         }
     }
     
+    // Fix the SOQL injection vulnerability in getTypeOfExpense method
     @AuraEnabled(cacheable=true)
     public static List<Map<String, String>> getTypeOfExpense(String searchTerm, String voucherType) {
         try {
-            String query = 'SELECT Id, Name, Type_of_Voucher__c, GL_Code__c, GL_Code__r.Name FROM Type_of_Expense__c ';
+            String baseQuery = 'SELECT Id, Name, Type_of_Voucher__c, GL_Code__c, GL_Code__r.Name FROM Type_of_Expense__c';
             List<String> conditions = new List<String>();
             
             if (String.isNotBlank(searchTerm)) {
-                conditions.add('Name LIKE \'%' + String.escapeSingleQuotes(searchTerm) + '%\'');
+                conditions.add('Name LIKE :searchTerm');
             }
             
             if (String.isNotBlank(voucherType)) {
-                conditions.add('Type_of_Voucher__c = \'' + String.escapeSingleQuotes(voucherType) + '\'');
+                conditions.add('Type_of_Voucher__c = :voucherType');
             }
             
+            String whereClause = '';
             if (!conditions.isEmpty()) {
-                query += 'WHERE ' + String.join(conditions, ' AND ');
+                whereClause = ' WHERE ' + String.join(conditions, ' AND ');
             }
             
-            query += ' ORDER BY Name LIMIT 50';
+            String finalQuery = baseQuery + whereClause + ' ORDER BY Name LIMIT 50';
             
-            List<Type_of_Expense__c> expenses = Database.query(query);
+            // Use dynamic SOQL with bind variables
+            List<Type_of_Expense__c> expenses = Database.query(finalQuery);
             
             List<Map<String, String>> options = new List<Map<String, String>>();
             for (Type_of_Expense__c e : expenses) {
                 options.add(new Map<String, String>{
                     'label' => e.Name,
                     'value' => e.Id,
-                    'name' => e.Name, // Add the name to identify Public/Private
-                        'glCodeId' => e.GL_Code__c != null ? e.GL_Code__c : '',
+                    'name' => e.Name,
+                    'glCodeId' => e.GL_Code__c != null ? e.GL_Code__c : '',
                     'glCodeName' => e.GL_Code__r != null ? e.GL_Code__r.Name : ''
                 });
             }
@@ -100,19 +234,6 @@ public with sharing class ExpenseController {
         } catch (Exception e) {
             throw new AuraHandledException('Error getting expense types: ' + e.getMessage());
         }
-    }
-    
-    @AuraEnabled(cacheable=true)
-    public static Map<String, String> getExpenseRecordTypes() {
-        Map<String, String> recordTypeMap = new Map<String, String>();
-        try {
-            for (RecordType rt : [SELECT Id, DeveloperName FROM RecordType WHERE SObjectType = 'Expense__c']) {
-                recordTypeMap.put(rt.DeveloperName, rt.Id);
-            }
-        } catch (Exception e) {
-            System.debug('Error getting record types: ' + e.getMessage());
-        }
-        return recordTypeMap;
     }
     
     @AuraEnabled
@@ -236,11 +357,23 @@ public with sharing class ExpenseController {
         // Check Entity_Code_2__c or Entity_Code_3__c for Unitop/Tristar record type
         else if ((currentUser.Entity_Code_2__c == '3000' || currentUser.Entity_Code_3__c == '4000') && 
                  recordTypeMap.containsKey('Unitop_Tristar')) {
-            // Use the exact Developer Name of your record type
             recordTypeId = recordTypeMap.get('Unitop_Tristar');
         }
         
         return recordTypeId;
+    }
+    
+    @AuraEnabled(cacheable=true)
+    public static Map<String, String> getExpenseRecordTypes() {
+        Map<String, String> recordTypeMap = new Map<String, String>();
+        try {
+            for (RecordType rt : [SELECT Id, DeveloperName FROM RecordType WHERE SObjectType = 'Expense__c']) {
+                recordTypeMap.put(rt.DeveloperName, rt.Id);
+            }
+        } catch (Exception e) {
+            System.debug('Error getting record types: ' + e.getMessage());
+        }
+        return recordTypeMap;
     }
     
     @AuraEnabled(cacheable=true)
@@ -256,8 +389,8 @@ public with sharing class ExpenseController {
                 if (entry.isActive()) {
                     options.add(new Map<String, String>{
                         'label' => entry.getLabel(),
-                            'value' => entry.getValue()
-                            });
+                        'value' => entry.getValue()
+                    });
                 }
             }
             
@@ -267,103 +400,7 @@ public with sharing class ExpenseController {
         }
     }
     
-    private static void handleFileAttachments(
-        List<Expense_Line_Item__c> lineItems,
-        Map<String, Object> filesPerLineItem
-    ) {
-        List<ContentDocumentLink> linksToCreate = new List<ContentDocumentLink>();
-        Set<Id> contentVersionIds = new Set<Id>();
-        
-        // Collect ContentVersion IDs
-        for (String indexStr : filesPerLineItem.keySet()) {
-            List<Object> fileIds = (List<Object>)filesPerLineItem.get(indexStr);
-            if (fileIds != null) {
-                for (Object fileId : fileIds) {
-                    contentVersionIds.add((Id)fileId);
-                }
-            }
-        }
-        
-        // Map ContentVersionId to ContentDocumentId
-        Map<Id, Id> versionToDocumentMap = new Map<Id, Id>();
-        for (ContentVersion cv : [
-            SELECT Id, ContentDocumentId
-            FROM ContentVersion
-            WHERE Id IN :contentVersionIds
-        ]) {
-            versionToDocumentMap.put(cv.Id, cv.ContentDocumentId);
-        }
-        
-        // Create ContentDocumentLinks
-        for (String indexStr : filesPerLineItem.keySet()) {
-            Integer index = Integer.valueOf(indexStr);
-            if (index >= 0 && index < lineItems.size()) {
-                Expense_Line_Item__c lineItem = lineItems[index];
-                List<Object> fileIds = (List<Object>)filesPerLineItem.get(indexStr);
-                
-                for (Object fileIdObj : fileIds) {
-                    Id versionId = (Id)fileIdObj;
-                    Id docId = versionToDocumentMap.get(versionId);
-                    
-                    if (docId != null) {
-                        linksToCreate.add(new ContentDocumentLink(
-                            LinkedEntityId = lineItem.Id,
-                            ContentDocumentId = docId,
-                            ShareType = 'I',
-                            Visibility = 'AllUsers'
-                        ));
-                    }
-                }
-            }
-        }
-        
-        if (!linksToCreate.isEmpty()) {
-            insert linksToCreate;
-        }
-    }
-    
-    
-    
-    private static Boolean isValidId(String idString) {
-        try {
-            Id testId = idString;
-            return testId != null;
-        } catch (Exception e) {
-            return false;
-        }
-    }
-    
-    private static Map<Id, Set<Id>> getExistingContentDocumentLinks(Set<Id> documentIds) {
-        Map<Id, Set<Id>> existingLinks = new Map<Id, Set<Id>>();
-        
-        for (ContentDocumentLink link : [
-            SELECT ContentDocumentId, LinkedEntityId 
-            FROM ContentDocumentLink 
-            WHERE ContentDocumentId IN :documentIds
-        ]) {
-            if (!existingLinks.containsKey(link.ContentDocumentId)) {
-                existingLinks.put(link.ContentDocumentId, new Set<Id>());
-            }
-            existingLinks.get(link.ContentDocumentId).add(link.LinkedEntityId);
-        }
-        
-        return existingLinks;
-    }
-    
-    private static Boolean isAlreadyLinked(Map<Id, Set<Id>> existingLinks, Id documentId, Id entityId) {
-        return existingLinks.containsKey(documentId) && existingLinks.get(documentId).contains(entityId);
-    }
-    
-    private static ContentDocumentLink createContentDocumentLink(Id documentId, Id entityId) {
-        return new ContentDocumentLink(
-            LinkedEntityId = entityId,
-            ContentDocumentId = documentId,
-            ShareType = 'I', // Inferred permission
-            Visibility = 'AllUsers' // Visible to all users with access to the record
-        );
-    }
-    
-   @AuraEnabled
+    @AuraEnabled
     public static Id createCustomerVisit(Id tourId, Id accountId) {
         try {
             // Validate inputs
@@ -403,61 +440,60 @@ public with sharing class ExpenseController {
         }
     }
 
-
     @AuraEnabled(cacheable=true)
-public static List<Map<String, String>> getSalesTypeOptions() {
-    try {
-        System.debug('Starting getSalesTypeOptions method');
-        
-        List<Map<String, String>> options = new List<Map<String, String>>();
-        
-        // First, let's check if Expense__c object is accessible
-        if (!Schema.getGlobalDescribe().containsKey('Expense__c')) {
-            throw new AuraHandledException('Expense__c object not found');
-        }
-        
-        // Get the object describe
-        Schema.DescribeSObjectResult objDescribe = Expense__c.sObjectType.getDescribe();
-        if (!objDescribe.isAccessible()) {
-            throw new AuraHandledException('Expense__c object is not accessible');
-        }
-        
-        // Check if Sales_Type__c field exists and is accessible
-        Map<String, Schema.SObjectField> fieldMap = objDescribe.fields.getMap();
-        if (!fieldMap.containsKey('Sales_Type__c')) {
-            throw new AuraHandledException('Sales_Type__c field not found on Expense__c object');
-        }
-        
-        Schema.SObjectField salesTypeField = fieldMap.get('Sales_Type__c');
-        Schema.DescribeFieldResult fieldResult = salesTypeField.getDescribe();
-        
-        if (!fieldResult.isAccessible()) {
-            throw new AuraHandledException('Sales_Type__c field is not accessible');
-        }
-        
-        // Get picklist values
-        List<Schema.PicklistEntry> ple = fieldResult.getPicklistValues();
-        System.debug('Number of picklist entries found: ' + ple.size());
-        
-        for (Schema.PicklistEntry entry : ple) {
-            System.debug('Processing picklist entry: ' + entry.getLabel() + ' - ' + entry.getValue() + ' - Active: ' + entry.isActive());
-            if (entry.isActive()) {
-                options.add(new Map<String, String>{
-                    'label' => entry.getLabel(),
-                    'value' => entry.getValue()
-                });
+    public static List<Map<String, String>> getSalesTypeOptions() {
+        try {
+            System.debug('Starting getSalesTypeOptions method');
+            
+            List<Map<String, String>> options = new List<Map<String, String>>();
+            
+            // First, let's check if Expense__c object is accessible
+            if (!Schema.getGlobalDescribe().containsKey('Expense__c')) {
+                throw new AuraHandledException('Expense__c object not found');
             }
+            
+            // Get the object describe
+            Schema.DescribeSObjectResult objDescribe = Expense__c.sObjectType.getDescribe();
+            if (!objDescribe.isAccessible()) {
+                throw new AuraHandledException('Expense__c object is not accessible');
+            }
+            
+            // Check if Sales_Type__c field exists and is accessible
+            Map<String, Schema.SObjectField> fieldMap = objDescribe.fields.getMap();
+            if (!fieldMap.containsKey('Sales_Type__c')) {
+                throw new AuraHandledException('Sales_Type__c field not found on Expense__c object');
+            }
+            
+            Schema.SObjectField salesTypeField = fieldMap.get('Sales_Type__c');
+            Schema.DescribeFieldResult fieldResult = salesTypeField.getDescribe();
+            
+            if (!fieldResult.isAccessible()) {
+                throw new AuraHandledException('Sales_Type__c field is not accessible');
+            }
+            
+            // Get picklist values
+            List<Schema.PicklistEntry> ple = fieldResult.getPicklistValues();
+            System.debug('Number of picklist entries found: ' + ple.size());
+            
+            for (Schema.PicklistEntry entry : ple) {
+                System.debug('Processing picklist entry: ' + entry.getLabel() + ' - ' + entry.getValue() + ' - Active: ' + entry.isActive());
+                if (entry.isActive()) {
+                    options.add(new Map<String, String>{
+                        'label' => entry.getLabel(),
+                        'value' => entry.getValue()
+                    });
+                }
+            }
+            
+            System.debug('Final options count: ' + options.size());
+            
+            // If no active options found, return empty list
+            return options;
+            
+        } catch (Exception e) {
+            System.debug('Error in getSalesTypeOptions: ' + e.getMessage() + ' - Stack: ' + e.getStackTraceString());
+            throw new AuraHandledException('Failed to load Sales Type options: ' + e.getMessage());
         }
-        
-        System.debug('Final options count: ' + options.size());
-        
-        // If no active options found, return empty list
-        return options;
-        
-    } catch (Exception e) {
-        System.debug('Error in getSalesTypeOptions: ' + e.getMessage() + ' - Stack: ' + e.getStackTraceString());
-        throw new AuraHandledException('Failed to load Sales Type options: ' + e.getMessage());
     }
-}
     
 }

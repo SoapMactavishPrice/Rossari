@@ -1,19 +1,33 @@
 @isTest
 public class QuoteControllerTest {
 
-    // Utility method to create Pricebook and Product
-    private static Pricebook2 createPricebook() {
-        Pricebook2 pb = new Pricebook2(Name = 'Standard Pricebook', IsActive = true);
-        insert pb;
-        return pb;
+    // Utility: Create Standard Pricebook
+    private static Pricebook2 createStandardPricebook() {
+        Pricebook2 standardPricebook = new Pricebook2(
+            Id = Test.getStandardPricebookId(),
+            IsActive = true
+        );
+        update standardPricebook;
+        return standardPricebook;
     }
 
+    // Utility: Create Product with UOM
     private static Product2 createProduct() {
-        Product2 p = new Product2(Name = 'Test Product', IsActive = true);
-        insert p;
-        return p;
+        Base_UoM_Master__c baseUom = new Base_UoM_Master__c(Name = 'Kilogram');
+        insert baseUom;
+
+        Product2 prod = new Product2(
+            Name = 'Test Product',
+            ProductCode = 'TP001',
+            Pack_Size__c = '10kg',
+            Base_UOM__c = baseUom.Id,
+            IsActive = true
+        );
+        insert prod;
+        return prod;
     }
 
+    // Utility: Create PricebookEntry
     private static PricebookEntry createPricebookEntry(Product2 prod, Pricebook2 pb) {
         PricebookEntry pbe = new PricebookEntry(
             Product2Id = prod.Id,
@@ -62,12 +76,38 @@ public class QuoteControllerTest {
         return comp;
     }
 
+    // ✅ Create Sales Org
+    private static Sales_Organisation__c createSalesOrg() {
+        Sales_Organisation__c so = new Sales_Organisation__c(Name = 'Test Sales Org');
+        insert so;
+        return so;
+    }
+
+    // ✅ Create Distribution Channel
+    private static Distribution_Channel__c createDistributionChannel() {
+        Distribution_Channel__c dc = new Distribution_Channel__c(Name = 'Test DC', Distribution_Code__c = 'DC123');
+        insert dc;
+        return dc;
+    }
+
+    // ✅ Create Division
+    private static Division__c createDivision() {
+        Division__c div = new Division__c(Name = 'Test Division', Division_Code__c = 'DIV123');
+        insert div;
+        return div;
+    }
+
+    // ✅ Create Customer Sales Area with valid lookup IDs
     private static void createCustomerSalesArea(Account acc) {
+        Sales_Organisation__c so = createSalesOrg();
+        Distribution_Channel__c dc = createDistributionChannel();
+        Division__c div = createDivision();
+
         Customer_Sales_Area__c csa = new Customer_Sales_Area__c(
             Comapany_Code__c = acc.Id,
-            Sales_Organisation__c = 'SO123',
-            Distribution_Channel__c = 'DC123',
-            Division__c = 'DIV123'
+            Sales_Organisation__c = so.Id,
+            Distribution_Channel__c = dc.Id,
+            Division__c = div.Id
         );
         insert csa;
     }
@@ -76,8 +116,8 @@ public class QuoteControllerTest {
     static void testQuoteControllerMethods() {
         Test.startTest();
 
-        // Setup test data
-        Pricebook2 pb = createPricebook();
+        // Setup data
+        Pricebook2 pb = createStandardPricebook();
         Product2 prod = createProduct();
         PricebookEntry pbe = createPricebookEntry(prod, pb);
         Account acc = createAccount();
@@ -87,7 +127,7 @@ public class QuoteControllerTest {
         Company__c comp = createCompany();
         createCustomerSalesArea(acc);
 
-        // Insert an Opportunity Line Item
+        // Insert Opportunity Line Item
         OpportunityLineItem oli = new OpportunityLineItem(
             OpportunityId = opp.Id,
             Quantity = 2,
@@ -96,13 +136,15 @@ public class QuoteControllerTest {
         );
         insert oli;
 
-        // 1️⃣ Test getOppLineItems
+       
         List<OpportunityLineItem> olis = QuoteController.getOppLineItems(opp.Id);
+        System.assertEquals(1, olis.size());
 
-        // 2️⃣ Test getQuoteInitialData
+        
         Map<String, Object> data = QuoteController.getQuoteInitialData(opp.Id);
+        System.assertNotEquals(null, data.get('opportunityName'));
 
-        // 3️⃣ Prepare line item wrapper
+     
         List<QuoteController.QuoteLineItemWrapper> wrappers = new List<QuoteController.QuoteLineItemWrapper>();
         QuoteController.QuoteLineItemWrapper w = new QuoteController.QuoteLineItemWrapper();
         w.Product2Id = prod.Id;
@@ -113,7 +155,7 @@ public class QuoteControllerTest {
         w.Description = 'Sample Item';
         wrappers.add(w);
 
-        // 4️⃣ Test createQuoteFromOpportunity
+      
         Id quoteId = QuoteController.createQuoteFromOpportunity(
             opp.Id,
             wrappers,
@@ -128,31 +170,36 @@ public class QuoteControllerTest {
             10,
             'Plastic Drum'
         );
-        System.assertNotEquals(null, quoteId, 'Quote should be created');
+        System.assertNotEquals(null, quoteId);
 
-        // 5️⃣ Test deleteProductInterested
+        
         String deleteMsg = QuoteController.deleteProductInterested(oli.Id);
-        System.assert(deleteMsg.contains('deleted'), 'Delete message should mention deletion');
+        System.assert(deleteMsg.contains('deleted'));
 
-        // 6️⃣ Test validateQuoteApprovalStatus
+        
         Quote q = [SELECT Id FROM Quote WHERE Id = :quoteId];
-        QuoteLineItem qli = [SELECT Id, QuoteId, ListPrice, UnitPrice, Product2.Name FROM QuoteLineItem WHERE QuoteId = :quoteId LIMIT 1];
         q.Status = 'Accepted';
         update q;
-
         QuoteController.validateQuoteApprovalStatus(new List<Quote>{q}, new Map<Id, Quote>{});
 
-        // 7️⃣ Test getSalesOrg
+       
         String soJson = QuoteController.getSalesOrg(opp.Id);
+        System.assertNotEquals(null, soJson);
 
-        // 8️⃣ Test getDistributionChannel
-        String dcJson = QuoteController.getDistributionChannel(opp.Id, 'SO123');
+      
+        Sales_Organisation__c so = [SELECT Id FROM Sales_Organisation__c LIMIT 1];
+        String dcJson = QuoteController.getDistributionChannel(opp.Id, so.Id);
+        System.assertNotEquals(null, dcJson);
 
-        // 9️⃣ Test getDivision
-        String divJson = QuoteController.getDivision(opp.Id, 'SO123', 'DC123');
+      
+        Distribution_Channel__c dc = [SELECT Id FROM Distribution_Channel__c LIMIT 1];
+        String divJson = QuoteController.getDivision(opp.Id, so.Id, dc.Id);
+        System.assertNotEquals(null, divJson);
 
-        // 🔟 Test getSalesArea
-        String saJson = QuoteController.getSalesArea(opp.Id, 'SO123', 'DC123', 'DIV123');
+      
+        Division__c div = [SELECT Id FROM Division__c LIMIT 1];
+        String saJson = QuoteController.getSalesArea(opp.Id, so.Id, dc.Id, div.Id);
+        System.assertNotEquals(null, saJson);
 
         Test.stopTest();
     }

@@ -239,7 +239,7 @@ public with sharing class ProformaInvoicePdfController {
         html += '<th style="' + borderStyle + '">Material Code</th>';
         html += '<th style="' + borderStyle + '">HSN/SAC</th>';
         html += '<th style="' + borderStyle + '">Item Description</th>';
-        html += '<th style="' + borderStyle + '">Pack Size</th>';
+    //    html += '<th style="' + borderStyle + '">Pack Size</th>';
         html += '<th style="' + borderStyle + '">UOM</th>';
         html += '<th style="' + borderStyle + '">Quantity</th>';
         html += '<th style="' + borderStyle + '">Unit</th>';
@@ -253,8 +253,8 @@ public with sharing class ProformaInvoicePdfController {
             html += '<td style="' + borderStyle + '">' + srNo + '</td>';
             html += '<td style="' + borderStyle + '">' + ns(item.Product__r.ProductCode) + '</td>';
             html += '<td style="' + borderStyle + '">' + ns(item.Product__r.HSN__c) + '</td>';
-            html += '<td style="' + borderStyle + '">' + ns(item.Line_Item_Description__c) + '</td>';
-            html += '<td style="' + borderStyle + '">' + ns(item.Product__r.Pack_Size__c) + '</td>';
+            html += '<td style="' + borderStyle + '">' + ns(item.Product__c) + '</td>';
+       //     html += '<td style="' + borderStyle + '">' + ns(item.Product__r.Pack_Size__c) + '</td>';
             html += '<td style="' + borderStyle + '">' + ns(item.Product__r.Base_UOM__r.Name) + '</td>';
             html += '<td style="' + borderStyle + '">' + ns(item.Quantity__c) + '</td>';
             html += '<td style="' + borderStyle + '">' + ns(item.List_Price__c) + '</td>';

@@ -232,8 +232,13 @@ public with sharing class Utility {
             SELECT Id, Name, Product__c, Product__r.Name, Product__r.ProductCode, Product__r.Description,
                 Sample_Qty_in_Kgs__c, Sales_Price__c
             FROM Sample_Request_Line_Item__c
-            WHERE Sample_Request__c = :sampleRequestId
+            WHERE Sample_Request__c = :sampleRequestId AND Approval_Status__c = 'Approved'
         ];
+
+        if (sampleRequestLineItems.isEmpty()) {
+            System.debug('No Email sent cause sample request line item is empty');
+            return;
+        }
 
         
         List<String> recipientEmails = new List<String>();
@@ -252,7 +257,6 @@ public with sharing class Utility {
             '<tr style="background-color: #f2f2f2;">' +
             '<th>Name</th><th>Product Name</th><th>Product Code</th><th>Rate</th><th>Quantity</th></tr>';
 
-        List<Sample_Request_Line_Item__c> toBeUpdated = new List<Sample_Request_Line_Item__c>();
         for (Sample_Request_Line_Item__c each : sampleRequestLineItems) {
             productTable += '<tr>' +
                             '<td>' + ns(each.Name) + '</td>' +
@@ -261,10 +265,7 @@ public with sharing class Utility {
                             '<td>' + ns(each.Sales_Price__c) + '</td>' +
                             '<td>' + ns(each.Sample_Qty_in_Kgs__c) + '</td>' +
                             '</tr>';
-            each.Approval_Status__c = 'Approved';
-            toBeUpdated.add(each);
         }
-        UPDATE toBeUpdated;
         
         productTable += '</table>';
 
@@ -345,7 +346,10 @@ public with sharing class Utility {
             SELECT Id, Name, Sales_HOD__r.Email, Lead__r.RecordType.Name,
                 Lead__r.Business_Type__c, Lead__r.Rossari_Company__r.Name,
                 Opportunity__r.Account.Business_Type__c, Opportunity__r.Account.Rossari_Company__r.Name,
-                Customer_Name__r.Business_Type__c, Customer_Name__r.Rossari_Company__r.Name
+                Customer_Name__r.Business_Type__c, Customer_Name__r.Rossari_Company__r.Name, Lead__r.Company,
+                Lead__r.Name, Lead__r.Lead_Number__c,
+                Opportunity__r.Enquiry_Document_No__c, Opportunity__r.Account.Name,
+                Customer_Name__r.Name
             FROM Sample_Request__c
             WHERE Id = :sampleRequestId
             LIMIT 1
@@ -380,23 +384,34 @@ public with sharing class Utility {
         );
 
         if (!isTargetCompany) {
-            System.debug('Target Company not matched');
+            List<Sample_Request_Line_Item__c> toBeUpdated = new List<Sample_Request_Line_Item__c>(); 
+
+            for (Sample_Request_Line_Item__c li : allLineItems) {
+                li.Approval_Status__c = 'Approved';
+                toBeUpdated.add(li);
+            }
+
+            UPDATE toBeUpdated;
             return false;
         }
 
         
         List<Sample_Request_Line_Item__c> matchedItems = new List<Sample_Request_Line_Item__c>();
+        List<Sample_Request_Line_Item__c> approvedItems = new List<Sample_Request_Line_Item__c>();
+
+        Boolean isDomestic = false;
+        Boolean isExport = false;
 
         for (Sample_Request_Line_Item__c li : allLineItems) {
             Decimal qty = li.Sample_Qty_in_Kgs__c == null ? 0 : li.Sample_Qty_in_Kgs__c;
 
-            Boolean isDomestic = (
+            isDomestic = (
                 (sr.Lead__r != null && sr.Lead__r.Business_Type__c == 'Domestic') ||
                 (sr.Opportunity__r != null && sr.Opportunity__r.Account != null && sr.Opportunity__r.Account.Business_Type__c == 'Domestic') ||
                 (sr.Customer_Name__r != null && sr.Customer_Name__r.Business_Type__c == 'Domestic')
             );
 
-            Boolean isExport = (
+            isExport = (
                 (sr.Lead__r != null && sr.Lead__r.Business_Type__c == 'Export') ||
                 (sr.Opportunity__r != null && sr.Opportunity__r.Account != null && sr.Opportunity__r.Account.Business_Type__c == 'Export') ||
                 (sr.Customer_Name__r != null && sr.Customer_Name__r.Business_Type__c == 'Export')
@@ -404,9 +419,24 @@ public with sharing class Utility {
 
             if ((isDomestic && qty > 5) || (isExport && qty > 10)) {
                 matchedItems.add(li);
+            } else {
+                approvedItems.add(li);
             }
         }
 
+        List<Sample_Request_Line_Item__c> toBeUpdated = new List<Sample_Request_Line_Item__c>(); 
+
+        for (Sample_Request_Line_Item__c li : matchedItems) {
+            li.Approval_Status__c = 'Pending';
+            toBeUpdated.add(li);
+        }
+
+        for (Sample_Request_Line_Item__c li : approvedItems) {
+            li.Approval_Status__c = 'Approved';
+            toBeUpdated.add(li);
+        }
+
+        UPDATE toBeUpdated;
         
         if (matchedItems.isEmpty()) {
             System.debug('No matched items found');
@@ -419,8 +449,7 @@ public with sharing class Utility {
             '<tr style="background-color: #f2f2f2;">' +
             '<th>Name</th><th>Product Name</th><th>Product Code</th><th>Rate</th><th>Quantity</th></tr>';
 
-        List<Sample_Request_Line_Item__c> toBeUpdated = new List<Sample_Request_Line_Item__c>(); 
-        for (Sample_Request_Line_Item__c li : matchedItems) {
+        for (Sample_Request_Line_Item__c li : allLineItems) {
             productTable += '<tr>' +
                             '<td>' + ns(li.Name) + '</td>' +
                             '<td>' + ns(li.Product__r.Name) + '</td>' +
@@ -428,11 +457,7 @@ public with sharing class Utility {
                             '<td>' + ns(li.Sales_Price__c) + '</td>' +
                             '<td>' + ns(li.Sample_Qty_in_Kgs__c) + '</td>' +
                             '</tr>';
-            li.Approval_Status__c = 'Pending';
-            toBeUpdated.add(li);
         }
-
-        UPDATE toBeUpdated;
 
         productTable += '</table>';
 
@@ -440,8 +465,25 @@ public with sharing class Utility {
         String emailBody = ''
             + 'Dear Sir/Madam,<br/>'
             + 'A new Sample Request has been created and needs your approval. Some products have higher quantities than usual.<br/><br/>'
-            + '<b>This is for Sales HOD when quantity more than 5 and 10 kg for Domestic and Export in Unitop and Tristar.</b><br/><br/>'
-            + '<b>Sample Request:</b> ' + ns(sr.Name) + '<br/><br/>'
+            + '<b>Sample Request:</b> ' + ns(sr.Name) + '<br/><br/>';
+
+        if (sr.Lead__r != null && !String.isBlank(sr.Lead__r.Lead_Number__c)) {
+            emailBody += '<b>Lead Number:</b> ' + ns(sr.Lead__r.Lead_Number__c) + '<br/>';
+        }
+        if (sr.Lead__r != null && sr.Lead__r.Rossari_Company__r != null && !String.isBlank(sr.Lead__r.Rossari_Company__r.Name)) {
+            emailBody += '<b>Customer Name:</b> ' + ns(sr.Lead__r.Company) + '<br/>';
+        }
+        if (sr.Opportunity__r != null && !String.isBlank(sr.Opportunity__r.Enquiry_Document_No__c)) {
+            emailBody += '<b>Opportunity Number:</b> ' + ns(sr.Opportunity__r.Enquiry_Document_No__c) + '<br/>';
+        }
+        if (sr.Opportunity__r != null && sr.Opportunity__r.Account != null && !String.isBlank(sr.Opportunity__r.Account.Name)) {
+            emailBody += '<b>Account Name:</b> ' + ns(sr.Opportunity__r.Account.Name) + '<br/>';
+        }
+        if (sr.Customer_Name__r != null && !String.isBlank(sr.Customer_Name__r.Name)) {
+            emailBody += '<b>Customer Name:</b> ' + ns(sr.Customer_Name__r.Name) + '<br/>';
+        }
+
+        emailBody += '<br/><b>Buisness Type:</b> ' + (isDomestic ? 'Domestic' : 'Export') + '<br/><br/>'
             + productTable;
 
             

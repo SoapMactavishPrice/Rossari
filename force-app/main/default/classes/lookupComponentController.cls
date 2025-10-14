@@ -79,9 +79,7 @@ public without sharing class lookupComponentController {
                     seenCodes.add(p.ProductCode);
                 }
             }
-        } catch (Exception e) {
-            throw new AuraHandledException('Error searching products: ' + e.getMessage());
-        }
+        } catch (Exception e) {throw new AuraHandledException('Error searching products: ' + e.getMessage());}
 
         return JSON.serialize(results);
     }
@@ -101,9 +99,7 @@ public without sharing class lookupComponentController {
             w.productCode = p.ProductCode;
             w.familyField = p.Product2.Family;
             w.unitPrice = p.UnitPrice;
-        } catch (Exception e) {
-            return null;
-        }
+        } catch (Exception e) {return null;}
 
         return JSON.serialize(w);
     }

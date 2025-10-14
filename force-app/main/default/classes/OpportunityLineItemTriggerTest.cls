@@ -1,99 +1,96 @@
 @isTest
 public class OpportunityLineItemTriggerTest {
     
-    @testSetup
-    static void setupData() {
-        // Activate Standard Pricebook
-        Pricebook2 standardPb = new Pricebook2(
-            Id = Test.getStandardPricebookId(),
-            IsActive = true
-        );
-        update standardPb;
-
-        // Create Account
+    @isTest
+    static void testOpportunityLineItemTrigger_ZeroPrice() {
         Account acc = new Account(Name = 'Test Account');
         insert acc;
 
-        // Create Opportunity
         Opportunity opp = new Opportunity(
-            Name = 'Test Opp',
-            StageName = 'Prospecting',
-            CloseDate = Date.today(),
+            Name = 'Test Opportunity',
             AccountId = acc.Id,
-            Pricebook2Id = standardPb.Id
+            StageName = 'Prospecting',
+            CloseDate = Date.today().addDays(10)
         );
         insert opp;
-    }
-    
-    @isTest
-    static void testTriggerConditionMet() {
-        Opportunity opp = [SELECT Id, Pricebook2Id FROM Opportunity LIMIT 1];
 
-        // Create Product
-        Product2 prod = new Product2(Name = 'Zero Price Product', IsActive = true);
-        insert prod;
-
-        // PricebookEntry with UnitPrice = 0 (so ListPrice = 0)
-        PricebookEntry pbe = new PricebookEntry(
-            Pricebook2Id = opp.Pricebook2Id,
-            Product2Id = prod.Id,
-            UnitPrice = 0,
+        Pricebook2 standardPricebook = new Pricebook2(
+            Id = Test.getStandardPricebookId(),
             IsActive = true
         );
-        insert pbe;
+        update standardPricebook;
 
-        Test.startTest();
-        OpportunityLineItem oli = new OpportunityLineItem(
-            OpportunityId = opp.Id,
-            PricebookEntryId = pbe.Id,
-            Quantity = 1,
-            UnitPrice = 0
-        );
-        insert oli; // should satisfy trigger condition and call SendEmail
-        Test.stopTest();
-
-        // Assert OLI is inserted
-        OpportunityLineItem insertedOli = [
-            SELECT Id, UnitPrice, ListPrice 
-            FROM OpportunityLineItem 
-            WHERE Id = :oli.Id
-        ];
-        
-    }
-    
-    @isTest
-    static void testTriggerConditionNotMet() {
-        Opportunity opp = [SELECT Id, Pricebook2Id FROM Opportunity LIMIT 1];
-
-        // Create Product
-        Product2 prod = new Product2(Name = 'Non Zero Price Product', IsActive = true);
-        insert prod;
-
-        // PricebookEntry with UnitPrice = 200 (so ListPrice = 200)
-        PricebookEntry pbe = new PricebookEntry(
-            Pricebook2Id = opp.Pricebook2Id,
-            Product2Id = prod.Id,
-            UnitPrice = 200,
+        Product2 testProduct = new Product2(
+            Name = 'Test Product',
             IsActive = true
         );
-        insert pbe;
+        insert testProduct;
 
-        Test.startTest();
+        PricebookEntry standardPBE = new PricebookEntry(
+            Pricebook2Id = standardPricebook.Id,
+            Product2Id = testProduct.Id,
+            UnitPrice = 100.00,
+            IsActive = true
+        );
+        insert standardPBE;
+
         OpportunityLineItem oli = new OpportunityLineItem(
             OpportunityId = opp.Id,
-            PricebookEntryId = pbe.Id,
             Quantity = 1,
-            UnitPrice = 200
+            PricebookEntryId = standardPBE.Id,
+            UnitPrice = 0 
         );
-        insert oli; // does NOT meet trigger condition
-        Test.stopTest();
 
-        // Assert OLI is inserted
-        OpportunityLineItem insertedOli = [
-            SELECT Id, UnitPrice, ListPrice 
-            FROM OpportunityLineItem 
+        insert oli;
+
+        OpportunityLineItem insertedOLI = [
+            SELECT Id, OpportunityId, UnitPrice
+            FROM OpportunityLineItem
             WHERE Id = :oli.Id
         ];
-        
+    }
+
+    @isTest
+    static void testOpportunityLineItemTrigger_NonZeroPrice() {
+        Account acc = new Account(Name = 'Non Zero Account');
+        insert acc;
+
+        Opportunity opp = new Opportunity(
+            Name = 'Non Zero Opportunity',
+            AccountId = acc.Id,
+            StageName = 'Qualification',
+            CloseDate = Date.today().addDays(5)
+        );
+        insert opp;
+
+        Pricebook2 standardPricebook = new Pricebook2(
+            Id = Test.getStandardPricebookId(),
+            IsActive = true
+        );
+        update standardPricebook;
+
+        Product2 testProduct = new Product2(
+            Name = 'NonZero Product',
+            IsActive = true
+        );
+        insert testProduct;
+
+        PricebookEntry standardPBE = new PricebookEntry(
+            Pricebook2Id = standardPricebook.Id,
+            Product2Id = testProduct.Id,
+            UnitPrice = 100.00,
+            IsActive = true
+        );
+        insert standardPBE;
+
+        OpportunityLineItem oli = new OpportunityLineItem(
+            OpportunityId = opp.Id,
+            Quantity = 2,
+            PricebookEntryId = standardPBE.Id,
+            UnitPrice = 100
+        );
+        Test.startTest();
+        insert oli;
+        Test.stopTest();
     }
 }

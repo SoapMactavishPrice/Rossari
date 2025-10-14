@@ -352,6 +352,7 @@ public with sharing class SampleRequestController {
             try {
                 upsert itemsToUpsert;
             } catch(DmlException e) {
+                            System.debug('e.getMessage: ' + e.getMessage());
                 throw new AuraHandledException('Error saving line items: ' + e.getMessage());
             }
         }

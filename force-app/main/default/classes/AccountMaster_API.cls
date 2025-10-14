@@ -272,7 +272,8 @@ global class AccountMaster_API {
                 if (String.isNotBlank(accMaster.CRED_LIMIT)) {
                     String cl = accMaster.CRED_LIMIT.replace(',', '');
                     cl = cl.replace(' ', '');
-                    acc.Balance_Credit_Limit__c = String.isNotBlank(accMaster.CRED_LIMIT) ? Decimal.valueOf(cl) : null;
+                    // acc.Balance_Credit_Limit__c = String.isNotBlank(accMaster.CRED_LIMIT) ? Decimal.valueOf(cl) : null;
+                    acc.Credit_Limit__c = String.isNotBlank(accMaster.CRED_LIMIT) ? Decimal.valueOf(cl) : null;
                 }
                 accountsToUpsert.add(acc);
             }

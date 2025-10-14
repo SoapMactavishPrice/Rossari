@@ -167,14 +167,20 @@
     min-width: 110px;
 }
 
-.amount {
-    width: 9%;
+.daily-allowance {
+    width: 10%;
     min-width: 100px;
 }
 
+/* Update other column widths to accommodate the new column */
+.amount {
+    width: 9%;
+    min-width: 90px;
+}
+
 .files {
-    width: 12%;
-    min-width: 130px;
+    width: 11%;
+    min-width: 120px;
 }
 
 .actions {
@@ -185,4 +191,15 @@
 .description-cash {
     width: 10%;
     min-width: 100px;
+}
+
+.total {
+    width: 10%;
+    min-width: 100px;
+    font-weight: bold;
+}
+
+.grade-display {
+    font-weight: bold;
+    color: #2e844a;
 }

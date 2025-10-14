@@ -56,6 +56,11 @@
                         </lightning-combobox>
                     </div>
 
+                    <div class="slds-col slds-size_1-of-2 slds-medium-size_1-of-4">
+                        <lightning-input type="text" label="Grade" value={userGradeName} disabled variant="label-stacked">
+                        </lightning-input>
+                    </div>
+
                     <!-- <div class="slds-col slds-size_1-of-2 slds-medium-size_1-of-4">
                         <lightning-input type="text" label="Division" value={division} disabled
                             variant="label-stacked"></lightning-input>
@@ -161,6 +166,16 @@
                                 <th class="amount"
                                     style="text-align: center; font-size: 13px; background-color: #9d0b0f; font-weight: bold; padding: 4px 6px; color: white;">
                                     Amount Claimed
+                                </th>
+
+                                <th class="daily-allowance" if:true={showDailyAllowanceColumn}
+                                    style="text-align: center; font-size: 13px; background-color: #9d0b0f; font-weight: bold; padding: 4px 6px; color: white;">
+                                    {dailyAllowanceColumnLabel}
+                                </th>
+
+                                <th class="total" if:true={showTotalColumn}
+                                    style="text-align: center; font-size: 13px; background-color: #9d0b0f; font-weight: bold; padding: 4px 6px; color: white;">
+                                    Total
                                 </th>
 
                                 <th class="remark" if:true={showRemarkColumn}
@@ -300,6 +315,30 @@
                                             <lightning-input type="number" value={item.amountClaimed} data-index={index}
                                                 onchange={handleAmountClaimedChange} variant="label-hidden" step="0.01"
                                                 required>
+                                            </lightning-input>
+                                        </div>
+                                    </td>
+
+                                    <td if:true={showDailyAllowanceColumn}>
+                                        <div class="slds-input-has-fixed-addon">
+                                            <span class="slds-form-element__addon">
+                                                {currencySymbol}
+                                            </span>
+                                            <lightning-input type="number" value={item.dailyAllowance} data-index={index}
+                                                onchange={handleDailyAllowanceChange} variant="label-hidden" step="0.01"
+                                                disabled={item.disableDailyAllowance}>
+                                            </lightning-input>
+                                        </div>
+                                    </td>
+
+                                    <!-- Total Column -->
+                                    <td if:true={showTotalColumn}>
+                                        <div class="slds-input-has-fixed-addon">
+                                            <span class="slds-form-element__addon">
+                                                {currencySymbol}
+                                            </span>
+                                            <lightning-input type="number" value={item.total} data-index={index}
+                                                variant="label-hidden" disabled>
                                             </lightning-input>
                                         </div>
                                     </td>

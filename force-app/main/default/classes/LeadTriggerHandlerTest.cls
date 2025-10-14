@@ -127,10 +127,8 @@ public class LeadTriggerHandlerTest {
         );
         insert standardPbe;
         
-        Country__c country1 = new Country__c(
-            Name = 'India'
-        );
-        insert country1;
+       Country__c country1 = [SELECT Id FROM Country__c WHERE Name = 'India' LIMIT 1];
+
         
         State__c state = new State__c(
             Name = 'Maharashtra',

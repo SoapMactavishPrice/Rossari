@@ -241,7 +241,7 @@ public with sharing class QuotationPdfController {
         html += '<th style="' + borderStyle + '">Material Code</th>';
         html += '<th style="' + borderStyle + '">HSN/SAC</th>';
         html += '<th style="' + borderStyle + '">Item Description</th>';
-        html += '<th style="' + borderStyle + '">Pack Size</th>';
+  //      html += '<th style="' + borderStyle + '">Pack Size</th>';
         html += '<th style="' + borderStyle + '">UOM</th>';
         html += '<th style="' + borderStyle + '">Quantity</th>';
         html += '<th style="' + borderStyle + '">Unit</th>';
@@ -256,7 +256,7 @@ public with sharing class QuotationPdfController {
             html += '<td style="' + borderStyle + '">' + ns(item.Product2.ProductCode) + '</td>';
             html += '<td style="' + borderStyle + '">' + ns(item.Product2.HSN__c) + '</td>';
             html += '<td style="' + borderStyle + '">' + ns(item.Description) + '</td>';
-            html += '<td style="' + borderStyle + '">' + ns(item.Product2.Pack_Size__c) + '</td>';
+     //       html += '<td style="' + borderStyle + '">' + ns(item.Product2.Pack_Size__c) + '</td>';
             html += '<td style="' + borderStyle + '">' + ns(item.Product2.Base_UOM__r.Name) + '</td>';
             html += '<td style="' + borderStyle + '">' + ns(item.Quantity) + '</td>';
             html += '<td style="' + borderStyle + '">' + ns(item.ListPrice) + '</td>';

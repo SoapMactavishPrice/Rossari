@@ -225,7 +225,7 @@
             <th>Material Code</th>
             <th>HSN/SAC</th>
             <th>Item Description</th>
-            <th>Pack Size</th>
+            <!--      <th>Pack Size</th>	-->
             <th>UOM</th>
             <th>Quantity</th>
             <th>Unit</th>
@@ -239,7 +239,7 @@
                 <td>{!item.Product2.ProductCode}</td>
                 <td>{!item.Product2.HSN__c}</td>
                 <td>{!item.Description}</td>
-                <td>{!item.Product2.Pack_Size__c}</td>
+         <!--       <td>{!item.Product2.Pack_Size__c}</td>	-->
                 <td>{!item.Product2.Base_UOM__r.Name}</td>
                 <td>{!item.Quantity}</td>
                 <td>{!item.ListPrice}</td>

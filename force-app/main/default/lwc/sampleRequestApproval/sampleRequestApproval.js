@@ -65,7 +65,7 @@ export default class quoteSalesPriceApproval extends NavigationMixin(LightningEl
 
         updateQuoteLineItem({quotationListStringObject: JSON.stringify(this.quotes)}).then((result) => {
             if (result == 'Success') {
-                this.showToast('Success', 'Quotation Line Items updated successfully', 'success');
+                this.showToast('Success', 'Sample Request Line Item updated successfully', 'success');
 
                 this.redirectToHome();
 

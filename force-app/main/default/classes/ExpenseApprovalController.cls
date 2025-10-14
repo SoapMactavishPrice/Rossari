@@ -318,6 +318,7 @@ public with sharing class ExpenseApprovalController {
             return 'Success';
 
         } catch (Exception e) {
+            system.debug('Error submitting: ' + e.getMessage() + e.getLineNumber());
             throw new AuraHandledException('Error submitting approval: ' + e.getMessage());
         }
     }
