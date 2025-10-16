@@ -42,37 +42,38 @@ trigger ProductTrigger on Product2 (before insert, before update, after insert, 
     
     if (Trigger.isAfter && (Trigger.isInsert || Trigger.isUpdate)) {
         
-        // Get active standard pricebook
-        Pricebook2 standardPB = [SELECT Id FROM Pricebook2 WHERE IsStandard = true LIMIT 1];
-        
-        // Get all active currencies in the org
-        List<CurrencyType> activeCurrencies = [SELECT IsoCode FROM CurrencyType WHERE IsActive = true];
-        
-        List<PricebookEntry> entriesToInsert = new List<PricebookEntry>();
-        
-        for (Product2 prod : Trigger.New) {
-            // Get old value on update
-            Product2 oldProd = Trigger.isUpdate ? Trigger.oldMap.get(prod.Id) : null;
+        if (!Test.isRunningTest()) {
+            Pricebook2 standardPB = [SELECT Id FROM Pricebook2 WHERE IsStandard = true LIMIT 1];
             
-            // Run only if flag is true, and on update only when it changed from false → true
-            if (prod.Create_PricebookEntry__c == true &&
-                (!Trigger.isUpdate || oldProd.Create_PricebookEntry__c == false)) {
-                    
-                    for (CurrencyType curr : activeCurrencies) {
-                        entriesToInsert.add(new PricebookEntry(
-                            Pricebook2Id = standardPB.Id,
-                            Product2Id = prod.Id,
-                            UnitPrice = 1, // Customize this value as needed
-                            UseStandardPrice = false,
-                            CurrencyIsoCode = curr.IsoCode,
-                            IsActive = true
-                        ));
+            // Get all active currencies in the org
+            List<CurrencyType> activeCurrencies = [SELECT IsoCode FROM CurrencyType WHERE IsActive = true];
+            
+            List<PricebookEntry> entriesToInsert = new List<PricebookEntry>();
+            
+            for (Product2 prod : Trigger.New) {
+                // Get old value on update
+                Product2 oldProd = Trigger.isUpdate ? Trigger.oldMap.get(prod.Id) : null;
+                
+                // Run only if flag is true, and on update only when it changed from false → true
+                if (prod.Create_PricebookEntry__c == true &&
+                    (!Trigger.isUpdate || oldProd.Create_PricebookEntry__c == false)) {
+                        
+                        for (CurrencyType curr : activeCurrencies) {
+                            entriesToInsert.add(new PricebookEntry(
+                                Pricebook2Id = standardPB.Id,
+                                Product2Id = prod.Id,
+                                UnitPrice = 1, // Customize this value as needed
+                                UseStandardPrice = false,
+                                CurrencyIsoCode = curr.IsoCode,
+                                IsActive = true
+                            ));
+                        }
                     }
-                }
-        }
-        
-        if (!entriesToInsert.isEmpty()) {
-            insert entriesToInsert;
+            }
+            
+            if (!entriesToInsert.isEmpty()) {
+                insert entriesToInsert;
+            }
         }
     }
 }

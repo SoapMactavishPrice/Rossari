@@ -6,6 +6,9 @@ import { ShowToastEvent } from 'lightning/platformShowToastEvent';
 import sendXlsxEmail from '@salesforce/apex/CustomerOnboardingFormController.sendXlsxEmail';
 import deletefile from '@salesforce/apex/CustomerOnboardingFormController.deletefile';
 import getDocumentUrl from '@salesforce/apex/CustomerOnboardingFormController.getDocumentUrl';
+import getDetails from '@salesforce/apex/CustomerOnboardingFormController.getDetails';
+
+
 import { NavigationMixin } from 'lightning/navigation';
 import xlsxLib from '@salesforce/resourceUrl/xlsx';
 import { loadScript } from 'lightning/platformResourceLoader';
@@ -125,8 +128,8 @@ this.handleGetRecordId();
 this.loadSalesData();
 }
 @track salesOrgNames = [];
-    @track divisionNames = [];
-    @track distributionChannelNames = [];
+@track divisionNames = [];
+@track distributionChannelNames = [];
 
  loadSalesData() {
         getSalesData()
@@ -155,24 +158,25 @@ handleGetRecordId() {
 
     getCustomerDetail({Id:this.recordId}).then(result=>{
         let data= JSON.parse(JSON.stringify(result));
-        console.log('Current fieldMap:', data);
-         this.fieldMap.SF_Customer_Id = data.Id|| null;
+        console.log('Current fieldMap:', JSON.parse(JSON.stringify(data)));
+         this.fieldMap.SF_Customer_Id = data.AccountId|| null;
         this.fieldMap.account_Group = data.Cust_Acct_Group__c|| null;
         this.fieldMap.name = data.Name|| null;
-        this.fieldMap.name_2 = data.name_2__c|| null;
-        this.fieldMap.title = data.Title__c|| null;
-        this.fieldMap.search_Term = data.Search_term__c|| null;
-        this.fieldMap.pan_Number = data.Pan_No__c|| null;
-        this.fieldMap.postal_Code = data.Post_Code__c|| null;
-            this.fieldMap.city = data.city|| null;
-        this.fieldMap.country = data.Country_Text__c|| null;
-        this.fieldMap.state = data.State1__c|| null;
+        this.fieldMap.name_2 = data.Account?.Account_Name_2__c|| null;
+        this.fieldMap.title = data.Account?.Title__c|| null;
+        this.fieldMap.search_Term = data.Account?.Search_term__c|| null;
+        this.fieldMap.pan_Number = data.Account?.Pan_No__c|| null;
+        this.fieldMap.postal_Code = data.Account?.Post_Code__c|| null;
+            this.fieldMap.city = data.Account?.City__c|| null;
+        this.fieldMap.country = data.Account?.Country__c|| null;
+        this.fieldMap.state = data.Account?.State1__c|| null;
         //this.fieldMap.SAP_Customer_Code =data.SAP_Customer_Code__c || null;
-        this.fieldMap.street_2 = data.Street2__c|| null;
-            this.fieldMap.street_3 = data.Street3__c|| null;
-            this.fieldMap.language = data.language__c|| null;
-            this.fieldMap.telephone = data.Phone|| null;
-            this.fieldMap.email = data.Email_Id__c|| null;
+        this.fieldMap.Street = data.Account?.Street1__c|| null;
+        this.fieldMap.street_2 = data.Account?.Street2__c|| null;
+            this.fieldMap.street_3 = data.Account?.Street3__c|| null;
+            this.fieldMap.language = data.Account?.language__c|| null;
+            this.fieldMap.telephone = data.Account?.Phone|| null;
+            this.fieldMap.email = data.Account?.Email_Id__c|| null;
 
         console.log('Current fieldMap:', this.fieldMap);
 
@@ -794,7 +798,7 @@ handleEmpChange(event){
 
         // Call Apex to send email
         sendEmailWithAttachment({
-            toAddresses: 'Rishikesh.Korade@finessedirect.com',
+            toAddresses: 'praveen@finessedirect.com',
             ccAddresses: null,
             subject: 'Excel File Attachment',
             body: 'Please find attached the exported Excel file.',

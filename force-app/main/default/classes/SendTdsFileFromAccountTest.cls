@@ -21,12 +21,7 @@ private class SendTdsFileFromAccountTest {
         );
         insert u;
 
-        Pricebook2 standardPricebook = new Pricebook2(
-            Id = Test.getStandardPricebookId(),
-            IsActive = true
-        );
-        update standardPricebook;
-
+        Id standardPricebookId = Test.getStandardPricebookId();
 
         Product2 testProduct = new Product2(
             Name = 'Test Product',
@@ -35,7 +30,7 @@ private class SendTdsFileFromAccountTest {
         insert testProduct;
 
         PricebookEntry standardPBE = new PricebookEntry(
-            Pricebook2Id = standardPricebook.Id,
+            Pricebook2Id = standardPricebookId,
             Product2Id = testProduct.Id,
             UnitPrice = 100.00,
             IsActive = true
@@ -74,24 +69,28 @@ private class SendTdsFileFromAccountTest {
     static void testGetEmailDetails() {
         Account acc = [SELECT Id FROM Account WHERE Name = 'Test Account' LIMIT 1];
         Account result = SendTdsFileFromAccount.getEmailDetails(acc.Id);
+        System.assertNotEquals(null, result, 'Email details should be returned.');
     }
 
     @IsTest
     static void testGetLead() {
         Account acc = [SELECT Id FROM Account WHERE Name = 'Test Account' LIMIT 1];
         SendTdsFileFromAccount.LeadWrapper wrapper = SendTdsFileFromAccount.getLead(acc.Id);
+        System.assertNotEquals(null, wrapper, 'Lead wrapper should be returned.');
     }
 
     @IsTest
     static void testGetProductData() {
         Account acc = [SELECT Id FROM Account WHERE Name = 'Test Account' LIMIT 1];
         String jsonData = SendTdsFileFromAccount.getProductData(acc.Id);
+        System.assertNotEquals(null, jsonData, 'Product data JSON should be returned.');
     }
 
     @IsTest
     static void testGetFiledDisplay() {
         Account acc = [SELECT Id FROM Account WHERE Name = 'Test Account' LIMIT 1];
         String jsonData = SendTdsFileFromAccount.getFiledDisplay(acc.Id);
+        System.assertNotEquals(null, jsonData, 'Field display JSON should be returned.');
     }
 
     @IsTest
@@ -99,6 +98,7 @@ private class SendTdsFileFromAccountTest {
         Account acc = [SELECT Id FROM Account WHERE Name = 'Test Account' LIMIT 1];
         ContentDocumentLink cdl = [SELECT Id FROM ContentDocumentLink WHERE LinkedEntityId = :acc.Id LIMIT 1];
         String docId = SendTdsFileFromAccount.getDocumentUrl(cdl.Id);
+        System.assertNotEquals(null, docId, 'Document URL should be returned.');
     }
 
     @IsTest
@@ -118,10 +118,12 @@ private class SendTdsFileFromAccountTest {
             'test@example.com', new List<String>{'cc@example.com'}, 
             'Test Subject', 'Test Body', JSON.serialize(fileIds), attachments
         );
+        System.assertNotEquals(null, resultJson, 'Email result JSON should be returned.');
     }
 
     @IsTest
     static void testGetCurrentUserDetails() {
         SendTdsFileFromAccount.UserDetailWrapper userDetails = SendTdsFileFromAccount.getCurrentUserDetails();
+        System.assertNotEquals(null, userDetails, 'User details should be returned.');
     }
 }

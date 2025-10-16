@@ -1,20 +1,16 @@
 @isTest
 public class QuoteTriggerHandlerTest {
     
-    // Helper method to setup test pricebook
-    private static void setupPricebook() {
-        // Get the standard pricebook
-        Pricebook2 standardPricebook = new Pricebook2(
-            Id = Test.getStandardPricebookId(),
-            IsActive = true
-        );
-        update standardPricebook;
+    // Helper method to setup test pricebook - UPDATED to remove pricebook update
+    private static Id setupPricebook() {
+        // Get the standard pricebook ID without updating
+        return Test.getStandardPricebookId();
     }
     
     @isTest
     static void testSendPaymentTermChangeEmails() {
-        // Setup pricebook first
-        setupPricebook();
+        // Setup pricebook first - UPDATED to get pricebook ID
+        Id standardPricebookId = setupPricebook();
         
         User hodUser = new User(
             Username = 'hoduserkgn12985bu87s@gmail.com',
@@ -50,11 +46,10 @@ public class QuoteTriggerHandlerTest {
             StageName = 'Prospecting',
             CloseDate = Date.today().addDays(30),
             AccountId = acc.Id,
-            Pricebook2Id = Test.getStandardPricebookId() // Explicitly set pricebook
+            Pricebook2Id = standardPricebookId // Use the pricebook ID directly
         );
         insert opp;
 
-        // Rest of your test code remains the same...
         Payment_Term__c previousTerm = new Payment_Term__c(Name = 'Net 30');
         insert previousTerm;
 
@@ -81,6 +76,5 @@ public class QuoteTriggerHandlerTest {
         Test.startTest();
         QuoteTriggerHandler.sendPaymentTermChangeEmails(quotes);
         Test.stopTest();
-
     }
 }

@@ -237,6 +237,8 @@ public without sharing class AddProductPageOpp {
             pw.Name = pbe.Product2.Name;
             pw.ProductCode = pbe.Product2.ProductCode;
             pw.Description = pbe.Product2.Description;
+            
+            pw.ListPrice = pbe.UnitPrice;
 
             if (cmplMap.containsKey(pbe.Product2Id)) {
                 pw.Price = cmplMap.get(pbe.Product2Id).Material_Price__c;
@@ -395,6 +397,7 @@ public without sharing class AddProductPageOpp {
         public String hsnMasterCode;
         public integer index;
         public Decimal Price;
+        public Decimal ListPrice;   
         public Decimal SalesPrice;
         public Decimal Quantity = 0;
         public String Family;

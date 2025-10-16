@@ -23,12 +23,20 @@ public class ExpenseTriggerHandler {
         }
 
         // Fetch Cost Center to get Sales Org
-        Cost_Center__c userCostCenterRecord = [
+        List<Cost_Center__c> userCostCenterRecords = [
             SELECT Id, Name, Sales_Org__r.Name
             FROM Cost_Center__c 
             WHERE Name = :userCostCenter
-            LIMIT 1
         ];
+        Cost_Center__c userCostCenterRecord = null;
+        if (userCostCenterRecords.isEmpty()) {
+            System.debug('Could not find Cost Center record for: ' + userCostCenter);
+            return;
+        } else {
+            userCostCenterRecord = userCostCenterRecords[0];
+        }
+
+
 
         String salesOrgName = userCostCenterRecord.Sales_Org__r?.Name;
         if (String.isBlank(salesOrgName)) {

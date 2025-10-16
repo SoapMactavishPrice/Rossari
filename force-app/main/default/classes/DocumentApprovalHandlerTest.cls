@@ -92,46 +92,47 @@ public class DocumentApprovalHandlerTest {
         sampleDocs.msdsSampleFiles = new List<DocumentApprovalHandler.ContentVersionWrapper>();
         sampleDocs.techDocSampleFiles = new List<DocumentApprovalHandler.ContentVersionWrapper>();
         sampleDocs.coaSampleFiles = new List<DocumentApprovalHandler.ContentVersionWrapper>();
-        
+
         DocumentApprovalHandler.ContentVersionWrapper sampleFile = new DocumentApprovalHandler.ContentVersionWrapper();
         sampleFile.fileName = 'sample.txt';
         sampleFile.base64Data = EncodingUtil.base64Encode(Blob.valueOf('sample content'));
         sampleDocs.tdsSampleFiles.add(sampleFile);
-        
+
         String sampleDocsJson = JSON.serialize(sampleDocs);
 
-        // Prepare files for upload
-        Map<Object, Object> m1 = new Map<Object, Object>{
-            'fileName' => 'tds.txt',
-            'base64' => EncodingUtil.base64Encode(Blob.valueOf('content1')),
-            'contentType' => 'text/plain',
-            'isReadOnly' => false
+        List<Object> tdsFiles = new List<Object>{
+            new Map<Object, Object>{
+                'fileName' => 'tds.txt',
+                'base64' => EncodingUtil.base64Encode(Blob.valueOf('content1')),
+                'contentType' => 'text/plain',
+                'isReadOnly' => false
+            }
         };
-        Map<Object, Object> m2 = new Map<Object, Object>{
-            'fileName' => 'msds.txt',
-            'base64' => EncodingUtil.base64Encode(Blob.valueOf('content2')),
-            'contentType' => 'text/plain',
-            'isReadOnly' => false
+        List<Object> msdsFiles = new List<Object>{
+            new Map<Object, Object>{
+                'fileName' => 'msds.txt',
+                'base64' => EncodingUtil.base64Encode(Blob.valueOf('content2')),
+                'contentType' => 'text/plain',
+                'isReadOnly' => false
+            }
         };
-        Map<Object, Object> m3 = new Map<Object, Object>{
-            'fileName' => 'tech.txt',
-            'base64' => EncodingUtil.base64Encode(Blob.valueOf('content3')),
-            'contentType' => 'text/plain',
-            'isReadOnly' => false
+        List<Object> techFiles = new List<Object>{
+            new Map<Object, Object>{
+                'fileName' => 'tech.txt',
+                'base64' => EncodingUtil.base64Encode(Blob.valueOf('content3')),
+                'contentType' => 'text/plain',
+                'isReadOnly' => false
+            }
         };
-        Map<Object, Object> m4 = new Map<Object, Object>{
-            'fileName' => 'coa.txt',
-            'base64' => EncodingUtil.base64Encode(Blob.valueOf('content4')),
-            'contentType' => 'text/plain',
-            'isReadOnly' => false
+        List<Object> coaFiles = new List<Object>{
+            new Map<Object, Object>{
+                'fileName' => 'coa.txt',
+                'base64' => EncodingUtil.base64Encode(Blob.valueOf('content4')),
+                'contentType' => 'text/plain',
+                'isReadOnly' => false
+            }
         };
 
-        List<Object> tdsFiles = new List<Object>{ m1 };
-        List<Object> msdsFiles = new List<Object>{ m2 };
-        List<Object> techFiles = new List<Object>{ m3 };
-        List<Object> coaFiles = new List<Object>{ m4 };
-
-        // Prepare email test data
         Profile p = [SELECT Id FROM Profile WHERE Name = 'Standard User' LIMIT 1];
         User testOwner = new User(
             Alias = 'towner',
@@ -163,8 +164,9 @@ public class DocumentApprovalHandlerTest {
         );
         insert cv;
 
+        ContentVersion insertedCV = [SELECT Id, ContentDocumentId FROM ContentVersion WHERE Id = :cv.Id LIMIT 1];
         ContentDocumentLink cdl = new ContentDocumentLink(
-            ContentDocumentId = [SELECT ContentDocumentId FROM ContentVersion WHERE Id = :cv.Id].ContentDocumentId,
+            ContentDocumentId = insertedCV.ContentDocumentId,
             LinkedEntityId = newLead.Id,
             ShareType = 'V'
         );
@@ -174,22 +176,19 @@ public class DocumentApprovalHandlerTest {
         List<String> ccAddrs = new List<String>{};
 
         Test.startTest();
-
         Test.setMock(HttpCalloutMock.class, new MockHttpResponseGenerator());
-        
-        String res = DocumentApprovalHandler.updateApproversAndSendEmails(approverJson, sampleDocsJson, leadRecord.Id);
+
         String uploadResult = DocumentApprovalHandler.uploadDocuments(tdsFiles, msdsFiles, techFiles, coaFiles, leadRecord.Id);
         DocumentApprovalHandler.DocumentModel docModel = DocumentApprovalHandler.getDocumentModel(leadRecord.Id);
         Boolean isSubmitted = DocumentApprovalHandler.isRequestDocumentSubmitted(leadRecord.Id);
         String emailResult = DocumentApprovalHandler.sendLeadDocumentEmail(newLead.Id, toAddrs, ccAddrs, 'Test Subject', '<b>Test Body</b>');
         String savePrevResult = DocumentApprovalHandler.savePreviousViewType(leadRecord.Id, 'TestView');
         String viewType = DocumentApprovalHandler.getPreviousViewType(leadRecord.Id);
-        
-        update new Lead(Id=leadRecord.Id, Previous_View_Type__c = null);
-        String nullViewType = DocumentApprovalHandler.getPreviousViewType(leadRecord.Id);
-        
-        String remarksResult = DocumentApprovalHandler.saveRemarks('TDS Remark', 'MSDS Remark', 'TechDoc Remark', 'COA Remark', leadRecord.Id);
 
+        update new Lead(Id = leadRecord.Id, Previous_View_Type__c = null);
+        String nullViewType = DocumentApprovalHandler.getPreviousViewType(leadRecord.Id);
+
+        String remarksResult = DocumentApprovalHandler.saveRemarks('TDS Remark', 'MSDS Remark', 'TechDoc Remark', 'COA Remark', leadRecord.Id);
         Test.stopTest();
     }
 

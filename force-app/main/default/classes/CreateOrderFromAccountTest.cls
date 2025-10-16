@@ -26,11 +26,7 @@ private class CreateOrderFromAccountTest {
         );
         insert testContact;
 
-        Pricebook2 standardPb = new Pricebook2(
-            Id = Test.getStandardPricebookId(),
-            IsActive = true
-        );
-        update standardPb;
+        Id standardPricebookId = Test.getStandardPricebookId();
 
         Product2 prod = new Product2(
             Name = 'Test Product',
@@ -41,11 +37,12 @@ private class CreateOrderFromAccountTest {
         insert prod;
 
         PricebookEntry standardPbe = new PricebookEntry(
-            Pricebook2Id = standardPb.Id,
+            Pricebook2Id = standardPricebookId,
             Product2Id = prod.Id,
             UnitPrice = 100,
             IsActive = true,
-            CurrencyIsoCode = 'USD'
+            CurrencyIsoCode = 'USD',
+            UseStandardPrice = false
         );
         insert standardPbe;
 
@@ -60,7 +57,8 @@ private class CreateOrderFromAccountTest {
             Product2Id = prod.Id,
             UnitPrice = 120,
             IsActive = true,
-            CurrencyIsoCode = 'USD'
+            CurrencyIsoCode = 'USD',
+            UseStandardPrice = false
         );
         insert customPbe;
 
@@ -89,8 +87,11 @@ private class CreateOrderFromAccountTest {
     static void testAllMethodsInOne() {
         Account acc = [SELECT Id FROM Account LIMIT 1];
         Order ord = [SELECT Id FROM Order LIMIT 1];
-        PricebookEntry pbe = [SELECT Id, Product2Id, Pricebook2Id FROM PricebookEntry WHERE IsActive = true LIMIT 1];
         Product2 prod = [SELECT Id FROM Product2 LIMIT 1];
+        
+        PricebookEntry pbe = [SELECT Id, Product2Id, Pricebook2Id, UnitPrice FROM PricebookEntry 
+                             WHERE Product2Id = :prod.Id AND IsActive = true 
+                             AND CurrencyIsoCode = 'USD' LIMIT 1];
 
         List<Map<String, Object>> orderItems = new List<Map<String, Object>>{
             new Map<String, Object>{
@@ -105,52 +106,138 @@ private class CreateOrderFromAccountTest {
 
         Test.startTest();
 
-        CreateOrderFromAccount.getInitialData(acc.Id, ord.Id);
-        CreateOrderFromAccount.getInitialData(acc.Id, null);
-
+        Map<String, Object> initialDataWithOrder = CreateOrderFromAccount.getInitialData(acc.Id, ord.Id);
+        Map<String, Object> initialDataWithoutOrder = CreateOrderFromAccount.getInitialData(acc.Id, null);
         try {
-            CreateOrderFromAccount.getInitialData(null, null);
+            Map<String, Object> initialDataNull = CreateOrderFromAccount.getInitialData(null, null);
         } catch (Exception e) {}
 
-        CreateOrderFromAccount.getExistingOrdersForAccount(acc.Id);
+        List<Map<String, String>> existingOrders = CreateOrderFromAccount.getExistingOrdersForAccount(acc.Id);
 
         Account emptyAcc = new Account(Name = 'No Order Account');
         insert emptyAcc;
-        CreateOrderFromAccount.getExistingOrdersForAccount(emptyAcc.Id);
+        List<Map<String, String>> emptyOrders = CreateOrderFromAccount.getExistingOrdersForAccount(emptyAcc.Id);
 
-        CreateOrderFromAccount.getOrderHeader(ord.Id);
-
+        Order orderHeader = CreateOrderFromAccount.getOrderHeader(ord.Id);
         try {
-            CreateOrderFromAccount.getOrderHeader(null);
+            Order nullOrderHeader = CreateOrderFromAccount.getOrderHeader(null);
         } catch (Exception e) {}
 
-        CreateOrderFromAccount.getOrderItems(ord.Id);
+        List<Map<String, Object>> orderItemsResult = CreateOrderFromAccount.getOrderItems(ord.Id);
 
-        CreateOrderFromAccount.getDefaultPricebookForOrder();
+        try {
+            Id defaultPricebook = CreateOrderFromAccount.getDefaultPricebookForOrder();
+        } catch (Exception e) {
+            System.debug('No active standard pricebook found: ' + e.getMessage());
+        }
 
-        CreateOrderFromAccount.validatePricebookEntries(pbe.Pricebook2Id, 'USD', new List<Id>{pbe.Product2Id});
+        Map<String, String> pricebookValidation = CreateOrderFromAccount.validatePricebookEntries(
+            pbe.Pricebook2Id, 'USD', new List<Id>{pbe.Product2Id});
 
-        CreateOrderFromAccount.createOrderFromExisting(
-            ord.Id,
-            orderItems,
-            'Draft',
-            Date.today(),
-            null,
-            'USD',
-            pbe.Pricebook2Id,
-            null
+        Id createFromExisting = CreateOrderFromAccount.createOrderFromExisting(
+            ord.Id, orderItems, 'Draft', Date.today(), null, 'USD', pbe.Pricebook2Id, null
         );
 
-        CreateOrderFromAccount.createOrderFromExisting(
-            null,
-            orderItems,
-            'Draft',
-            Date.today(),
-            null,
-            'USD',
-            pbe.Pricebook2Id,
-            acc.Id
+        Id createNewOrder = CreateOrderFromAccount.createOrderFromExisting(
+            null, orderItems, 'Draft', Date.today(), null, 'USD', pbe.Pricebook2Id, acc.Id
         );
+
+        Test.stopTest();
+    }
+
+    @IsTest
+    static void testErrorScenariosAndEdgeCases() {
+        Account acc = [SELECT Id FROM Account LIMIT 1];
+        Product2 prod = [SELECT Id FROM Product2 LIMIT 1];
+        PricebookEntry pbe = [SELECT Id, Product2Id, Pricebook2Id FROM PricebookEntry 
+                             WHERE Product2Id = :prod.Id AND IsActive = true LIMIT 1];
+
+        Test.startTest();
+
+        try {
+            Id invalidOrderResult = CreateOrderFromAccount.createOrderFromExisting(
+                'invalidOrderId',
+                new List<Map<String, Object>>{
+                    new Map<String, Object>{
+                        'Product2Id' => pbe.Product2Id,
+                        'PricebookEntryId' => pbe.Id,
+                        'UnitPrice' => 100,
+                        'Quantity' => 1,
+                        'Discount' => 0,
+                        'Description' => 'Test Item'
+                    }
+                },
+                'Draft',
+                Date.today(),
+                null,
+                'USD',
+                pbe.Pricebook2Id,
+                acc.Id
+            );
+        } catch (Exception e) {}
+
+        try {
+            Id invalidAccountResult = CreateOrderFromAccount.createOrderFromExisting(
+                null,
+                new List<Map<String, Object>>{
+                    new Map<String, Object>{
+                        'Product2Id' => pbe.Product2Id,
+                        'PricebookEntryId' => pbe.Id,
+                        'UnitPrice' => 100,
+                        'Quantity' => 1,
+                        'Discount' => 0,
+                        'Description' => 'Test Item'
+                    }
+                },
+                'Draft',
+                Date.today(),
+                null,
+                'USD',
+                pbe.Pricebook2Id,
+                'invalidAccountId'
+            );
+        } catch (Exception e) {}
+
+        try {
+            Id emptyItemsResult = CreateOrderFromAccount.createOrderFromExisting(
+                null,
+                new List<Map<String, Object>>(),
+                'Draft',
+                Date.today(),
+                null,
+                'USD',
+                pbe.Pricebook2Id,
+                acc.Id
+            );
+        } catch (Exception e) {}
+
+        try {
+            Map<String, String> invalidPricebookValidation = CreateOrderFromAccount.validatePricebookEntries(
+                'invalidPricebookId',
+                'USD',
+                new List<Id>{pbe.Product2Id}
+            );
+        } catch (Exception e) {}
+
+        Map<String, String> emptyProductsValidation = CreateOrderFromAccount.validatePricebookEntries(
+            pbe.Pricebook2Id,
+            'USD',
+            new List<Id>()
+        );
+
+        Test.stopTest();
+    }
+
+    @IsTest
+    static void testAdditionalMethods() {
+        Account acc = [SELECT Id FROM Account LIMIT 1];
+
+        Test.startTest();
+
+        List<Contact> contacts = CreateOrderFromAccount.getContactsForAccount(acc.Id);
+        String accountCurrency = CreateOrderFromAccount.getAccountCurrency(acc.Id);
+        List<Map<String, String>> statusOptions = CreateOrderFromAccount.getPicklistValues('Order', 'Status');
+        List<Map<String, String>> currencyOptions = CreateOrderFromAccount.getPicklistValues('Order', 'CurrencyIsoCode');
 
         Test.stopTest();
     }

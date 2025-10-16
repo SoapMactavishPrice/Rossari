@@ -3,7 +3,8 @@ public class addProductIntrestedTest {
     
     @testSetup
     static void setupData() {
-        //  Insert required Account record that LeadTrigger depends on
+        Id stdPbId = Test.getStandardPricebookId();
+
         Account acc = new Account(Name = 'Rossari Chemicals Ltd.');
         insert acc;
         
@@ -22,32 +23,9 @@ public class addProductIntrestedTest {
         );
         insert testLead;
         
-        /*Id stdPricebookId = Test.getStandardPricebookId();
-        
-        Pricebook2 standardpricebook = new Pricebook2(
-            Name = 'Test Pricebook 2',
-            IsActive = true
-        );
-        insert standardpricebook ;
-        
-        if (!standardpricebook.IsActive) {
-            standardpricebook.IsActive = true;
-            update standardpricebook;
-        }
-        
-         Product2 prod = new Product2(Name = 'Test Product');
-        insert prod;
-        
 
-            PricebookEntry pbe = new PricebookEntry(
-            Product2Id = prod.Id,
-            Pricebook2Id = stdPricebookId,
-            UnitPrice = 100,
-            IsActive = true
-        );
-        insert pbe;*/
         
-         Pricebook2 standardPricebook = new Pricebook2(
+         /*Pricebook2 standardPricebook = new Pricebook2(
             Id = Test.getStandardPricebookId(),
             IsActive = true
         );
@@ -73,6 +51,33 @@ public class addProductIntrestedTest {
         Product_Interested__c pi = new Product_Interested__c(
             Lead__c = testLead.Id, // Ensure this is a valid Lead record
             Product__c = prod.Id, // Ensure this is a valid Product2 record
+            New_Product_Name__c = 'New Product',
+            New_Product__c = true,
+            List_Price__c = 100,
+            Quantity_in_Kgs__c = 10,
+            Expected_Price__c = 95,
+            Add_in_Opportunity__c = true,
+            Quantity_Frequency__c = 'Per/Month'
+        );
+        insert pi;*/
+        Product2 prod = new Product2(
+            Name = 'Test Product',
+            IsActive = true
+        );
+        insert prod;
+    
+        PricebookEntry pbe = new PricebookEntry(
+            Pricebook2Id = stdPbId,
+            Product2Id = prod.Id,
+            UnitPrice = 100,
+            IsActive = true
+        );
+        insert pbe;
+    
+        // Product Interested
+        Product_Interested__c pi = new Product_Interested__c(
+            Lead__c = testLead.Id,
+            Product__c = prod.Id,
             New_Product_Name__c = 'New Product',
             New_Product__c = true,
             List_Price__c = 100,

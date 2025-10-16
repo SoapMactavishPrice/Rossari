@@ -22,7 +22,7 @@ public class InvoiceMaster_API_Test {
         Order ord = new Order(AccountId = acc.Id, SAP_Order_Number__c = 'SO123', Status = 'Draft', EffectiveDate = System.today());
         insert ord;
 
-        Company__c comp = new Company__c(Name = 'TestComp', SAP_Code__c = 'COMP'); // ✅ 4-digit code
+        Company__c comp = new Company__c(Name = 'TestComp', SAP_Code__c = 'COMP');
         insert comp;
 
         FY__c fy = new FY__c(Name = '2024');
@@ -41,18 +41,25 @@ public class InvoiceMaster_API_Test {
         insert pc;
 
         Profile p = [SELECT Id FROM Profile WHERE Name='Standard User' LIMIT 1]; 
-        User u = new User(Alias = 'standt', Email='standarduser@testorg.com', 
-            EmailEncodingKey='UTF-8', LastName='Testing', LanguageLocaleKey='en_US', 
-            LocaleSidKey='en_US', ProfileId = p.Id, 
-            TimeZoneSidKey='America/Los_Angeles', UserName='standarduser@testorg.com.testclass',
-            SAP_User_Id__c = 'USER1', Employee_Code__c = 'EMP1');
+        User u = new User(
+            Alias = 'standt',
+            Email='standarduser@testorg.com',
+            EmailEncodingKey='UTF-8',
+            LastName='Testing',
+            LanguageLocaleKey='en_US',
+            LocaleSidKey='en_US',
+            ProfileId = p.Id,
+            TimeZoneSidKey='America/Los_Angeles',
+            UserName='standarduser' + DateTime.now().getTime() + '@testorg.com',
+            SAP_User_Id__c = 'USER1',
+            Employee_Code__c = 'EMP1'
+        );
         insert u;
 
         Base_UoM_Master__c baseUom = new Base_UoM_Master__c(Name = 'TestUOM', Base_Code__c = 'UOM1');
         insert baseUom;
 
-        Pricebook2 standardPricebook = new Pricebook2(Id = Test.getStandardPricebookId(), IsActive = true);
-        update standardPricebook;
+        Id standardPricebookId = Test.getStandardPricebookId();
 
         Product2 prod = new Product2(
             Name = 'Test Product',
@@ -64,17 +71,16 @@ public class InvoiceMaster_API_Test {
         insert prod;
 
         PricebookEntry pbe = new PricebookEntry(
-            Pricebook2Id = standardPricebook.Id,
+            Pricebook2Id = standardPricebookId,
             Product2Id = prod.Id,
             UnitPrice = 100,
             IsActive = true
         );
         insert pbe;
 
-        // Insert existing invoice for update scenario
         insert new Invoice__c(Name = 'INV001');
 
-        // === SCENARIO 1: Valid Request (existing invoice to update) ===
+        // === SCENARIO 1: Valid Request ===
         String validJson = '{' +
             '"invoiceNo": "INV001",' +
             '"gstInvoiceNumber": "GST001",' +
@@ -94,7 +100,7 @@ public class InvoiceMaster_API_Test {
             '"shipToParty": "SHIP123",' +
             '"paymentTerm": "PT1",' +
             '"exchangeRate": 1.5,' +
-            '"companyCode": "COMP",' +  // ✅ match with inserted SAP_Code__c
+            '"companyCode": "COMP",' +
             '"incoTerm": "EXW",' +
             '"fiscalYear": "2024",' +
             '"salesDistrict": "SD1",' +
@@ -172,7 +178,7 @@ public class InvoiceMaster_API_Test {
             invalidJson
         };
 
-        Test.startTest(); // ✅ Only once
+        Test.startTest();
 
         for (String testJson : testBodies) {
             RestRequest req = new RestRequest();
@@ -185,9 +191,9 @@ public class InvoiceMaster_API_Test {
             RestContext.request = req;
             RestContext.response = res;
 
-            InvoiceMaster_API.doPost(); // Actual API method call
+            InvoiceMaster_API.doPost();
         }
 
-        Test.stopTest(); // ✅ Only once
+        Test.stopTest();
     }
 }

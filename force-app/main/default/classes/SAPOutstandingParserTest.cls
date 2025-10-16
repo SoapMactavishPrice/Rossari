@@ -4,11 +4,7 @@ private class SAPOutstandingParserTest {
     @IsTest
     static void testParseAndCreate() {
 
-        Pricebook2 standardPricebook = new Pricebook2(
-            Id = Test.getStandardPricebookId(),
-            IsActive = true
-        );
-        update standardPricebook;
+        Id standardPricebookId = Test.getStandardPricebookId();
 
         Sales_Organisation__c salesOrg = new Sales_Organisation__c(Name = 'SO01');
         insert salesOrg;
@@ -23,7 +19,7 @@ private class SAPOutstandingParserTest {
         insert testProduct;
 
         PricebookEntry standardPBE = new PricebookEntry(
-            Pricebook2Id = standardPricebook.Id,
+            Pricebook2Id = standardPricebookId,
             Product2Id = testProduct.Id,
             UnitPrice = 100.00,
             IsActive = true
@@ -56,7 +52,6 @@ private class SAPOutstandingParserTest {
                 '<Date>20241009</Date>' +
             '</DynamicCell>' +
         '</DynamicCellSet>';
-
 
         List<Outstanding__c> parsedRecords = SAPOutstandingParser.parseAndCreate(xml, acc.Id, comp.Id);
 

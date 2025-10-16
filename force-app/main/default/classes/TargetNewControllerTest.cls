@@ -24,11 +24,7 @@ private class TargetNewControllerTest {
         );
         insert usr;
 
-        Pricebook2 standardPricebook = new Pricebook2(
-            Id = Test.getStandardPricebookId(),
-            IsActive = true
-        );
-        update standardPricebook;
+        Id standardPricebookId = Test.getStandardPricebookId();
 
         Product_Group__c productGroup = new Product_Group__c(Name = 'Electronics');
         insert productGroup;
@@ -42,7 +38,7 @@ private class TargetNewControllerTest {
         insert product;
 
         PricebookEntry standardPBE = new PricebookEntry(
-            Pricebook2Id = standardPricebook.Id,
+            Pricebook2Id = standardPricebookId,
             Product2Id = product.Id,
             UnitPrice = 100.00,
             IsActive = true
@@ -100,7 +96,7 @@ private class TargetNewControllerTest {
         TargetNewController.updateOnDemand(tgt.Id, 'COGS_Kg__c', '60');
         TargetNewController.updateOnDemand(tgt.Id, 'GM_Kg__c', '35');
         TargetNewController.updateOnDemand(tgt.Id, 'Price__c', '220');
-        Target__c updatedTarget = [SELECT Quantity__c, Budgeted_COGS__c, Budgeted_GM_KG__c, Amount__c FROM Target__c WHERE Id = :tgt.Id];
 
+        Target__c updatedTarget = [SELECT Quantity__c, Budgeted_COGS__c, Budgeted_GM_KG__c, Amount__c FROM Target__c WHERE Id = :tgt.Id];
     }
 }

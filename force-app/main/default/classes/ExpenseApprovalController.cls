@@ -54,10 +54,12 @@ public with sharing class ExpenseApprovalController {
                 SELECT Id, Name, Date__c, Employee_Name__c, Employee_Name__r.Name,
                        Type_of_Voucher__c, Zonal_Head__c, Zonal_Head__r.Name,
                        Business_HOD__c, Business_HOD__r.Name, Tour__c, Tour__r.Name,
-                       Status__c, CreatedDate, RecordType.DeveloperName,
+                       Status__c, CreatedDate, RecordType.DeveloperName, Grade__c,
                        Customer_Success_Incharge__c, Customer_Success_Incharge__r.Name,
-                       (SELECT Id, Name, Type_of_Expense__c, Type_of_Expense__r.Name, Amount_Claimed__c,
-                               Description__c, Expense__c, Mode_of_Transport__c, From_Location__c, To_Location__c
+                       (SELECT Id, Name, Type_of_Expense__c, Type_of_Expense__r.Name, 
+                               Mode_of_Transport__c, Daily_Allowance__c, Amount_Claimed__c,
+                               Amount_Passed__c, Description__c, Expense__c, 
+                               From_Location__c, To_Location__c
                         FROM Expense_Line_Items__r 
                         ORDER BY CreatedDate)
                 FROM Expense__c 
@@ -74,6 +76,7 @@ public with sharing class ExpenseApprovalController {
                     wrapper.expenseName = expense.Name;
                     wrapper.expenseDate = expense.Date__c;
                     wrapper.employeeName = expense.Employee_Name__r?.Name;
+                    wrapper.gradeName = expense.Grade__c;
                     wrapper.isEmployeeUser = (expense.Employee_Name__c == currentUserId);
                     wrapper.typeOfVoucher = expense.Type_of_Voucher__c;
                     wrapper.zonalHead = expense.Zonal_Head__r?.Name;
@@ -91,31 +94,31 @@ public with sharing class ExpenseApprovalController {
                         wrapper.currentApprovalLevel = determineApprovalLevel(steps, expense);
                         wrapper.currentApprover = getCurrentApprover(steps, expense, wrapper.currentApprovalLevel);
                         wrapper.isPendingWithCurrentUser = (workitem.ActorId == currentUserId);
+                        
+                        // Check if user can edit amount passed
+                        wrapper.canEditAmountPassed = canUserEditAmountPassed(expense, currentUserId, wrapper.currentApprovalLevel, workitem);
                     } else {
                         wrapper.currentApprovalLevel = 'Level 1';
                         wrapper.currentApprover = getCurrentApprover(null, expense, 'Level 1');
                         wrapper.isPendingWithCurrentUser = isPendingWithCurrentUser(expense, currentUserId, 'Level 1');
+                        wrapper.canEditAmountPassed = canUserEditAmountPassed(expense, currentUserId, 'Level 1', null);
                     }
                     
                     // Calculate total amount
                     wrapper.totalAmount = calculateTotalAmount(expense.Expense_Line_Items__r);
+                    wrapper.totalAmountPassed = calculateTotalAmountPassed(expense.Expense_Line_Items__r);
                     
-                    // Add line items
+                    // Add line items with all required fields
                     wrapper.lineItems = new List<ExpenseLineItemWrapper>();
                     for (Expense_Line_Item__c lineItem : expense.Expense_Line_Items__r) {
                         ExpenseLineItemWrapper lineWrapper = new ExpenseLineItemWrapper();
                         lineWrapper.lineItemId = lineItem.Id;
                         lineWrapper.typeOfExpense = lineItem.Type_of_Expense__r?.Name;
+                        lineWrapper.modeOfTransport = lineItem.Mode_of_Transport__c;
+                        lineWrapper.dailyAllowance = lineItem.Daily_Allowance__c;
                         lineWrapper.amountClaimed = lineItem.Amount_Claimed__c;
-                        
-                        // Build description with extra details
-                        List<String> details = new List<String>();
-                        if (String.isNotBlank(lineItem.Description__c)) details.add(lineItem.Description__c);
-                        if (String.isNotBlank(lineItem.Mode_of_Transport__c)) details.add('Mode: ' + lineItem.Mode_of_Transport__c);
-                        if (String.isNotBlank(lineItem.From_Location__c)) details.add('From: ' + lineItem.From_Location__c);
-                        if (String.isNotBlank(lineItem.To_Location__c)) details.add('To: ' + lineItem.To_Location__c);
-                        
-                        lineWrapper.description = String.join(details, ' | ');
+                        lineWrapper.amountPassed = lineItem.Amount_Passed__c;
+                        lineWrapper.description = lineItem.Description__c;
                         
                         wrapper.lineItems.add(lineWrapper);
                     }
@@ -126,6 +129,30 @@ public with sharing class ExpenseApprovalController {
         }
         
         return expenseWrappers;
+    }
+    
+    private static Boolean canUserEditAmountPassed(Expense__c expense, Id currentUserId, String approvalLevel, ProcessInstanceWorkitem workitem) {
+        // Only allow editing when pending with current user
+        if (workitem == null || workitem.ActorId != currentUserId) {
+            return false;
+        }
+        
+        // Allow both Level 1 and Level 2 approvers to edit Amount Passed
+        if (approvalLevel == 'Level 1' || approvalLevel == 'Level 2') {
+            return true;
+        }
+        
+        return false;
+    }
+    
+    private static Decimal calculateTotalAmountPassed(List<Expense_Line_Item__c> lineItems) {
+        Decimal total = 0;
+        for (Expense_Line_Item__c lineItem : lineItems) {
+            if (lineItem.Amount_Passed__c != null) {
+                total += lineItem.Amount_Passed__c;
+            }
+        }
+        return total;
     }
     
     // Method to determine if current user should see the approval
@@ -168,9 +195,6 @@ public with sharing class ExpenseApprovalController {
                 return true; // Approval is pending with this Business HOD
             }
         }
-        
-        // System Administrators or other privileged users can see all (optional)
-        // You can add additional logic here for specific profiles or permission sets
         
         return false;
     }
@@ -234,9 +258,15 @@ public with sharing class ExpenseApprovalController {
     }
     
     @AuraEnabled
-    public static String submitApproval(String expenseId, String action, String comments) {
-        try {
-            // Step 1: Fetch expense with record type information
+    public static String submitApproval(String expenseId, String action, String comments, List<ExpenseLineItemWrapper> lineItems) {
+        Savepoint sp = Database.setSavepoint();
+        // try {
+            // Step 1: Update line items with Amount_Passed__c FIRST (before approval process)
+            if (lineItems != null && !lineItems.isEmpty()) {
+                updateLineItemAmounts(lineItems);
+            }
+
+            // Step 2: Fetch expense with record type information
             Expense__c expense = [
                 SELECT Id, Name, Status__c, Owner.Email, Owner.Name,
                 Zonal_Head__c, Zonal_Head__r.Email, Zonal_Head__r.Name,
@@ -247,7 +277,7 @@ public with sharing class ExpenseApprovalController {
                 FROM Expense__c WHERE Id = :expenseId LIMIT 1
             ];
 
-            // Step 2: Handle Approve/Reject actions
+            // Step 3: Handle Approve/Reject actions
             List<ProcessInstanceWorkitem> workItems = [
                 SELECT Id, ProcessInstanceId, ActorId, ProcessInstance.TargetObjectId
                 FROM ProcessInstanceWorkitem 
@@ -266,7 +296,7 @@ public with sharing class ExpenseApprovalController {
 
             Approval.ProcessResult result = Approval.process(req);
 
-            // Step 3: Update Status__c based on approver and record type
+            // Step 4: Update Status__c based on approver and record type
             Id actorId = workItems[0].ActorId;
             String recordType = expense.RecordType.DeveloperName;
 
@@ -317,9 +347,32 @@ public with sharing class ExpenseApprovalController {
             update expense;
             return 'Success';
 
-        } catch (Exception e) {
-            system.debug('Error submitting: ' + e.getMessage() + e.getLineNumber());
-            throw new AuraHandledException('Error submitting approval: ' + e.getMessage());
+        // } catch (Exception e) {
+        //     Database.rollback(sp);
+        //     system.debug('Error submitting: ' + e.getMessage() + ' at line ' + e.getLineNumber());
+        //     system.debug('Stack trace: ' + e.getStackTraceString());
+        //     throw new AuraHandledException('Error submitting approval: ' + e.getMessage());
+        // }
+    }
+    
+    private static void updateLineItemAmounts(List<ExpenseLineItemWrapper> lineItems) {
+        Map<Id, Expense_Line_Item__c> lineItemsToUpdate = new Map<Id, Expense_Line_Item__c>();
+        
+        for (ExpenseLineItemWrapper wrapper : lineItems) {
+            if (wrapper.lineItemId != null) {
+                lineItemsToUpdate.put(wrapper.lineItemId, 
+                    new Expense_Line_Item__c(
+                        Id = wrapper.lineItemId,
+                        Amount_Passed__c = wrapper.amountPassed
+                    )
+                );
+            }
+        }
+        
+        if (!lineItemsToUpdate.isEmpty()) {
+            System.debug('Updating line items: ' + lineItemsToUpdate.values());
+            update lineItemsToUpdate.values();
+            System.debug('Line items updated successfully');
         }
     }
     
@@ -329,12 +382,14 @@ public with sharing class ExpenseApprovalController {
         @AuraEnabled public String expenseName { get; set; }
         @AuraEnabled public Date expenseDate { get; set; }
         @AuraEnabled public String employeeName { get; set; }
+        @AuraEnabled public String gradeName { get; set; }
         @AuraEnabled public String tourName { get; set; }
         @AuraEnabled public String typeOfVoucher { get; set; }
         @AuraEnabled public String zonalHead { get; set; }
         @AuraEnabled public String businessHOD { get; set; }
         @AuraEnabled public String customerSuccessIncharge { get; set; }
         @AuraEnabled public Decimal totalAmount { get; set; }
+        @AuraEnabled public Decimal totalAmountPassed { get; set; }
         @AuraEnabled public String status { get; set; }
         @AuraEnabled public Datetime createdDate { get; set; }
         @AuraEnabled public String currentApprovalLevel { get; set; }
@@ -342,13 +397,17 @@ public with sharing class ExpenseApprovalController {
         @AuraEnabled public Boolean isPendingWithCurrentUser { get; set; }
         @AuraEnabled public Boolean isEmployeeUser { get; set; }
         @AuraEnabled public String recordType { get; set; }
+        @AuraEnabled public Boolean canEditAmountPassed { get; set; }
         @AuraEnabled public List<ExpenseLineItemWrapper> lineItems { get; set; }
     }
     
     public class ExpenseLineItemWrapper {
         @AuraEnabled public String lineItemId { get; set; }
         @AuraEnabled public String typeOfExpense { get; set; }
+        @AuraEnabled public String modeOfTransport { get; set; }
+        @AuraEnabled public Decimal dailyAllowance { get; set; }
         @AuraEnabled public Decimal amountClaimed { get; set; }
+        @AuraEnabled public Decimal amountPassed { get; set; }
         @AuraEnabled public String description { get; set; }
     }
 }

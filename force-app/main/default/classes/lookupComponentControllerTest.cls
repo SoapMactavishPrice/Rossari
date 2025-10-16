@@ -3,26 +3,23 @@ public class lookupComponentControllerTest {
 
     @testSetup
     static void setupData() {
-        Pricebook2 standardPricebook = new Pricebook2(
-            Id = Test.getStandardPricebookId(),
-            IsActive = true
-        );
-        update standardPricebook;
- 
+        Id standardPricebookId = Test.getStandardPricebookId();
+        
         Base_UoM_Master__c baseUom = new Base_UoM_Master__c(Name = 'Kilogram');
         insert baseUom;
- 
+    
         Product2 prod = new Product2(
             Name = 'Test Product',
             ProductCode = 'TP001',
             Pack_Size__c = '10kg',
             Base_UOM__c = baseUom.Id,
+            Family = 'Test Family',
             IsActive = true
         );
         insert prod;
- 
+    
         PricebookEntry pbe = new PricebookEntry(
-            Pricebook2Id = standardPricebook.Id,
+            Pricebook2Id = standardPricebookId,
             Product2Id = prod.Id,
             UnitPrice = 100,
             IsActive = true
@@ -51,6 +48,17 @@ public class lookupComponentControllerTest {
 
         Sales_Organisation__c salesOrg = new Sales_Organisation__c(Name = '1000');
         insert salesOrg;
+
+        Distribution_Channel__c distChannel = new Distribution_Channel__c(Name = '10');
+        insert distChannel;
+
+        Sales_Area__c salesArea = new Sales_Area__c(
+            Sales_Organisation__c = salesOrg.Id,
+            Item_Master__c = prod.Id,
+            Division__c = division.Id,
+            Distribution_Channel__c = distChannel.Id
+        );
+        insert salesArea;
     }
 
     @isTest
@@ -109,8 +117,47 @@ public class lookupComponentControllerTest {
             'RBL'
         );
         
+        String result5 = lookupComponentController.findRecords(
+            'Test',
+            'PricebookEntry',
+            'Name',
+            new List<String>{'Name'},
+            '',
+            '',
+            '',
+            '',
+            '',
+            'RBL'
+        );
+        
+        String result6 = lookupComponentController.findRecords(
+            'Test',
+            'PricebookEntry',
+            'Name',
+            new List<String>{'Name'},
+            'UnitPrice > 1000',
+            '',
+            '10',
+            '',
+            '',
+            'RBL'
+        );
+        
+        String result7 = lookupComponentController.findRecords(
+            'Test',
+            'PricebookEntry',
+            'Name',
+            new List<String>{'Name'},
+            '',
+            '',
+            '10',
+            'NonExistent Family',
+            '',
+            'RBL'
+        );
+        
         try {
-            String result5 = lookupComponentController.findRecords(
+            String result8 = lookupComponentController.findRecords(
                 'Test',
                 'Account',
                 'Name',
@@ -154,6 +201,93 @@ public class lookupComponentControllerTest {
             List<Id> ids4 = lookupComponentController.getUserAllowedProductIds('Invalid');
         } catch (Exception e) {
         }
+        
+        delete [SELECT Id FROM Company_User__c LIMIT 1];
+        String result3 = lookupComponentController.findRecords(
+            'Test',
+            'PricebookEntry',
+            'Name',
+            new List<String>{'Name'},
+            '',
+            '',
+            '10',
+            '',
+            '',
+            'RBL'
+        );
+        
+        Test.stopTest();
+    }
+
+    @isTest
+    static void testAdditionalScenarios() {
+        Test.startTest();
+        
+        String result1 = lookupComponentController.findRecords(
+            'TP001',
+            'PricebookEntry',
+            'Name',
+            new List<String>{'Name'},
+            '',
+            '',
+            '10',
+            '',
+            '',
+            'RBL'
+        );
+        
+        String result2 = lookupComponentController.findRecords(
+            'Test',
+            'PricebookEntry',
+            'Name',
+            new List<String>{'Name'},
+            '',
+            '',
+            '10',
+            '',
+            'EUR',
+            'RBL'
+        );
+        
+        Product2 duplicateProduct = new Product2(
+            Name = 'Duplicate Product',
+            ProductCode = 'TP0067',
+            Pack_Size__c = '5kg',
+            Base_UOM__c = [SELECT Id FROM Base_UoM_Master__c LIMIT 1].Id,
+            Family = 'Test Family',
+            IsActive = true
+        );
+        insert duplicateProduct;
+        
+        PricebookEntry duplicatePbe = new PricebookEntry(
+            Pricebook2Id = Test.getStandardPricebookId(),
+            Product2Id = duplicateProduct.Id,
+            UnitPrice = 150,
+            IsActive = true,
+            CurrencyIsoCode = 'USD'
+        );
+        insert duplicatePbe;
+        
+        Sales_Area__c duplicateSalesArea = new Sales_Area__c(
+            Sales_Organisation__c = [SELECT Id FROM Sales_Organisation__c LIMIT 1].Id,
+            Item_Master__c = duplicateProduct.Id,
+            Division__c = [SELECT Id FROM Division__c LIMIT 1].Id,
+            Distribution_Channel__c = [SELECT Id FROM Distribution_Channel__c LIMIT 1].Id
+        );
+        insert duplicateSalesArea;
+        
+        String result3 = lookupComponentController.findRecords(
+            'TP001',
+            'PricebookEntry',
+            'Name',
+            new List<String>{'Name'},
+            '',
+            '',
+            '10',
+            '',
+            '',
+            'RBL'
+        );
         
         Test.stopTest();
     }

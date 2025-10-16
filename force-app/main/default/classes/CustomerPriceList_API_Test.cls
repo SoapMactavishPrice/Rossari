@@ -3,11 +3,8 @@ public class CustomerPriceList_API_Test {
     
     @testSetup
     static void setupTestData() {
-        Pricebook2 standardPricebook = new Pricebook2(
-            Id = Test.getStandardPricebookId(),
-            IsActive = true
-        );
-        update standardPricebook;
+        // Get standard pricebook ID without updating (fix for UNABLE_TO_LOCK_ROW)
+        Id standardPricebookId = Test.getStandardPricebookId();
         
         Account acc = new Account(Name = 'Test Account', SAP_Customer_Code__c = 'CUST001');
         insert acc;
@@ -17,7 +14,7 @@ public class CustomerPriceList_API_Test {
         
         // Create pricebook entry for the product
         PricebookEntry pbe = new PricebookEntry(
-            Pricebook2Id = standardPricebook.Id,
+            Pricebook2Id = standardPricebookId,
             Product2Id = prod.Id,
             UnitPrice = 100,
             IsActive = true,
@@ -25,14 +22,34 @@ public class CustomerPriceList_API_Test {
         );
         insert pbe;
         
-        Sales_Organisation__c salesOrg = new Sales_Organisation__c(Name = 'SO001');
-        insert salesOrg;
+        // Check if lookup records already exist to avoid duplicate inserts
+        List<Sales_Organisation__c> existingSalesOrgs = [SELECT Id FROM Sales_Organisation__c WHERE Name = 'SO001'];
+        List<Base_UoM_Master__c> existingUoms = [SELECT Id FROM Base_UoM_Master__c WHERE Name = 'KG'];
+        List<Distribution_Channel__c> existingDistChannels = [SELECT Id FROM Distribution_Channel__c WHERE Name = 'DC001'];
         
-        Base_UoM_Master__c uom = new Base_UoM_Master__c(Name = 'KG');
-        insert uom;
+        Sales_Organisation__c salesOrg;
+        if (existingSalesOrgs.isEmpty()) {
+            salesOrg = new Sales_Organisation__c(Name = 'SO001');
+            insert salesOrg;
+        } else {
+            salesOrg = existingSalesOrgs[0];
+        }
         
-        Distribution_Channel__c distChannel = new Distribution_Channel__c(Name = 'DC001');
-        insert distChannel;
+        Base_UoM_Master__c uom;
+        if (existingUoms.isEmpty()) {
+            uom = new Base_UoM_Master__c(Name = 'KG');
+            insert uom;
+        } else {
+            uom = existingUoms[0];
+        }
+        
+        Distribution_Channel__c distChannel;
+        if (existingDistChannels.isEmpty()) {
+            distChannel = new Distribution_Channel__c(Name = 'DC001');
+            insert distChannel;
+        } else {
+            distChannel = existingDistChannels[0];
+        }
         
         Customer_Material_Pricelist__c existingPrice = new Customer_Material_Pricelist__c(
             Customer__c = acc.Id,

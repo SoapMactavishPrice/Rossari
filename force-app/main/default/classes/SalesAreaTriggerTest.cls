@@ -4,11 +4,7 @@ private class SalesAreaTriggerTest {
     @IsTest
     static void testSalesAreaTrigger_Coverage() {
 
-        Pricebook2 standardPricebook = new Pricebook2(
-            Id = Test.getStandardPricebookId(),
-            IsActive = true
-        );
-        update standardPricebook;
+        Id standardPricebookId = Test.getStandardPricebookId();
 
         Product2 testProduct = new Product2(
             Name = 'Test Product',
@@ -17,7 +13,7 @@ private class SalesAreaTriggerTest {
         insert testProduct;
 
         PricebookEntry standardPBE = new PricebookEntry(
-            Pricebook2Id = standardPricebook.Id,
+            Pricebook2Id = standardPricebookId,
             Product2Id = testProduct.Id,
             UnitPrice = 100.00,
             IsActive = true
@@ -34,7 +30,6 @@ private class SalesAreaTriggerTest {
         insert salesOrg;
 
         Sales_Area__c sa1 = new Sales_Area__c(
-            //Name = 'Valid Sales Area',
             Distribution_Channel__c = dist.Id,
             Item_Master__c = testProduct.Id,
             Plant_Code__c = plant.Id,
@@ -43,7 +38,6 @@ private class SalesAreaTriggerTest {
         insert sa1;
 
         Sales_Area__c saDuplicate = new Sales_Area__c(
-            //Name = 'Duplicate Sales Area',
             Distribution_Channel__c = dist.Id,
             Item_Master__c = testProduct.Id,
             Plant_Code__c = plant.Id,
@@ -51,11 +45,9 @@ private class SalesAreaTriggerTest {
         );
         try {
             insert saDuplicate;
-        } catch (DmlException e) {
-        }
+        } catch (DmlException e) {}
 
         Sales_Area__c sa2 = new Sales_Area__c(
-            //Name = 'Same Txn SA 1',
             Distribution_Channel__c = dist.Id,
             Item_Master__c = testProduct.Id,
             Plant_Code__c = plant.Id,
@@ -63,7 +55,6 @@ private class SalesAreaTriggerTest {
         );
 
         Sales_Area__c sa3 = new Sales_Area__c(
-            //Name = 'Same Txn SA 2',
             Distribution_Channel__c = dist.Id,
             Item_Master__c = testProduct.Id,
             Plant_Code__c = plant.Id,
@@ -72,8 +63,6 @@ private class SalesAreaTriggerTest {
 
         try {
             insert new List<Sales_Area__c>{ sa2, sa3 };
-        } catch (DmlException e) {
-        }
-
+        } catch (DmlException e) {}
     }
 }

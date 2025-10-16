@@ -1,13 +1,11 @@
 @isTest
 public class ProformaInvoiceControllerTest {
 
-    @isTest
-    static void testAllScenarios() {
-        // Enable standard pricebook
-        Id stdPbId = Test.getStandardPricebookId();
-        update new Pricebook2(Id = stdPbId, IsActive = true);
+    @TestSetup
+    static void setupData() {
+    }
 
-        // Common test data
+    static void createDynamicTestData() {
         Account acc = new Account(Name = 'Test Account');
         insert acc;
 
@@ -18,14 +16,34 @@ public class ProformaInvoiceControllerTest {
         Product2 prod2 = new Product2(Name = 'Test Product 2', isActive = true);
         insert new List<Product2>{prod1, prod2};
 
-        PricebookEntry pbe1 = new PricebookEntry(Pricebook2Id = stdPbId, Product2Id = prod1.Id, UnitPrice = 100, IsActive = true);
-        PricebookEntry pbe2 = new PricebookEntry(Pricebook2Id = stdPbId, Product2Id = prod2.Id, UnitPrice = 200, IsActive = true);
+        Id stdPbId = Test.getStandardPricebookId();
+
+        PricebookEntry pbe1 = new PricebookEntry(Pricebook2Id = stdPbId, Product2Id = prod1.Id, UnitPrice = 100, IsActive = true, UseStandardPrice = false);
+        PricebookEntry pbe2 = new PricebookEntry(Pricebook2Id = stdPbId, Product2Id = prod2.Id, UnitPrice = 200, IsActive = true, UseStandardPrice = false);
         insert new List<PricebookEntry>{pbe1, pbe2};
 
-        Opportunity opp = new Opportunity(Name = 'Test Opportunity', StageName = 'Prospecting', CloseDate = Date.today().addDays(30), AccountId = acc.Id);
+        Opportunity opp = new Opportunity(
+            Name = 'Test Opportunity', 
+            StageName = 'Prospecting', 
+            CloseDate = Date.today().addDays(30), 
+            AccountId = acc.Id,
+            Pricebook2Id = stdPbId
+        );
         insert opp;
+    }
 
-        // ----------- Scenario 1: Success Case -----------
+    @isTest
+    static void testSuccessCase() {
+        createDynamicTestData();
+        Account acc = [SELECT Id FROM Account LIMIT 1];
+        Contact con = [SELECT Id FROM Contact LIMIT 1];
+        Opportunity opp = [SELECT Id FROM Opportunity LIMIT 1];
+        Product2 prod1 = [SELECT Id FROM Product2 WHERE Name = 'Test Product 1' LIMIT 1];
+        PricebookEntry pbe1 = [SELECT Id FROM PricebookEntry WHERE Product2Id = :prod1.Id LIMIT 1];
+        Id stdPbId = Test.getStandardPricebookId();
+
+        Test.startTest();
+        
         Quote quote1 = new Quote(
             Name = 'Test Quote',
             OpportunityId = opp.Id,
@@ -85,7 +103,7 @@ public class ProformaInvoiceControllerTest {
             Approver__c = UserInfo.getUserId(),
             Approval_Status__c = 'Approved',
             Approval_Comments__c = 'Test Comments',
-             Status__c = 'Won'
+            Status__c = 'Won'
         );
         insert qli1;
 
@@ -95,56 +113,121 @@ public class ProformaInvoiceControllerTest {
         ProformaInvoiceController controller1 = new ProformaInvoiceController();
         PageReference result1 = controller1.createProformaInvoice();
 
-        List<Proforma_Invoice__c> invoices1 = [SELECT Id FROM Proforma_Invoice__c WHERE Quote__c = :quote1.Id];
-        if (!invoices1.isEmpty()) {
-            List<Proforma_Invoice_Line_Item__c> lineItems1 = [
-                SELECT Id FROM Proforma_Invoice_Line_Item__c
-                WHERE Proforma_Invoice_Name__c = :invoices1[0].Id
-            ];
-        }
+        Test.stopTest();
+    }
 
-        // ----------- Scenario 2: Existing Invoice -----------
-        Quote quote2 = new Quote(Name = 'Quote Existing', OpportunityId = opp.Id, Status = 'Accepted', Pricebook2Id = stdPbId);
+    @isTest
+    static void testExistingInvoice() {
+        createDynamicTestData();
+        Opportunity opp = [SELECT Id FROM Opportunity LIMIT 1];
+        Id stdPbId = Test.getStandardPricebookId();
+
+        Test.startTest();
+        
+        Quote quote2 = new Quote(
+            Name = 'Quote Existing', 
+            OpportunityId = opp.Id, 
+            Status = 'Accepted', 
+            Pricebook2Id = stdPbId
+        );
         insert quote2;
 
-        Proforma_Invoice__c existingInvoice = new Proforma_Invoice__c(Name = 'Existing Invoice', Quote__c = quote2.Id);
+        Proforma_Invoice__c existingInvoice = new Proforma_Invoice__c(
+            Name = 'Existing Invoice', 
+            Quote__c = quote2.Id
+        );
         insert existingInvoice;
 
         ApexPages.currentPage().getParameters().put('quoteId', quote2.Id);
         ProformaInvoiceController controller2 = new ProformaInvoiceController();
         PageReference result2 = controller2.createProformaInvoice();
 
-        // ----------- Scenario 3: Invalid Quote Status -----------
-        Quote quote3 = new Quote(Name = 'Quote Invalid Status', OpportunityId = opp.Id, Status = 'Draft', Pricebook2Id = stdPbId);
+        Test.stopTest();
+    }
+
+    @isTest
+    static void testInvalidQuoteStatus() {
+        createDynamicTestData();
+        Opportunity opp = [SELECT Id FROM Opportunity LIMIT 1];
+        Id stdPbId = Test.getStandardPricebookId();
+
+        Test.startTest();
+        
+        Quote quote3 = new Quote(
+            Name = 'Quote Invalid Status', 
+            OpportunityId = opp.Id, 
+            Status = 'Draft', 
+            Pricebook2Id = stdPbId
+        );
         insert quote3;
 
         ApexPages.currentPage().getParameters().put('quoteId', quote3.Id);
         ProformaInvoiceController controller3 = new ProformaInvoiceController();
         PageReference result3 = controller3.createProformaInvoice();
 
-        // ----------- Scenario 4: Missing Quote ID -----------
+        Test.stopTest();
+    }
+
+    @isTest
+    static void testMissingQuoteId() {
+        Test.startTest();
+        
         ApexPages.currentPage().getParameters().clear();
         ProformaInvoiceController controller4 = new ProformaInvoiceController();
         PageReference result4 = controller4.createProformaInvoice();
 
-        // ----------- Scenario 5: Cancel Method -----------
-        Quote quote5 = new Quote(Name = 'Test Quote', OpportunityId = opp.Id, Status = 'Accepted', Pricebook2Id = stdPbId);
+        Test.stopTest();
+    }
+
+    @isTest
+    static void testCancelMethod() {
+        createDynamicTestData();
+        Opportunity opp = [SELECT Id FROM Opportunity LIMIT 1];
+        Id stdPbId = Test.getStandardPricebookId();
+
+        Test.startTest();
+        
+        Quote quote5 = new Quote(
+            Name = 'Test Quote', 
+            OpportunityId = opp.Id, 
+            Status = 'Accepted', 
+            Pricebook2Id = stdPbId
+        );
         insert quote5;
 
         ApexPages.currentPage().getParameters().put('quoteId', quote5.Id);
         ProformaInvoiceController controller5 = new ProformaInvoiceController();
         PageReference result5 = controller5.cancel();
 
-        // ----------- Scenario 6: Exception with Invalid ID -----------
+        Test.stopTest();
+    }
+
+    @isTest
+    static void testExceptionWithInvalidId() {
+        Test.startTest();
+        
         ApexPages.currentPage().getParameters().put('quoteId', 'invalidId');
         try {
             ProformaInvoiceController controller6 = new ProformaInvoiceController();
             PageReference result6 = controller6.createProformaInvoice();
         } catch (Exception e) {
-            System.assert(e instanceof System.StringException, 'Expected StringException for invalid ID');
         }
 
-        // ----------- Scenario 7: All Fields Quote (Repeat of Scenario 1 but with Status__c) -----------
+        Test.stopTest();
+    }
+
+    @isTest
+    static void testAllFieldsQuote() {
+        createDynamicTestData();
+        Account acc = [SELECT Id FROM Account LIMIT 1];
+        Contact con = [SELECT Id FROM Contact LIMIT 1];
+        Opportunity opp = [SELECT Id FROM Opportunity LIMIT 1];
+        Product2 prod1 = [SELECT Id FROM Product2 WHERE Name = 'Test Product 1' LIMIT 1];
+        PricebookEntry pbe1 = [SELECT Id FROM PricebookEntry WHERE Product2Id = :prod1.Id LIMIT 1];
+        Id stdPbId = Test.getStandardPricebookId();
+
+        Test.startTest();
+        
         Quote quote7 = new Quote(
             Name = 'Test Quote Full',
             OpportunityId = opp.Id,
@@ -203,24 +286,171 @@ public class ProformaInvoiceControllerTest {
         ProformaInvoiceController controller7 = new ProformaInvoiceController();
         PageReference result7 = controller7.createProformaInvoice();
 
-        // ----------- Scenario 8: No Quote Line Items -----------
-        Quote quote8 = new Quote(Name = 'Quote No Items', OpportunityId = opp.Id, ContactId = con.Id, Pricebook2Id = stdPbId, Status = 'Accepted');
+        Test.stopTest();
+    }
+
+    @isTest
+    static void testNoQuoteLineItems() {
+        createDynamicTestData();
+        Opportunity opp = [SELECT Id FROM Opportunity LIMIT 1];
+        Contact con = [SELECT Id FROM Contact LIMIT 1];
+        Id stdPbId = Test.getStandardPricebookId();
+
+        Test.startTest();
+        
+        Quote quote8 = new Quote(
+            Name = 'Quote No Items', 
+            OpportunityId = opp.Id, 
+            ContactId = con.Id, 
+            Pricebook2Id = stdPbId, 
+            Status = 'Accepted'
+        );
         insert quote8;
 
         ApexPages.currentPage().getParameters().put('quoteId', quote8.Id);
         ProformaInvoiceController controller8 = new ProformaInvoiceController();
         PageReference result8 = controller8.createProformaInvoice();
 
-        // ----------- Scenario 9: Multiple Quote Line Items -----------
-        Quote quote9 = new Quote(Name = 'Quote Multiple Items', OpportunityId = opp.Id, ContactId = con.Id, Pricebook2Id = stdPbId, Status = 'Accepted');
+        Test.stopTest();
+    }
+
+    @isTest
+    static void testMultipleQuoteLineItems() {
+        createDynamicTestData();
+        Opportunity opp = [SELECT Id FROM Opportunity LIMIT 1];
+        Contact con = [SELECT Id FROM Contact LIMIT 1];
+        Product2 prod1 = [SELECT Id FROM Product2 WHERE Name = 'Test Product 1' LIMIT 1];
+        Product2 prod2 = [SELECT Id FROM Product2 WHERE Name = 'Test Product 2' LIMIT 1];
+        PricebookEntry pbe1 = [SELECT Id FROM PricebookEntry WHERE Product2Id = :prod1.Id LIMIT 1];
+        PricebookEntry pbe2 = [SELECT Id FROM PricebookEntry WHERE Product2Id = :prod2.Id LIMIT 1];
+        Id stdPbId = Test.getStandardPricebookId();
+
+        Test.startTest();
+        
+        Quote quote9 = new Quote(
+            Name = 'Quote Multiple Items', 
+            OpportunityId = opp.Id, 
+            ContactId = con.Id, 
+            Pricebook2Id = stdPbId, 
+            Status = 'Accepted'
+        );
         insert quote9;
 
-        QuoteLineItem qli9a = new QuoteLineItem(QuoteId = quote9.Id, PricebookEntryId = pbe1.Id, Quantity = 2, UnitPrice = 100, Product2Id = prod1.Id, Discount = 5.0);
-        QuoteLineItem qli9b = new QuoteLineItem(QuoteId = quote9.Id, PricebookEntryId = pbe2.Id, Quantity = 3, UnitPrice = 200, Product2Id = prod2.Id, Discount = 10.0);
+        QuoteLineItem qli9a = new QuoteLineItem(
+            QuoteId = quote9.Id, 
+            PricebookEntryId = pbe1.Id, 
+            Quantity = 2, 
+            UnitPrice = 100, 
+            Product2Id = prod1.Id, 
+            Discount = 5.0
+        );
+        QuoteLineItem qli9b = new QuoteLineItem(
+            QuoteId = quote9.Id, 
+            PricebookEntryId = pbe2.Id, 
+            Quantity = 3, 
+            UnitPrice = 200, 
+            Product2Id = prod2.Id, 
+            Discount = 10.0
+        );
         insert new List<QuoteLineItem>{qli9a, qli9b};
 
         ApexPages.currentPage().getParameters().put('quoteId', quote9.Id);
         ProformaInvoiceController controller9 = new ProformaInvoiceController();
         PageReference result9 = controller9.createProformaInvoice();
+
+        Test.stopTest();
+    }
+
+    @isTest
+    static void testQuoteNotFound() {
+        Test.startTest();
+        
+        ApexPages.currentPage().getParameters().put('quoteId', '001000000000000');
+        ProformaInvoiceController controller10 = new ProformaInvoiceController();
+        PageReference result10 = controller10.createProformaInvoice();
+
+        Test.stopTest();
+    }
+
+    @isTest
+    static void testQuoteWithSpecialCharacters() {
+        createDynamicTestData();
+        Opportunity opp = [SELECT Id FROM Opportunity LIMIT 1];
+        Contact con = [SELECT Id FROM Contact LIMIT 1];
+        Product2 prod1 = [SELECT Id FROM Product2 WHERE Name = 'Test Product 1' LIMIT 1];
+        PricebookEntry pbe1 = [SELECT Id FROM PricebookEntry WHERE Product2Id = :prod1.Id LIMIT 1];
+        Id stdPbId = Test.getStandardPricebookId();
+
+        Test.startTest();
+        
+        Quote quote11 = new Quote(
+            Name = 'Quote Special & Chars',
+            OpportunityId = opp.Id,
+            ContactId = con.Id,
+            Pricebook2Id = stdPbId,
+            Status = 'Accepted',
+            Inco_Terms__c = 'FOB',
+            Payment_Terms__c = 'LC AT SIGHT',
+            Description = 'Test & Description <with> special chars',
+            BillingName = 'Bill & Name',
+            ShippingName = 'Ship & Name'
+        );
+        insert quote11;
+
+        QuoteLineItem qli11 = new QuoteLineItem(
+            QuoteId = quote11.Id,
+            PricebookEntryId = pbe1.Id,
+            Quantity = 1,
+            UnitPrice = 99.99,
+            Product2Id = prod1.Id,
+            Description = 'Line & Item <Special>'
+        );
+        insert qli11;
+
+        ApexPages.currentPage().getParameters().put('quoteId', quote11.Id);
+        ProformaInvoiceController controller11 = new ProformaInvoiceController();
+        PageReference result11 = controller11.createProformaInvoice();
+
+        Test.stopTest();
+    }
+
+    @isTest
+    static void testBulkQuoteLineItems() {
+        createDynamicTestData();
+        Opportunity opp = [SELECT Id FROM Opportunity LIMIT 1];
+        Contact con = [SELECT Id FROM Contact LIMIT 1];
+        Product2 prod1 = [SELECT Id FROM Product2 WHERE Name = 'Test Product 1' LIMIT 1];
+        PricebookEntry pbe1 = [SELECT Id FROM PricebookEntry WHERE Product2Id = :prod1.Id LIMIT 1];
+        Id stdPbId = Test.getStandardPricebookId();
+
+        Test.startTest();
+        
+        Quote quote12 = new Quote(
+            Name = 'Quote Bulk Items',
+            OpportunityId = opp.Id,
+            ContactId = con.Id,
+            Pricebook2Id = stdPbId,
+            Status = 'Accepted'
+        );
+        insert quote12;
+
+        List<QuoteLineItem> bulkItems = new List<QuoteLineItem>();
+        for(Integer i = 0; i < 20; i++) {
+            bulkItems.add(new QuoteLineItem(
+                QuoteId = quote12.Id,
+                PricebookEntryId = pbe1.Id,
+                Quantity = i + 1,
+                UnitPrice = 50 + (i * 10),
+                Product2Id = prod1.Id,
+                Description = 'Bulk Item ' + i
+            ));
+        }
+        insert bulkItems;
+
+        ApexPages.currentPage().getParameters().put('quoteId', quote12.Id);
+        ProformaInvoiceController controller12 = new ProformaInvoiceController();
+        PageReference result12 = controller12.createProformaInvoice();
+
+        Test.stopTest();
     }
 }

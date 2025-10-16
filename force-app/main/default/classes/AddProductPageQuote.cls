@@ -47,7 +47,7 @@ public with sharing class AddProductPageQuote {
         string productQuery = 'select Id,Name,Family  from Product2 where Id NOT IN :existingProdId';
 
         if (productFamily.size() > 0) {
-            productQuery += ' where Family IN : productFamily';
+            productQuery += ' AND Family IN : productFamily';
         }
 
         set < Id > prodId = new set < Id > ();
@@ -80,6 +80,7 @@ public with sharing class AddProductPageQuote {
             pw.Name = pbe.Product2.Name;
             pw.ProductCode = pbe.Product2.ProductCode;
             pw.Description = pbe.Product2.Description;
+            pw.ListPrice = pbe.UnitPrice;
 
             if (cmplMap.containsKey(pbe.Product2Id)) {
                 pw.Price = cmplMap.get(pbe.Product2Id).Material_Price__c;
@@ -171,6 +172,7 @@ public with sharing class AddProductPageQuote {
         public String hsnMasterCode;
         public integer index;
         public Decimal Price;
+        public Decimal ListPrice;
         public Decimal SalesPrice;
         public Decimal Quantity = 0;
         public String Family;

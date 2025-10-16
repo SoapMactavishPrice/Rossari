@@ -3,14 +3,8 @@ private class UpdateQuoteRevisionTest {
     
     @testSetup
     static void setupTestData() {
-        Pricebook2 standardPricebook = new Pricebook2(
-            Id = Test.getStandardPricebookId(),
-            IsActive = true
-        );
-        update standardPricebook;
-        
-        System.debug('check'+[SELECT Id FROM Pricebook2 WHERE IsStandard = true LIMIT 1]);
-        
+        Id standardPricebookId = Test.getStandardPricebookId();
+
         Product2 testProduct = new Product2(
             Name = 'Test Product',
             IsActive = true
@@ -18,7 +12,7 @@ private class UpdateQuoteRevisionTest {
         insert testProduct;
         
         PricebookEntry standardPBE = new PricebookEntry(
-            Pricebook2Id = standardPricebook.Id,
+            Pricebook2Id = standardPricebookId,
             Product2Id = testProduct.Id,
             UnitPrice = 100.00,
             IsActive = true
@@ -28,7 +22,7 @@ private class UpdateQuoteRevisionTest {
     
     @isTest
     static void testQuoteRevisionUpdateOnQLIChange() {
-        Pricebook2 standardPb = [SELECT Id FROM Pricebook2 WHERE IsStandard = true LIMIT 1];
+        Id standardPbId = Test.getStandardPricebookId();
         
         Account testAccount = new Account(Name = 'Test Account');
         insert testAccount;
@@ -44,7 +38,7 @@ private class UpdateQuoteRevisionTest {
         Quote testQuote = new Quote(
             Name = 'Test Quote',
             OpportunityId = testOpp.Id,
-            Pricebook2Id = standardPb.Id
+            Pricebook2Id = standardPbId
         );
         insert testQuote;
         
@@ -64,15 +58,13 @@ private class UpdateQuoteRevisionTest {
         update testQLI;
         Test.stopTest();
         
-        // Verify results
         Quote updatedQuote = [SELECT Id, Revision_No__c, Revision_Date__c FROM Quote WHERE Id = :testQuote.Id];
         Opportunity updatedOpp = [SELECT Id, StageName FROM Opportunity WHERE Id = :testOpp.Id];
-        
     }
     
     @isTest
     static void testNoUpdateWhenNoChanges() {
-        Pricebook2 standardPb = [SELECT Id FROM Pricebook2 WHERE IsStandard = true LIMIT 1];
+        Id standardPbId = Test.getStandardPricebookId();
         
         Account testAccount = new Account(Name = 'Test Account');
         insert testAccount;
@@ -88,7 +80,7 @@ private class UpdateQuoteRevisionTest {
         Quote testQuote = new Quote(
             Name = 'Test Quote',
             OpportunityId = testOpp.Id,
-            Pricebook2Id = standardPb.Id
+            Pricebook2Id = standardPbId
         );
         insert testQuote;
         
@@ -113,8 +105,7 @@ private class UpdateQuoteRevisionTest {
     
     @isTest
     static void testBulkQLIUpdates() {
-        Pricebook2 standardPb = [SELECT Id FROM Pricebook2 WHERE IsStandard = true LIMIT 1];
-                System.debug('check'+[SELECT Id FROM Pricebook2 WHERE IsStandard = true LIMIT 1]);
+        Id standardPbId = Test.getStandardPricebookId();
 
         Account testAccount = new Account(Name = 'Test Account');
         insert testAccount;
@@ -127,11 +118,10 @@ private class UpdateQuoteRevisionTest {
         );
         insert testOpp;
         
-        
         Quote testQuote = new Quote(
             Name = 'Test Quote',
             OpportunityId = testOpp.Id,
-            Pricebook2Id = standardPb.Id
+            Pricebook2Id = standardPbId
         );
         insert testQuote;
         
@@ -151,15 +141,13 @@ private class UpdateQuoteRevisionTest {
         insert qliList;
         
         Test.startTest();
-        // Update all QLIs
         for(QuoteLineItem qli : qliList) {
-            qli.Quantity = qli.Quantity + 5;
-            qli.UnitPrice = qli.UnitPrice + 10;
+            qli.Quantity += 5;
+            qli.UnitPrice += 10;
         }
         update qliList;
         Test.stopTest();
         
-        // Verify revision occurred only once for the quote
         Quote updatedQuote = [SELECT Id, Revision_No__c FROM Quote WHERE Id = :testQuote.Id];
     }
 }

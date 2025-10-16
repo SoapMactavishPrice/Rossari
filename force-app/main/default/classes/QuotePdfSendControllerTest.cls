@@ -3,8 +3,8 @@ public class QuotePdfSendControllerTest {
 
     @testSetup
     static void setupTestData() {
-        Pricebook2 standardPb = new Pricebook2(Id = Test.getStandardPricebookId(), IsActive = true);
-        update standardPb;
+        // Get standard pricebook ID without updating (fix for UNABLE_TO_LOCK_ROW)
+        Id standardPricebookId = Test.getStandardPricebookId();
 
         Account acc = new Account(Name = 'Test Account', Business_Type__c = 'Domestic');
         insert acc;
@@ -16,10 +16,11 @@ public class QuotePdfSendControllerTest {
         insert prod;
 
         PricebookEntry pbe = new PricebookEntry(
-            Pricebook2Id = standardPb.Id,
+            Pricebook2Id = standardPricebookId,
             Product2Id = prod.Id,
             UnitPrice = 100,
-            IsActive = true
+            IsActive = true,
+            UseStandardPrice = false
         );
         insert pbe;
 
@@ -27,14 +28,15 @@ public class QuotePdfSendControllerTest {
             Name = 'Test Opportunity',
             StageName = 'Prospecting',
             CloseDate = Date.today().addDays(30),
-            AccountId = acc.Id
+            AccountId = acc.Id,
+            Pricebook2Id = standardPricebookId
         );
         insert opp;
 
         Quote quote = new Quote(
             Name = 'Test Quote',
             OpportunityId = opp.Id,
-            Pricebook2Id = standardPb.Id
+            Pricebook2Id = standardPricebookId
         );
         insert quote;
 
@@ -62,12 +64,14 @@ public class QuotePdfSendControllerTest {
             Name = 'Test Opp',
             StageName = 'Prospecting',
             CloseDate = Date.today().addDays(30),
-            AccountId = acc2.Id
+            AccountId = acc2.Id,
+            Pricebook2Id = Test.getStandardPricebookId()
         );
         insert opp2;
         Quote quote2 = new Quote(
             Name = 'Test Quote 2',
-            OpportunityId = opp2.Id
+            OpportunityId = opp2.Id,
+            Pricebook2Id = Test.getStandardPricebookId()
         );
         insert quote2;
         try {
@@ -98,12 +102,14 @@ public class QuotePdfSendControllerTest {
             Name = 'Test Opp Empty',
             StageName = 'Prospecting',
             CloseDate = Date.today().addDays(30),
-            AccountId = acc3.Id
+            AccountId = acc3.Id,
+            Pricebook2Id = Test.getStandardPricebookId()
         );
         insert opp3;
         Quote quote3 = new Quote(
             Name = 'Test Quote Empty',
-            OpportunityId = opp3.Id
+            OpportunityId = opp3.Id,
+            Pricebook2Id = Test.getStandardPricebookId()
         );
         insert quote3;
         Boolean result5 = QuotePdfSendController.isQuoteLineItemsExist(quote3.Id);

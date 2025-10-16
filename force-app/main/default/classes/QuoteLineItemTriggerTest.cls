@@ -3,11 +3,8 @@ public class QuoteLineItemTriggerTest {
 
     @TestSetup
     static void setupTestData() {
-Pricebook2 standardPricebook = new Pricebook2(
-            Id = Test.getStandardPricebookId(),
-            IsActive = true
-        );
-        update standardPricebook;
+        // Get standard pricebook ID without updating (fix for UNABLE_TO_LOCK_ROW)
+        Id standardPricebookId = Test.getStandardPricebookId();
 
         Base_UoM_Master__c baseUom = new Base_UoM_Master__c(Name = 'Kilogram');
         insert baseUom;
@@ -22,10 +19,11 @@ Pricebook2 standardPricebook = new Pricebook2(
         insert prod;
 
         PricebookEntry pbe = new PricebookEntry(
-            Pricebook2Id = standardPricebook.Id,
+            Pricebook2Id = standardPricebookId,
             Product2Id = prod.Id,
             UnitPrice = 100,
-            IsActive = true
+            IsActive = true,
+            UseStandardPrice = false
         );
         insert pbe;
 
@@ -39,7 +37,7 @@ Pricebook2 standardPricebook = new Pricebook2(
             StageName='Prospecting',
             CloseDate=Date.today(),
             AccountId=acc.Id,
-            Pricebook2Id=standardPricebook.Id
+            Pricebook2Id=standardPricebookId
         );
         insert opp;
 
@@ -47,7 +45,7 @@ Pricebook2 standardPricebook = new Pricebook2(
         Quote quote = new Quote(
             Name='Test Quote',
             OpportunityId = opp.Id,
-            Pricebook2Id = standardPricebook.Id
+            Pricebook2Id = standardPricebookId
             //AccountId = acc.Id
         );
         insert quote;

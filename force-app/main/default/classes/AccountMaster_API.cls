@@ -224,11 +224,18 @@ global class AccountMaster_API {
             for (AccountMasterRequest accMaster : accountRequests) {
                 // Process Account
                 Account acc = new Account();
-                if (accountMap.containsKey(accMaster.CUSTOMER_NO)) {
-                    acc.Id = accountMap.get(accMaster.CUSTOMER_NO).id;    
-                }
-                if (accountIdMap.containsKey(accMaster.SFDC_ID)) {
-                    acc.Id = accountIdMap.get(accMaster.SFDC_ID).id;    
+                if (String.isNotBlank(accMaster.SFDC_ID)) {
+                    if (accountIdMap.containsKey(accMaster.SFDC_ID)) {
+                        acc.Id = accountIdMap.get(accMaster.SFDC_ID).id;    
+                    } else {
+                        if (accountMap.containsKey(accMaster.CUSTOMER_NO)) {
+                            acc.Id = accountMap.get(accMaster.CUSTOMER_NO).id;    
+                        }
+                    }
+                } else {
+                    if (accountMap.containsKey(accMaster.CUSTOMER_NO)) {
+                        acc.Id = accountMap.get(accMaster.CUSTOMER_NO).id;    
+                    }
                 }
                 // Map fields from request to Account object
                 // acc.SAP_Customer_Code__c = accMaster.Account_ID; //NTC

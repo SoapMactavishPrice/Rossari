@@ -3,18 +3,11 @@ public class SnopTest {
     
     @testSetup
     static void setupData() {
-        // Activate Standard Pricebook
-        Pricebook2 standardPricebook = new Pricebook2(
-            Id = Test.getStandardPricebookId(),
-            IsActive = true
-        );
-        update standardPricebook;
+        Id standardPricebookId = Test.getStandardPricebookId();
         
-        // Create Base UOM
         Base_UoM_Master__c baseUom = new Base_UoM_Master__c(Name = 'Kilogram');
         insert baseUom;
         
-        // Create Product
         Product2 prod = new Product2(
             Name = 'Test Product',
             ProductCode = 'TP001',
@@ -23,23 +16,20 @@ public class SnopTest {
         );
         insert prod;
         
-        // Create Pricebook Entry
         PricebookEntry pbe = new PricebookEntry(
-            Pricebook2Id = standardPricebook.Id,
+            Pricebook2Id = standardPricebookId,
             Product2Id = prod.Id,
             UnitPrice = 100,
             IsActive = true
         );
         insert pbe;
         
-        // Create Account
         Account acc = new Account(
             Name = 'Test Account',
             Business_Type__c = 'SEZ'
         );
         insert acc;
         
-        // ✅ Create Order (with Pricebook2Id)
         Order ord = new Order(
             AccountId = acc.Id,
             Status = 'Draft',
@@ -48,11 +38,10 @@ public class SnopTest {
             Pricing_Status__c = 'Block',
             COGS_Status__c = 'Block',
             Credit_Status__c = 'Block',
-            Pricebook2Id = standardPricebook.Id
+            Pricebook2Id = standardPricebookId
         );
         insert ord;
         
-        // Create Order Item
         OrderItem oi = new OrderItem(
             OrderId = ord.Id,
             Quantity = 1,
@@ -61,7 +50,6 @@ public class SnopTest {
         );
         insert oi;
         
-        // Create Order Scheduling Line Item
         Order_Scheduling_Line_Item_wise__c lineItem = new Order_Scheduling_Line_Item_wise__c(
             Name = 'Test Line Item',
             Confirmed_Quantity__c = 10,
@@ -73,8 +61,6 @@ public class SnopTest {
         insert lineItem;
     }
     
-    
-    // ✅ getOrdersWithLineItems
     @isTest
     static void testGetOrdersWithLineItems() {
         Test.startTest();
@@ -82,14 +68,11 @@ public class SnopTest {
         Test.stopTest();
     }
     
-    // ✅ saveHeader
     @isTest
     static void testSaveHeader() {
         Order ord = [SELECT Id FROM Order LIMIT 1];
-        List<Snop.HeaderWrapper> headerList = new List<Snop.HeaderWrapper>{
-            new Snop.HeaderWrapper()
-                };
-                    headerList[0].id = ord.Id;
+        List<Snop.HeaderWrapper> headerList = new List<Snop.HeaderWrapper>{ new Snop.HeaderWrapper() };
+        headerList[0].id = ord.Id;
         headerList[0].pricingStatus = 'Block';
         headerList[0].cogsStatus = 'Block';
         headerList[0].creditStatus = 'Block';
@@ -99,10 +82,8 @@ public class SnopTest {
         Test.startTest();
         String result = Snop.saveHeader(jsonStr);
         Test.stopTest();
-        
     }
     
-    // ✅ savePartialDisptach
     @isTest
     static void testSavePartialDisptach() {
         Order ord = [SELECT Id FROM Order LIMIT 1];
@@ -111,21 +92,19 @@ public class SnopTest {
         List<Map<String, Object>> listData = new List<Map<String, Object>>();
         listData.add(new Map<String, Object>{
             'Id' => 'create1',
-                'Disptach_Qty__c' => 10,
-                'Planning_Ready_by_Date__c' => String.valueOf(Date.today()),
-                'Planning_Dispatch_Remark__c' => 'Ready',
-                'Deviation_Reason__c' => 'Urgent'
-                });
+            'Disptach_Qty__c' => 10,
+            'Planning_Ready_by_Date__c' => String.valueOf(Date.today()),
+            'Planning_Dispatch_Remark__c' => 'Ready',
+            'Deviation_Reason__c' => 'Urgent'
+        });
         
         String jsonStr = JSON.serialize(listData);
         
         Test.startTest();
         Boolean result = Snop.savePartialDisptach(ord.Id, oi.Id, jsonStr);
         Test.stopTest();
-        
     }
     
-    // ✅ getPartialData
     @isTest
     static void testGetPartialData() {
         Order ord = [SELECT Id FROM Order LIMIT 1];
@@ -142,10 +121,8 @@ public class SnopTest {
         Test.startTest();
         List<Partial_Disptach_Qty__c> data = Snop.getPartialData(ord.Id, oi.Id);
         Test.stopTest();
-        
     }
     
-    // ✅ getDisptachList
     @isTest
     static void testGetDisptachList() {
         Order ord = [SELECT Id FROM Order LIMIT 1];
@@ -154,8 +131,8 @@ public class SnopTest {
         List<Map<String, Object>> listData = new List<Map<String, Object>>();
         listData.add(new Map<String, Object>{
             'OrderId' => ord.Id,
-                'Id' => oi.Id
-                });
+            'Id' => oi.Id
+        });
         
         String jsonStr = JSON.serialize(listData);
         
@@ -164,7 +141,6 @@ public class SnopTest {
         Test.stopTest();
     }
     
-    // ✅ removeALlPartialData
     @isTest
     static void testRemoveALlPartialData() {
         Order ord = [SELECT Id FROM Order LIMIT 1];
@@ -180,10 +156,8 @@ public class SnopTest {
         Test.startTest();
         Boolean result = Snop.removeALlPartialData(ord.Id, oi.Id);
         Test.stopTest();
-        
     }
     
-    // ✅ removeRowPartialData
     @isTest
     static void testRemoveRowPartialData() {
         Order ord = [SELECT Id FROM Order LIMIT 1];
@@ -199,10 +173,8 @@ public class SnopTest {
         Test.startTest();
         Boolean result = Snop.removeRowPartialData(pd.Id);
         Test.stopTest();
-        
     }
     
-    // ✅ saveline
     @isTest
     static void testSaveline() {
         Order ord = [SELECT Id FROM Order LIMIT 1];
@@ -211,22 +183,19 @@ public class SnopTest {
         List<Map<String, Object>> listData = new List<Map<String, Object>>();
         listData.add(new Map<String, Object>{
             'OrderId' => ord.Id,
-                'Id' => oi.Id,
-                'Lead_time__c' => '5 days'
-                });
+            'Id' => oi.Id,
+            'Lead_time__c' => '5 days'
+        });
         
         String jsonStr = JSON.serialize(listData);
         
         Test.startTest();
         String result = Snop.saveline(jsonStr);
         Test.stopTest();
-        
     }
     
-    
-     @isTest
+    @isTest
     static void testGetFilteredOrders() {
-        // Prepare a fake JSON for filters
         String filterJSON = JSON.serialize(new Map<String, Object>{
             'sbuFilter' => 'SBU1',
             'statusFilter' => 'Draft',
@@ -240,55 +209,37 @@ public class SnopTest {
         Test.startTest();
         List<Order> orders = Snop.getFilteredOrders(filterJSON, 'SEZ');
         Test.stopTest();
+    }
 
-           }
     @isTest
     static void testGetOrderPicklistOptions() {
         Test.startTest();
-
-        // Call the method with the existing Business Type
         Snop.OptionWrapper picklistOptions = Snop.getOrderPicklistOptions('SEZ');
-
         Test.stopTest();
-
-       
-
     }
-    
-    
+
     @isTest
     static void testHeaderWrapper() {
-        // Instantiate HeaderWrapper
         Snop.HeaderWrapper header = new Snop.HeaderWrapper();
         header.id = '001xx000003DGbV';
         header.pricingStatus = 'Block';
         header.cogsStatus = 'Block';
         header.creditStatus = 'Approved';
 
-        // Serialize to JSON
         String jsonHeader = JSON.serialize(header);
-
-        // Deserialize back to object
         Snop.HeaderWrapper deserializedHeader = (Snop.HeaderWrapper) JSON.deserialize(jsonHeader, Snop.HeaderWrapper.class);
-       
     }
 
     @isTest
     static void testOptionWrapperAndChild() {
-        // Instantiate OptionWrapper
         Snop.OptionWrapper options = new Snop.OptionWrapper();
         options.orderNumberPicklist = new List<Snop.OptionChildWrapper>();
         options.sbuPicklist = new List<Snop.OptionChildWrapper>();
 
-        // Add OptionChildWrapper
         options.orderNumberPicklist.add(new Snop.OptionChildWrapper('Order1', '001'));
         options.sbuPicklist.add(new Snop.OptionChildWrapper('SBU1', 'SBU001'));
 
-        // Serialize OptionWrapper to JSON
         String jsonOptions = JSON.serialize(options);
-
-        // Deserialize back to object
         Snop.OptionWrapper deserializedOptions = (Snop.OptionWrapper) JSON.deserialize(jsonOptions, Snop.OptionWrapper.class);
-       
     }
 }

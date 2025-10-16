@@ -3,479 +3,363 @@ public class AccountMaster_API_Test {
     
     @TestSetup
     static void setupTestData() {
-        // Create test data for all required objects
+        // Use Standard Pricebook without updating it
+        Id standardPricebookId = Test.getStandardPricebookId();
+        
+        // Create test cities
         List<City__c> cities = new List<City__c>{
-            new City__c(Name = 'Test City 1'),
-            new City__c(Name = 'Test City 2'),
-            new City__c(Name = 'Test City 3')
+            new City__c(Name = 'Mumbai'),
+            new City__c(Name = 'Delhi'),
+            new City__c(Name = 'Bangalore')
         };
         insert cities;
         
-        List<Pin_Code__c> pinCodes = new List<Pin_Code__c>{
-            new Pin_Code__c(Name = '12345'),
-            new Pin_Code__c(Name = '67890')
+        // Create test postal codes
+        List<Pin_Code__c> postalCodes = new List<Pin_Code__c>{
+            new Pin_Code__c(Name = '400001'),
+            new Pin_Code__c(Name = '110001'),
+            new Pin_Code__c(Name = '560001')
         };
-        insert pinCodes;
+        insert postalCodes;
         
-        List<Sales_Organisation__c> salesOrgs = new List<Sales_Organisation__c>{
-            new Sales_Organisation__c(Name = 'SO1'),
-            new Sales_Organisation__c(Name = 'SO2')
-        };
-        insert salesOrgs;
+        // Create test sales organisation data
+        Sales_Organisation__c so = new Sales_Organisation__c(Name = '1000');
+        insert so;
         
-        List<Distribution_Channel__c> distChannels = new List<Distribution_Channel__c>{
-            new Distribution_Channel__c(Distribution_Code__c = 'DC1', Name = 'Dist Channel 1'),
-            new Distribution_Channel__c(Distribution_Code__c = 'DC2', Name = 'Dist Channel 2')
-        };
-        insert distChannels;
+        Distribution_Channel__c dc = new Distribution_Channel__c(
+            Name = 'DC1', 
+            Distribution_Code__c = '10'
+        );
+        insert dc;
         
-        List<Division__c> divisions = new List<Division__c>{
-            new Division__c(Division_Code__c = 'DIV1', Name = 'Division 1'),
-            new Division__c(Division_Code__c = 'DIV2', Name = 'Division 2')
-        };
-        insert divisions;
+        Division__c div = new Division__c(
+            Name = 'DIV1', 
+            Division_Code__c = '10'
+        );
+        insert div;
         
-        List<Company__c> companies = new List<Company__c>{
-            new Company__c(SAP_Code__c = '1000', Name = 'Company 1'),
-            new Company__c(SAP_Code__c = '1001', Name = 'Company 2')
-        };
-        insert companies;
+        Company__c company = new Company__c(
+            Name = 'Test Company',
+            SAP_Code__c = 'COM1'
+        );
+        insert company;
         
-        List<Payment_Term__c> paymentTerms = new List<Payment_Term__c>{
-            new Payment_Term__c(Payment_Term_Code__c = 'PT1', Name = 'Payment Term 1'),
-            new Payment_Term__c(Payment_Term_Code__c = 'PT2', Name = 'Payment Term 2')
-        };
-        insert paymentTerms;
+        // Create test payment terms
+        Payment_Term__c paymentTerm = new Payment_Term__c(
+            Name = 'Net 30',
+            Payment_Term_Code__c = '0001'
+        );
+        insert paymentTerm;
         
-        List<Sales_District__c> salesDistricts = new List<Sales_District__c>{
-            new Sales_District__c(Sales_District_Code__c = 'SD1', Name = 'Sales District 1'),
-            new Sales_District__c(Sales_District_Code__c = 'SD2', Name = 'Sales District 2')
-        };
-        insert salesDistricts;
+        // Create test sales district
+        Sales_District__c salesDistrict = new Sales_District__c(
+            Name = 'North District',
+            Sales_District_Code__c = 'NORTH'
+        );
+        insert salesDistrict;
+        
+        // Create existing account for update testing
+        Account existingAccount = new Account(
+            Name = 'Existing Customer',
+            SAP_Customer_Code__c = 'EXIST001',
+            Email_Id__c = 'existing@test.com'
+        );
+        insert existingAccount;
+        
+        // Create existing contact
+        Contact existingContact = new Contact(
+            FirstName = 'Existing',
+            LastName = 'Contact',
+            Email = 'existing.contact@test.com',
+            AccountId = existingAccount.Id,
+            External_Id__c = 'EXIST001-existing.contact@test.com'
+        );
+        insert existingContact;
+        
+        // Create existing bank information
+        Bank_Information__c existingBank = new Bank_Information__c(
+            Name = 'Existing Bank',
+            Account_Name__c = existingAccount.Id,
+            Bank_A_C_No__c = '1234567890',
+            External_Id__c = 'EXIST001-1234567890'
+        );
+        insert existingBank;
+        
+        // Create existing customer sales area
+        Customer_Sales_Area__c existingCSA = new Customer_Sales_Area__c(
+            Name = '1000/10/10',
+            Comapany_Code__c = existingAccount.Id,
+            Sales_Organisation__c = so.Id,
+            Distribution_Channel__c = dc.Id,
+            Division__c = div.Id,
+            External_Id__c = 'EXIST001-1000-10-10'
+        );
+        insert existingCSA;
+        
+        // Create existing partner function
+        Partner_Function__c existingPF = new Partner_Function__c(
+            Name = 'EXIST001/SP',
+            Customer_Sales_Area__c = existingCSA.Id,
+            PARTNERFN__c = 'SP',
+            Partner_code__c = 'EXIST001',
+            TXT_SALES_ORG0079__c = '1000',
+            TXT_DISTR_CHANN__c = '10',
+            TXT_DIVISION0081__c = '10',
+            External_Id__c = 'EXIST001-SP-1000-10-10'
+        );
+        insert existingPF;
     }
     
     @isTest
-    static void testUpsertAccountMaster_Success() {
-        // Create test account
-        Account testAccount = new Account(
-            Name = 'Test Account',
-            SAP_Customer_Code__c = 'CUST001',
-            City1__c = 'Test City 1'
-        );
-        insert testAccount;
-        
-        // Prepare test request data
+    static void testAllSuccessScenarios() {
+        // Test 1: Success scenario - Create new account
         List<AccountMaster_API.AccountMasterRequest> requests = new List<AccountMaster_API.AccountMasterRequest>();
-        AccountMaster_API.AccountMasterRequest request = new AccountMaster_API.AccountMasterRequest();
         
-        // Set account data
-        request.CUSTOMER_NO = 'CUST001';
-        request.CUST_NAME = 'Updated Test Account';
-        request.CUST_ACCT_GROUP = 'Group1';
-        request.ACCOUNT_GROUP_C = 'AccountGroup';
+        AccountMaster_API.AccountMasterRequest request = new AccountMaster_API.AccountMasterRequest();
+        request.SFDC_ID = null;
+        request.CUSTOMER_NO = 'TEST001';
+        request.CUST_NAME = 'Test Customer';
+        request.CUST_ACCT_GROUP = 'Z001';
+        request.ACCOUNT_GROUP_C = 'Corporate';
         request.TITLE = 'Mr.';
         request.C_TELEPHONE1 = '1234567890';
-        request.EMAIL1 = 'test@example.com';
+        request.EMAIL1 = 'test@customer.com';
         request.C_STREET = 'Test Street';
-        request.CITY = 'Test City 1';
-        request.COUNTRY = 'Test Country';
-        request.REGION = 'Test Region';
+        request.STREET2 = 'Test Street 2';
+        request.STREET = 'Main Street';
+        request.HOUSE_NO = '123';
+        request.POST_CODE = '400001';
+        request.CITY = 'Mumbai';
+        request.COUNTRY = 'India';
+        request.REGION = 'Maharashtra';
         request.CURRNCY = 'INR';
         request.PAN_NO = 'ABCDE1234F';
         request.MOBILE_NO = '9876543210';
-        request.TAXNO3 = 'GST123';
+        request.TAXNO3 = 'GSTIN1234';
         request.GST_TYPE_C = 'Regular';
         request.CRED_LIMIT = '100000';
         request.INDUSTRY = 'Manufacturing';
-        request.RECON_ACCT = 'Recon Account';
-        request.RECON_ACCOUNT = 'Recon Account Desc';
+        request.RECON_ACCT = 'RECON001';
         request.EXRATETYPE = 'M';
-        request.EXCH_RATE_TYPE_C = 'Exchange Type';
         
-        // Prepare contact data
-        List<AccountMaster_API.ContactData> contacts = new List<AccountMaster_API.ContactData>();
-        AccountMaster_API.ContactData contact1 = new AccountMaster_API.ContactData();
-        contact1.CUSTOMER_NO0103 = 'CUST001';
-        contact1.FIRST_NAME0109 = 'John';
-        contact1.LAST_NAME0110 = 'Doe';
-        contact1.MOBILE = '9876543210';
-        contact1.EMAIL_ID = 'john.doe@example.com';
-        contact1.ROLE_FUNCTION = 'Manager';
-        contact1.TITLE0114 = 'Mr.';
-        contact1.DEPARTMENT = 'Sales';
-        contact1.TELEPHONE_1 = '1234567890';
-        contact1.CONTACT_POSTCODE = '12345';
-        contact1.CONTACT_CITY = 'Test City 2';
-        contacts.add(contact1);
-        request.CONTACT = contacts;
+        // Create sales area data
+        AccountMaster_API.SalesArea salesArea = new AccountMaster_API.SalesArea();
+        salesArea.COCODE = 'COM1';
+        salesArea.SALES_ORG = '1000';
+        salesArea.DISTR_CHL = '10';
+        salesArea.DIVISION = '10';
+        salesArea.INCOTERMS = 'CIF';
+        salesArea.PAYT_TERMS = '0001';
+        salesArea.SALES_DISTRICT = 'NORTH';
+        salesArea.CUSTGROUP = 'GROUP1';
+        salesArea.PRICEGRP = 'PRICE1';
+        salesArea.PRICE_LIST = 'LIST1';
+        salesArea.CUSTSTATGR = 'STAT1';
+        salesArea.INVOIC_DAT = 'D';
+        salesArea.INVLISTSCH = 'WEEKLY';
+        salesArea.CRED_LIMIT = '50000';
+        salesArea.CURR = 'INR';
         
-        // Prepare bank data
-        List<AccountMaster_API.BankData> banks = new List<AccountMaster_API.BankData>();
-        AccountMaster_API.BankData bank1 = new AccountMaster_API.BankData();
-        bank1.CUSTOMER_NO0126 = 'CUST001';
-        bank1.BANK_KEY = 'BANK001';
-        bank1.BANKL = 'BANKL001';
-        bank1.BANKNAME = 'Test Bank';
-        bank1.BANKBRANCH = 'Test Branch';
-        bank1.BANK_ACC_NO = 'ACC123456';
-        banks.add(bank1);
-        request.BANK = banks;
+        // Create partner functions
+        AccountMaster_API.PartnerFunction partnerFunc = new AccountMaster_API.PartnerFunction();
+        partnerFunc.PARTNERFN = 'SP';
+        partnerFunc.PARTNER_FUNC = 'Sold-To Party';
+        partnerFunc.TITLE0070 = 'Mr.';
+        partnerFunc.CITY0072 = 'Delhi';
+        partnerFunc.COUNTRY0073 = 'India';
+        partnerFunc.REGION0074 = 'Delhi';
+        partnerFunc.POST_CODE0075 = '110001';
+        partnerFunc.CUSTOMR_NO = 'TEST001';
+        partnerFunc.SALES_ORG0079 = '1000';
+        partnerFunc.DISTR_CHANN = '10';
+        partnerFunc.DIVISION0081 = '10';
+        partnerFunc.NAME = 'Partner Customer';
+        partnerFunc.FIRST_NAME0088 = 'Partner';
+        partnerFunc.LAST_NAME0089 = 'Customer';
+        partnerFunc.CITY1 = 'Bangalore';
+        partnerFunc.POSTL_CODE = '560001';
+        partnerFunc.DISTRICT = 'Central';
+        partnerFunc.STATE = 'Karnataka';
+        partnerFunc.REGION0096 = 'South';
+        partnerFunc.COUNTRY0097 = 'India';
+        partnerFunc.TAX_CLASS0099 = 'CLASS1';
         
-        // Prepare sales area data
-        List<AccountMaster_API.SalesArea> salesAreas = new List<AccountMaster_API.SalesArea>();
-        AccountMaster_API.SalesArea salesArea1 = new AccountMaster_API.SalesArea();
-        salesArea1.COCODE = 'COMP1';
-        salesArea1.SALES_ORG = 'SO1';
-        salesArea1.DISTR_CHL = 'DC1';
-        salesArea1.DIVISION = 'DIV1';
-        salesArea1.INCOTERMS = 'CIF';
-        salesArea1.INCO_TERM_1_C = 'Incoterm1';
-        salesArea1.INCOTERMS2 = 'Incoterm2';
-        salesArea1.PAYT_TERMS = 'PT1';
-        salesArea1.SALES_DISTRICT = 'SD1';
-        salesArea1.CUSTGROUP = 'Group1';
-        salesArea1.CUST_PRICE_GROUP_C = 'PriceGroup';
-        salesArea1.PRICEGRP = 'PriceGrp';
-        salesArea1.PRICE_GROUP_C = 'Price Group';
-        salesArea1.PRICE_LIST = 'PriceList1';
-        salesArea1.CUSTSTATGR = 'StatGroup';
-        salesArea1.INVOIC_DAT = 'InvoiceDate';
-        salesArea1.INVLISTSCH = 'InvListSched';
+        salesArea.PARTNER_FUNCTIONS = new List<AccountMaster_API.PartnerFunction>{partnerFunc};
+        request.SALES_AREA = new List<AccountMaster_API.SalesArea>{salesArea};
         
-        // Prepare partner functions
-        List<AccountMaster_API.PartnerFunction> partnerFunctions = new List<AccountMaster_API.PartnerFunction>();
-        AccountMaster_API.PartnerFunction partner1 = new AccountMaster_API.PartnerFunction();
-        partner1.PARTNERFN = 'SP';
-        partner1.PARTNER_FUNC = 'Sold-To Party';
-        partner1.TITLE0070 = 'Mr.';
-        partner1.CITY0072 = 'Test City 3';
-        partner1.COUNTRY0073 = 'Country1';
-        partner1.REGION0074 = 'Region1';
-        partner1.POST_CODE0075 = '67890';
-        partner1.CUSTOMR_NO = 'CUST001';
-        partner1.SALES_ORG0079 = 'SO1';
-        partner1.DISTR_CHANN = 'DC1';
-        partner1.DIVISION0081 = 'DIV1';
-        partner1.NAME = 'Partner Name';
-        partner1.FIRST_NAME0088 = 'Partner First';
-        partner1.LAST_NAME0089 = 'Partner Last';
-        partner1.CITY1 = 'Test City 1';
-        partner1.POSTL_CODE = '12345';
-        partner1.DISTRICT = 'District1';
-        partner1.STATE = 'State1';
-        partner1.REGION0096 = 'Region2';
-        partner1.COUNTRY0097 = 'Country2';
-        partner1.TAX_CLASS0099 = 'TaxClass1';
-        partnerFunctions.add(partner1);
-        
-        salesArea1.PARTNER_FUNCTIONS = partnerFunctions;
-        salesAreas.add(salesArea1);
-        request.SALES_AREA = salesAreas;
-        
-        requests.add(request);
-        
-        String requestBody = JSON.serialize(requests);
-        
-        Test.startTest();
-        // Set up REST context
-        RestRequest req = new RestRequest();
-        RestResponse res = new RestResponse();
-        
-        req.requestURI = '/services/apexrest/UpsertAccountMaster/';
-        req.httpMethod = 'POST';
-        req.requestBody = Blob.valueOf(requestBody);
-        
-        RestContext.request = req;
-        RestContext.response = res;
-        
-        // Call the method
-        AccountMaster_API.upsertAccountMaster();
-        Test.stopTest();
-        
-        
-        
-        // Verify account was updated
-        Account updatedAccount = [SELECT Id, Name, SAP_Customer_Code__c, GST_No__c, Pan_No__c 
-                                 FROM Account WHERE SAP_Customer_Code__c = 'CUST001'];
-        
-        
-        // Verify contact was created
-        List<Contact> contactsList = [SELECT Id, FirstName, LastName, Email FROM Contact 
-                                     WHERE AccountId = :updatedAccount.Id];
-       
-        
-        // Verify bank information was created
-        List<Bank_Information__c> bankInfoList = [SELECT Id, Name, Bank_A_C_No__c 
-                                                 FROM Bank_Information__c 
-                                                 WHERE Account_Name__c = :updatedAccount.Id];
-        
-        // Verify sales area was created
-        List<Customer_Sales_Area__c> salesAreaList = [SELECT Id, Name FROM Customer_Sales_Area__c 
-                                                     WHERE Comapany_Code__c = :updatedAccount.Id];
-    }
-    
-    @isTest
-    static void testUpsertAccountMaster_NewAccount() {
-        // Test creating a completely new account
-        List<AccountMaster_API.AccountMasterRequest> requests = new List<AccountMaster_API.AccountMasterRequest>();
-        AccountMaster_API.AccountMasterRequest request = new AccountMaster_API.AccountMasterRequest();
-        
-        request.CUSTOMER_NO = 'CUST002';
-        request.CUST_NAME = 'New Test Account';
-        request.CITY = 'Test City 1';
-        request.EMAIL1 = 'new@example.com';
-        request.MOBILE_NO = '9876543210';
-        request.PAN_NO = 'PAN1234567';
-      //  request.GST_No__c = 'GST456';
-        
-        requests.add(request);
-        
-        String requestBody = JSON.serialize(requests);
-        
-        Test.startTest();
-        RestRequest req = new RestRequest();
-        RestResponse res = new RestResponse();
-        
-        req.requestURI = '/services/apexrest/UpsertAccountMaster/';
-        req.httpMethod = 'POST';
-        req.requestBody = Blob.valueOf(requestBody);
-        
-        RestContext.request = req;
-        RestContext.response = res;
-        
-        AccountMaster_API.upsertAccountMaster();
-        Test.stopTest();
-        
-        // Verify new account was created
-        List<Account> accounts = [SELECT Id, Name, SAP_Customer_Code__c FROM Account 
-                                 WHERE SAP_Customer_Code__c = 'CUST002'];
-       
-    }
-    
-    @isTest
-    static void testUpsertAccountMaster_EmptyRequestBody() {
-        Test.startTest();
-        RestRequest req = new RestRequest();
-        RestResponse res = new RestResponse();
-        
-        req.requestURI = '/services/apexrest/UpsertAccountMaster/';
-        req.httpMethod = 'POST';
-        req.requestBody = Blob.valueOf('');
-        
-        RestContext.request = req;
-        RestContext.response = res;
-        
-        try {
-            AccountMaster_API.upsertAccountMaster();
-        } catch (Exception e) {
-        }
-        Test.stopTest();
-        
-    }
-    
-    @isTest
-    static void testUpsertAccountMaster_InvalidJSON() {
-        Test.startTest();
-        RestRequest req = new RestRequest();
-        RestResponse res = new RestResponse();
-        
-        req.requestURI = '/services/apexrest/UpsertAccountMaster/';
-        req.httpMethod = 'POST';
-        req.requestBody = Blob.valueOf('invalid json');
-        
-        RestContext.request = req;
-        RestContext.response = res;
-        
-        AccountMaster_API.upsertAccountMaster();
-        Test.stopTest();
-        
-    }
-    
-    @isTest
-    static void testUpsertAccountMaster_PartialSuccess() {
-        // Create one valid account and one with missing required fields
-        List<AccountMaster_API.AccountMasterRequest> requests = new List<AccountMaster_API.AccountMasterRequest>();
-        
-        // Valid request
-        AccountMaster_API.AccountMasterRequest validRequest = new AccountMaster_API.AccountMasterRequest();
-        validRequest.CUSTOMER_NO = 'CUST003';
-        validRequest.CUST_NAME = 'Valid Account';
-        validRequest.CITY = 'Test City 1';
-        requests.add(validRequest);
-        
-        // Invalid request (missing required fields)
-        AccountMaster_API.AccountMasterRequest invalidRequest = new AccountMaster_API.AccountMasterRequest();
-        invalidRequest.CUSTOMER_NO = 'CUST004';
-        // Missing CUST_NAME which might be required
-        requests.add(invalidRequest);
-        
-        String requestBody = JSON.serialize(requests);
-        
-        Test.startTest();
-        RestRequest req = new RestRequest();
-        RestResponse res = new RestResponse();
-        
-        req.requestURI = '/services/apexrest/UpsertAccountMaster/';
-        req.httpMethod = 'POST';
-        req.requestBody = Blob.valueOf(requestBody);
-        
-        RestContext.request = req;
-        RestContext.response = res;
-        
-        AccountMaster_API.upsertAccountMaster();
-        Test.stopTest();
-        
-        
-        
-        // Verify at least one account was created
-        List<Account> accounts = [SELECT Id, SAP_Customer_Code__c FROM Account 
-                                 WHERE SAP_Customer_Code__c IN ('CUST003', 'CUST004')];
-    }
-    
-    @isTest
-    static void testPrepareContacts() {
-        // Setup
-        Account testAccount = new Account(
-            Name = 'Test Account',
-            SAP_Customer_Code__c = 'CUST005'
-        );
-        insert testAccount;
-        
-        List<AccountMaster_API.ContactData> contactDataList = new List<AccountMaster_API.ContactData>();
+        // Create contact data
         AccountMaster_API.ContactData contactData = new AccountMaster_API.ContactData();
-        contactData.FIRST_NAME0109 = 'Test';
-        contactData.LAST_NAME0110 = 'Contact';
-        contactData.EMAIL_ID = 'test.contact@example.com';
-        contactData.MOBILE = '1234567890';
-        contactData.CONTACT_POSTCODE = '12345';
-        contactData.CONTACT_CITY = 'Test City 1';
-        contactDataList.add(contactData);
+        contactData.CUSTOMER_NO0103 = 'TEST001';
+        contactData.FIRST_NAME0109 = 'John';
+        contactData.LAST_NAME0110 = 'Doe';
+        contactData.MOBILE = '9876543210';
+        contactData.EMAIL_ID = 'john.doe@test.com';
+        contactData.ROLE_FUNCTION = 'Manager';
+        contactData.TITLE0114 = 'Mr.';
+        contactData.DEPARTMENT = 'Sales';
+        contactData.TELEPHONE_1 = '1234567890';
+        contactData.CONTACT_ADDRESS = 'Contact Address';
+        contactData.CONTACT_CITY = 'Mumbai';
+        contactData.CONTACT_POSTCODE = '400001';
         
-        Test.startTest();
-       // List<Contact> contacts = AccountMaster_API.prepareContacts(contactDataList, testAccount);
-        Test.stopTest();
+        request.CONTACT = new List<AccountMaster_API.ContactData>{contactData};
         
-       
-    }
-    
-    @isTest
-    static void testPrepareBankDetails() {
-        // Setup
-        Account testAccount = new Account(
-            Name = 'Test Account',
-            SAP_Customer_Code__c = 'CUST006'
-        );
-        insert testAccount;
-        
-        List<AccountMaster_API.BankData> bankDataList = new List<AccountMaster_API.BankData>();
+        // Create bank data
         AccountMaster_API.BankData bankData = new AccountMaster_API.BankData();
-        bankData.CUSTOMER_NO0126 = 'CUST006';
-        bankData.BANK_ACC_NO = 'ACC123';
+        bankData.CUSTOMER_NO0126 = 'TEST001';
+        bankData.BANK_KEY = 'BANK001';
         bankData.BANKL = 'BANKL001';
         bankData.BANKNAME = 'Test Bank';
-        bankData.BANKBRANCH = 'Test Branch';
-        bankDataList.add(bankData);
+        bankData.BANKBRANCH = 'Main Branch';
+        bankData.BANK_ACC_NO = 'ACC123456789';
+        
+        request.BANK = new List<AccountMaster_API.BankData>{bankData};
+        
+        requests.add(request);
         
         Test.startTest();
-       // List<Bank_Information__c> bankAccounts = AccountMaster_API.prepareBankDetails(bankDataList, testAccount);
+        
+        // Test 1: Success scenario
+        String requestBody1 = JSON.serialize(requests);
+        setupRestContext(requestBody1);
+        AccountMaster_API.upsertAccountMaster();
+        
+        // Test 2: Update existing account
+        List<AccountMaster_API.AccountMasterRequest> updateRequests = new List<AccountMaster_API.AccountMasterRequest>();
+        AccountMaster_API.AccountMasterRequest updateRequest = new AccountMaster_API.AccountMasterRequest();
+        updateRequest.SFDC_ID = null;
+        updateRequest.CUSTOMER_NO = 'EXIST001';
+        updateRequest.CUST_NAME = 'Updated Customer Name';
+        updateRequest.EMAIL1 = 'updated@test.com';
+        updateRequest.CITY = 'Mumbai';
+        updateRequest.COUNTRY = 'India';
+        updateRequests.add(updateRequest);
+        
+        String requestBody2 = JSON.serialize(updateRequests);
+        setupRestContext(requestBody2);
+        AccountMaster_API.upsertAccountMaster();
+        
+        // Test 3: Multiple accounts
+        List<AccountMaster_API.AccountMasterRequest> multiRequests = new List<AccountMaster_API.AccountMasterRequest>();
+        for (Integer i = 1; i <= 3; i++) {
+            AccountMaster_API.AccountMasterRequest multiRequest = new AccountMaster_API.AccountMasterRequest();
+            multiRequest.CUSTOMER_NO = 'MULTI00' + i;
+            multiRequest.CUST_NAME = 'Multi Customer ' + i;
+            multiRequest.EMAIL1 = 'multi' + i + '@test.com';
+            multiRequest.CITY = 'Mumbai';
+            multiRequest.COUNTRY = 'India';
+            
+            AccountMaster_API.SalesArea multiSalesArea = new AccountMaster_API.SalesArea();
+            multiSalesArea.SALES_ORG = '1000';
+            multiSalesArea.DISTR_CHL = '10';
+            multiSalesArea.DIVISION = '10';
+            multiSalesArea.PARTNER_FUNCTIONS = new List<AccountMaster_API.PartnerFunction>();
+            multiRequest.SALES_AREA = new List<AccountMaster_API.SalesArea>{multiSalesArea};
+            
+            multiRequests.add(multiRequest);
+        }
+        
+        String requestBody3 = JSON.serialize(multiRequests);
+        setupRestContext(requestBody3);
+        AccountMaster_API.upsertAccountMaster();
+        
         Test.stopTest();
         
+        // Verify results
+        List<Account> accounts = [SELECT Id, Name, SAP_Customer_Code__c FROM Account WHERE SAP_Customer_Code__c = 'TEST001'];
         
+        List<Contact> contacts = [SELECT Id, FirstName, LastName FROM Contact WHERE Email = 'john.doe@test.com'];
+        
+        List<Bank_Information__c> bankInfos = [SELECT Id, Bank_A_C_No__c FROM Bank_Information__c WHERE Bank_A_C_No__c = 'ACC123456789'];
+        
+        List<Customer_Sales_Area__c> salesAreas = [SELECT Id, Name FROM Customer_Sales_Area__c WHERE External_Id__c = 'TEST001-1000-10-10'];
+        
+        List<Partner_Function__c> partnerFuncs = [SELECT Id, PARTNERFN__c FROM Partner_Function__c WHERE External_Id__c = 'TEST001-SP-1000-10-10'];
+        
+        List<Account> multiAccounts = [SELECT Id, SAP_Customer_Code__c FROM Account WHERE SAP_Customer_Code__c LIKE 'MULTI00%'];
     }
     
     @isTest
-    static void testPrepareSalesAreas() {
-        // Setup
-        Account testAccount = new Account(
-            Name = 'Test Account',
-            SAP_Customer_Code__c = 'CUST007'
-        );
-        insert testAccount;
-        
-        List<AccountMaster_API.SalesArea> salesAreaList = new List<AccountMaster_API.SalesArea>();
-        AccountMaster_API.SalesArea salesArea = new AccountMaster_API.SalesArea();
-        salesArea.SALES_ORG = 'SO1';
-        salesArea.DISTR_CHL = 'DC1';
-        salesArea.DIVISION = 'DIV1';
-        salesArea.COCODE = 'COMP1';
-        salesArea.PAYT_TERMS = 'PT1';
-        salesArea.SALES_DISTRICT = 'SD1';
-        salesAreaList.add(salesArea);
+    static void testErrorScenariosAndSFDCId() {
+        // Get existing account for SFDC ID test
+        Account existingAcc = [SELECT Id FROM Account WHERE SAP_Customer_Code__c = 'EXIST001' LIMIT 1];
         
         Test.startTest();
-      //  List<Customer_Sales_Area__c> salesAreas = AccountMaster_API.prepareSalesAreas(salesAreaList, testAccount);
+        
+        // Test 1: With SFDC ID
+        List<AccountMaster_API.AccountMasterRequest> sfdcRequests = new List<AccountMaster_API.AccountMasterRequest>();
+        AccountMaster_API.AccountMasterRequest sfdcRequest = new AccountMaster_API.AccountMasterRequest();
+        sfdcRequest.SFDC_ID = existingAcc.Id;
+        sfdcRequest.CUSTOMER_NO = 'EXIST001';
+        sfdcRequest.CUST_NAME = 'Updated Via SFDC ID';
+        sfdcRequest.CITY = 'Mumbai';
+        sfdcRequest.COUNTRY = 'India';
+        sfdcRequests.add(sfdcRequest);
+        
+        String requestBody4 = JSON.serialize(sfdcRequests);
+        setupRestContext(requestBody4);
+        AccountMaster_API.upsertAccountMaster();
+        
+        // Test 2: Empty request body
+        try {
+            setupRestContext('');
+            AccountMaster_API.upsertAccountMaster();
+        } catch (Exception e) {
+            // Expected exception
+        }
+        
+        // Test 3: Invalid JSON
+        setupRestContext('invalid json {');
+        AccountMaster_API.upsertAccountMaster();
+        
+        // Test 4: Missing references
+        List<AccountMaster_API.AccountMasterRequest> missingRefRequests = new List<AccountMaster_API.AccountMasterRequest>();
+        AccountMaster_API.AccountMasterRequest missingRefRequest = new AccountMaster_API.AccountMasterRequest();
+        missingRefRequest.CUSTOMER_NO = 'MISSREF001';
+        missingRefRequest.CUST_NAME = 'Missing Ref Customer';
+        missingRefRequest.CITY = 'NonExistentCity';
+        missingRefRequest.COUNTRY = 'India';
+        
+        AccountMaster_API.SalesArea missingSalesArea = new AccountMaster_API.SalesArea();
+        missingSalesArea.SALES_ORG = '9999';
+        missingSalesArea.DISTR_CHL = '99';
+        missingSalesArea.DIVISION = '99';
+        missingSalesArea.PARTNER_FUNCTIONS = new List<AccountMaster_API.PartnerFunction>();
+        missingRefRequest.SALES_AREA = new List<AccountMaster_API.SalesArea>{missingSalesArea};
+        
+        missingRefRequests.add(missingRefRequest);
+        
+        String requestBody3 = JSON.serialize(missingRefRequests);
+        setupRestContext(requestBody3);
+        AccountMaster_API.upsertAccountMaster();
+        
         Test.stopTest();
         
-
+        // Verify error scenarios were handled
+        List<Account> missingRefAccounts = [SELECT Id FROM Account WHERE SAP_Customer_Code__c = 'MISSREF001'];
     }
     
     @isTest
-    static void testProcessAllContacts() {
-        // Setup
-        Account testAccount = new Account(
-            Name = 'Test Account',
-            SAP_Customer_Code__c = 'CUST008'
-        );
-        insert testAccount;
+    static void testResponseWrapper() {
+        // Test ResponseWrapper class separately
+        AccountMaster_API.ResponseWrapper wrapper = new AccountMaster_API.ResponseWrapper();
         
-        Map<Id, Account> successAccounts = new Map<Id, Account>{testAccount.Id => testAccount};
-        Map<String, List<Contact>> accountContactsMap = new Map<String, List<Contact>>();
-        
-        List<Contact> contacts = new List<Contact>();
-        Contact contact = new Contact(
-            FirstName = 'Test',
-            LastName = 'Contact',
-            Email = 'test@example.com',
-            AccountId = testAccount.Id,
-            External_Id__c = 'CUST008-test@example.com'
-        );
-        contacts.add(contact);
-        accountContactsMap.put('CUST008', contacts);
-        
-        AccountMaster_API.ResponseWrapper response = new AccountMaster_API.ResponseWrapper();
-        
-        Test.startTest();
-//        AccountMaster_API.processAllContacts(successAccounts, accountContactsMap, response);
-        Test.stopTest();
-        
-        // Verify contact was created
-        List<Contact> createdContacts = [SELECT Id, FirstName FROM Contact WHERE AccountId = :testAccount.Id];
-        
+        System.assertEquals('success', wrapper.status);
+        System.assertEquals('Customer Upsert successfully', wrapper.message);
+        System.assertNotEquals(null, wrapper.data);
+        System.assertNotEquals(null, wrapper.errors);
     }
     
-    @isTest
-    static void testProcessAllBankDetails() {
-        // Setup
-        Account testAccount = new Account(
-            Name = 'Test Account',
-            SAP_Customer_Code__c = 'CUST009'
-        );
-        insert testAccount;
+    // Helper method to setup REST context
+    private static void setupRestContext(String requestBody) {
+        RestRequest req = new RestRequest();
+        RestResponse res = new RestResponse();
         
-        Map<Id, Account> successAccounts = new Map<Id, Account>{testAccount.Id => testAccount};
-        Map<String, List<Bank_Information__c>> accountBankDetailsMap = new Map<String, List<Bank_Information__c>>();
+        req.requestURI = '/services/apexrest/UpsertAccountMaster/';
+        req.httpMethod = 'POST';
+        req.requestBody = Blob.valueOf(requestBody);
         
-        List<Bank_Information__c> bankAccounts = new List<Bank_Information__c>();
-        Bank_Information__c bankAccount = new Bank_Information__c(
-            Account_Name__c = testAccount.Id,
-            Bank_A_C_No__c = 'ACC123',
-            External_Id__c = 'CUST009-ACC123'
-        );
-        bankAccounts.add(bankAccount);
-        accountBankDetailsMap.put('CUST009', bankAccounts);
-        
-        AccountMaster_API.ResponseWrapper response = new AccountMaster_API.ResponseWrapper();
-        
-        Test.startTest();
-       // AccountMaster_API.processAllBankDetails(successAccounts, accountBankDetailsMap, response);
-        Test.stopTest();
-        
-        // Verify bank account was created
-        List<Bank_Information__c> createdBankAccounts = [SELECT Id, Bank_A_C_No__c 
-                                                        FROM Bank_Information__c 
-                                                        WHERE Account_Name__c = :testAccount.Id];
-           }
-    
-    // Inner exception class for testing
-    public class CustomException extends Exception {}
+        RestContext.request = req;
+        RestContext.response = res;
+    }
 }

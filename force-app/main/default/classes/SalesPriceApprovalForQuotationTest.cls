@@ -3,11 +3,8 @@ private class SalesPriceApprovalForQuotationTest {
     
     @testSetup
     static void setupData() {
-        Pricebook2 pb = new Pricebook2(
-            Id = Test.getStandardPricebookId(),
-            IsActive = true
-        );
-        update pb;
+        // Get standard pricebook ID without updating (fix for UNABLE_TO_LOCK_ROW)
+        Id standardPricebookId = Test.getStandardPricebookId();
 
         Account acc = new Account(Name = 'Test Account');
         insert acc;
@@ -21,13 +18,19 @@ private class SalesPriceApprovalForQuotationTest {
         Product2 prod = new Product2(Name = 'Test Product', IsActive = true);
         insert prod;
 
-        PricebookEntry pbe = new PricebookEntry(Product2Id = prod.Id, Pricebook2Id = pb.Id, UnitPrice = 100, IsActive = true);
+        PricebookEntry pbe = new PricebookEntry(
+            Product2Id = prod.Id, 
+            Pricebook2Id = standardPricebookId, 
+            UnitPrice = 100, 
+            IsActive = true,
+            UseStandardPrice = false
+        );
         insert pbe;
 
         Quote qt = new Quote(
             Name = 'Test Quote',
             OpportunityId = opp.Id,
-            Pricebook2Id = pb.Id,
+            Pricebook2Id = standardPricebookId,
             ContactId = con.Id
         );
         insert qt;

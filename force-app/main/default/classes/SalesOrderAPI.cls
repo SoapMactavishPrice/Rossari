@@ -220,7 +220,10 @@ global class SalesOrderAPI {
                         ord.VARIABLE_PRICE__c = soRequest.VARIABLE_PRICE;
                         ord.EffectiveDate = System.today();
                         ord.PoNumber = soRequest.CUST_PURC_NO;
-                        ord.Status = 'Sale Order Created';
+                        // ord.Status = 'Sale Order Created';
+                        if (String.isNotBlank(soRequest.STATUS)) {
+                            ord.Status = soRequest.STATUS;
+                        }
                         Pricebook2 pbk1 = [
                             SELECT IsActive, Description, IsStandard, Id, Name, SystemModstamp
                             FROM Pricebook2
@@ -604,6 +607,7 @@ global class SalesOrderAPI {
         public String DELIVERY_BLOCK;
         public String BILLING_BLOCK;
         public String VARIABLE_PRICE;
+        public String STATUS;
 
         public String QUOTE_NUM;
         public String DOC_TYPE; //ZDCO

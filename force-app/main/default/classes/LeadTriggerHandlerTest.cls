@@ -80,7 +80,6 @@ public class LeadTriggerHandlerTest {
         Test.startTest();
         LeadTriggerHandler.setRossariCompany(leads);
         Test.stopTest();
-        
     }
     
     @isTest
@@ -99,13 +98,9 @@ public class LeadTriggerHandlerTest {
         Test.startTest();
         LeadTriggerHandler.createContactInformation(leads);
         Test.stopTest();
-        
-        List<Contact_Information__c> infos = [SELECT Id FROM Contact_Information__c WHERE Lead__c = :l.Id];
     }
     
-    @isTest
-    static void testHandleAfterLeadConvert() {
-        
+    static void createLeadConvertTestData() {
         Pricebook2 standardPricebook = new Pricebook2(
             Id = Test.getStandardPricebookId(),
             IsActive = true
@@ -127,9 +122,8 @@ public class LeadTriggerHandlerTest {
         );
         insert standardPbe;
         
-       Country__c country1 = [SELECT Id FROM Country__c WHERE Name = 'India' LIMIT 1];
+        Country__c country1 = [SELECT Id FROM Country__c WHERE Name = 'India' LIMIT 1];
 
-        
         State__c state = new State__c(
             Name = 'Maharashtra',
             Country__c = country1.Id
@@ -146,10 +140,15 @@ public class LeadTriggerHandlerTest {
         Product2 pro = New Product2();
         pro.Name = 'UNITOX - KRN-HD200T80';
         pro.Family = 'ZFG';
-        
         insert pro;
+    }
+    
+    @isTest
+    static void testHandleAfterLeadConvert() {
+        createLeadConvertTestData();
         
-        
+        City__c testCity = [SELECT Id FROM City__c WHERE Name = 'Test City' LIMIT 1];
+        Product2 pro = [SELECT Id FROM Product2 WHERE Name = 'UNITOX - KRN-HD200T80' LIMIT 1];
         
         Lead l = new Lead(
             FirstName = 'Convert', 
@@ -185,7 +184,6 @@ public class LeadTriggerHandlerTest {
         pi.Quantity_in_Kgs__c = 10;
         pi.Expected_Price__c = 12;
         pi.Lead__c = l.Id;
-        
         insert pi;
         
         Database.LeadConvert lc = new Database.LeadConvert();
@@ -200,15 +198,9 @@ public class LeadTriggerHandlerTest {
         
         Map<Id, Lead> oldMap = new Map<Id, Lead>{ l.Id => new Lead(Id = l.Id, IsConverted = false) };
             
-            Test.startTest();
+        Test.startTest();
         LeadTriggerHandler.handleAfterLeadConvert(new List<Lead>{convertedLead}, oldMap);
         Test.stopTest();
-        
-        List<Contact> secondaryContacts = [SELECT Id, Email FROM Contact 
-                                           WHERE Email = 'secondary@test.com' 
-                                           AND AccountId = :convertedLead.ConvertedAccountId];
-        
-        Contact primaryContact = [SELECT Id, Department FROM Contact WHERE Id = :convertedLead.ConvertedContactId];
     }
     
     @isTest
@@ -218,17 +210,14 @@ public class LeadTriggerHandlerTest {
             LastName = 'Up', 
             Company = 'Test Co',
             MobilePhone = '9876554389'
-            
         );
         insert l;
         
         Map<Id, Lead> oldMap = new Map<Id, Lead>{ l.Id => new Lead(Id = l.Id) };
             
-            Test.startTest();
+        Test.startTest();
         LeadTriggerHandler.handleFollowUpTask(new List<Lead>{l}, oldMap);
         Test.stopTest();
-        
-        List<Task> tasks = [SELECT Id FROM Task WHERE WhatId = :l.Id];
     }
     
     @isTest
@@ -247,15 +236,11 @@ public class LeadTriggerHandlerTest {
         );
         insert a;
         
-        update l;
-        
         Map<Id, Lead> oldMap = new Map<Id, Lead>{ l.Id => new Lead(Id = l.Id, IsConverted = false) };
             
-            Test.startTest();
+        Test.startTest();
         LeadTriggerHandler.createAddressInfoFromConvertedLead(new List<Lead>{l}, oldMap);
         Test.stopTest();
-        
-        List<Address_Information__c> addrList = [SELECT Id FROM Address_Information__c WHERE Account__c = :a.Id];
     }
     
     @isTest
@@ -263,22 +248,17 @@ public class LeadTriggerHandlerTest {
         Lead l = new Lead(FirstName = 'Updt', LastName = 'Lead', Company = 'Lead Ltd',MobilePhone = '7787546916');
         insert l;
         
-        Account a = new Account(Name = 'Acct');
-        insert a;
-        
         l.Description = 'Updated Desc';
         update l;
         
         Map<Id, Lead> oldMap = new Map<Id, Lead>{ l.Id => new Lead(Id = l.Id, IsConverted = false) };
             
-            Test.startTest();
+        Test.startTest();
         LeadTriggerHandler.handleAfterUpdate(new List<Lead>{l}, oldMap);
         Test.stopTest();
-        
     }
     
-    @isTest
-    static void testCreateQuotesForConvertedLeads() {
+    static void createQuoteTestData() {
         Pricebook2 standardPb = new Pricebook2(Id = Test.getStandardPricebookId(), IsActive = true);
         update standardPb;
         
@@ -316,12 +296,19 @@ public class LeadTriggerHandlerTest {
             PricebookEntryId = pbe.Id
         );
         insert oli;
+    }
+    
+    @isTest
+    static void testCreateQuotesForConvertedLeads() {
+        createQuoteTestData();
         
         Country__c country = [SELECT Id FROM Country__c LIMIT 1];
         State__c state = [SELECT Id FROM State__c WHERE Country__c = :country.Id LIMIT 1];
         City__c city = [SELECT Id FROM City__c WHERE State__c = :state.Id LIMIT 1];
         Pin_Code__c pin = [SELECT Id FROM Pin_Code__c WHERE City__c = :city.Id LIMIT 1];
         Company__c comp = [SELECT Id FROM Company__c LIMIT 1];
+        Account acc = [SELECT Id FROM Account LIMIT 1];
+        Opportunity opp = [SELECT Id FROM Opportunity LIMIT 1];
         
         Lead lead = new Lead(
             FirstName = 'Converted',
@@ -331,7 +318,6 @@ public class LeadTriggerHandlerTest {
             Email = 'lead@test.com',   
             Create_Quote_upon_Conversion__c = true,
             Inco_Terms__c = 'FOB',
-        //    Payment_Term__c = 'Advance',
             Bill_to__c = 'BillTo',
             Ship_to__c = 'ShipTo',
             Loading_Port__c = 'Mumbai',
@@ -373,60 +359,136 @@ public class LeadTriggerHandlerTest {
         LeadTriggerHandler.createQuotesForConvertedLeads(new List<Id>{lead.Id});
         Test.stopTest();
     }
- 	
-    @isTest
-static void testLeadScoreRatingWithFormulaField() {
-    // Cold: Total Score = 10 (GateKeeper) + 10 (AdHoc) + 5 (No Interest) + 10 (6 to 12 months) = 35
-    Lead coldLead = new Lead(
-        FirstName = 'Cold',
-        LastName = 'Lead',
-        Company = 'Cold Co',
-        MobilePhone = '9991111111',
-        Authority__c = 'GateKeeper',
-        Budget__c = 'Alternative / AdHoc Budget Source',
-        Need__c = 'No Interest',
-        Timeline__c = '6 to 12 months'
-    );
-
-    // Warm: Total Score = 20 (Influencer) + 15 (Half Year) + 20 (Evaluating Competitor) + 15 (3 to 6 months) = 70
-    Lead warmLead = new Lead(
-        FirstName = 'Warm',
-        LastName = 'Lead',
-        Company = 'Warm Co',
-        MobilePhone = '9992222222',
-        Authority__c = 'Influencer',
-        Budget__c = 'Forecast for Next Half Year',
-        Need__c = 'Evaluating Competitor Product',
-        Timeline__c = '3 to 6 months'
-    );
-
-    // Hot: Total Score = 25 + 25 + 25 + 25 = 100
-    Lead hotLead = new Lead(
-        FirstName = 'Hot',
-        LastName = 'Lead',
-        Company = 'Hot Co',
-        MobilePhone = '9993333333',
-        Authority__c = 'Right Person Contact',
-        Budget__c = 'Forecast for Next Quarter',
-        Need__c = 'Yes',
-        Timeline__c = 'Immediate'
-    );
-
-    insert new List<Lead>{ coldLead, warmLead, hotLead };
-
-    List<Lead> insertedLeads = [SELECT Id, Rating, Lead_Score__c FROM Lead WHERE Id IN :new List<Id>{coldLead.Id, warmLead.Id, hotLead.Id}];
-
-    for (Lead l : insertedLeads) {
-        
-        if (l.Lead_Score__c <= 50) {
-            
-        } else if (l.Lead_Score__c <= 75) {
-           
-        } else {
-            
-        }
-    }
-}
-
     
+    @isTest
+    static void testLeadScoreRatingWithFormulaField() {
+        Lead coldLead = new Lead(
+            FirstName = 'Cold',
+            LastName = 'Lead',
+            Company = 'Cold Co',
+            MobilePhone = '9991111111',
+            Authority__c = 'GateKeeper',
+            Budget__c = 'Alternative / AdHoc Budget Source',
+            Need__c = 'No Interest',
+            Timeline__c = '6 to 12 months'
+        );
+
+        Lead warmLead = new Lead(
+            FirstName = 'Warm',
+            LastName = 'Lead',
+            Company = 'Warm Co',
+            MobilePhone = '9992222222',
+            Authority__c = 'Influencer',
+            Budget__c = 'Forecast for Next Half Year',
+            Need__c = 'Evaluating Competitor Product',
+            Timeline__c = '3 to 6 months'
+        );
+
+        Lead hotLead = new Lead(
+            FirstName = 'Hot',
+            LastName = 'Lead',
+            Company = 'Hot Co',
+            MobilePhone = '9993333333',
+            Authority__c = 'Right Person Contact',
+            Budget__c = 'Forecast for Next Quarter',
+            Need__c = 'Yes',
+            Timeline__c = 'Immediate'
+        );
+
+        Test.startTest();
+        insert new List<Lead>{ coldLead, warmLead, hotLead };
+        Test.stopTest();
+    }
+
+    @isTest
+    static void testUpdateLeadAddresses_ShippingAddress() {
+        Pin_Code__c pin = [SELECT Id FROM Pin_Code__c LIMIT 1];
+        
+        Lead l = new Lead(
+            FirstName = 'Test',
+            LastName = 'Lead',
+            Company = 'TestCo',
+            MobilePhone = '9876564320',
+            Shipping_Pin_Code__c = pin.Id
+        );
+        insert l;
+        
+        Test.startTest();
+        List<Lead> leads = [
+            SELECT Id,
+            Pin_Code__c,
+            City__c,
+            State__c,
+            Country__c,
+            Zone__c, 
+            Region__c,
+            Shipping_Pin_Code__c,
+            Shipping_City__c,
+            Shipping_State__c,
+            Business_Type__c
+            FROM Lead
+            WHERE Id = :l.Id
+        ];
+        LeadTriggerHandler.updateLeadAddresses(leads);
+        Test.stopTest();
+    }
+
+    @isTest
+    static void testCreateContactInformationMultiple() {
+        Lead l1 = new Lead(
+            FirstName = 'John', 
+            LastName = 'Doe',
+            Company = 'Company1',
+            Email = 'john1@x.com', 
+            MobilePhone = '9876598123', 
+            Title = 'Manager'
+        );
+        Lead l2 = new Lead(
+            FirstName = 'Jane', 
+            LastName = 'Smith',
+            Company = 'Company2',
+            Email = 'jane@x.com', 
+            MobilePhone = '9876598124', 
+            Title = 'Director'
+        );
+        insert new List<Lead>{l1, l2};
+        
+        List<Lead> leads = [SELECT Id, FirstName, LastName, Email, MobilePhone, Title FROM Lead WHERE Id IN :new List<Id>{l1.Id, l2.Id}];
+        Test.startTest();
+        LeadTriggerHandler.createContactInformation(leads);
+        Test.stopTest();
+    }
+
+    @isTest
+    static void testHandleAfterLeadConvertNoProducts() {
+        createLeadConvertTestData();
+        
+        City__c testCity = [SELECT Id FROM City__c WHERE Name = 'Test City' LIMIT 1];
+        
+        Lead l = new Lead(
+            FirstName = 'Convert', 
+            LastName = 'NoProducts',
+            Company = 'Comp',
+            Department__c = 'Sales',
+            MobilePhone = '9098766852',
+            City__c = testCity.Id    
+        );
+        insert l;
+        
+        Database.LeadConvert lc = new Database.LeadConvert();
+        lc.setLeadId(l.Id);
+        lc.setDoNotCreateOpportunity(false); 
+        lc.setConvertedStatus('Qualified');
+        Database.LeadConvertResult lcr = Database.convertLead(lc);
+        
+        Lead convertedLead = [SELECT Id, IsConverted, ConvertedAccountId, ConvertedContactId, 
+                              ConvertedOpportunityId, City__c, Department__c 
+                              FROM Lead WHERE Id = :l.Id];
+        
+        Map<Id, Lead> oldMap = new Map<Id, Lead>{ l.Id => new Lead(Id = l.Id, IsConverted = false) };
+            
+        Test.startTest();
+        LeadTriggerHandler.handleAfterLeadConvert(new List<Lead>{convertedLead}, oldMap);
+        Test.stopTest();
+    }
 }

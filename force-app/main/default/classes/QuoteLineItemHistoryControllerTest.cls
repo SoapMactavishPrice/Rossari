@@ -14,12 +14,7 @@ public class QuoteLineItemHistoryControllerTest {
         );
         insert opp;
 
-        Pricebook2 standardPricebook = new Pricebook2(
-            Id = Test.getStandardPricebookId(),
-            IsActive = true
-        );
-        update standardPricebook;
-
+        Id standardPricebookId = Test.getStandardPricebookId(); // ✅ Reference only, no update
 
         Product2 testProduct = new Product2(
             Name = 'Test Product',
@@ -28,7 +23,7 @@ public class QuoteLineItemHistoryControllerTest {
         insert testProduct;
 
         PricebookEntry standardPBE = new PricebookEntry(
-            Pricebook2Id = standardPricebook.Id,
+            Pricebook2Id = standardPricebookId,
             Product2Id = testProduct.Id,
             UnitPrice = 100.00,
             IsActive = true
@@ -38,7 +33,7 @@ public class QuoteLineItemHistoryControllerTest {
         Quote quote = new Quote(
             Name = 'Test Quote',
             OpportunityId = opp.Id,
-            Pricebook2Id = standardPricebook.Id,
+            Pricebook2Id = standardPricebookId,
             Status = 'Draft'
         );
         insert quote;
@@ -65,6 +60,5 @@ public class QuoteLineItemHistoryControllerTest {
         List<QuoteLineItemHistoryController.QuoteLineItemHistoryWrapper> results =
             QuoteLineItemHistoryController.getQuoteLineItemHistory(quote.Id);
         Test.stopTest();
-
     }
 }

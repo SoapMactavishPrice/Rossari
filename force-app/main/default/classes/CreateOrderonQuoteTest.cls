@@ -1,14 +1,10 @@
-@isTest
+@IsTest
 private class CreateOrderonQuoteTest {
     
-    @testSetup
+    @TestSetup
     static void setupData() {
-        // Setup standard pricebook first
-        Pricebook2 standardPb = new Pricebook2(
-            Id = Test.getStandardPricebookId(),
-            IsActive = true
-        );
-        update standardPb;
+        // Get Standard Pricebook ID
+        Id standardPbId = Test.getStandardPricebookId();
         
         Account acc = new Account(Name = 'Test Account');
         insert acc;
@@ -21,7 +17,7 @@ private class CreateOrderonQuoteTest {
             StageName = 'Quotation', 
             CloseDate = Date.today(), 
             AccountId = acc.Id,
-            Pricebook2Id = standardPb.Id
+            Pricebook2Id = standardPbId
         );
         insert opp;
 
@@ -30,7 +26,7 @@ private class CreateOrderonQuoteTest {
 
         PricebookEntry pbe = new PricebookEntry(
             Product2Id = prod.Id, 
-            Pricebook2Id = standardPb.Id, 
+            Pricebook2Id = standardPbId, 
             UnitPrice = 100, 
             IsActive = true
         );
@@ -39,7 +35,7 @@ private class CreateOrderonQuoteTest {
         Quote qt = new Quote(
             Name = 'Test Quote',
             OpportunityId = opp.Id,
-            Pricebook2Id = standardPb.Id,
+            Pricebook2Id = standardPbId,
             BillingStreet = '123 St',
             BillingCity = 'City',
             BillingState = 'State',
@@ -64,13 +60,13 @@ private class CreateOrderonQuoteTest {
         insert qli;
     }
     
-    @isTest
+    @IsTest
     static void testGetInitialData() {
         Quote qt = [SELECT Id FROM Quote LIMIT 1];
         CreateOrderonQuote.getInitialData(qt.Id);
     }
 
-    @isTest
+    @IsTest
     static void testCreateOrderFromQuote() {
         Quote qt = [SELECT Id, Pricebook2Id, Opportunity.AccountId, CurrencyIsoCode FROM Quote LIMIT 1];
         QuoteLineItem qli = [SELECT Id, Product2Id, PricebookEntryId, UnitPrice, Quantity FROM QuoteLineItem LIMIT 1];
@@ -97,7 +93,7 @@ private class CreateOrderonQuoteTest {
         );
     }
 
-    @isTest
+    @IsTest
     static void testDeleteQuoteLineItem() {
         QuoteLineItem qli = [SELECT Id FROM QuoteLineItem LIMIT 1];
         CreateOrderonQuote.deleteQuoteLineItem(qli.Id);

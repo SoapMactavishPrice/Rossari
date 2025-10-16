@@ -15,8 +15,7 @@ public class OpportunitySampleRequestController_Test {
         );
         insert opp;
 
-        Pricebook2 pb = new Pricebook2(Id = Test.getStandardPricebookId(), IsActive = true);
-        update pb;
+        Id standardPricebookId = Test.getStandardPricebookId();
 
         Base_UoM_Master__c baseUom = new Base_UoM_Master__c(Name = 'Kilogram');
         insert baseUom;
@@ -31,7 +30,7 @@ public class OpportunitySampleRequestController_Test {
         insert prod;
 
         PricebookEntry pbe = new PricebookEntry(
-            Pricebook2Id = pb.Id,
+            Pricebook2Id = standardPricebookId,
             Product2Id = prod.Id,
             UnitPrice = 100,
             IsActive = true
@@ -50,7 +49,6 @@ public class OpportunitySampleRequestController_Test {
         insert plant;
     }
 
-    // ✅ Helper to create sample request & line item
     private static Sample_Request__c createSampleRequestData() {
         Opportunity opp = [SELECT Id FROM Opportunity LIMIT 1];
         Product2 prod = [SELECT Id FROM Product2 LIMIT 1];
@@ -88,74 +86,66 @@ public class OpportunitySampleRequestController_Test {
         System.assert(!plants.isEmpty());
     }
 
-    @isTest
-private static void test_saveSample_and_related_methods() {
-    // Create Account
-    Account acc = new Account(Name = 'Test Account');
-    insert acc;
+    @IsTest
+    private static void test_saveSample_and_related_methods() {
+        Account acc = new Account(Name = 'Test Account');
+        insert acc;
 
-    // Create Opportunity
-    Opportunity opp = new Opportunity(
-        Name = 'Test Opportunity',
-        StageName = 'Prospecting',
-        CloseDate = Date.today().addDays(10),
-        AccountId = acc.Id
-    );
-    insert opp;
+        Opportunity opp = new Opportunity(
+            Name = 'Test Opportunity',
+            StageName = 'Prospecting',
+            CloseDate = Date.today().addDays(10),
+            AccountId = acc.Id
+        );
+        insert opp;
 
-    // Create Product2
-    Product2 prod = new Product2(Name = 'Test Product', isActive = true);
-    insert prod;
+        Product2 prod = new Product2(Name = 'Test Product', IsActive = true);
+        insert prod;
 
-    // Create PricebookEntry
-    Pricebook2 pb = [SELECT Id FROM Pricebook2 WHERE IsStandard = true LIMIT 1];
-    PricebookEntry pbe = new PricebookEntry(
-        Product2Id = prod.Id,
-        Pricebook2Id = pb.Id,
-        UnitPrice = 100,
-        IsActive = true
-    );
-    insert pbe;
+        Id standardPricebookId = Test.getStandardPricebookId();
 
-    // Fetch an active user for Sales_HOD__c
-    User u = [SELECT Id FROM User WHERE IsActive = true LIMIT 1];
+        PricebookEntry pbe = new PricebookEntry(
+            Product2Id = prod.Id,
+            Pricebook2Id = standardPricebookId,
+            UnitPrice = 100,
+            IsActive = true
+        );
+        insert pbe;
 
-    // Create sample request JSON
-    Map<String, Object> sampleData = new Map<String, Object>{
-        'Sample_Category' => 'Unpaid',
-        'Request_Date' => String.valueOf(Date.today()),
-        'Sample_Expected_Date' => String.valueOf(Date.today().addDays(2)),
-        'salesHod' => u.Id,
-        'Consignee_Name' => 'Test Consignee',
-        'Email' => 'test@example.com',
-        'Remark' => 'Test remark'
-    };
-    String sampleJson = JSON.serialize(sampleData);
+        User u = [SELECT Id FROM User WHERE IsActive = true LIMIT 1];
 
-    // Create sample line items JSON
-    List<Map<String, Object>> lineItems = new List<Map<String, Object>>();
-    lineItems.add(new Map<String, Object>{
-        'prodId' => prod.Id,
-        'Sample_Qty_in_Kgs' => 5,
-        'Sales_Price' => 500
-    });
-    String lineItemsJson = JSON.serialize(lineItems);
+        Map<String, Object> sampleData = new Map<String, Object>{
+            'Sample_Category' => 'Unpaid',
+            'Request_Date' => String.valueOf(Date.today()),
+            'Sample_Expected_Date' => String.valueOf(Date.today().addDays(2)),
+            'salesHod' => u.Id,
+            'Consignee_Name' => 'Test Consignee',
+            'Email' => 'test@example.com',
+            'Remark' => 'Test remark'
+        };
+        String sampleJson = JSON.serialize(sampleData);
 
-    // Create empty attachment list (since List<Object> is expected)
-    List<Object> attachments = new List<Object>();
+        List<Map<String, Object>> lineItems = new List<Map<String, Object>>();
+        lineItems.add(new Map<String, Object>{
+            'prodId' => prod.Id,
+            'Sample_Qty_in_Kgs' => 5,
+            'Sales_Price' => 500
+        });
+        String lineItemsJson = JSON.serialize(lineItems);
 
-    Test.startTest();
-    String resultId = OpportunitySampleRequestController.saveSample(
-        opp.Id,
-        sampleJson,
-        attachments, // ✅ Correct data type
-        lineItemsJson
-    );
-    Test.stopTest();
+        List<Object> attachments = new List<Object>();
 
-    System.assertNotEquals(null, resultId, 'Sample Request should be created successfully.');
-}
+        Test.startTest();
+        String resultId = OpportunitySampleRequestController.saveSample(
+            opp.Id,
+            sampleJson,
+            attachments,
+            lineItemsJson
+        );
+        Test.stopTest();
 
+        System.assertNotEquals(null, resultId);
+    }
 
     @IsTest
     static void test_getExistingLineItems() {
@@ -176,60 +166,53 @@ private static void test_saveSample_and_related_methods() {
         System.assert(picklistMap != null);
     }
 
-   @IsTest
-static void test_saveLineItems() {
-    Lead lead = new Lead(
-        FirstName = 'Test',
-        LastName = 'Lead',
-        Company = 'Test Company',
-        Status = 'Working',
-        CurrencyIsoCode = 'USD',
-        MobilePhone = '9876543210'
-    );
-    insert lead;
+    @IsTest
+    static void test_saveLineItems() {
+        Lead lead = new Lead(
+            FirstName = 'Test',
+            LastName = 'Lead',
+            Company = 'Test Company',
+            Status = 'Working',
+            CurrencyIsoCode = 'USD',
+            MobilePhone = '9876543210'
+        );
+        insert lead;
 
-    Sample_Request__c sampleRequest = new Sample_Request__c(
-        Lead__c = lead.Id,
-        CurrencyIsoCode = lead.CurrencyIsoCode,
-        Sample_Category__c = 'Unpaid',
-        Consignee_Name__c = 'Test Company'
-    );
-    insert sampleRequest;
+        Sample_Request__c sampleRequest = new Sample_Request__c(
+            Lead__c = lead.Id,
+            CurrencyIsoCode = lead.CurrencyIsoCode,
+            Sample_Category__c = 'Unpaid',
+            Consignee_Name__c = 'Test Company'
+        );
+        insert sampleRequest;
 
-    Product2 prod = new Product2(Name='Test Product', IsActive=true);
-    insert prod;
+        Product2 prod = new Product2(Name = 'Test Product', IsActive = true);
+        insert prod;
 
-    Plant__c plant = new Plant__c(Name='Test Plant');
-    insert plant;
+        Plant__c plant = new Plant__c(Name = 'Test Plant');
+        insert plant;
 
-    // ✅ Correct JSON for saveLineItems
-    List<Map<String, Object>> lineItems = new List<Map<String, Object>>();
-    lineItems.add(new Map<String, Object>{
-        'productId' => prod.Id,
-        'plantId' => plant.Id,
-        'quantity' => 5,
-        'status' => 'Open'
-    });
-    String lineItemsJson = JSON.serialize(lineItems);
+        List<Map<String, Object>> lineItems = new List<Map<String, Object>>();
+        lineItems.add(new Map<String, Object>{
+            'productId' => prod.Id,
+            'plantId' => plant.Id,
+            'quantity' => 5,
+            'status' => 'Open'
+        });
+        String lineItemsJson = JSON.serialize(lineItems);
 
-    try{
-    Test.startTest();
-        OpportunitySampleRequestController.saveLineItems(sampleRequest.Id, lineItemsJson);
-    Test.stopTest();
-    }catch(Exception e){
-        
+        try {
+            Test.startTest();
+            OpportunitySampleRequestController.saveLineItems(sampleRequest.Id, lineItemsJson);
+            Test.stopTest();
+        } catch (Exception e) {}
+
+        List<Sample_Request_Line_Item__c> saved = [
+            SELECT Id, Product__c, Sample_Request_To_Plant__c, Sample_Qty_in_Kgs__c, Status__c
+            FROM Sample_Request_Line_Item__c
+            WHERE Sample_Request__c = :sampleRequest.Id
+        ];
     }
-
-    List<Sample_Request_Line_Item__c> saved = [
-        SELECT Id, Product__c, Sample_Request_To_Plant__c, Sample_Qty_in_Kgs__c, Status__c
-        FROM Sample_Request_Line_Item__c
-        WHERE Sample_Request__c = :sampleRequest.Id
-    ];
-
-
-}
-
-
 
     @IsTest
     static void test_updateParentStatus() {

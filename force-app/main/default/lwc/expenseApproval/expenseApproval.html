@@ -15,16 +15,8 @@
                 <template if:true={expenses.length}>
                     <template for:each={expenses} for:item="expense">
                         <div key={expense.expenseId} class="expense-container slds-box slds-m-bottom_medium">
-                            <!-- Approval Level Badge -->
-                            <!-- <div class="slds-m-bottom_small">
-                                <span class={badgeClass} if:true={expense.currentApprovalLevel}>
-                                    {expense.currentApprovalLevel} - Pending with {expense.currentApprover}
-                                </span>
-                            </div> -->
-
                             <!-- Approval Header with Badge and Buttons -->
                             <div class="approval-header slds-grid slds-wrap slds-gutters slds-m-bottom_medium">
-                                <!-- Left Side: Approval Level Badge -->
                                 <div class="slds-col slds-size_1-of-2 approval-badge-container">
                                     <template if:true={expense.currentApprovalLevel}>
                                         <span class={badgeClass}>
@@ -33,7 +25,6 @@
                                     </template>
                                 </div>
                                 <template if:true={expense.isPendingWithCurrentUser}>
-                                <!-- Right Side: Approve/Reject Buttons -->
                                 <div class="slds-col slds-size_1-of-2 approval-buttons-container">
                                     <div class="slds-float_right">
                                         <lightning-button 
@@ -57,69 +48,99 @@
 
                             <!-- Expense Header Information -->
                             <div class="header-grid slds-grid slds-wrap slds-gutters">
-                                <div class="slds-col slds-size_1-of-7 header-item">
+                                <div class="slds-col slds-size_1-of-8 header-item">
                                     <div class="field-label"><strong>Voucher No:</strong></div>
                                     <div class="field-value">{expense.expenseName}</div>
                                 </div>
-                                <div class="slds-col slds-size_1-of-7 header-item">
+                                <div class="slds-col slds-size_1-of-8 header-item">
                                     <div class="field-label"><strong>Employee:</strong></div>
                                     <div class="field-value">{expense.employeeName}</div>
                                 </div>
-                                <div class="slds-col slds-size_1-of-7 header-item">
+                                <div class="slds-col slds-size_1-of-8 header-item">
+                                    <div class="field-label"><strong>Grade:</strong></div>
+                                    <div class="field-value">{expense.gradeName}</div>
+                                </div>
+                                <div class="slds-col slds-size_1-of-8 header-item">
                                     <div class="field-label"><strong>Expense Date:</strong></div>
                                     <div class="field-value">{expense.expenseDate}</div>
                                 </div>
-                                <div class="slds-col slds-size_1-of-7 header-item">
+                                <div class="slds-col slds-size_1-of-8 header-item">
                                     <div class="field-label"><strong>Voucher Type:</strong></div>
                                     <div class="field-value">{expense.typeOfVoucher}</div>
                                 </div>
 
                                 <template if:true={expense.isOutstation}>
-                                    <div class="slds-col slds-size_1-of-7 header-item">
+                                    <div class="slds-col slds-size_1-of-8 header-item">
                                         <div class="field-label"><strong>Tour:</strong></div>
                                         <div class="field-value">{expense.tourName}</div>
                                     </div>
                                 </template>
 
                                 <template if:true={expense.isRBLRecordType}>
-                                    <div class="slds-col slds-size_1-of-7 header-item">
+                                    <div class="slds-col slds-size_1-of-8 header-item">
                                         <div class="field-label"><strong>Zonal Head:</strong></div>
                                         <div class="field-value">{expense.zonalHead}</div>
                                     </div>
                                 </template>
                                 <template if:true={expense.isUnitopTristarRecordType}>
-                                    <div class="slds-col slds-size_1-of-7 header-item">
+                                    <div class="slds-col slds-size_1-of-8 header-item">
                                         <div class="field-label"><strong>Customer Success Incharge:</strong></div>
                                         <div class="field-value">{expense.customerSuccessIncharge}</div>
                                     </div>
                                 </template>
-                                <div class="slds-col slds-size_1-of-7 header-item">
+                                <div class="slds-col slds-size_1-of-8 header-item">
                                     <div class="field-label"><strong>Business HOD:</strong></div>
                                     <div class="field-value">{expense.businessHOD}</div>
                                 </div>
-
                             </div>
 
-                            <!-- Expense Line Items Table -->
+                            <!-- Expense Line Items Table with Amount Passed Column -->
                             <div class="table-container slds-m-top_medium">
                                 <table class="slds-table slds-table_cell-buffer slds-table_bordered slds-table_striped">
                                     <thead>
                                         <tr class="slds-text-title_caps">
-                                            <th scope="col" style="width: 30%" class="table-header">TYPE OF EXPENSE</th>
-                                            <th scope="col" style="width: 20%" class="table-header text-center">AMOUNT CLAIMED</th>
-                                            <th scope="col" style="width: 50%" class="table-header text-center">DESCRIPTION</th>
+                                            <th scope="col" style="width: 15%" class="table-header">TYPE OF EXPENSE</th>
+                                            <th scope="col" style="width: 15%" class="table-header text-center">MODE OF TRANSPORT</th>
+                                            <th scope="col" style="width: 12%" class="table-header text-center">DAILY ALLOWANCE</th>
+                                            <th scope="col" style="width: 12%" class="table-header text-center">AMOUNT CLAIMED</th>
+                                            <th scope="col" style="width: 12%" class="table-header text-center">AMOUNT PASSED</th>
+                                            <th scope="col" style="width: 34%" class="table-header text-center">DESCRIPTION</th>
                                         </tr>
                                     </thead>
                                     <tbody>
-                                        <template for:each={expense.lineItems} for:item="lineItem">
-                                            <tr key={lineItem.lineItemId} class="table-row">
-                                                <td class="table-cell">{lineItem.typeOfExpense}</td>
-                                                <td class="table-cell text-center">
-                                                    <lightning-formatted-number value={lineItem.amountClaimed}  currency-code="USD"></lightning-formatted-number>
-                                                </td>
-                                                <td class="table-cell">{lineItem.description}</td>
-                                            </tr>
-                                        </template>
+                                        <!-- In your table row for line items -->
+                                    <template for:each={expense.lineItems} for:item="lineItem">
+                                        <tr key={lineItem.lineItemId} class="table-row">
+                                            <td class="table-cell">{lineItem.typeOfExpense}</td>
+                                            <td class="table-cell text-center">{lineItem.modeOfTransport}</td>
+                                            <td class="table-cell text-center">
+                                                <lightning-formatted-number value={lineItem.dailyAllowance} currency-code="USD"></lightning-formatted-number>
+                                            </td>
+                                            <td class="table-cell text-center">
+                                                <lightning-formatted-number value={lineItem.amountClaimed} currency-code="USD"></lightning-formatted-number>
+                                            </td>
+                                            <td class="table-cell text-center">
+                                                <template if:true={expense.canEditAmountPassed}>
+                                                    <lightning-input 
+                                                        type="number" 
+                                                        value={lineItem.amountPassed}
+                                                        onchange={handleAmountPassedChange}
+                                                        data-lineitem-id={lineItem.lineItemId}
+                                                        data-expense-id={expense.expenseId}
+                                                        min="0"
+                                                        formatter="currency"
+                                                        step="0.01"
+                                                        variant="label-hidden"
+                                                        style="width: 50%;">
+                                                    </lightning-input>
+                                                </template>
+                                                <template if:false={expense.canEditAmountPassed}>
+                                                    <lightning-formatted-number value={lineItem.amountPassed} currency-code="USD"></lightning-formatted-number>
+                                                </template>
+                                            </td>
+                                            <td class="table-cell">{lineItem.description}</td>
+                                        </tr>
+                                    </template>
                                     </tbody>
                                 </table>
                             </div>
@@ -137,7 +158,7 @@
         <!-- Approval Modal -->
         <template if:true={showModal}>
             <section role="dialog" tabindex="-1" class="slds-modal slds-fade-in-open">
-                <div class="slds-modal__container">
+                <div class="slds-modal__container" style="max-width: 600px;">
                     <header class="slds-modal__header">
                         <h2 class="slds-text-heading_medium">{modalHeader}</h2>
                         <button class="slds-button slds-button_icon slds-modal__close" onclick={closeModal}>

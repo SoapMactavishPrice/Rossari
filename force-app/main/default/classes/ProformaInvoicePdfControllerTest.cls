@@ -4,8 +4,6 @@ public class ProformaInvoicePdfControllerTest {
     @isTest
     static void testAllMethods() {
         Id standardPbId = Test.getStandardPricebookId();
-        Pricebook2 stdPb = new Pricebook2(Id = standardPbId, IsActive = true);
-        update stdPb;
 
         Account acc = new Account(Name = 'Test Account');
         insert acc;
@@ -24,18 +22,15 @@ public class ProformaInvoicePdfControllerTest {
         Quote quote = new Quote(Name = 'Test Quote', OpportunityId = opp.Id);
         insert quote;
 
-        // HSN Master record
         HSN_Master__c hsn = new HSN_Master__c(Name = 'HSN 123');
         insert hsn;
 
-        // Product with HSN Code lookup
         Product2 prod = new Product2(
             Name = 'Prod A',
             ProductCode = 'PA001',
             IsActive = true,
             HSN_Code__c = hsn.Id,
             Pack_Size__c = '10kg'
-          //  Base_UOM__c = 'KG'
         );
         insert prod;
 
@@ -97,20 +92,16 @@ public class ProformaInvoicePdfControllerTest {
         Test.setCurrentPage(Page.ProformaInvoicePdf);
         ApexPages.currentPage().getParameters().put('id', pi.Id);
 
-        // Test default constructor
         ProformaInvoicePdfController controller1 = new ProformaInvoicePdfController();
         String billingAddress = controller1.getFormattedBillingAddress(pi);
         String shippingAddress = controller1.getFormattedShippingAddress(pi);
         String emailContent1 = controller1.buildEmailContent();
 
-        // Test constructor with parameters
         ProformaInvoicePdfController controller2 = new ProformaInvoicePdfController(pi.Id, 'invoice');
         String emailContent2 = controller2.buildEmailContent();
 
-        // Static method test
         String emailBody = ProformaInvoicePdfController.getEmailBody(pi.Id, 'invoice');
 
-        // Additional test with clone
         Proforma_Invoice__c pi2 = pi.clone(false, false, false, false);
         pi2.Name = 'PI-002';
         insert pi2;
@@ -118,7 +109,6 @@ public class ProformaInvoicePdfControllerTest {
         ProformaInvoicePdfController controller3 = new ProformaInvoicePdfController(pi2.Id, 'quotation');
         String emailContent3 = controller3.buildEmailContent();
 
-        // USD currency test
         Proforma_Invoice__c pi3 = pi.clone(false, false, false, false);
         pi3.Name = 'PI-003';
         pi3.CurrencyIsoCode = 'USD';

@@ -114,6 +114,10 @@
                                     style="text-align: center; font-size: 13px; background-color: #9d0b0f; font-weight: bold; padding: 4px 6px; color: white;">
                                     Date
                                 </th>
+                                <th class="mode-of-travel" if:true={showModeOfTravelField}
+                                    style="text-align: center; font-size: 13px; background-color: #9d0b0f; font-weight: bold; padding: 4px 6px; color: white;">
+                                    Mode of Travel
+                                </th>
                                 <th class="transport-mode" if:true={showLocalFields}
                                     style="text-align: center; font-size: 13px; background-color: #9d0b0f; font-weight: bold; padding: 4px 6px; color: white;">
                                     Mode
@@ -165,7 +169,12 @@
 
                                 <th class="amount"
                                     style="text-align: center; font-size: 13px; background-color: #9d0b0f; font-weight: bold; padding: 4px 6px; color: white;">
-                                    Amount Claimed
+                                    <template if:true={showLocalFields}>
+                                        Amount Claimed<br>
+                                    </template>
+                                    <template if:false={showLocalFields}>
+                                        Amount Claimed
+                                    </template>
                                 </th>
 
                                 <th class="daily-allowance" if:true={showDailyAllowanceColumn}
@@ -220,43 +229,52 @@
                                             required={showOutstationFields}>
                                         </lightning-input>
                                     </td>
+                                    <td if:true={showModeOfTravelField}>
+                                        <lightning-combobox name="modeOfTravel" value={item.modeOfTravel}
+                                            data-index={index} options={modeOfTravelOptions}
+                                            onchange={handleModeOfTravelChange} variant="label-hidden"
+                                            required={showModeOfTravelField}>
+                                        </lightning-combobox>
+                                    </td>
                                     <td if:true={showLocalFields}>
                                         <lightning-combobox name="transportMode" value={item.transportMode}
                                             data-index={index} options={item.transportOptions}
                                             onchange={handleTransportModeChange} variant="label-hidden"
-                                            required={showLocalFields} disabled={item.disableTransportMode}>
+                                            required={showLocalFields} disabled={item.computedTransportDisabled}>
                                         </lightning-combobox>
                                     </td>
                                     <td if:true={showOutstationFields}>
-                                        <lightning-combobox name="outstationTransportMode"
-                                            value={item.outstationTransportMode} data-index={index}
-                                            options={allTransportModeOptions}
+                                        <lightning-combobox name="outstationTransportMode" value={item.outstationTransportMode} 
+                                            data-index={index} options={item.transportOptions}
                                             onchange={handleOutstationTransportModeChange} variant="label-hidden"
-                                            required={showOutstationFields} disabled={item.disableTransportMode}>
+                                            required={showOutstationFields} disabled={item.computedTransportDisabled}>
                                         </lightning-combobox>
                                     </td>
                                     <td if:true={showLocalFields}>
                                         <lightning-input type="text" value={item.fromLocation} data-index={index}
                                             onchange={handleFromLocationChange} variant="label-hidden"
-                                            required={showLocalFields}>
+                                            required={showLocalFields} disabled={item.computedLocationDisabled}>
                                         </lightning-input>
                                     </td>
+
                                     <td if:true={showLocalFields}>
                                         <lightning-input type="text" value={item.toLocation} data-index={index}
                                             onchange={handleToLocationChange} variant="label-hidden"
-                                            required={showLocalFields}>
+                                            required={showLocalFields} disabled={item.computedLocationDisabled}>
                                         </lightning-input>
                                     </td>
+
                                     <td if:true={showOutstationFields}>
                                         <lightning-input type="text" value={item.outstationFromLocation}
                                             data-index={index} onchange={handleOutstationFromLocationChange}
-                                            variant="label-hidden" required={showOutstationFields}>
+                                            variant="label-hidden" required={showOutstationFields} disabled={item.computedLocationDisabled}>
                                         </lightning-input>
                                     </td>
+
                                     <td if:true={showOutstationFields}>
                                         <lightning-input type="text" value={item.outstationToLocation}
                                             data-index={index} onchange={handleOutstationToLocationChange}
-                                            variant="label-hidden" required={showOutstationFields}>
+                                            variant="label-hidden" required={showOutstationFields} disabled={item.computedLocationDisabled}>
                                         </lightning-input>
                                     </td>
 
@@ -317,6 +335,12 @@
                                                 required>
                                             </lightning-input>
                                         </div>
+                                        <!-- <template if:true={showLocalFields}>
+                                            <div class="slds-text-color_weak slds-text-align_center slds-m-top_xx-small" 
+                                                style="font-size: 0.75rem;">
+                                                Calculated: {currencySymbol}{item.calculatedAmountDisplay}
+                                            </div>
+                                        </template> -->
                                     </td>
 
                                     <td if:true={showDailyAllowanceColumn}>

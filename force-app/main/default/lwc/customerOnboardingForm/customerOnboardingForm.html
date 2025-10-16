@@ -4,71 +4,134 @@
             <lightning-accordion active-section-name={activeSection} onsectiontoggle={handleSectionToggle}>
                 <!-- General Data -->
                 <lightning-accordion-section name="general" label="General Data">
+                    <lightning-record-edit-form object-api-name="Account">
+                        <lightning-layout multiple-rows>
 
-                        
+                            <!-- Row 1 -->
+                            <!-- <lightning-layout-item size="12" large-device-size="2" class="slds-p-around_small">
+                                <label>Account Id</label>
+                                <lightning-input-field field-name="Id" value={fieldMap.SF_Customer_Id}
+                                    onchange={handleCustomerChange} variant="label-hidden">
+                                </lightning-input-field>
+                            </lightning-layout-item> -->
 
-                    <lightning-layout multiple-rows>
+                            <lightning-layout-item size="12" large-device-size="2" class="slds-p-around_small">
+                                <label>Name</label>
+                                <lightning-input-field field-name="Name" value={fieldMap.name}
+                                    onchange={handleCustomerChange} variant="label-hidden">
+                                </lightning-input-field>
+                            </lightning-layout-item>
 
-                        <!-- Row 1 -->
-                        <lightning-layout-item size="12" large-device-size="2" class="slds-p-around_small" >
-                            <lightning-input label="Account Group" data-label="account_Group" onchange={handleCustomerChange} value ={fieldMap.account_Group} ></lightning-input>
-                        </lightning-layout-item>
-                        <lightning-layout-item size="12" large-device-size="2" class="slds-p-around_small">
-                            <lightning-input label="Name" data-label="name" onchange={handleCustomerChange} value ={fieldMap.name} ></lightning-input>
-                        </lightning-layout-item>
-                        <lightning-layout-item size="12" large-device-size="2" class="slds-p-around_small">
-                            <lightning-input label="Name 2" data-label="name_2" onchange={handleCustomerChange} value ={fieldMap.name_2}></lightning-input>
-                        </lightning-layout-item>
-                        <lightning-layout-item size="12" large-device-size="2" class="slds-p-around_small">
-                            <lightning-input label="Title" data-label="title" onchange={handleCustomerChange} value ={fieldMap.title} ></lightning-input>
-                        </lightning-layout-item>
-                        <lightning-layout-item size="12" large-device-size="2" class="slds-p-around_small">
-                            <lightning-input label="Search Term" data-label="search_Term" onchange={handleCustomerChange} value ={fieldMap.name} ></lightning-input>
-                        </lightning-layout-item>
+                            <lightning-layout-item size="12" large-device-size="2" class="slds-p-around_small">
+                                <label>Name 2</label>
+                                <lightning-input-field field-name="Account_Name_2__c" value={fieldMap.name_2}
+                                    onchange={handleCustomerChange} variant="label-hidden">
+                                </lightning-input-field>
+                            </lightning-layout-item>
 
-                        <!-- Row 2 -->
-                        <lightning-layout-item size="12" large-device-size="2" class="slds-p-around_small">
-                            <lightning-input label="PAN Number" data-label="pan_Number" onchange={handleCustomerChange} value ={fieldMap.pan_Number}></lightning-input>
-                        </lightning-layout-item>
-                        <lightning-layout-item size="12" large-device-size="2" class="slds-p-around_small">
-                            <lightning-input label="Street" data-label="street" onchange={handleCustomerChange} value ={fieldMap.Street} ></lightning-input>
-                        </lightning-layout-item>
-                        <lightning-layout-item size="12" large-device-size="2" class="slds-p-around_small">
-                            <lightning-input label="Postal Code" data-label="postal_Code" onchange={handleCustomerChange} value ={fieldMap.postal_Code} ></lightning-input>
-                        </lightning-layout-item>
-                        <lightning-layout-item size="12" large-device-size="2" class="slds-p-around_small">
-                            <lightning-input label="City" data-label="city" onchange={handleCustomerChange} value ={fieldMap.city} ></lightning-input>
-                        </lightning-layout-item>
-                        <lightning-layout-item size="12" large-device-size="2" class="slds-p-around_small">
-                            <lightning-input label="Country" data-label="country" onchange={handleCustomerChange} value ={fieldMap.country}></lightning-input>
-                        </lightning-layout-item>
+                            <lightning-layout-item size="12" large-device-size="2" class="slds-p-around_small">
+                                <label>Account Group</label>
+                                <lightning-input-field field-name="Account_Group__c" value={fieldMap.account_Group}
+                                    onchange={handleCustomerChange} variant="label-hidden">
+                                </lightning-input-field>
+                            </lightning-layout-item>
 
-                        <!-- Row 3 -->
-                        <lightning-layout-item size="12" large-device-size="2" class="slds-p-around_small">
-                            <lightning-input label="State" data-label="state" onchange={handleCustomerChange} value ={fieldMap.state}></lightning-input>
-                        </lightning-layout-item>
-                        <lightning-layout-item size="12" large-device-size="2" class="slds-p-around_small">
-                            <lightning-input label="Street 2" data-label="street_2" onchange={handleCustomerChange} value ={fieldMap.street_2}
-                                ></lightning-input>
-                        </lightning-layout-item>
-                        <lightning-layout-item size="12" large-device-size="2" class="slds-p-around_small">
-                            <lightning-input label="Street 3" data-label="street_3" onchange={handleCustomerChange} value ={fieldMap.street_3}
-                                ></lightning-input>
-                        </lightning-layout-item>
-                        <lightning-layout-item size="12" large-device-size="2" class="slds-p-around_small">
-                            <lightning-input label="Language" data-label="language" onchange={handleCustomerChange} value ={fieldMap.language} ></lightning-input>
-                        </lightning-layout-item>
-                        <lightning-layout-item size="12" large-device-size="2" class="slds-p-around_small">
-                            <lightning-input label="Telephone" data-label="telephone" onchange={handleCustomerChange} value ={fieldMap.telephone} ></lightning-input>
-                        </lightning-layout-item>
+                            <lightning-layout-item size="12" large-device-size="2" class="slds-p-around_small">
+                                <label>Title</label>
+                                <lightning-input-field field-name="Title__c" value={fieldMap.title}
+                                    onchange={handleCustomerChange} variant="label-hidden">
+                                </lightning-input-field>
+                            </lightning-layout-item>
 
-                        <!-- Row 4 -->
-                        <lightning-layout-item size="12" large-device-size="2" class="slds-p-around_small">
-                            <lightning-input label="Email" data-label="email" onchange={handleCustomerChange} value ={fieldMap.email} ></lightning-input>
-                        </lightning-layout-item>
+                            <lightning-layout-item size="12" large-device-size="2" class="slds-p-around_small">
+                                <label>Search Term</label>
+                                <lightning-input data-label="search_Term" value={fieldMap.search_Term}
+                                    onchange={handleCustomerChange} variant="label-hidden">
+                                </lightning-input>
+                            </lightning-layout-item>
 
-                    </lightning-layout>
+                            <!-- Row 2 -->
+                            <lightning-layout-item size="12" large-device-size="2" class="slds-p-around_small">
+                                <label>PAN Number</label>
+                                <lightning-input-field field-name="Pan_No__c" value={fieldMap.pan_Number}
+                                    onchange={handleCustomerChange} variant="label-hidden">
+                                </lightning-input-field>
+                            </lightning-layout-item>
 
+                            <lightning-layout-item size="12" large-device-size="2" class="slds-p-around_small">
+                                <label>Street</label>
+                                <lightning-input-field field-name="Street1__c" value={fieldMap.Street}
+                                    onchange={handleCustomerChange} variant="label-hidden">
+                                </lightning-input-field>
+                            </lightning-layout-item>
+
+                            <lightning-layout-item size="12" large-device-size="2" class="slds-p-around_small">
+                                <label>Postal Code</label>
+                                <lightning-input-field field-name="Postal_Code__c" value={fieldMap.postal_Code}
+                                    onchange={handleCustomerChange} variant="label-hidden">
+                                </lightning-input-field>
+                            </lightning-layout-item>
+
+                            <lightning-layout-item size="12" large-device-size="2" class="slds-p-around_small">
+                                <label>City</label>
+                                <lightning-input-field field-name="City__c" value={fieldMap.city}
+                                    onchange={handleCustomerChange} variant="label-hidden">
+                                </lightning-input-field>
+                            </lightning-layout-item>
+
+                            <lightning-layout-item size="12" large-device-size="2" class="slds-p-around_small">
+                                <label>Country</label>
+                                <lightning-input-field field-name="Country__c" value={fieldMap.country}
+                                    onchange={handleCustomerChange} variant="label-hidden">
+                                </lightning-input-field>
+                            </lightning-layout-item>
+
+                            <!-- Row 3 -->
+                            <lightning-layout-item size="12" large-device-size="2" class="slds-p-around_small">
+                                <label>State</label>
+                                <lightning-input-field field-name="State__c" value={fieldMap.state}
+                                    onchange={handleCustomerChange} variant="label-hidden">
+                                </lightning-input-field>
+                            </lightning-layout-item>
+
+                            <lightning-layout-item size="12" large-device-size="2" class="slds-p-around_small">
+                                <label>Street 2</label>
+                                <lightning-input-field field-name="Street2__c" value={fieldMap.street_2}
+                                    onchange={handleCustomerChange} variant="label-hidden">
+                                </lightning-input-field>
+                            </lightning-layout-item>
+
+                            <lightning-layout-item size="12" large-device-size="2" class="slds-p-around_small">
+                                <label>Street 3</label>
+                                <lightning-input data-label="street_3" value={fieldMap.street_3}
+                                    onchange={handleCustomerChange} variant="label-hidden">
+                                </lightning-input>
+                            </lightning-layout-item>
+
+                            <lightning-layout-item size="12" large-device-size="2" class="slds-p-around_small">
+                                <label>Language</label>
+                                <lightning-input data-label="language" value={fieldMap.language}
+                                    onchange={handleCustomerChange} variant="label-hidden">
+                                </lightning-input>
+                            </lightning-layout-item>
+
+                            <lightning-layout-item size="12" large-device-size="2" class="slds-p-around_small">
+                                <label>Telephone</label>
+                                <lightning-input-field field-name="Phone" value={fieldMap.telephone}
+                                    onchange={handleCustomerChange} variant="label-hidden">
+                                </lightning-input-field>
+                            </lightning-layout-item>
+
+                            <!-- Row 4 -->
+                            <lightning-layout-item size="12" large-device-size="2" class="slds-p-around_small">
+                                <label>Email</label>
+                                <lightning-input-field field-name="Email_Id__c" value={fieldMap.email}
+                                    onchange={handleCustomerChange} variant="label-hidden">
+                                </lightning-input-field>
+                            </lightning-layout-item>
+
+                        </lightning-layout>
+                    </lightning-record-edit-form>
                 </lightning-accordion-section>
 
                 <!-- BP Roles -->
@@ -98,264 +161,193 @@
                 <lightning-accordion-section name="salesData" label="Sales Data">
 
                     <template for:each={salesData} for:item="row">
-                <div key={row.uniqueId} class="slds-box slds-m-vertical_x-small">
+                        <div key={row.uniqueId} class="slds-box slds-m-vertical_x-small">
 
-                    <!-- Row 1 -->
-                    <lightning-layout horizontal-align="spread">
-                        <lightning-layout-item size="2" class="slds-p-around_small">
-                            <lightning-input
-                                label="Customer Number"
-                                value={row.Customer_Number}
-                                data-id={row.uniqueId}
-                                data-field="Customer_Number"
-                                disabled>
-                            </lightning-input>
-                        </lightning-layout-item>
+                            <!-- Row 1 -->
+                            <lightning-layout horizontal-align="spread">
+                                <lightning-layout-item size="2" class="slds-p-around_small">
+                                    <lightning-input label="Customer Number" value={row.Customer_Number}
+                                        data-id={row.uniqueId} data-field="Customer_Number" disabled>
+                                    </lightning-input>
+                                </lightning-layout-item>
 
-                        <lightning-layout-item size="2" class="slds-p-around_small">
-                            <lightning-input
-                                label="Sales Organization"
-                                value={row.Sales_Organization}
-                                data-id={row.uniqueId}
-                                data-field="Sales_Organization"
-                                 onchange={handleSalesRowChange}
-                                >
-                            </lightning-input>
-                        </lightning-layout-item>
+                                <lightning-layout-item size="2" class="slds-p-around_small">
+                                    <lightning-input label="Sales Organization" value={row.Sales_Organization}
+                                        data-id={row.uniqueId} data-field="Sales_Organization"
+                                        onchange={handleSalesRowChange}>
+                                    </lightning-input>
+                                </lightning-layout-item>
 
-                        <lightning-layout-item size="2" class="slds-p-around_small">
-                            <lightning-input
-                                label="Distribution Channel"
-                                value={row.Distribution_Channel}
-                                data-id={row.uniqueId}
-                                data-field="Distribution_Channel"
-                                onchange={handleSalesRowChange}>
-                            </lightning-input>
-                        </lightning-layout-item>
+                                <lightning-layout-item size="2" class="slds-p-around_small">
+                                    <lightning-input label="Distribution Channel" value={row.Distribution_Channel}
+                                        data-id={row.uniqueId} data-field="Distribution_Channel"
+                                        onchange={handleSalesRowChange}>
+                                    </lightning-input>
+                                </lightning-layout-item>
 
-                        <lightning-layout-item size="2" class="slds-p-around_small">
-                            <lightning-input
-                                label="Division"
-                                value={row.Division}
-                                data-id={row.uniqueId}
-                                data-field="Division"
-                                onchange={handleSalesRowChange}>
-                            </lightning-input>
-                        </lightning-layout-item>
+                                <lightning-layout-item size="2" class="slds-p-around_small">
+                                    <lightning-input label="Division" value={row.Division} data-id={row.uniqueId}
+                                        data-field="Division" onchange={handleSalesRowChange}>
+                                    </lightning-input>
+                                </lightning-layout-item>
 
-                        <lightning-layout-item size="2" class="slds-p-around_small">
-                            <lightning-input
-                                label="Customer Group"
-                                value={row.Customer_Group}
-                                data-id={row.uniqueId}
-                                data-field="Customer_Group"
-                                onchange={handleSalesRowChange}>
-                            </lightning-input>
-                        </lightning-layout-item>
+                                <lightning-layout-item size="2" class="slds-p-around_small">
+                                    <lightning-input label="Customer Group" value={row.Customer_Group}
+                                        data-id={row.uniqueId} data-field="Customer_Group"
+                                        onchange={handleSalesRowChange}>
+                                    </lightning-input>
+                                </lightning-layout-item>
 
-                        <lightning-layout-item size="2" class="slds-p-around_small">
-                            <lightning-input
-                                label="Sales District"
-                                value={row.Sales_District}
-                                data-id={row.uniqueId}
-                                data-field="Sales_District"
-                                onchange={handleSalesRowChange}>
-                            </lightning-input>
-                        </lightning-layout-item>
-                    </lightning-layout>
+                                <lightning-layout-item size="2" class="slds-p-around_small">
+                                    <lightning-input label="Sales District" value={row.Sales_District}
+                                        data-id={row.uniqueId} data-field="Sales_District"
+                                        onchange={handleSalesRowChange}>
+                                    </lightning-input>
+                                </lightning-layout-item>
+                            </lightning-layout>
 
-                    <!-- Row 2 -->
-                    <lightning-layout horizontal-align="spread">
-                        <lightning-layout-item size="2" class="slds-p-around_small">
-                            <lightning-input
-                                label="Order Probability of the Item (%)"
-                                value={row.Order_Probability}
-                                data-id={row.uniqueId}
-                                data-field="Order_Probability"
-                                onchange={handleSalesRowChange}>
-                            </lightning-input>
-                        </lightning-layout-item>
+                            <!-- Row 2 -->
+                            <lightning-layout horizontal-align="spread">
+                                <lightning-layout-item size="2" class="slds-p-around_small">
+                                    <lightning-input label="Order Probability of the Item (%)"
+                                        value={row.Order_Probability} data-id={row.uniqueId}
+                                        data-field="Order_Probability" onchange={handleSalesRowChange}>
+                                    </lightning-input>
+                                </lightning-layout-item>
 
-                        <lightning-layout-item size="2" class="slds-p-around_small">
-                            <lightning-input
-                                label="Currency"
-                                value={row.Currency}
-                                data-id={row.uniqueId}
-                                data-field="Currency"
-                                onchange={handleSalesRowChange}>
-                            </lightning-input>
-                        </lightning-layout-item>
+                                <lightning-layout-item size="2" class="slds-p-around_small">
+                                    <lightning-input label="Currency" value={row.Currency} data-id={row.uniqueId}
+                                        data-field="Currency" onchange={handleSalesRowChange}>
+                                    </lightning-input>
+                                </lightning-layout-item>
 
-                        <lightning-layout-item size="2" class="slds-p-around_small">
-                            <lightning-input
-                                label="Exchange Rate Type"
-                                value={row.Exchange_Rate_Type}
-                                data-id={row.uniqueId}
-                                data-field="Exchange_Rate_Type"
-                                onchange={handleSalesRowChange}>
-                            </lightning-input>
-                        </lightning-layout-item>
+                                <lightning-layout-item size="2" class="slds-p-around_small">
+                                    <lightning-input label="Exchange Rate Type" value={row.Exchange_Rate_Type}
+                                        data-id={row.uniqueId} data-field="Exchange_Rate_Type"
+                                        onchange={handleSalesRowChange}>
+                                    </lightning-input>
+                                </lightning-layout-item>
 
-                        <lightning-layout-item size="2" class="slds-p-around_small">
-                            <lightning-input
-                                label="Price Group"
-                                value={row.Price_Group}
-                                data-id={row.uniqueId}
-                                data-field="Price_Group"
-                                onchange={handleSalesRowChange}>
-                            </lightning-input>
-                        </lightning-layout-item>
+                                <lightning-layout-item size="2" class="slds-p-around_small">
+                                    <lightning-input label="Price Group" value={row.Price_Group} data-id={row.uniqueId}
+                                        data-field="Price_Group" onchange={handleSalesRowChange}>
+                                    </lightning-input>
+                                </lightning-layout-item>
 
-                        <lightning-layout-item size="2" class="slds-p-around_small">
-                            <lightning-input
-                                label="Price Procedure Dterm"
-                                value={row.Price_Procedure_Dterm}
-                                data-id={row.uniqueId}
-                                data-field="Price_Procedure_Dterm"
-                                onchange={handleSalesRowChange}>
-                            </lightning-input>
-                        </lightning-layout-item>
+                                <lightning-layout-item size="2" class="slds-p-around_small">
+                                    <lightning-input label="Price Procedure Dterm" value={row.Price_Procedure_Dterm}
+                                        data-id={row.uniqueId} data-field="Price_Procedure_Dterm"
+                                        onchange={handleSalesRowChange}>
+                                    </lightning-input>
+                                </lightning-layout-item>
 
-                        <lightning-layout-item size="2" class="slds-p-around_small">
-                            <lightning-input
-                                label="Customer Statistics Group"
-                                value={row.Customer_Statistics_Group}
-                                data-id={row.uniqueId}
-                                data-field="Customer_Statistics_Group"
-                                onchange={handleSalesRowChange}>
-                            </lightning-input>
-                        </lightning-layout-item>
-                    </lightning-layout>
+                                <lightning-layout-item size="2" class="slds-p-around_small">
+                                    <lightning-input label="Customer Statistics Group"
+                                        value={row.Customer_Statistics_Group} data-id={row.uniqueId}
+                                        data-field="Customer_Statistics_Group" onchange={handleSalesRowChange}>
+                                    </lightning-input>
+                                </lightning-layout-item>
+                            </lightning-layout>
 
-                    <!-- Row 3 -->
-                    <lightning-layout horizontal-align="spread">
-                        <lightning-layout-item size="2" class="slds-p-around_small">
-                            <lightning-input
-                                label="Delivery Priority"
-                                value={row.Delivery_Priority}
-                                data-id={row.uniqueId}
-                                data-field="Delivery_Priority"
-                                onchange={handleSalesRowChange}>
-                            </lightning-input>
-                        </lightning-layout-item>
+                            <!-- Row 3 -->
+                            <lightning-layout horizontal-align="spread">
+                                <lightning-layout-item size="2" class="slds-p-around_small">
+                                    <lightning-input label="Delivery Priority" value={row.Delivery_Priority}
+                                        data-id={row.uniqueId} data-field="Delivery_Priority"
+                                        onchange={handleSalesRowChange}>
+                                    </lightning-input>
+                                </lightning-layout-item>
 
-                        <lightning-layout-item size="2" class="slds-p-around_small">
-                            <lightning-input
-                                label="Order Combination"
-                                value={row.Order_Combination}
-                                data-id={row.uniqueId}
-                                data-field="Order_Combination"
-                                onchange={handleSalesRowChange}>
-                            </lightning-input>
-                        </lightning-layout-item>
+                                <lightning-layout-item size="2" class="slds-p-around_small">
+                                    <lightning-input label="Order Combination" value={row.Order_Combination}
+                                        data-id={row.uniqueId} data-field="Order_Combination"
+                                        onchange={handleSalesRowChange}>
+                                    </lightning-input>
+                                </lightning-layout-item>
 
-                        <lightning-layout-item size="2" class="slds-p-around_small">
-                            <lightning-input
-                                label="Shipping Conditions"
-                                value={row.Shipping_Conditions}
-                                data-id={row.uniqueId}
-                                data-field="Shipping_Conditions"
-                                onchange={handleSalesRowChange}>
-                            </lightning-input>
-                        </lightning-layout-item>
+                                <lightning-layout-item size="2" class="slds-p-around_small">
+                                    <lightning-input label="Shipping Conditions" value={row.Shipping_Conditions}
+                                        data-id={row.uniqueId} data-field="Shipping_Conditions"
+                                        onchange={handleSalesRowChange}>
+                                    </lightning-input>
+                                </lightning-layout-item>
 
-                        <lightning-layout-item size="2" class="slds-p-around_small">
-                            <lightning-input
-                                label="Delivery Plant"
-                                value={row.Delivery_Plant}
-                                data-id={row.uniqueId}
-                                data-field="Delivery_Plant"
-                                onchange={handleSalesRowChange}>
-                            </lightning-input>
-                        </lightning-layout-item>
+                                <lightning-layout-item size="2" class="slds-p-around_small">
+                                    <lightning-input label="Delivery Plant" value={row.Delivery_Plant}
+                                        data-id={row.uniqueId} data-field="Delivery_Plant"
+                                        onchange={handleSalesRowChange}>
+                                    </lightning-input>
+                                </lightning-layout-item>
 
-                        <lightning-layout-item size="2" class="slds-p-around_small">
-                            <lightning-input
-                                label="Incoterms"
-                                value={row.Incoterms}
-                                data-id={row.uniqueId}
-                                data-field="Incoterms"
-                                onchange={handleSalesRowChange}>
-                            </lightning-input>
-                        </lightning-layout-item>
+                                <lightning-layout-item size="2" class="slds-p-around_small">
+                                    <lightning-input label="Incoterms" value={row.Incoterms} data-id={row.uniqueId}
+                                        data-field="Incoterms" onchange={handleSalesRowChange}>
+                                    </lightning-input>
+                                </lightning-layout-item>
 
-                        <lightning-layout-item size="2" class="slds-p-around_small">
-                            <lightning-input
-                                label="Inco. Location1"
-                                value={row.Inco_Location1}
-                                data-id={row.uniqueId}
-                                data-field="Inco_Location1"
-                                onchange={handleSalesRowChange}>
-                            </lightning-input>
-                        </lightning-layout-item>
-                    </lightning-layout>
+                                <lightning-layout-item size="2" class="slds-p-around_small">
+                                    <lightning-input label="Inco. Location1" value={row.Inco_Location1}
+                                        data-id={row.uniqueId} data-field="Inco_Location1"
+                                        onchange={handleSalesRowChange}>
+                                    </lightning-input>
+                                </lightning-layout-item>
+                            </lightning-layout>
 
-                    <!-- Row 4 -->
-                    <lightning-layout horizontal-align="spread">
-                        <lightning-layout-item size="2" class="slds-p-around_small">
-                            <lightning-input
-                                label="Payment Terms"
-                                value={row.Payment_Terms}
-                                data-id={row.uniqueId}
-                                data-field="Payment_Terms"
-                                onchange={handleSalesRowChange}>
-                            </lightning-input>
-                        </lightning-layout-item>
+                            <!-- Row 4 -->
+                            <lightning-layout horizontal-align="spread">
+                                <lightning-layout-item size="2" class="slds-p-around_small">
+                                    <lightning-input label="Payment Terms" value={row.Payment_Terms}
+                                        data-id={row.uniqueId} data-field="Payment_Terms"
+                                        onchange={handleSalesRowChange}>
+                                    </lightning-input>
+                                </lightning-layout-item>
 
-                        <lightning-layout-item size="2" class="slds-p-around_small">
-                            <lightning-input
-                                label="Account Assignment Group"
-                                value={row.Account_Assignment_Group}
-                                data-id={row.uniqueId}
-                                data-field="Account_Assignment_Group"
-                                onchange={handleSalesRowChange}>
-                            </lightning-input>
-                        </lightning-layout-item>
+                                <lightning-layout-item size="2" class="slds-p-around_small">
+                                    <lightning-input label="Account Assignment Group"
+                                        value={row.Account_Assignment_Group} data-id={row.uniqueId}
+                                        data-field="Account_Assignment_Group" onchange={handleSalesRowChange}>
+                                    </lightning-input>
+                                </lightning-layout-item>
 
-                        <lightning-layout-item size="2" class="slds-p-around_small">
-                            <lightning-input
-                                label="Customer Group 1"
-                                value={row.Customer_Group1}
-                                data-id={row.uniqueId}
-                                data-field="Customer_Group1"
-                                onchange={handleSalesRowChange}>
-                            </lightning-input>
-                        </lightning-layout-item>
+                                <lightning-layout-item size="2" class="slds-p-around_small">
+                                    <lightning-input label="Customer Group 1" value={row.Customer_Group1}
+                                        data-id={row.uniqueId} data-field="Customer_Group1"
+                                        onchange={handleSalesRowChange}>
+                                    </lightning-input>
+                                </lightning-layout-item>
 
-                        <!-- Remove Row Button -->
-                        <lightning-layout-item size="1" class="slds-align_absolute-center">
-                           <lightning-icon icon-name="action:new" size="x-small"
-    onclick={addSalesRow}
-    data-id={row.uniqueId}>
-</lightning-icon>
+                                <!-- Remove Row Button -->
+                                <lightning-layout-item size="1" class="slds-align_absolute-center">
+                                    <lightning-icon icon-name="action:new" size="x-small" onclick={addSalesRow}
+                                        data-id={row.uniqueId}>
+                                    </lightning-icon>
 
-   <lightning-icon icon-name="action:delete" size="x-small"
-        title="Remove Row" class="slds-m-left_small"
-        onclick={removeSalesRow} if:true={isMoreThanOneRow}
-        data-id={row.uniqueId}>
-    </lightning-icon>
+                                    <lightning-icon icon-name="action:delete" size="x-small" title="Remove Row"
+                                        class="slds-m-left_small" onclick={removeSalesRow} if:true={isMoreThanOneRow}
+                                        data-id={row.uniqueId}>
+                                    </lightning-icon>
 
 
-                        </lightning-layout-item>
-                    </lightning-layout>
-                </div>
-            </template>
+                                </lightning-layout-item>
+                            </lightning-layout>
+                        </div>
+                    </template>
                 </lightning-accordion-section>
 
                 <!-- Sales Partner -->
                 <lightning-accordion-section name="salesPartner" label="Sales Partner">
-                  
+
 
                     <div class="slds-m-around_medium">
                         <table class="slds-table slds-table_cell-buffer custom-bordered-table">
                             <thead>
                                 <tr class="slds-text-title_caps">
-                                    <th >Customer Number</th>
-                                    <th >Sales Organization</th>
-                                    <th >Distribution Channel</th>
-                                    <th >Division</th>
-                                    <th >Partner Function</th>
-                                    <th >Employee Id</th>
+                                    <th>Customer Number</th>
+                                    <th>Sales Organization</th>
+                                    <th>Distribution Channel</th>
+                                    <th>Division</th>
+                                    <th>Partner Function</th>
+                                    <th>Employee Id</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -367,11 +359,11 @@
                                         <td>{row.Division}</td>
                                         <td>{row.Partner_Function}</td>
                                         <td>
-                                             <c-reusable-lookup label="Parent Account" data-uniqueid={row.uniqueId}
-                                             object-api-name="user" selected-icon-name="standard:account" object-label="Employee Number"
-        field-api-name="Name" other-field-api-name="EmployeeNumber"
-        onvalueselected={handleEmpChange}>
-    </c-reusable-lookup>
+                                            <c-reusable-lookup label="Parent Account" data-uniqueid={row.uniqueId}
+                                                object-api-name="user" selected-icon-name="standard:account"
+                                                object-label="Employee Number" field-api-name="Name"
+                                                other-field-api-name="EmployeeNumber" onvalueselected={handleEmpChange}>
+                                            </c-reusable-lookup>
                                         </td>
                                     </tr>
                                 </template>
@@ -399,11 +391,14 @@
                                         <td>{row.customer_Number}</td>
                                         <td>{row.Company_Code}</td>
                                         <td>{row.Payment_Terms}</td>
-                                        
+
 
                                         <td>
-                                            <lightning-input data-index={row.uniqueId} data-feild="Reconciliation_Account" variant="label-hidden" onchange={onCompanyDataChange} value={row.Reconciliation_Account}></lightning-input>
-                                         </td>
+                                            <lightning-input data-index={row.uniqueId}
+                                                data-feild="Reconciliation_Account" variant="label-hidden"
+                                                onchange={onCompanyDataChange}
+                                                value={row.Reconciliation_Account}></lightning-input>
+                                        </td>
                                     </tr>
                                 </template>
                             </tbody>
@@ -448,14 +443,16 @@
                                 </tr>
                             </thead>
                             <tbody>
-                                <template for:each={Taxdata} for:item="row"  for:index="index">
+                                <template for:each={Taxdata} for:item="row" for:index="index">
                                     <tr key={row.Tax_Number}>
                                         <td>{row.customer_Number}</td>
                                         <td>{row.Tax_Number_Category}</td>
                                         <td>
-                                            <lightning-input data-index={index} variant="label-hidden" onchange={onTaxDataChange} data-field="Tax_Number" value={row.Tax_Number}></lightning-input>
-                                         </td>
-                                        
+                                            <lightning-input data-index={index} variant="label-hidden"
+                                                onchange={onTaxDataChange} data-field="Tax_Number"
+                                                value={row.Tax_Number}></lightning-input>
+                                        </td>
+
                                     </tr>
                                 </template>
                             </tbody>
@@ -464,14 +461,15 @@
                 </lightning-accordion-section>
             </lightning-accordion>
         </div>
-        
-         <footer class="slds-modal__footer slds-grid slds-grid_align-end slds-p-around_small">
-                    <lightning-button variant="neutral" label="Refresh" onclick={handleRefresh}></lightning-button>
-                    <lightning-button variant="brand" class="slds-m-left_small" label="Send" onclick={openModal}></lightning-button>
-                    <!-- <lightning-button variant="brand" class="slds-m-left_small" label="Add File" onclick={uploadFile}></lightning-button> -->
 
-                </footer>
-        
+        <footer class="slds-modal__footer slds-grid slds-grid_align-end slds-p-around_small">
+            <lightning-button variant="neutral" label="Refresh" onclick={handleRefresh}></lightning-button>
+            <lightning-button variant="brand" class="slds-m-left_small" label="Send"
+                onclick={openModal}></lightning-button>
+            <!-- <lightning-button variant="brand" class="slds-m-left_small" label="Add File" onclick={uploadFile}></lightning-button> -->
+
+        </footer>
+
     </lightning-card>
 
 
@@ -485,89 +483,69 @@
 
                 <!-- Body -->
                 <div class="slds-modal__content slds-p-around_medium">
-                    <lightning-input 
-                        type="email"
-                        label="To Email"
-                        value={toEmail}
-                        disabled
-                        onchange={handleChange}
+                    <lightning-input type="email" label="To Email" value={toEmail} disabled onchange={handleChange}
                         data-field="toEmail">
                     </lightning-input>
 
-                    <lightning-input 
-                        type="text"
-                        label="CC Email (comma separated)"
-                        value={ccEmail}
-                        onchange={handleChange}
-                        data-field="ccEmail"
-                        placeholder="abc@test.com, xyz@test.com">
+                    <lightning-input type="text" label="CC Email (comma separated)" value={ccEmail}
+                        onchange={handleChange} data-field="ccEmail" placeholder="abc@test.com, xyz@test.com">
                     </lightning-input>
 
-                    <lightning-input 
-                        type="text"
-                        label="Subject"
-                        value={subject}
-                        onchange={handleChange}
+                    <lightning-input type="text" label="Subject" value={subject} onchange={handleChange}
                         data-field="subject">
                     </lightning-input>
 
-                    <lightning-textarea 
-                        label="Body"
-                        value={body}
-                        onchange={handleChange}
-                        data-field="body">
+                    <lightning-textarea label="Body" value={body} onchange={handleChange} data-field="body">
                     </lightning-textarea>
 
-                    <lightning-file-upload
-            label="Select Files"
-            name="fileUploader"
-            multiple
-            record-id={recordId}
-            accept={acceptedFormats}
-            onuploadfinished={handleUploadFinished}>
-        </lightning-file-upload>
+                    <lightning-file-upload label="Select Files" name="fileUploader" multiple record-id={recordId}
+                        accept={acceptedFormats} onuploadfinished={handleUploadFinished}>
+                    </lightning-file-upload>
 
-        <template if:true={uploadedFiles.length}>
-            <table class="slds-table slds-table_cell-buffer slds-table_bordered slds-m-top_medium">
-                <thead>
-                    <tr>
-                        <th>File Name</th>
-                        <!-- <th>Type</th> -->
-                        <th>Actions</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <template for:each={uploadedFiles} for:item="file">
-                        <tr key={file.id}>
-                            <td>{file.name}</td>
-                            <!-- <td>{file.type}</td> -->
-                            <td>
-                              
+                    <template if:true={uploadedFiles.length}>
+                        <table class="slds-table slds-table_cell-buffer slds-table_bordered slds-m-top_medium">
+                            <thead>
+                                <tr>
+                                    <th>File Name</th>
+                                    <!-- <th>Type</th> -->
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <template for:each={uploadedFiles} for:item="file">
+                                    <tr key={file.id}>
+                                        <td>{file.name}</td>
+                                        <!-- <td>{file.type}</td> -->
+                                        <td>
 
-                                 <lightning-icon icon-name="action:preview" size="x-small" data-id={file.id} onclick={viewFile}></lightning-icon>
-                                 <lightning-icon icon-name="action:delete" class="slds-m-left_xx-small" size="x-small" data-id={file.id} onclick={handleRemoveFile}></lightning-icon>
-                                           
-                            </td>
-                        </tr>
+
+                                            <lightning-icon icon-name="action:preview" size="x-small" data-id={file.id}
+                                                onclick={viewFile}></lightning-icon>
+                                            <lightning-icon icon-name="action:delete" class="slds-m-left_xx-small"
+                                                size="x-small" data-id={file.id}
+                                                onclick={handleRemoveFile}></lightning-icon>
+
+                                        </td>
+                                    </tr>
+                                </template>
+                            </tbody>
+                        </table>
                     </template>
-                </tbody>
-            </table>
-        </template>
                 </div>
 
                 <footer class="slds-modal__footer slds-grid slds-grid_align-end slds-p-around_small">
-                <lightning-button variant="brand" label="Send Email" onclick={handleSendEmail}></lightning-button>
+                    <lightning-button variant="brand" label="Send Email" onclick={handleSendEmail}></lightning-button>
                 </footer>
 
             </div>
-                    
+
         </section>
 
 
         <div class="slds-backdrop slds-backdrop_open"></div>
     </template>
 
-     <template if:true={isFileUpload}>
+    <template if:true={isFileUpload}>
         <section role="dialog" tabindex="-1" class="slds-modal slds-fade-in-open">
             <div class="slds-modal__container">
                 <!-- Modal/Popup Header -->
@@ -578,41 +556,39 @@
                 <!-- Modal/Popup Body -->
                 <div class="slds-modal__content slds-p-around_medium">
                     <!-- File Upload -->
-                    <lightning-file-upload
-            label="Select Files"
-            name="fileUploader"
-            multiple
-            record-id={recordId}
-            accept={acceptedFormats}
-            onuploadfinished={handleUploadFinished}>
-        </lightning-file-upload>
+                    <lightning-file-upload label="Select Files" name="fileUploader" multiple record-id={recordId}
+                        accept={acceptedFormats} onuploadfinished={handleUploadFinished}>
+                    </lightning-file-upload>
 
-        <template if:true={uploadedFiles.length}>
-            <table class="slds-table slds-table_cell-buffer slds-table_bordered slds-m-top_medium">
-                <thead>
-                    <tr>
-                        <th>File Name</th>
-                        <!-- <th>Type</th> -->
-                        <th>Actions</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <template for:each={uploadedFiles} for:item="file">
-                        <tr key={file.id}>
-                            <td>{file.name}</td>
-                            <!-- <td>{file.type}</td> -->
-                            <td>
-                              
+                    <template if:true={uploadedFiles.length}>
+                        <table class="slds-table slds-table_cell-buffer slds-table_bordered slds-m-top_medium">
+                            <thead>
+                                <tr>
+                                    <th>File Name</th>
+                                    <!-- <th>Type</th> -->
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <template for:each={uploadedFiles} for:item="file">
+                                    <tr key={file.id}>
+                                        <td>{file.name}</td>
+                                        <!-- <td>{file.type}</td> -->
+                                        <td>
 
-                                 <lightning-icon icon-name="action:preview" size="x-small" data-id={file.id} onclick={viewFile}></lightning-icon>
-                                 <lightning-icon icon-name="action:delete" class="slds-m-left_xx-small" size="x-small" data-id={file.id} onclick={handleRemoveFile}></lightning-icon>
-                                           
-                            </td>
-                        </tr>
+
+                                            <lightning-icon icon-name="action:preview" size="x-small" data-id={file.id}
+                                                onclick={viewFile}></lightning-icon>
+                                            <lightning-icon icon-name="action:delete" class="slds-m-left_xx-small"
+                                                size="x-small" data-id={file.id}
+                                                onclick={handleRemoveFile}></lightning-icon>
+
+                                        </td>
+                                    </tr>
+                                </template>
+                            </tbody>
+                        </table>
                     </template>
-                </tbody>
-            </table>
-        </template>
                 </div>
 
                 <!-- Modal/Popup Footer -->
@@ -630,7 +606,7 @@
 
 
 
-                    <!-- <lightning-layout horizontal-align="spread">
+<!-- <lightning-layout horizontal-align="spread">
                         <lightning-layout-item size="2" large-device-size="2">Customer Number
               <lightning-input label="Customer Number" data-label="Customer_Number" onchange={handleSalesChange} disabled 
               value ={fieldMap.Customer_Number} ></lightning-input>

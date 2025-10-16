@@ -2,11 +2,7 @@
 public class QuotationPdfControllerTest {
     @isTest
     static void testAllControllerScenarios() {
-        Pricebook2 standardPricebook = new Pricebook2(
-            Id = Test.getStandardPricebookId(),
-            IsActive = true
-        );
-        update standardPricebook;
+        Id standardPricebookId = Test.getStandardPricebookId(); // ✅ Reference only, no update
 
         Base_UoM_Master__c baseUom = new Base_UoM_Master__c(Name = 'Kilogram');
         insert baseUom;
@@ -21,7 +17,7 @@ public class QuotationPdfControllerTest {
         insert prod;
 
         PricebookEntry pbe = new PricebookEntry(
-            Pricebook2Id = standardPricebook.Id,
+            Pricebook2Id = standardPricebookId,
             Product2Id = prod.Id,
             UnitPrice = 100,
             IsActive = true
@@ -38,7 +34,7 @@ public class QuotationPdfControllerTest {
             Name = 'Test Opportunity', 
             CloseDate = Date.today(), 
             StageName = 'Prospecting',
-            Pricebook2Id = standardPricebook.Id
+            Pricebook2Id = standardPricebookId
         );
         insert opp1;
 
@@ -71,7 +67,7 @@ public class QuotationPdfControllerTest {
             Declaration__c = 'This is a declaration.',
             CurrencyIsoCode = 'INR',
             Bank__c = bank1.Id,
-            Pricebook2Id = standardPricebook.Id
+            Pricebook2Id = standardPricebookId
         );
         insert quote1;
 
@@ -97,7 +93,7 @@ public class QuotationPdfControllerTest {
             Name = 'Test Opp 2', 
             CloseDate = Date.today(), 
             StageName = 'Qualification',
-            Pricebook2Id = standardPricebook.Id
+            Pricebook2Id = standardPricebookId
         );
         insert opp2;
 
@@ -123,7 +119,7 @@ public class QuotationPdfControllerTest {
             Declaration__c = 'Test declaration 2',
             CurrencyIsoCode = 'USD',
             Bank__c = bank2.Id,
-            Pricebook2Id = standardPricebook.Id
+            Pricebook2Id = standardPricebookId
         );
         insert quote2;
 

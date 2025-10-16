@@ -39,8 +39,7 @@
                                                     <lightning-input type="search" data-source="searchInputField"
                                                         onclick={toggleResult} value={searchKey} variant="label-hidden"
                                                         placeholder="Search Product here..."
-                                                        onkeyup={showFilteredProducts}
-                                                        onchange={showFilteredProducts}
+                                                        onkeyup={showFilteredProducts} onchange={showFilteredProducts}
                                                         class="searchBox"></lightning-input>
                                                     <span if:true={showErrorMsg} style="color:red">First, enter keywords
                                                         for a product. Then add filters and click Apply.</span>
@@ -169,9 +168,9 @@
                                     <th class="" scope="col">
                                         <div class="slds-truncate" title="Item Number">Product Name</div>
                                     </th>
-                                    <!-- <th class="" scope="col">
-                                        <div class="slds-truncate" title="Pack Size">Pack Size</div>
-                                    </th> -->
+                                    <th class="" scope="col">
+                                        <div class="slds-truncate" title="Pack Size">List Price</div>
+                                    </th>
                                     <!-- <th class="" scope="col">
                                         <div class="slds-truncate" title="Item Number">HSN Master</div>
                                     </th> -->
@@ -187,7 +186,7 @@
                                                 class="slds-truncate">Sales
                                                 Price</span></div>
                                     </th>
-                                     <th class="" scope="col">
+                                    <th class="" scope="col">
                                         <div class="slds-truncate" title="Discount">Discount</div>
                                     </th>
 
@@ -214,11 +213,11 @@
                                                 <a href={product.purl} tabindex="-1">{product.Name}</a>
                                             </div>
                                         </th>
-                                        <!-- <th data-label="Opportunity Name" scope="row">
+                                        <th data-label="Opportunity Name" scope="row" class="slds-text-align_center">
                                             <div class="slds-truncate" title="Cloudhub">
-                                                {product.hsnMasterCode}
+                                                {product.ListPrice}
                                             </div>
-                                        </th> -->
+                                        </th>
                                         <!-- <th data-label="Opportunity Name" scope="row">
                                             <div class="slds-truncate" title="Cloudhub">
                                                 {product.PackSize}
@@ -234,12 +233,12 @@
                                                 data-target-id={product.Id} variant="label-hidden"
                                                 onchange={handleSalesPriceChange}></lightning-input>
                                         </td>
-                                         <td>
+                                        <td>
                                             <lightning-input type="number" value={product.Discount}
                                                 data-target-id={product.Id} variant="label-hidden"
                                                 onchange={handleDateChange}></lightning-input>
                                         </td>
-                                       <!-- <td>
+                                        <!-- <td>
                                             <lightning-input type="text" value={product.LineDescription}
                                                 variant="label-hidden" data-target-id={product.Id}
                                                 onchange={handleLineDescriptionChange}></lightning-input>

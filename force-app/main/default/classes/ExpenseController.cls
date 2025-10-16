@@ -29,11 +29,14 @@ public with sharing class ExpenseController {
                 }
             }
             
-            // Get Grade details based on user's grade - FIXED
+            // Get Grade details based on user's grade - without sales type for initial load
             Decimal dailyAllowance = 0;
             Decimal fourWheelerPerKm = 0;
             Decimal twoWheelerPerKm = 0;
+            Decimal specialAllowance = 0;
+            Decimal outOfPocket = 0;
             List<String> modeOfTravelOptions = new List<String>();
+            List<String> modeOfOutstationTravelOptions = new List<String>();
             Boolean canEditDailyAllowance = false;
             
             System.debug('User Grade: ' + currentUser.Grades__c);
@@ -41,7 +44,8 @@ public with sharing class ExpenseController {
             if (String.isNotBlank(currentUser.Grades__c)) {
                 List<Grade__c> grades = [SELECT Id, Name, Daily_Allowance_A_class_cities__c, 
                                         Daily_Allowance_B_class_cities__c, Four_Wheeler_per_km__c, 
-                                        Two_Wheeler_per_km__c, Mode_of_Travel__c
+                                        Two_Wheeler_per_km__c, Mode_of_Travel__c, Sales_Type__c,
+                                        Special_Allowance__c, Out_of_Pocket__c, Mode_of_Outstation_Travel__c
                                         FROM Grade__c 
                                         WHERE Name = :currentUser.Grades__c 
                                         LIMIT 1];
@@ -53,13 +57,22 @@ public with sharing class ExpenseController {
                     dailyAllowance = userGrade.Daily_Allowance_A_class_cities__c != null ? userGrade.Daily_Allowance_A_class_cities__c : 0;
                     fourWheelerPerKm = userGrade.Four_Wheeler_per_km__c != null ? userGrade.Four_Wheeler_per_km__c : 0;
                     twoWheelerPerKm = userGrade.Two_Wheeler_per_km__c != null ? userGrade.Two_Wheeler_per_km__c : 0;
+                    specialAllowance = userGrade.Special_Allowance__c != null ? userGrade.Special_Allowance__c : 0;
+                    outOfPocket = userGrade.Out_of_Pocket__c != null ? userGrade.Out_of_Pocket__c : 0;
                     
                     System.debug('Grade Details - DA: ' + dailyAllowance + ', 4W: ' + fourWheelerPerKm + ', 2W: ' + twoWheelerPerKm);
+                    System.debug('Special Allowance: ' + specialAllowance + ', Out of Pocket: ' + outOfPocket);
                     
-                    // Parse multi-picklist values
+                    // Parse multi-picklist values for Mode_of_Travel__c
                     if (String.isNotBlank(userGrade.Mode_of_Travel__c)) {
                         modeOfTravelOptions = userGrade.Mode_of_Travel__c.split(';');
                         System.debug('Mode of Travel Options: ' + modeOfTravelOptions);
+                    }
+                    
+                    // Parse multi-picklist values for Mode_of_Outstation_Travel__c
+                    if (String.isNotBlank(userGrade.Mode_of_Outstation_Travel__c)) {
+                        modeOfOutstationTravelOptions = userGrade.Mode_of_Outstation_Travel__c.split(';');
+                        System.debug('Mode of Outstation Travel Options: ' + modeOfOutstationTravelOptions);
                     }
                     
                     // Check if user can edit daily allowance (only for DR or EM grades)
@@ -73,7 +86,10 @@ public with sharing class ExpenseController {
             result.put('dailyAllowance', dailyAllowance);
             result.put('fourWheelerPerKm', fourWheelerPerKm);
             result.put('twoWheelerPerKm', twoWheelerPerKm);
+            result.put('specialAllowance', specialAllowance);
+            result.put('outOfPocket', outOfPocket);
             result.put('modeOfTravelOptions', modeOfTravelOptions);
+            result.put('modeOfOutstationTravelOptions', modeOfOutstationTravelOptions);
             result.put('canEditDailyAllowance', canEditDailyAllowance);
             
         } catch (Exception e) {
@@ -81,6 +97,139 @@ public with sharing class ExpenseController {
             throw new AuraHandledException('Error initializing expense: ' + e.getMessage());
         }
         return result;
+    }
+    
+    @AuraEnabled(cacheable=true)
+    public static Map<String, Object> getGradeDetailsWithSalesType(String gradeName, String salesType) {
+        try {
+            Map<String, Object> result = new Map<String, Object>();
+            
+            System.debug('getGradeDetailsWithSalesType called with grade: ' + gradeName + ', salesType: ' + salesType);
+            
+            if (String.isBlank(gradeName)) {
+                return result;
+            }
+            
+            // Query Grade__c with both Name and Sales_Type__c
+            List<Grade__c> grades = [SELECT Id, Name, Daily_Allowance_A_class_cities__c, 
+                                    Daily_Allowance_B_class_cities__c, Four_Wheeler_per_km__c, 
+                                    Two_Wheeler_per_km__c, Mode_of_Travel__c, Sales_Type__c,
+                                    Special_Allowance__c, Out_of_Pocket__c, Mode_of_Outstation_Travel__c
+                                    FROM Grade__c 
+                                    WHERE Name = :gradeName 
+                                    AND Sales_Type__c = :salesType
+                                    LIMIT 1];
+            
+            System.debug('Found grades for ' + gradeName + ' with sales type ' + salesType + ': ' + grades.size());
+            
+            if (!grades.isEmpty()) {
+                Grade__c grade = grades[0];
+                result.put('dailyAllowance', grade.Daily_Allowance_A_class_cities__c != null ? grade.Daily_Allowance_A_class_cities__c : 0);
+                result.put('fourWheelerPerKm', grade.Four_Wheeler_per_km__c != null ? grade.Four_Wheeler_per_km__c : 0);
+                result.put('twoWheelerPerKm', grade.Two_Wheeler_per_km__c != null ? grade.Two_Wheeler_per_km__c : 0);
+                result.put('specialAllowance', grade.Special_Allowance__c != null ? grade.Special_Allowance__c : 0);
+                result.put('outOfPocket', grade.Out_of_Pocket__c != null ? grade.Out_of_Pocket__c : 0);
+                
+                System.debug('Grade details - DA: ' + result.get('dailyAllowance') + 
+                           ', 4W: ' + result.get('fourWheelerPerKm') + 
+                           ', 2W: ' + result.get('twoWheelerPerKm') +
+                           ', Special Allowance: ' + result.get('specialAllowance') +
+                           ', Out of Pocket: ' + result.get('outOfPocket'));
+                
+                // Parse multi-picklist values for Mode_of_Travel__c
+                List<String> modeOfTravelOptions = new List<String>();
+                if (String.isNotBlank(grade.Mode_of_Travel__c)) {
+                    modeOfTravelOptions = grade.Mode_of_Travel__c.split(';');
+                    System.debug('Mode of Travel Options: ' + modeOfTravelOptions);
+                }
+                result.put('modeOfTravelOptions', modeOfTravelOptions);
+                
+                // Parse multi-picklist values for Mode_of_Outstation_Travel__c
+                List<String> modeOfOutstationTravelOptions = new List<String>();
+                if (String.isNotBlank(grade.Mode_of_Outstation_Travel__c)) {
+                    modeOfOutstationTravelOptions = grade.Mode_of_Outstation_Travel__c.split(';');
+                    System.debug('Mode of Outstation Travel Options: ' + modeOfOutstationTravelOptions);
+                }
+                result.put('modeOfOutstationTravelOptions', modeOfOutstationTravelOptions);
+                
+                // Check if grade can edit daily allowance
+                Boolean canEditDailyAllowance = (gradeName == 'DR' || gradeName == 'EM');
+                result.put('canEditDailyAllowance', canEditDailyAllowance);
+                
+                result.put('success', true);
+            } else {
+                // If no grade found with sales type, try with just grade name
+                List<Grade__c> fallbackGrades = [SELECT Id, Name, Daily_Allowance_A_class_cities__c, 
+                                                Daily_Allowance_B_class_cities__c, Four_Wheeler_per_km__c, 
+                                                Two_Wheeler_per_km__c, Mode_of_Travel__c, Sales_Type__c,
+                                                Special_Allowance__c, Out_of_Pocket__c, Mode_of_Outstation_Travel__c
+                                                FROM Grade__c 
+                                                WHERE Name = :gradeName 
+                                                LIMIT 1];
+                
+                if (!fallbackGrades.isEmpty()) {
+                    Grade__c grade = fallbackGrades[0];
+                    result.put('dailyAllowance', grade.Daily_Allowance_A_class_cities__c != null ? grade.Daily_Allowance_A_class_cities__c : 0);
+                    result.put('fourWheelerPerKm', grade.Four_Wheeler_per_km__c != null ? grade.Four_Wheeler_per_km__c : 0);
+                    result.put('twoWheelerPerKm', grade.Two_Wheeler_per_km__c != null ? grade.Two_Wheeler_per_km__c : 0);
+                    result.put('specialAllowance', grade.Special_Allowance__c != null ? grade.Special_Allowance__c : 0);
+                    result.put('outOfPocket', grade.Out_of_Pocket__c != null ? grade.Out_of_Pocket__c : 0);
+                    
+                    // Parse multi-picklist values for Mode_of_Travel__c
+                    List<String> modeOfTravelOptions = new List<String>();
+                    if (String.isNotBlank(grade.Mode_of_Travel__c)) {
+                        modeOfTravelOptions = grade.Mode_of_Travel__c.split(';');
+                    }
+                    result.put('modeOfTravelOptions', modeOfTravelOptions);
+                    
+                    // Parse multi-picklist values for Mode_of_Outstation_Travel__c
+                    List<String> modeOfOutstationTravelOptions = new List<String>();
+                    if (String.isNotBlank(grade.Mode_of_Outstation_Travel__c)) {
+                        modeOfOutstationTravelOptions = grade.Mode_of_Outstation_Travel__c.split(';');
+                    }
+                    result.put('modeOfOutstationTravelOptions', modeOfOutstationTravelOptions);
+                    
+                    Boolean canEditDailyAllowance = (gradeName == 'DR' || gradeName == 'EM');
+                    result.put('canEditDailyAllowance', canEditDailyAllowance);
+                    result.put('success', true);
+                    result.put('fallback', true);
+                } else {
+                    result.put('success', false);
+                    result.put('message', 'No grade configuration found');
+                }
+            }
+            
+            return result;
+            
+        } catch (Exception e) {
+            System.debug('Error in getGradeDetailsWithSalesType: ' + e.getMessage());
+            throw new AuraHandledException('Error getting grade details: ' + e.getMessage());
+        }
+    }
+    
+    // Add method to get Mode_of_Travel picklist values
+    @AuraEnabled(cacheable=true)
+    public static List<Map<String, String>> getModeOfTravelOptions() {
+        try {
+            List<Map<String, String>> options = new List<Map<String, String>>();
+            
+            // Get picklist values from Mode_of_Travel__c field on Expense_Line_Item__c
+            Schema.DescribeFieldResult fieldResult = Expense_Line_Item__c.Mode_of_Travel__c.getDescribe();
+            List<Schema.PicklistEntry> ple = fieldResult.getPicklistValues();
+            
+            for (Schema.PicklistEntry entry : ple) {
+                if (entry.isActive()) {
+                    options.add(new Map<String, String>{
+                        'label' => entry.getLabel(),
+                        'value' => entry.getValue()
+                    });
+                }
+            }
+            
+            return options;
+        } catch (Exception e) {
+            throw new AuraHandledException('Error getting mode of travel options: ' + e.getMessage());
+        }
     }
     
     @AuraEnabled(cacheable=true)

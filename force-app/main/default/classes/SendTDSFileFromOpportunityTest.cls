@@ -3,11 +3,8 @@ private class SendTDSFileFromOpportunityTest {
 
     @TestSetup
     static void setupTestData() {
-        Pricebook2 standardPricebook = new Pricebook2(
-            Id = Test.getStandardPricebookId(),
-            IsActive = true
-        );
-        update standardPricebook;
+        // Get standard pricebook ID without updating (fix for UNABLE_TO_LOCK_ROW)
+        Id standardPricebookId = Test.getStandardPricebookId();
 
         Product2 testProduct = new Product2(
             Name = 'Test Product',
@@ -16,10 +13,11 @@ private class SendTDSFileFromOpportunityTest {
         insert testProduct;
 
         PricebookEntry standardPBE = new PricebookEntry(
-            Pricebook2Id = standardPricebook.Id,
+            Pricebook2Id = standardPricebookId,
             Product2Id = testProduct.Id,
             UnitPrice = 100.00,
-            IsActive = true
+            IsActive = true,
+            UseStandardPrice = false
         );
         insert standardPBE;
 
@@ -54,7 +52,8 @@ private class SendTDSFileFromOpportunityTest {
         Opportunity opp = new Opportunity(
             Name = 'Test Opportunity',
             StageName = 'Prospecting',
-            CloseDate = Date.today()
+            CloseDate = Date.today(),
+            Pricebook2Id = standardPricebookId
         );
         insert opp;
 

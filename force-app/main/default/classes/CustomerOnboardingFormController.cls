@@ -15,8 +15,8 @@ public class CustomerOnboardingFormController {
     
     @auraEnabled
     public static Quote getCustomerDetail(string Id){
-        Quote quo= [select Id,Name,Account.Cust_Acct_Group__c,Account.Account_Group__c,Account.SE_Name__c,Account.Title__c,Account.SAP_Customer_Code__c,Account.Pan_No__c,Account.Street1__c,Account.Postal_Code__c,Account.Post_Code__c,Account.City1__c,Account.Sales_Organisation__r.Name,
-                    Account.City__c,Account.Country_Text__c , Account.State__c, Account.State1__c,Account.Street2__c,Account.Phone,Account.Email_Id__c from Quote where Id =:Id limit 1];
+        Quote quo= [select Id,Name,AccountId,Account.Account_Name_2__c,Account.Cust_Acct_Group__c,Account.Account_Group__c,Account.SE_Name__c,Account.Title__c,Account.SAP_Customer_Code__c,Account.Pan_No__c,Account.Street1__c,Account.Postal_Code__c,Account.Post_Code__c,Account.City1__c,Account.Sales_Organisation__r.Name,
+                    Account.City__c,Account.Country_Text__c , Account.State__c, Account.Country__c, Account.State1__c,Account.Street2__c,Account.Phone,Account.Email_Id__c from Quote where Id =:Id limit 1];
         return quo;
     }
     
@@ -40,6 +40,18 @@ public class CustomerOnboardingFormController {
         delete doc;
         return 'Files deleted successfully';
     }
+    
+    @AuraEnabled
+    public static SObject getDetails(String objectName, String recordId) {
+        // Build dynamic SOQL
+        String query = 'SELECT Id, Name FROM ' + objectName + ' WHERE Id = \'' + String.escapeSingleQuotes(recordId) + '\' LIMIT 1';
+        
+        // Execute query
+        SObject result = Database.query(query);
+        
+        return result;
+    }
+
     
     @AuraEnabled
     public static String getDocumentUrl(String Id) {
@@ -113,6 +125,14 @@ public class CustomerOnboardingFormController {
         if (String.isBlank(fileName) || String.isBlank(base64Data) || String.isBlank(recipientEmail)) {
             throw new AuraHandledException('Missing required parameters.');
         }
+
+        System.debug('fileName: ' + fileName);
+        System.debug('base64Data: ' + base64Data);
+        System.debug('recipientEmail: ' + recipientEmail);
+        System.debug('body: ' + body);
+        System.debug('subject: ' + subject);
+        System.debug('ccEmail: ' + ccEmail);
+        System.debug('contentDocumentIds: ' + contentDocumentIds);
         
         Messaging.EmailFileAttachment attachment = new Messaging.EmailFileAttachment();
         attachment.setFileName(fileName);

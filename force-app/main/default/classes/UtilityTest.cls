@@ -2,11 +2,8 @@
 private class UtilityTest {
     @isTest
     static void testAllMethods() {
-        Pricebook2 standardPb = new Pricebook2(
-            Id = Test.getStandardPricebookId(),
-            IsActive = true
-        );
-        update standardPb;
+        // Get standard pricebook ID without updating (fix for UNABLE_TO_LOCK_ROW)
+        Id standardPricebookId = Test.getStandardPricebookId();
 
         Account acc = new Account(Name = 'Test Account', Business_Type__c = 'Domestic');
         insert acc;
@@ -19,14 +16,14 @@ private class UtilityTest {
             StageName = 'Prospecting',
             CloseDate = Date.today(),
             AccountId = acc.Id,
-            Pricebook2Id = standardPb.Id
+            Pricebook2Id = standardPricebookId
         );
         insert opp;
 
         Quote qt = new Quote(
             Name = 'Test Quote',
             OpportunityId = opp.Id,
-            Pricebook2Id = standardPb.Id
+            Pricebook2Id = standardPricebookId
         );
         insert qt;
 
