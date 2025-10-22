@@ -201,4 +201,86 @@ public class DocumentApprovalHandlerTest {
             return res;
         }
     }
+    
+    @IsTest
+static void testUpdateApproversAndSendEmails() {
+    // Get test data
+    Lead leadRecord = [SELECT Id, TDS_Approver__c, MSDS_Approver__c, Technical_Document_Approver__c, COA_Document_Approver__c 
+                      FROM Lead LIMIT 1];
+    List<User> testUsers = [SELECT Id, Email FROM User WHERE IsActive = true LIMIT 5];
+    
+    // Create approver model
+    DocumentApprovalHandler.ApproverModel approverModel = new DocumentApprovalHandler.ApproverModel();
+    approverModel.tdsApproverId = testUsers[0].Id;
+    approverModel.msdsApproverId = testUsers[1].Id;
+    approverModel.technicalDocApproverId = testUsers[2].Id;
+    approverModel.coaDocApproverId = testUsers[3].Id;
+    String approverStringObject = JSON.serialize(approverModel);
+    
+    // Create sample document wrapper with files
+    DocumentApprovalHandler.SampleDocumentWrapper sampleDocs = new DocumentApprovalHandler.SampleDocumentWrapper();
+    
+    // Create sample files for each document type
+    DocumentApprovalHandler.ContentVersionWrapper tdsFile = new DocumentApprovalHandler.ContentVersionWrapper();
+    tdsFile.fileName = 'tds_sample.pdf';
+    tdsFile.base64Data = EncodingUtil.base64Encode(Blob.valueOf('TDS sample content'));
+    
+    DocumentApprovalHandler.ContentVersionWrapper msdsFile = new DocumentApprovalHandler.ContentVersionWrapper();
+    msdsFile.fileName = 'msds_sample.pdf';
+    msdsFile.base64Data = EncodingUtil.base64Encode(Blob.valueOf('MSDS sample content'));
+    
+    DocumentApprovalHandler.ContentVersionWrapper techFile = new DocumentApprovalHandler.ContentVersionWrapper();
+    techFile.fileName = 'tech_sample.pdf';
+    techFile.base64Data = EncodingUtil.base64Encode(Blob.valueOf('Technical document sample content'));
+    
+    DocumentApprovalHandler.ContentVersionWrapper coaFile = new DocumentApprovalHandler.ContentVersionWrapper();
+    coaFile.fileName = 'coa_sample.pdf';
+    coaFile.base64Data = EncodingUtil.base64Encode(Blob.valueOf('COA sample content'));
+    
+    // Add files to respective lists
+    sampleDocs.tdsSampleFiles = new List<DocumentApprovalHandler.ContentVersionWrapper>{tdsFile};
+    sampleDocs.msdsSampleFiles = new List<DocumentApprovalHandler.ContentVersionWrapper>{msdsFile};
+    sampleDocs.techDocSampleFiles = new List<DocumentApprovalHandler.ContentVersionWrapper>{techFile};
+    sampleDocs.coaSampleFiles = new List<DocumentApprovalHandler.ContentVersionWrapper>{coaFile};
+    
+    String sampleDocumentStringObj = JSON.serialize(sampleDocs);
+    
+    Test.startTest();
+    // Test with all approvers and files
+    String result1 = DocumentApprovalHandler.updateApproversAndSendEmails(approverStringObject, sampleDocumentStringObj, leadRecord.Id);
+    
+    // Test with partial approvers
+    DocumentApprovalHandler.ApproverModel partialApproverModel = new DocumentApprovalHandler.ApproverModel();
+    partialApproverModel.tdsApproverId = testUsers[0].Id;
+    partialApproverModel.msdsApproverId = null;
+    partialApproverModel.technicalDocApproverId = testUsers[2].Id;
+    partialApproverModel.coaDocApproverId = null;
+    String partialApproverStringObject = JSON.serialize(partialApproverModel);
+    
+    // Create partial files
+    DocumentApprovalHandler.SampleDocumentWrapper partialSampleDocs = new DocumentApprovalHandler.SampleDocumentWrapper();
+    partialSampleDocs.tdsSampleFiles = new List<DocumentApprovalHandler.ContentVersionWrapper>{tdsFile};
+    partialSampleDocs.msdsSampleFiles = new List<DocumentApprovalHandler.ContentVersionWrapper>();
+    partialSampleDocs.techDocSampleFiles = new List<DocumentApprovalHandler.ContentVersionWrapper>{techFile};
+    partialSampleDocs.coaSampleFiles = new List<DocumentApprovalHandler.ContentVersionWrapper>();
+    String partialSampleDocumentStringObj = JSON.serialize(partialSampleDocs);
+    
+    String result2 = DocumentApprovalHandler.updateApproversAndSendEmails(partialApproverStringObject, partialSampleDocumentStringObj, leadRecord.Id);
+    
+    // Test with empty files
+    DocumentApprovalHandler.SampleDocumentWrapper emptySampleDocs = new DocumentApprovalHandler.SampleDocumentWrapper();
+    emptySampleDocs.tdsSampleFiles = new List<DocumentApprovalHandler.ContentVersionWrapper>();
+    emptySampleDocs.msdsSampleFiles = new List<DocumentApprovalHandler.ContentVersionWrapper>();
+    emptySampleDocs.techDocSampleFiles = new List<DocumentApprovalHandler.ContentVersionWrapper>();
+    emptySampleDocs.coaSampleFiles = new List<DocumentApprovalHandler.ContentVersionWrapper>();
+    String emptySampleDocumentStringObj = JSON.serialize(emptySampleDocs);
+    
+    String result3 = DocumentApprovalHandler.updateApproversAndSendEmails(approverStringObject, emptySampleDocumentStringObj, leadRecord.Id);
+    
+    Test.stopTest();
+    
+    // Verify lead was updated
+    Lead updatedLead = [SELECT TDS_Approver__c, MSDS_Approver__c, Technical_Document_Approver__c, COA_Document_Approver__c 
+                       FROM Lead WHERE Id = :leadRecord.Id];
+}
 }

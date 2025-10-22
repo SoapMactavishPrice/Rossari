@@ -35,6 +35,10 @@ public with sharing class ExpenseController {
             Decimal twoWheelerPerKm = 0;
             Decimal specialAllowance = 0;
             Decimal outOfPocket = 0;
+            Decimal lodgingHotel = 0;
+            Decimal boardingFood = 0;
+            Decimal lodgingHotelBClass = 0;
+            Decimal boardingFoodBClass = 0;
             List<String> modeOfTravelOptions = new List<String>();
             List<String> modeOfOutstationTravelOptions = new List<String>();
             Boolean canEditDailyAllowance = false;
@@ -45,7 +49,8 @@ public with sharing class ExpenseController {
                 List<Grade__c> grades = [SELECT Id, Name, Daily_Allowance_A_class_cities__c, 
                                         Daily_Allowance_B_class_cities__c, Four_Wheeler_per_km__c, 
                                         Two_Wheeler_per_km__c, Mode_of_Travel__c, Sales_Type__c,
-                                        Special_Allowance__c, Out_of_Pocket__c, Mode_of_Outstation_Travel__c
+                                        Special_Allowance__c, Out_of_Pocket__c, Mode_of_Outstation_Travel__c,
+                                        Lodging_Hotel__c, Boarding_Food__c, Lodging_Hotel_B_Class__c, Boarding_Food_B_Class__c
                                         FROM Grade__c 
                                         WHERE Name = :currentUser.Grades__c 
                                         LIMIT 1];
@@ -59,9 +64,15 @@ public with sharing class ExpenseController {
                     twoWheelerPerKm = userGrade.Two_Wheeler_per_km__c != null ? userGrade.Two_Wheeler_per_km__c : 0;
                     specialAllowance = userGrade.Special_Allowance__c != null ? userGrade.Special_Allowance__c : 0;
                     outOfPocket = userGrade.Out_of_Pocket__c != null ? userGrade.Out_of_Pocket__c : 0;
+                    lodgingHotel = userGrade.Lodging_Hotel__c != null ? userGrade.Lodging_Hotel__c : 0;
+                    boardingFood = userGrade.Boarding_Food__c != null ? userGrade.Boarding_Food__c : 0;
+                    lodgingHotelBClass = userGrade.Lodging_Hotel_B_Class__c != null ? userGrade.Lodging_Hotel_B_Class__c : 0;
+                    boardingFoodBClass = userGrade.Boarding_Food_B_Class__c != null ? userGrade.Boarding_Food_B_Class__c : 0;
                     
                     System.debug('Grade Details - DA: ' + dailyAllowance + ', 4W: ' + fourWheelerPerKm + ', 2W: ' + twoWheelerPerKm);
                     System.debug('Special Allowance: ' + specialAllowance + ', Out of Pocket: ' + outOfPocket);
+                    System.debug('Lodging Hotel: ' + lodgingHotel + ', Boarding Food: ' + boardingFood);
+                    System.debug('Lodging Hotel B Class: ' + lodgingHotelBClass + ', Boarding Food B Class: ' + boardingFoodBClass);
                     
                     // Parse multi-picklist values for Mode_of_Travel__c
                     if (String.isNotBlank(userGrade.Mode_of_Travel__c)) {
@@ -88,6 +99,10 @@ public with sharing class ExpenseController {
             result.put('twoWheelerPerKm', twoWheelerPerKm);
             result.put('specialAllowance', specialAllowance);
             result.put('outOfPocket', outOfPocket);
+            result.put('lodgingHotel', lodgingHotel);
+            result.put('boardingFood', boardingFood);
+            result.put('lodgingHotelBClass', lodgingHotelBClass);
+            result.put('boardingFoodBClass', boardingFoodBClass);
             result.put('modeOfTravelOptions', modeOfTravelOptions);
             result.put('modeOfOutstationTravelOptions', modeOfOutstationTravelOptions);
             result.put('canEditDailyAllowance', canEditDailyAllowance);
@@ -114,7 +129,8 @@ public with sharing class ExpenseController {
             List<Grade__c> grades = [SELECT Id, Name, Daily_Allowance_A_class_cities__c, 
                                     Daily_Allowance_B_class_cities__c, Four_Wheeler_per_km__c, 
                                     Two_Wheeler_per_km__c, Mode_of_Travel__c, Sales_Type__c,
-                                    Special_Allowance__c, Out_of_Pocket__c, Mode_of_Outstation_Travel__c
+                                    Special_Allowance__c, Out_of_Pocket__c, Mode_of_Outstation_Travel__c,
+                                    Lodging_Hotel__c, Boarding_Food__c, Lodging_Hotel_B_Class__c, Boarding_Food_B_Class__c
                                     FROM Grade__c 
                                     WHERE Name = :gradeName 
                                     AND Sales_Type__c = :salesType
@@ -129,12 +145,20 @@ public with sharing class ExpenseController {
                 result.put('twoWheelerPerKm', grade.Two_Wheeler_per_km__c != null ? grade.Two_Wheeler_per_km__c : 0);
                 result.put('specialAllowance', grade.Special_Allowance__c != null ? grade.Special_Allowance__c : 0);
                 result.put('outOfPocket', grade.Out_of_Pocket__c != null ? grade.Out_of_Pocket__c : 0);
+                result.put('lodgingHotel', grade.Lodging_Hotel__c != null ? grade.Lodging_Hotel__c : 0);
+                result.put('boardingFood', grade.Boarding_Food__c != null ? grade.Boarding_Food__c : 0);
+                result.put('lodgingHotelBClass', grade.Lodging_Hotel_B_Class__c != null ? grade.Lodging_Hotel_B_Class__c : 0);
+                result.put('boardingFoodBClass', grade.Boarding_Food_B_Class__c != null ? grade.Boarding_Food_B_Class__c : 0);
                 
                 System.debug('Grade details - DA: ' + result.get('dailyAllowance') + 
                            ', 4W: ' + result.get('fourWheelerPerKm') + 
                            ', 2W: ' + result.get('twoWheelerPerKm') +
                            ', Special Allowance: ' + result.get('specialAllowance') +
-                           ', Out of Pocket: ' + result.get('outOfPocket'));
+                           ', Out of Pocket: ' + result.get('outOfPocket') +
+                           ', Lodging Hotel: ' + result.get('lodgingHotel') +
+                           ', Boarding Food: ' + result.get('boardingFood') +
+                           ', Lodging Hotel B Class: ' + result.get('lodgingHotelBClass') +
+                           ', Boarding Food B Class: ' + result.get('boardingFoodBClass'));
                 
                 // Parse multi-picklist values for Mode_of_Travel__c
                 List<String> modeOfTravelOptions = new List<String>();
@@ -162,7 +186,8 @@ public with sharing class ExpenseController {
                 List<Grade__c> fallbackGrades = [SELECT Id, Name, Daily_Allowance_A_class_cities__c, 
                                                 Daily_Allowance_B_class_cities__c, Four_Wheeler_per_km__c, 
                                                 Two_Wheeler_per_km__c, Mode_of_Travel__c, Sales_Type__c,
-                                                Special_Allowance__c, Out_of_Pocket__c, Mode_of_Outstation_Travel__c
+                                                Special_Allowance__c, Out_of_Pocket__c, Mode_of_Outstation_Travel__c,
+                                                Lodging_Hotel__c, Boarding_Food__c, Lodging_Hotel_B_Class__c, Boarding_Food_B_Class__c
                                                 FROM Grade__c 
                                                 WHERE Name = :gradeName 
                                                 LIMIT 1];
@@ -174,6 +199,10 @@ public with sharing class ExpenseController {
                     result.put('twoWheelerPerKm', grade.Two_Wheeler_per_km__c != null ? grade.Two_Wheeler_per_km__c : 0);
                     result.put('specialAllowance', grade.Special_Allowance__c != null ? grade.Special_Allowance__c : 0);
                     result.put('outOfPocket', grade.Out_of_Pocket__c != null ? grade.Out_of_Pocket__c : 0);
+                    result.put('lodgingHotel', grade.Lodging_Hotel__c != null ? grade.Lodging_Hotel__c : 0);
+                    result.put('boardingFood', grade.Boarding_Food__c != null ? grade.Boarding_Food__c : 0);
+                    result.put('lodgingHotelBClass', grade.Lodging_Hotel_B_Class__c != null ? grade.Lodging_Hotel_B_Class__c : 0);
+                    result.put('boardingFoodBClass', grade.Boarding_Food_B_Class__c != null ? grade.Boarding_Food_B_Class__c : 0);
                     
                     // Parse multi-picklist values for Mode_of_Travel__c
                     List<String> modeOfTravelOptions = new List<String>();
@@ -206,6 +235,74 @@ public with sharing class ExpenseController {
             throw new AuraHandledException('Error getting grade details: ' + e.getMessage());
         }
     }
+
+    // NEW METHOD: Get City details with City Type
+    @AuraEnabled(cacheable=true)
+    public static Map<String, Object> getCityDetails(String cityId) {
+        try {
+            Map<String, Object> result = new Map<String, Object>();
+            
+            if (String.isBlank(cityId)) {
+                return result;
+            }
+            
+            List<City__c> cities = [SELECT Id, Name, City_Type__c FROM City__c WHERE Id = :cityId LIMIT 1];
+            
+            if (!cities.isEmpty()) {
+                City__c city = cities[0];
+                result.put('cityId', city.Id);
+                result.put('cityName', city.Name);
+                result.put('cityType', city.City_Type__c);
+                result.put('isAClassCity', city.City_Type__c == 'A Class City');
+                result.put('success', true);
+            } else {
+                result.put('success', false);
+                result.put('message', 'City not found');
+            }
+            
+            return result;
+            
+        } catch (Exception e) {
+            throw new AuraHandledException('Error getting city details: ' + e.getMessage());
+        }
+    }
+
+    // NEW METHOD: Get transport modes for Outstation Export
+    @AuraEnabled(cacheable=true)
+    public static List<Map<String, String>> getExportTransportModes(String gradeName) {
+        try {
+            List<Map<String, String>> options = new List<Map<String, String>>();
+            
+            if (String.isBlank(gradeName)) {
+                return options;
+            }
+            
+            // Get Mode_of_Travel__c multi-picklist values from Grade record with Sales_Type__c = 'Export'
+            List<Grade__c> grades = [SELECT Id, Mode_of_Travel__c 
+                                    FROM Grade__c 
+                                    WHERE Name = :gradeName 
+                                    AND Sales_Type__c = 'Export'
+                                    LIMIT 1];
+            
+            if (!grades.isEmpty() && String.isNotBlank(grades[0].Mode_of_Travel__c)) {
+                List<String> modeValues = grades[0].Mode_of_Travel__c.split(';');
+                
+                // Convert to combobox format
+                for (String mode : modeValues) {
+                    options.add(new Map<String, String>{
+                        'label' => mode,
+                        'value' => mode
+                    });
+                }
+            }
+            
+            return options;
+            
+        } catch (Exception e) {
+            throw new AuraHandledException('Error getting export transport modes: ' + e.getMessage());
+        }
+    }
+
     
     // Add method to get Mode_of_Travel picklist values
     @AuraEnabled(cacheable=true)

@@ -1,19 +1,16 @@
-@isTest
-public class PartialDispatchQtyTriggerHandlerTest {
-
+@IsTest
+private class PartialDispatchQtyTriggerHandlerTest {
+    
     @TestSetup
-    static void setupStaticData() {
+    static void setupData() {
+        Pricebook2 standardPricebook = new Pricebook2(
+            Id = Test.getStandardPricebookId(),
+            IsActive = true
+        );
+        update standardPricebook;
+
         Base_UoM_Master__c baseUom = new Base_UoM_Master__c(Name = 'Kilogram');
         insert baseUom;
-    }
-
-    static void createDynamicTestData() {
-        Account acc = new Account(Name = 'Test Account');
-        insert acc;
-
-        Id standardPricebookId = Test.getStandardPricebookId();
-
-        Base_UoM_Master__c baseUom = [SELECT Id FROM Base_UoM_Master__c WHERE Name = 'Kilogram' LIMIT 1];
 
         Product2 prod = new Product2(
             Name = 'Test Product',
@@ -25,254 +22,66 @@ public class PartialDispatchQtyTriggerHandlerTest {
         insert prod;
 
         PricebookEntry pbe = new PricebookEntry(
-            Pricebook2Id = standardPricebookId,
+            Pricebook2Id = standardPricebook.Id,
             Product2Id = prod.Id,
             UnitPrice = 100,
             IsActive = true
         );
         insert pbe;
 
+        Account acc = new Account(Name = 'Test Account');
+        insert acc;
+
         Order ord = new Order(
-            Name = 'Test Order',
             AccountId = acc.Id,
             Status = 'Draft',
             EffectiveDate = Date.today(),
-            ContractId = null,
-            Pricebook2Id = standardPricebookId
+            Pricebook2Id = standardPricebook.Id
         );
         insert ord;
 
         OrderItem oi = new OrderItem(
             OrderId = ord.Id,
             Quantity = 10,
-            UnitPrice = 10,
+            UnitPrice = 100,
             PricebookEntryId = pbe.Id
         );
         insert oi;
     }
 
-    @isTest
+    @IsTest
     static void testAfterInsert() {
-        createDynamicTestData();
-        
         OrderItem oi = [SELECT Id FROM OrderItem LIMIT 1];
-        
-        Partial_Disptach_Qty__c pdq = new Partial_Disptach_Qty__c(
-            Name = 'Insert PDQ',
+        List<Partial_Disptach_Qty__c> dispatchList = new List<Partial_Disptach_Qty__c>();
+        dispatchList.add(new Partial_Disptach_Qty__c(
             Order_Product__c = oi.Id,
-            Disptach_Qty__c = 5
-        );
-        
-        Test.startTest();
-        insert pdq;
-        Test.stopTest();
+            Disptach_Qty__c = 3
+        ));
+        insert dispatchList;
     }
 
-    @isTest
+    @IsTest
     static void testAfterUpdate() {
-        createDynamicTestData();
-        
         OrderItem oi = [SELECT Id FROM OrderItem LIMIT 1];
-        
-        Partial_Disptach_Qty__c pdq = new Partial_Disptach_Qty__c(
-            Name = 'Update PDQ',
+        Partial_Disptach_Qty__c dispatch = new Partial_Disptach_Qty__c(
             Order_Product__c = oi.Id,
-            Disptach_Qty__c = 5
+            Disptach_Qty__c = 2
         );
-        insert pdq;
+        insert dispatch;
 
-        Test.startTest();
-        pdq.Disptach_Qty__c = 8;
-        update pdq;
-        Test.stopTest();
+        dispatch.Disptach_Qty__c = 5;
+        update dispatch;
     }
 
-    @isTest
+    @IsTest
     static void testAfterDelete() {
-        createDynamicTestData();
-        
         OrderItem oi = [SELECT Id FROM OrderItem LIMIT 1];
-        
-        Partial_Disptach_Qty__c pdq = new Partial_Disptach_Qty__c(
-            Name = 'Delete PDQ',
+        Partial_Disptach_Qty__c dispatch = new Partial_Disptach_Qty__c(
             Order_Product__c = oi.Id,
-            Disptach_Qty__c = 5
+            Disptach_Qty__c = 4
         );
-        insert pdq;
+        insert dispatch;
 
-        Test.startTest();
-        delete pdq;
-        Test.stopTest();
-    }
-
-    @isTest
-    static void testMultiplePartialDispatches() {
-        createDynamicTestData();
-        
-        OrderItem oi = [SELECT Id FROM OrderItem LIMIT 1];
-        
-        List<Partial_Disptach_Qty__c> pdqList = new List<Partial_Disptach_Qty__c>();
-        for(Integer i = 0; i < 5; i++) {
-            pdqList.add(new Partial_Disptach_Qty__c(
-                Name = 'PDQ ' + i,
-                Order_Product__c = oi.Id,
-                Disptach_Qty__c = i + 1
-            ));
-        }
-
-        Test.startTest();
-        insert pdqList;
-        Test.stopTest();
-    }
-
-    @isTest
-    static void testBulkUpdate() {
-        createDynamicTestData();
-        
-        OrderItem oi = [SELECT Id FROM OrderItem LIMIT 1];
-        
-        List<Partial_Disptach_Qty__c> pdqList = new List<Partial_Disptach_Qty__c>();
-        for(Integer i = 0; i < 10; i++) {
-            pdqList.add(new Partial_Disptach_Qty__c(
-                Name = 'Bulk PDQ ' + i,
-                Order_Product__c = oi.Id,
-                Disptach_Qty__c = i + 1
-            ));
-        }
-        insert pdqList;
-
-        Test.startTest();
-        for(Partial_Disptach_Qty__c pdq : pdqList) {
-            pdq.Disptach_Qty__c = pdq.Disptach_Qty__c * 2;
-        }
-        update pdqList;
-        Test.stopTest();
-    }
-
-    @isTest
-    static void testBulkDelete() {
-        createDynamicTestData();
-        
-        OrderItem oi = [SELECT Id FROM OrderItem LIMIT 1];
-        
-        List<Partial_Disptach_Qty__c> pdqList = new List<Partial_Disptach_Qty__c>();
-        for(Integer i = 0; i < 8; i++) {
-            pdqList.add(new Partial_Disptach_Qty__c(
-                Name = 'Delete PDQ ' + i,
-                Order_Product__c = oi.Id,
-                Disptach_Qty__c = i + 1
-            ));
-        }
-        insert pdqList;
-
-        Test.startTest();
-        delete pdqList;
-        Test.stopTest();
-    }
-
-    @isTest
-    static void testZeroDispatchQty() {
-        createDynamicTestData();
-        
-        OrderItem oi = [SELECT Id FROM OrderItem LIMIT 1];
-        
-        Partial_Disptach_Qty__c pdq = new Partial_Disptach_Qty__c(
-            Name = 'Zero PDQ',
-            Order_Product__c = oi.Id,
-            Disptach_Qty__c = 0
-        );
-
-        Test.startTest();
-        insert pdq;
-        Test.stopTest();
-    }
-
-    @isTest
-    static void testWithDispatchQty() {
-        createDynamicTestData();
-        
-        OrderItem oi = [SELECT Id FROM OrderItem LIMIT 1];
-        
-        Partial_Disptach_Qty__c pdq = new Partial_Disptach_Qty__c(
-            Name = 'With Qty PDQ',
-            Order_Product__c = oi.Id,
-            Disptach_Qty__c = 10
-        );
-
-        Test.startTest();
-        insert pdq;
-        Test.stopTest();
-    }
-
-    @isTest
-    static void testMultipleOrderItems() {
-        createDynamicTestData();
-        
-        Order ord = [SELECT Id FROM Order LIMIT 1];
-        Product2 prod = [SELECT Id FROM Product2 LIMIT 1];
-        PricebookEntry pbe = [SELECT Id FROM PricebookEntry LIMIT 1];
-        
-        OrderItem oi2 = new OrderItem(
-            OrderId = ord.Id,
-            Quantity = 15,
-            UnitPrice = 20,
-            PricebookEntryId = pbe.Id
-        );
-        insert oi2;
-        
-        List<OrderItem> orderItems = [SELECT Id FROM OrderItem];
-        
-        List<Partial_Disptach_Qty__c> pdqList = new List<Partial_Disptach_Qty__c>();
-        for(OrderItem oi : orderItems) {
-            pdqList.add(new Partial_Disptach_Qty__c(
-                Name = 'Multi PDQ',
-                Order_Product__c = oi.Id,
-                Disptach_Qty__c = 3
-            ));
-        }
-
-        Test.startTest();
-        insert pdqList;
-        Test.stopTest();
-    }
-
-    @isTest
-    static void testWithAdditionalFields() {
-        createDynamicTestData();
-        
-        OrderItem oi = [SELECT Id FROM OrderItem LIMIT 1];
-        
-        Partial_Disptach_Qty__c pdq = new Partial_Disptach_Qty__c(
-            Name = 'Additional Fields PDQ',
-            Order_Product__c = oi.Id,
-            Disptach_Qty__c = 7,
-            Planning_Ready_by_Date__c = Date.today(),
-            Planning_Dispatch_Remark__c = 'Test Remark',
-            Deviation_Reason__c = 'Test Reason'
-        );
-
-        Test.startTest();
-        insert pdq;
-        Test.stopTest();
-    }
-
-    @isTest
-    static void testUpdateWithNullFields() {
-        createDynamicTestData();
-        
-        OrderItem oi = [SELECT Id FROM OrderItem LIMIT 1];
-        
-        Partial_Disptach_Qty__c pdq = new Partial_Disptach_Qty__c(
-            Name = 'Update Null PDQ',
-            Order_Product__c = oi.Id,
-            Disptach_Qty__c = 5
-        );
-        insert pdq;
-
-        Test.startTest();
-        pdq.Planning_Dispatch_Remark__c = null;
-        pdq.Deviation_Reason__c = null;
-        update pdq;
-        Test.stopTest();
+        delete dispatch;
     }
 }

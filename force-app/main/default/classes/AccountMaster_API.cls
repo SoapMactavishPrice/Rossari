@@ -85,18 +85,29 @@ global class AccountMaster_API {
 
             // Get Existing Account list
             List < Account > accountList = new List < Account > ();
+            List < Account > accountList2 = new List < Account > ();
             accountList = [
-                SELECT Id, Name, SAP_Customer_Code__c
+                SELECT Id, Name, SAP_Customer_Code__c, SFDC_Customer_Code__c
                 FROM Account
                 WHERE SAP_Customer_Code__c IN: custNumberSet
-                OR Id IN: customerSFIDSet
+            ];
+            accountList2 = [
+                SELECT Id, Name, SAP_Customer_Code__c, SFDC_Customer_Code__c
+                FROM Account
+                WHERE SFDC_Customer_Code__c IN: customerSFIDSet
             ];
 
             // Map < String, Account > accountMap = new Map < String, Account > ();
             for (Account va: accountList) {
                 accountMap.put(va.SAP_Customer_Code__c, va);
-                accountIdMap.put(va.Id, va);
+                // accountIdMap.put(va.SFDC_Customer_Code__c, va);
             }
+            for (Account va: accountList) {
+                // accountMap.put(va.SAP_Customer_Code__c, va);
+                accountIdMap.put(va.SFDC_Customer_Code__c, va);
+            }
+
+
 
             // Get Existing City list
             List < City__c > cityList = new List < City__c > ();
@@ -378,7 +389,7 @@ global class AccountMaster_API {
     }
     
     // Prepare contacts for bulk processing
-    private static List<Contact> prepareContacts(List<ContactData> contacts, Account acc) {
+    public static List<Contact> prepareContacts(List<ContactData> contacts, Account acc) {
         List<Contact> contactsToUpsert = new List<Contact>();
         
         for (ContactData conData : contacts) {
@@ -418,7 +429,7 @@ global class AccountMaster_API {
     }
     
     // Process all contacts in bulk
-    private static void processAllContacts(Map<Id, Account> successAccounts, Map<String, List<Contact>> accountContactsMap, ResponseWrapper response) {
+    public static void processAllContacts(Map<Id, Account> successAccounts, Map<String, List<Contact>> accountContactsMap, ResponseWrapper response) {
         List<Contact> allContacts = new List<Contact>();
         
         // Collect all contacts for bulk upsert
@@ -447,7 +458,7 @@ global class AccountMaster_API {
     }
     
     // Prepare bank details for bulk processing
-    private static List<Bank_Information__c> prepareBankDetails(List<BankData> bankDetails, Account acc) {
+    public static List<Bank_Information__c> prepareBankDetails(List<BankData> bankDetails, Account acc) {
         List<Bank_Information__c> bankAccounts = new List<Bank_Information__c>();
         
         for (BankData bankData : bankDetails) {
@@ -478,7 +489,7 @@ global class AccountMaster_API {
     }
     
     // Process all bank details in bulk
-    private static void processAllBankDetails(Map<Id, Account> successAccounts,
+    public static void processAllBankDetails(Map<Id, Account> successAccounts,
                                            Map<String, List<Bank_Information__c>> accountBankDetailsMap,
                                            ResponseWrapper response) {
         List<Bank_Information__c> allBankAccounts = new List<Bank_Information__c>();
@@ -510,7 +521,7 @@ global class AccountMaster_API {
     }
     
     // // Prepare sales areas for bulk processing
-    private static List<Customer_Sales_Area__c> prepareSalesAreas(List<SalesArea> salesAreas, Account acc) {
+    public static List<Customer_Sales_Area__c> prepareSalesAreas(List<SalesArea> salesAreas, Account acc) {
         List<Customer_Sales_Area__c> salesAreasToUpsert = new List<Customer_Sales_Area__c>();
         
         for (SalesArea saData : salesAreas) {
@@ -581,7 +592,7 @@ global class AccountMaster_API {
     }
     
     // Process all sales areas in bulk
-    private static void processAllSalesAreas(Map<Id, Account> successAccounts, Map<String, List<Customer_Sales_Area__c>> accountSalesAreasMap, ResponseWrapper response) {
+    public static void processAllSalesAreas(Map<Id, Account> successAccounts, Map<String, List<Customer_Sales_Area__c>> accountSalesAreasMap, ResponseWrapper response) {
         List<Customer_Sales_Area__c> allSalesAreas = new List<Customer_Sales_Area__c>();
         Map<String, List<PartnerFunction>> salesAreaPartnerFunctions = new Map<String, List<PartnerFunction>>();
         

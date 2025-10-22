@@ -9,20 +9,26 @@ public class ConversionFactorSalesTriggerTest {
             new Base_UoM_Master__c(Name = 'KG')
         };
 
-        // Create Product
-        Base_UoM_Master__c baseUomKG = [SELECT Id FROM Base_UoM_Master__c WHERE Name = 'KG' LIMIT 1];
+        Pricebook2 standardPricebook = new Pricebook2(
+            Id = Test.getStandardPricebookId(),
+            IsActive = true
+        );
+        update standardPricebook;
+ 
+        Base_UoM_Master__c baseUom = new Base_UoM_Master__c(Name = 'Kilogram');
+        insert baseUom;
+ 
         Product2 prod = new Product2(
             Name = 'Test Product',
             ProductCode = 'TP001',
             Pack_Size__c = '10kg',
-            Base_UOM__c = baseUomKG.Id,
+            Base_UOM__c = baseUom.Id,
             IsActive = true
         );
         insert prod;
-
-        // Create Pricebook Entry
+ 
         PricebookEntry pbe = new PricebookEntry(
-            Pricebook2Id = Test.getStandardPricebookId(),
+            Pricebook2Id = standardPricebook.Id,
             Product2Id = prod.Id,
             UnitPrice = 100,
             IsActive = true

@@ -67,8 +67,13 @@
                     </div> -->
 
                     <div class="slds-col slds-size_1-of-2 slds-medium-size_1-of-4">
-                        <lightning-combobox label="Sales Type" value={salesType} options={salesTypeOptions}
-                            onchange={handleSalesTypeChange} variant="label-stacked" required>
+                        <lightning-combobox
+                            name="salesType"
+                            label="Sales Type"
+                            value={salesType}
+                            options={salesTypeOptions}
+                            onchange={handleSalesTypeChange}
+                            required>
                         </lightning-combobox>
                     </div>
 
@@ -81,6 +86,14 @@
                         <lightning-combobox name="currency" label="Currency" value={selectedCurrency}
                             options={currencyOptions} onchange={handleCurrencyChange} variant="label-stacked" required>
                         </lightning-combobox>
+                    </div>
+
+                    <div class="slds-col slds-size_1-of-2 slds-medium-size_1-of-4" if:true={showCityField}>
+                        <c-city-lookup-component 
+                            onselected={handleCitySelected}
+                            selected-record-id={selectedCityId} 
+                            selected-record-name={selectedCityName}>
+                        </c-city-lookup-component>
                     </div>
 
                     <!-- Tour Lookup Field (Visible only for Outstation) -->
@@ -100,7 +113,7 @@
                 </div>
 
                 <!-- Line Items Section -->
-                <div class="slds-m-top_large">
+                <div class="slds-m-top_large" style="overflow-x: auto; max-width: 100%; padding-bottom: 100px;">
                     <!-- <div class="slds-text-heading_small slds-m-bottom_small">Expense Line Items</div> -->
 
                     <table class="slds-table slds-table_bordered slds-table_cell-buffer line-items-table">
@@ -335,12 +348,12 @@
                                                 required>
                                             </lightning-input>
                                         </div>
-                                        <!-- <template if:true={showLocalFields}>
+                                        <template if:true={showLimitation}>
                                             <div class="slds-text-color_weak slds-text-align_center slds-m-top_xx-small" 
                                                 style="font-size: 0.75rem;">
-                                                Calculated: {currencySymbol}{item.calculatedAmountDisplay}
+                                                {item.limitationText}
                                             </div>
-                                        </template> -->
+                                        </template>
                                     </td>
 
                                     <td if:true={showDailyAllowanceColumn}>

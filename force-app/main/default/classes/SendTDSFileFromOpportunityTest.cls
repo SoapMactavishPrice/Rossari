@@ -6,20 +6,31 @@ private class SendTDSFileFromOpportunityTest {
         // Get standard pricebook ID without updating (fix for UNABLE_TO_LOCK_ROW)
         Id standardPricebookId = Test.getStandardPricebookId();
 
-        Product2 testProduct = new Product2(
-            Name = 'Test Product',
+        Pricebook2 standardPricebook = new Pricebook2(
+            Id = Test.getStandardPricebookId(),
             IsActive = true
         );
-        insert testProduct;
-
-        PricebookEntry standardPBE = new PricebookEntry(
-            Pricebook2Id = standardPricebookId,
-            Product2Id = testProduct.Id,
-            UnitPrice = 100.00,
-            IsActive = true,
-            UseStandardPrice = false
+        update standardPricebook;
+ 
+        Base_UoM_Master__c baseUom = new Base_UoM_Master__c(Name = 'Kilogram');
+        insert baseUom;
+ 
+        Product2 prod = new Product2(
+            Name = 'Test Product',
+            ProductCode = 'TP001',
+            Pack_Size__c = '10kg',
+            Base_UOM__c = baseUom.Id,
+            IsActive = true
         );
-        insert standardPBE;
+        insert prod;
+ 
+        PricebookEntry pbe = new PricebookEntry(
+            Pricebook2Id = standardPricebook.Id,
+            Product2Id = prod.Id,
+            UnitPrice = 100,
+            IsActive = true
+        );
+        insert pbe;
 
         User user1 = new User(
             FirstName = 'Manager',
@@ -61,13 +72,13 @@ private class SendTDSFileFromOpportunityTest {
             OpportunityId = opp.Id,
             Quantity = 1,
             UnitPrice = 100,
-            PricebookEntryId = standardPBE.Id
+            PricebookEntryId = pbe.Id
         );
         insert oli;
 
         Product_Document__c pd = new Product_Document__c(
             Name = 'Test Product Doc',
-            Product__c = testProduct.Id
+            Product__c = Prod.Id
         );
         insert pd;
 

@@ -220,9 +220,11 @@ global class SalesOrderAPI {
                         ord.VARIABLE_PRICE__c = soRequest.VARIABLE_PRICE;
                         ord.EffectiveDate = System.today();
                         ord.PoNumber = soRequest.CUST_PURC_NO;
-                        // ord.Status = 'Sale Order Created';
+                        ord.Status = 'Sale Order Created';
                         if (String.isNotBlank(soRequest.STATUS)) {
-                            ord.Status = soRequest.STATUS;
+                            ord.Status__c = soRequest.STATUS;
+                        } else {
+                            ord.Status__c = 'Nothing rejected';
                         }
                         Pricebook2 pbk1 = [
                             SELECT IsActive, Description, IsStandard, Id, Name, SystemModstamp

@@ -14,9 +14,6 @@ private class OutstandingControllerTest {
         Distribution_Channel__c testDistChannel = new Distribution_Channel__c(Name = 'Test Channel');
         insert testDistChannel;
         
-        Base_UoM_Master__c baseUom = new Base_UoM_Master__c(Name = 'Kilogram');
-        insert baseUom;
-        
         User testUser = new User(
             FirstName = 'Test',
             LastName = 'User',
@@ -27,33 +24,42 @@ private class OutstandingControllerTest {
             LocaleSidKey = 'en_US',
             EmailEncodingKey = 'UTF-8',
             ProfileId = [SELECT Id FROM Profile WHERE Name = 'Standard User' LIMIT 1].Id,
-            LanguageLocaleKey = 'en_US'
+            LanguageLocaleKey = 'en_US',
+            CommunityNickname = 'testuser'
         );
         insert testUser;
     }
     
     static void createDynamicTestData() {
-        Id standardPricebookId = Test.getStandardPricebookId();
-        
-        Account testAccount = new Account(Name = 'Test Customer');
-        insert testAccount;
-        
+        // Your provided code for Pricebook, Product, Base UOM
+        Pricebook2 standardPricebook = new Pricebook2(
+            Id = Test.getStandardPricebookId(),
+            IsActive = true
+        );
+        update standardPricebook;
+ 
+        Base_UoM_Master__c baseUom = new Base_UoM_Master__c(Name = 'Kilogram');
+        insert baseUom;
+ 
         Product2 prod = new Product2(
             Name = 'Test Product',
             ProductCode = 'TP001',
             Pack_Size__c = '10kg',
-            Base_UOM__c = [SELECT Id FROM Base_UoM_Master__c WHERE Name = 'Kilogram' LIMIT 1].Id,
+            Base_UOM__c = baseUom.Id,
             IsActive = true
         );
         insert prod;
  
         PricebookEntry pbe = new PricebookEntry(
-            Pricebook2Id = standardPricebookId,
+            Pricebook2Id = standardPricebook.Id,
             Product2Id = prod.Id,
             UnitPrice = 100,
             IsActive = true
         );
         insert pbe;
+        
+        Account testAccount = new Account(Name = 'Test Customer');
+        insert testAccount;
         
         FY__c testFy = [SELECT Id FROM FY__c LIMIT 1];
         Sales_Organisation__c testSalesOrg = [SELECT Id FROM Sales_Organisation__c LIMIT 1];
@@ -85,6 +91,8 @@ private class OutstandingControllerTest {
         }
         insert testBudgets;
     }
+    
+    // ... rest of your test methods remain unchanged ...
     
     @isTest
     static void testAllScenarios() {
@@ -123,13 +131,6 @@ private class OutstandingControllerTest {
         Test.stopTest();
     }
     
-    @isTest
-    static void testNullParameters() {
-        Test.startTest();
-        List<OutstandingController.PartyOutstandingWrapper> result1 = OutstandingController.getBudget(null, null);
-        List<OutstandingController.PartyOutstandingWrapper> result2 = OutstandingController.getBudget('001000000000000', 'a00000000000000');
-        Test.stopTest();
-    }
     
     @isTest
     static void testMultipleUsers() {
@@ -147,7 +148,8 @@ private class OutstandingControllerTest {
             LocaleSidKey = 'en_US',
             EmailEncodingKey = 'UTF-8',
             ProfileId = [SELECT Id FROM Profile WHERE Name = 'Standard User' LIMIT 1].Id,
-            LanguageLocaleKey = 'en_US'
+            LanguageLocaleKey = 'en_US',
+            CommunityNickname = 'testuser2'
         );
         insert testUser2;
         

@@ -29,25 +29,36 @@ private class TargetNewControllerTest {
         Product_Group__c productGroup = new Product_Group__c(Name = 'Electronics');
         insert productGroup;
 
-        Product2 product = new Product2(
-            Name = 'Sample Product',
-            ProductCode = 'PROD001',
-            IsActive = true,
-            Item_Group__c = productGroup.Id
-        );
-        insert product;
-
-        PricebookEntry standardPBE = new PricebookEntry(
-            Pricebook2Id = standardPricebookId,
-            Product2Id = product.Id,
-            UnitPrice = 100.00,
+       Pricebook2 standardPricebook = new Pricebook2(
+            Id = Test.getStandardPricebookId(),
             IsActive = true
         );
-        insert standardPBE;
+        update standardPricebook;
+ 
+        Base_UoM_Master__c baseUom = new Base_UoM_Master__c(Name = 'Kilogram');
+        insert baseUom;
+ 
+        Product2 prod = new Product2(
+            Name = 'Test Product',
+            ProductCode = 'TP001',
+            Pack_Size__c = '10kg',
+            Base_UOM__c = baseUom.Id,
+            IsActive = true
+        );
+        insert prod;
+ 
+        PricebookEntry pbe = new PricebookEntry(
+            Pricebook2Id = standardPricebook.Id,
+            Product2Id = prod.Id,
+            UnitPrice = 100,
+            IsActive = true
+        );
+        insert pbe;
+
 
         Target__c target = new Target__c(
             FY__c = fy.Id,
-            Product__c = product.Id,
+            Product__c = prod.Id,
             Sales_Employee__c = usr.Id,
             Month__c = 'January',
             Year__c = '2025',

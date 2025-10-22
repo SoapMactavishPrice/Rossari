@@ -119,7 +119,14 @@ public with sharing class ExpenseApprovalController {
                         lineWrapper.amountClaimed = lineItem.Amount_Claimed__c;
                         lineWrapper.amountPassed = lineItem.Amount_Passed__c;
                         lineWrapper.description = lineItem.Description__c;
-                        
+
+                        Integer fileCount = [
+                            SELECT COUNT()
+                            FROM ContentDocumentLink
+                            WHERE LinkedEntityId = :lineItem.Id
+                        ];
+                        lineWrapper.hasFiles = (fileCount > 0);
+
                         wrapper.lineItems.add(lineWrapper);
                     }
                     
@@ -375,6 +382,16 @@ public with sharing class ExpenseApprovalController {
             System.debug('Line items updated successfully');
         }
     }
+
+    @AuraEnabled(cacheable=true)
+    public static List<ContentDocumentLink> getLineItemFiles(Id lineItemId) {
+        return [
+            SELECT Id, ContentDocumentId, ContentDocument.Title, ContentDocument.FileType
+            FROM ContentDocumentLink
+            WHERE LinkedEntityId = :lineItemId
+        ];
+    }
+
     
     // Wrapper classes
     public class ExpenseWrapper {
@@ -409,5 +426,6 @@ public with sharing class ExpenseApprovalController {
         @AuraEnabled public Decimal amountClaimed { get; set; }
         @AuraEnabled public Decimal amountPassed { get; set; }
         @AuraEnabled public String description { get; set; }
+        @AuraEnabled public Boolean hasFiles { get; set; }
     }
 }

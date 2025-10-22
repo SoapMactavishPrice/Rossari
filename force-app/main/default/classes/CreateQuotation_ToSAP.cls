@@ -11,21 +11,21 @@ public class CreateQuotation_ToSAP {
 
             Quote q = [SELECT Id, SAP_Order_No__c, Status FROM Quote WHERE Id = :qId];
 
-            if (q.Status != 'Accepted') {
-                retResData.put('status', 'false');
-                retResData.put('sync', 'false');
-                retResData.put('message', 'Quote status is not Accepted');
-            } else
-            // if(q.PO_PI_Number__c == null || q.PO_Date__c == null){
-            //     retResData.put('status', 'false');
-            //     retResData.put('sync', 'false');
-            //     retResData.put('message', 'PO Number, PO Date cannot blank');
-            // } else
-            if(q.SAP_Order_No__c != null){
-                retResData.put('status', 'false');
-                retResData.put('sync', 'false');
-                retResData.put('message', 'Quotation already sent to SAP');
-            }
+        //     if (q.Status != 'Accepted') {
+        //        retResData.put('status', 'false');
+        //         retResData.put('sync', 'false');
+        //        retResData.put('message', 'Quote status is not Accepted');
+        //    } else
+        //     if(q.PO_PI_Number__c == null || q.PO_Date__c == null){
+        //         retResData.put('status', 'false');
+        //         retResData.put('sync', 'false');
+        //         retResData.put('message', 'PO Number, PO Date cannot blank');
+        //     } else
+        //    if(q.SAP_Order_No__c != null){
+        //        retResData.put('status', 'false');
+        //        retResData.put('sync', 'false');
+        //        retResData.put('message', 'Quotation already sent to SAP');
+        //    }
 
             return JSON.serialize(retResData);
             
@@ -107,11 +107,11 @@ public class CreateQuotation_ToSAP {
         salesInquiry.put('SalesDocument', '');
         salesInquiry.put('Inco_term', '');
         salesInquiry.put('Payment_terms', '');
-        salesInquiry.put('PurchNoC', 'PO123456');
+        salesInquiry.put('PurchNoC', 'PO987452');
         salesInquiry.put('SalesPerson', '');
         salesInquiry.put('BillTo', '');
         salesInquiry.put('payer', '');
-        salesInquiry.put('Date', '20251009');
+        salesInquiry.put('Date', String.valueOf(System.today()).replace('-', ''));
         salesInquiry.put('Destination_Text', '');
         salesInquiry.put('Sales_Note_Text', '');
         salesInquiry.put('Transpoter', '');

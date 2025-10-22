@@ -56,27 +56,35 @@ public class InvoiceMaster_API_Test {
         );
         insert u;
 
-        Base_UoM_Master__c baseUom = new Base_UoM_Master__c(Name = 'TestUOM', Base_Code__c = 'UOM1');
-        insert baseUom;
 
         Id standardPricebookId = Test.getStandardPricebookId();
 
+        Pricebook2 standardPricebook = new Pricebook2(
+            Id = Test.getStandardPricebookId(),
+            IsActive = true
+        );
+        update standardPricebook;
+ 
+        Base_UoM_Master__c baseUom = new Base_UoM_Master__c(Name = 'Kilogram');
+        insert baseUom;
+ 
         Product2 prod = new Product2(
             Name = 'Test Product',
-            ProductCode = 'PROD1',
+            ProductCode = 'TP001',
             Pack_Size__c = '10kg',
             Base_UOM__c = baseUom.Id,
             IsActive = true
         );
         insert prod;
-
+ 
         PricebookEntry pbe = new PricebookEntry(
-            Pricebook2Id = standardPricebookId,
+            Pricebook2Id = standardPricebook.Id,
             Product2Id = prod.Id,
             UnitPrice = 100,
             IsActive = true
         );
         insert pbe;
+
 
         insert new Invoice__c(Name = 'INV001');
 

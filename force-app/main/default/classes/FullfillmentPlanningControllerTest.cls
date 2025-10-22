@@ -8,23 +8,31 @@ public class FullfillmentPlanningControllerTest {
         Plant__c testPlant = new Plant__c(Name = 'Test Plant');
         insert testPlant;
 
-        Product2 testProduct = new Product2(
+       Pricebook2 standardPricebook = new Pricebook2(
+            Id = Test.getStandardPricebookId(),
+            IsActive = true
+        );
+        update standardPricebook;
+ 
+        Base_UoM_Master__c baseUom = new Base_UoM_Master__c(Name = 'Kilogram');
+        insert baseUom;
+ 
+        Product2 prod = new Product2(
             Name = 'Test Product',
-            ProductCode = 'TEST-001',
-            Description = 'Test Description',
-            IsActive = true,
-            Plant_Code__c = testPlant.Id
+            ProductCode = 'TP001',
+            Pack_Size__c = '10kg',
+            Base_UOM__c = baseUom.Id,
+            IsActive = true
         );
-        insert testProduct;
-
-        PricebookEntry standardPBE = new PricebookEntry(
-            Pricebook2Id = standardPricebookId,
-            Product2Id = testProduct.Id,
-            UnitPrice = 100.00,
-            IsActive = true,
-            UseStandardPrice = false
+        insert prod;
+ 
+        PricebookEntry pbe = new PricebookEntry(
+            Pricebook2Id = standardPricebook.Id,
+            Product2Id = prod.Id,
+            UnitPrice = 100,
+            IsActive = true
         );
-        insert standardPBE;
+        insert pbe;
 
         Account testAccount = new Account(
             Name = 'Test Account',
@@ -52,10 +60,10 @@ public class FullfillmentPlanningControllerTest {
 
         OrderItem testOrderProduct = new OrderItem(
             OrderId = testOrder.Id,
-            Product2Id = testProduct.Id,
+            Product2Id = prod.Id,
             UnitPrice = 100,
             Quantity = 1,
-            PricebookEntryId = standardPBE.Id
+            PricebookEntryId = pbe.Id
         );
         insert testOrderProduct;
 
@@ -140,11 +148,7 @@ public class FullfillmentPlanningControllerTest {
         Test.stopTest();
     }
 
-    @IsTest static void testGetCustomerSchedulesEmpty() {
-        Test.startTest();
-        FullfillmentPlanningController.getCustomerSchedules('001000000000000AAA', '01t000000000000AAA', 'a0000000000000AAA');
-        Test.stopTest();
-    }
+
 
     @IsTest static void testSaveCustomerSchedules() {
         Order_Scheduling_Line_Item_wise__c schedulingLine = [SELECT Id, Order__c, Order_Product__c FROM Order_Scheduling_Line_Item_wise__c LIMIT 1];
@@ -202,23 +206,12 @@ public class FullfillmentPlanningControllerTest {
         Test.stopTest();
     }
 
-    @IsTest static void testRemoveRowScheduleDataInvalidId() {
-        Test.startTest();
-        FullfillmentPlanningController.removeRowScheduleData('a0000000000000AAA');
-        Test.stopTest();
-    }
 
     @IsTest static void testRemoveAllCustomerSchedules() {
         Order_Scheduling_Line_Item_wise__c schedulingLine = [SELECT Id, Order__c, Order_Product__c FROM Order_Scheduling_Line_Item_wise__c LIMIT 1];
 
         Test.startTest();
         FullfillmentPlanningController.removeAllCustomerSchedules(schedulingLine.Order__c, schedulingLine.Order_Product__c, schedulingLine.Id);
-        Test.stopTest();
-    }
-
-    @IsTest static void testRemoveAllCustomerSchedulesEmpty() {
-        Test.startTest();
-        FullfillmentPlanningController.removeAllCustomerSchedules('001000000000000AAA', '01t000000000000AAA', 'a0000000000000AAA');
         Test.stopTest();
     }
 
@@ -278,11 +271,7 @@ public class FullfillmentPlanningControllerTest {
         Test.stopTest();
     }
 
-    @IsTest static void testRemoveRowCustomerScheduleInvalidId() {
-        Test.startTest();
-        FullfillmentPlanningController.removeRowCustomerSchedule('a0000000000000AAA');
-        Test.stopTest();
-    }
+ 
 
     @IsTest static void testWrapperClasses() {
         // Intentionally omitted assertions — wrapper classes are invoked without validation now

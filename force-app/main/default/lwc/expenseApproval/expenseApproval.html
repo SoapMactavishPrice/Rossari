@@ -100,11 +100,12 @@
                                     <thead>
                                         <tr class="slds-text-title_caps">
                                             <th scope="col" style="width: 15%" class="table-header">TYPE OF EXPENSE</th>
-                                            <th scope="col" style="width: 15%" class="table-header text-center">MODE OF TRANSPORT</th>
+                                            <th scope="col" style="width: 12%" class="table-header text-center">MODE OF TRANSPORT</th>
                                             <th scope="col" style="width: 12%" class="table-header text-center">DAILY ALLOWANCE</th>
                                             <th scope="col" style="width: 12%" class="table-header text-center">AMOUNT CLAIMED</th>
                                             <th scope="col" style="width: 12%" class="table-header text-center">AMOUNT PASSED</th>
-                                            <th scope="col" style="width: 34%" class="table-header text-center">DESCRIPTION</th>
+                                            <th scope="col" style="width: 27%" class="table-header text-center">DESCRIPTION</th>
+                                            <th scope="col" style="width: 10%; text-align:center;" class="table-header">ATTACHMENTS</th>
                                         </tr>
                                     </thead>
                                     <tbody>
@@ -139,6 +140,23 @@
                                                 </template>
                                             </td>
                                             <td class="table-cell">{lineItem.description}</td>
+                                            <td class="table-cell" style="text-align: center;">
+                                                <template if:true={lineItem.hasFiles}>
+                                                    <lightning-button-icon
+                                                        icon-name="utility:preview"
+                                                        alternative-text="View Attachments"
+                                                        title="View Attachments"
+                                                        onclick={handleViewAttachments}
+                                                        data-lineitem-id={lineItem.lineItemId}
+                                                        data-lineitem-name={lineItem.typeOfExpense}
+                                                        variant="bare"
+                                                    ></lightning-button-icon>
+                                                </template>
+                                                <template if:false={lineItem.hasFiles}>
+                                                    <span class="slds-text-color_weak">No Files</span>
+                                                </template>
+                                            </td>
+
                                         </tr>
                                     </template>
                                     </tbody>
@@ -198,4 +216,57 @@
             </div>
         </template>
     </lightning-card>
+
+    <template if:true={showFilesModal}>
+        <section role="dialog" tabindex="-1" class="slds-modal slds-fade-in-open">
+            <div class="slds-modal__container" style="max-width: 600px;">
+                <header class="slds-modal__header">
+                    <h2 class="slds-text-heading_medium">
+                        Files for {selectedLineItemName}
+                    </h2>
+                    <button class="slds-button slds-button_icon slds-modal__close" onclick={closeFilesModal}>
+                        <lightning-icon icon-name="utility:close" alternative-text="Close"></lightning-icon>
+                    </button>
+                </header>
+
+                <div class="slds-modal__content slds-p-around_medium">
+                    <template if:true={selectedFiles.length}>
+                        <table class="slds-table slds-table_bordered slds-table_cell-buffer">
+                            <thead>
+                                <tr>
+                                    <th>File Name</th>
+                                    <th style="text-align: center;">Preview</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <template for:each={selectedFiles} for:item="file">
+                                    <tr key={file.id}>
+                                        <td>{file.name}</td>
+                                        <td style="text-align: center;">
+                                            <lightning-button-icon
+                                                icon-name="utility:preview"
+                                                alternative-text="Preview"
+                                                data-docid={file.id}
+                                                onclick={handlePreviewFile}
+                                                variant="bare"
+                                            ></lightning-button-icon>
+                                        </td>
+                                    </tr>
+                                </template>
+                            </tbody>
+                        </table>
+                    </template>
+                    <template if:false={selectedFiles.length}>
+                        <p class="slds-text-align_center slds-text-color_weak">No files found.</p>
+                    </template>
+                </div>
+
+                <footer class="slds-modal__footer">
+                    <lightning-button label="Close" onclick={closeFilesModal} variant="neutral"></lightning-button>
+                </footer>
+            </div>
+        </section>
+        <div class="slds-backdrop slds-backdrop_open"></div>
+    </template>
+
 </template>

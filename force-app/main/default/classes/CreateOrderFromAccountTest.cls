@@ -1,6 +1,6 @@
 @IsTest
 private class CreateOrderFromAccountTest {
-    
+
     @TestSetup
     static void setupTestData() {
         Account testAccount = new Account(
@@ -28,23 +28,34 @@ private class CreateOrderFromAccountTest {
 
         Id standardPricebookId = Test.getStandardPricebookId();
 
+        Pricebook2 standardPricebook = new Pricebook2(
+            Id = standardPricebookId,
+            IsActive = true
+        );
+        update standardPricebook;
+
+        Base_UoM_Master__c baseUom = new Base_UoM_Master__c(Name = 'Kilogram');
+        insert baseUom;
+
         Product2 prod = new Product2(
             Name = 'Test Product',
-            IsActive = true,
             ProductCode = 'TP001',
-            CurrencyIsoCode = 'USD'
+            Pack_Size__c = '10kg',
+            Base_UOM__c = baseUom.Id,
+            IsActive = true
         );
         insert prod;
 
-        PricebookEntry standardPbe = new PricebookEntry(
-            Pricebook2Id = standardPricebookId,
+        // Insert standard pricebook entry first
+        PricebookEntry pbe = new PricebookEntry(
+            Pricebook2Id = standardPricebook.Id,
             Product2Id = prod.Id,
             UnitPrice = 100,
             IsActive = true,
-            CurrencyIsoCode = 'USD',
-            UseStandardPrice = false
+            UseStandardPrice = false,
+            CurrencyIsoCode = 'USD'
         );
-        insert standardPbe;
+        insert pbe;
 
         Pricebook2 customPb = new Pricebook2(
             Name = 'Custom Pricebook',
@@ -88,10 +99,10 @@ private class CreateOrderFromAccountTest {
         Account acc = [SELECT Id FROM Account LIMIT 1];
         Order ord = [SELECT Id FROM Order LIMIT 1];
         Product2 prod = [SELECT Id FROM Product2 LIMIT 1];
-        
+
         PricebookEntry pbe = [SELECT Id, Product2Id, Pricebook2Id, UnitPrice FROM PricebookEntry 
-                             WHERE Product2Id = :prod.Id AND IsActive = true 
-                             AND CurrencyIsoCode = 'USD' LIMIT 1];
+                              WHERE Product2Id = :prod.Id AND IsActive = true 
+                              AND CurrencyIsoCode = 'USD' LIMIT 1];
 
         List<Map<String, Object>> orderItems = new List<Map<String, Object>>{
             new Map<String, Object>{
@@ -127,9 +138,7 @@ private class CreateOrderFromAccountTest {
 
         try {
             Id defaultPricebook = CreateOrderFromAccount.getDefaultPricebookForOrder();
-        } catch (Exception e) {
-            System.debug('No active standard pricebook found: ' + e.getMessage());
-        }
+        } catch (Exception e) {}
 
         Map<String, String> pricebookValidation = CreateOrderFromAccount.validatePricebookEntries(
             pbe.Pricebook2Id, 'USD', new List<Id>{pbe.Product2Id});
@@ -150,7 +159,7 @@ private class CreateOrderFromAccountTest {
         Account acc = [SELECT Id FROM Account LIMIT 1];
         Product2 prod = [SELECT Id FROM Product2 LIMIT 1];
         PricebookEntry pbe = [SELECT Id, Product2Id, Pricebook2Id FROM PricebookEntry 
-                             WHERE Product2Id = :prod.Id AND IsActive = true LIMIT 1];
+                              WHERE Product2Id = :prod.Id AND IsActive = true LIMIT 1];
 
         Test.startTest();
 

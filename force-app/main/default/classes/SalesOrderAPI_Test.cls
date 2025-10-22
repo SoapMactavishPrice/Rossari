@@ -323,13 +323,7 @@ private class SalesOrderAPI_Test {
         Test.startTest();
         SalesOrderAPI.doPost();
         Test.stopTest();
-        
-        // Assertions
-        // System.assertEquals(200, response.statusCode, 'Expected success status code');
-        
-        // Verify Order was updated
-        Order updatedOrder = [SELECT Id, Status FROM Order WHERE SAP_Order_Number__c = 'SO002' LIMIT 1];
-        // System.assertEquals('Activated', updatedOrder.Status, 'Order status should be updated');
+
     }
     
     @isTest

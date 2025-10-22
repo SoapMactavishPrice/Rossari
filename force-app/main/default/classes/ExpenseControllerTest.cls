@@ -33,7 +33,21 @@ public class ExpenseControllerTest {
             Daily_Allowance_B_class_cities__c = 800,
             Four_Wheeler_per_km__c = 12.5,
             Two_Wheeler_per_km__c = 8.0,
-            Mode_of_Travel__c = 'Car'
+            Mode_of_Travel__c = 'Car;Bike',
+            Sales_Type__c = 'Export',
+            Special_Allowance__c = 300,
+            Out_of_Pocket__c = 150,
+            Mode_of_Outstation_Travel__c = 'Business Class;Economy Class',
+            Lodging_Hotel__c = 500,
+            Boarding_Food__c = 200,
+            Lodging_Hotel_B_Class__c = 450,
+            Boarding_Food_B_Class__c = 180
+        );
+
+        insert new Grade__c(
+            Name = 'EM',
+            Daily_Allowance_A_class_cities__c = 1100,
+            Sales_Type__c = 'Domestic'
         );
 
         insert new Account(Name = 'Test Account');
@@ -51,24 +65,30 @@ public class ExpenseControllerTest {
         Test.startTest();
         ExpenseController.initializeExpense();
         ExpenseController.getGradeDetails('DR');
-        ExpenseController.getGradeDetails('');
+        ExpenseController.getGradeDetails('EM');
+        ExpenseController.getGradeDetails('');        
         ExpenseController.getGradeDetails('NonExistentGrade');
+        
+        ExpenseController.getGradeDetailsWithSalesType('DR', 'Export');
+        ExpenseController.getGradeDetailsWithSalesType('DR', 'NonExistentSalesType');
+        
         ExpenseController.getDailyAllowanceByGrade('DR');
         ExpenseController.getDailyAllowanceByGrade('');
         ExpenseController.getDailyAllowanceByGrade('NonExistentGrade');
+        
         ExpenseController.getUsers('Test');
         ExpenseController.getUsers('NonExistentUser');
+        
         ExpenseController.getTypeOfExpense('Test', 'Local');
-        ExpenseController.getTypeOfExpense('Travel', 'Transport');
+        ExpenseController.getTypeOfExpense('Travel', 'Local');
         ExpenseController.getTypeOfExpense(null, 'Local');
         ExpenseController.getTypeOfExpense('Test', null);
         ExpenseController.getTypeOfExpense(null, null);
         ExpenseController.getTypeOfExpense('NonExistent', 'InvalidVoucher');
+        
         ExpenseController.getExpenseRecordTypes();
         ExpenseController.getTransportModes();
         ExpenseController.getSalesTypeOptions();
-        ExpenseController.getTypeOfExpense('\' OR Name LIKE \'%', 'Invalid');
-        ExpenseController.getGradeDetails('InvalidGrade');
         Test.stopTest();
     }
 
@@ -78,8 +98,9 @@ public class ExpenseControllerTest {
         Account testAccount = [SELECT Id FROM Account WHERE Name = 'Test Account' LIMIT 1];
 
         Test.startTest();
-        ExpenseController.createCustomerVisit(testTour.Id, testAccount.Id);
-        ExpenseController.createCustomerVisit(testTour.Id, testAccount.Id);
+        Id visitId1 = ExpenseController.createCustomerVisit(testTour.Id, testAccount.Id);
+        Id visitId2 = ExpenseController.createCustomerVisit(testTour.Id, testAccount.Id); // Should get existing record id
+        
         try { ExpenseController.createCustomerVisit(null, testAccount.Id); } catch (AuraHandledException e) {}
         try { ExpenseController.createCustomerVisit(testTour.Id, null); } catch (AuraHandledException e) {}
         Test.stopTest();
@@ -94,12 +115,59 @@ public class ExpenseControllerTest {
         System.runAs(testUser) {
             Test.startTest();
             try { ExpenseController.initializeExpense(); } catch (Exception e) {}
+            
+            Expense__c exp = new Expense__c(Name='Test Expense');
+            List<Expense_Line_Item__c> lineItems = new List<Expense_Line_Item__c>();
             try {
-                Expense__c invalidExp = new Expense__c();
-                List<Expense_Line_Item__c> invalidItems = new List<Expense_Line_Item__c>();
-                ExpenseController.createExpenseWithFiles(invalidExp, invalidItems, null);
+                ExpenseController.createExpenseWithFiles(exp, lineItems, null);
             } catch (Exception e) {}
             Test.stopTest();
         }
     }
+
+    @isTest
+    static void testAdditionalMethods() {
+        // Insert a City__c record for getCityDetails
+        City__c city = new City__c(Name = 'Test City');
+        insert city;
+
+        // Insert Grade__c for getExportTransportModes
+        Grade__c grade = new Grade__c(
+            Name = 'TestGrade',
+            Sales_Type__c = 'Export',
+            Mode_of_Travel__c = 'Car;Bike'
+        );
+        insert grade;
+
+        Test.startTest();
+        // Test getCityDetails with valid Id
+        Map<String, Object> cityDetails = ExpenseController.getCityDetails(city.Id);
+
+        // Test getCityDetails with invalid Id
+        try {
+            ExpenseController.getCityDetails('001000000000000AAA');
+        } catch (AuraHandledException e) {
+            // expected exception
+        }
+
+        // Test getCityDetails with blank Id
+        Map<String, Object> blankCity = ExpenseController.getCityDetails('');
+
+        // Test getExportTransportModes with valid grade name
+        List<Map<String, String>> exportModes = ExpenseController.getExportTransportModes(grade.Name);
+
+
+        // Test getExportTransportModes with invalid grade name
+        List<Map<String, String>> exportModesInvalid = ExpenseController.getExportTransportModes('InvalidGrade');
+
+
+        // Test getModeOfTravelOptions 
+        List<Map<String, String>> modes = ExpenseController.getModeOfTravelOptions();
+
+
+        // Test exception in getModeOfTravelOptions by temporarily mocking Schema method (optional and advanced)
+
+        Test.stopTest();
+    }
+
 }

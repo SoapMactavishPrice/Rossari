@@ -1,89 +1,106 @@
 @isTest
 private class CompanyUserControllerTest {
     
-    @TestSetup
-    static void setupTestData() {
-        Profile p = [SELECT Id FROM Profile WHERE Name='Standard User' LIMIT 1];
+  @TestSetup
+static void setupTestData() {
+    Profile p = [SELECT Id FROM Profile WHERE Name='Standard User' LIMIT 1];
 
-        User testUser = new User(
-            FirstName = 'Test',
-            LastName = 'User',
-            Email = 'testuser@test.com',
-            Username = 'testuseranjb87@test.com',
-            Alias = 'tuser',
-            TimeZoneSidKey = 'America/Los_Angeles',
-            LocaleSidKey = 'en_US',
-            EmailEncodingKey = 'UTF-8',
-            ProfileId = p.Id,
-            LanguageLocaleKey = 'en_US',
-            IsActive = true
-        );
-        insert testUser;
+    User testUser = new User(
+        FirstName = 'Test',
+        LastName = 'User',
+        Email = 'testuser@test.com',
+        Username = 'testuseranjb87@test.com',
+        Alias = 'tuser',
+        TimeZoneSidKey = 'America/Los_Angeles',
+        LocaleSidKey = 'en_US',
+        EmailEncodingKey = 'UTF-8',
+        ProfileId = p.Id,
+        LanguageLocaleKey = 'en_US',
+        IsActive = true
+    );
+    insert testUser;
 
-        Company__c testCompany = new Company__c(
-            Name = 'Test Company',
-            SAP_Code__c = '1000',
-            Email__c = 'company@test.com',
-            Phone__c = '1234567890',
-            Company_Code__c = 'COMP001'
-        );
-        insert testCompany;
+    Company__c testCompany = new Company__c(
+        Name = 'Test Company',
+        SAP_Code__c = '1000',
+        Email__c = 'company@test.com',
+        Phone__c = '1234567890',
+        Company_Code__c = 'COMP001'
+    );
+    insert testCompany;
 
-        Division__c testDivision = new Division__c(Name = 'Test Division');
-        insert testDivision;
+    Division__c testDivision = new Division__c(Name = 'Test Division');
+    insert testDivision;
 
-        Product_Group__c allProductGroup = new Product_Group__c(Item_Group_Description__c = 'All Product Group');
-        insert allProductGroup;
+    Product_Group__c allProductGroup = new Product_Group__c(Item_Group_Description__c = 'All Product Group');
+    insert allProductGroup;
 
-        Product_Group__c testProductGroup = new Product_Group__c(Item_Group_Description__c = 'Test Product Group');
-        insert testProductGroup;
+    Product_Group__c testProductGroup = new Product_Group__c(Item_Group_Description__c = 'Test Product Group');
+    insert testProductGroup;
 
-        Id standardPricebookId = Test.getStandardPricebookId();
+    // ✅ UOM and Pricebook Setup
+    Pricebook2 standardPricebook = new Pricebook2(
+        Id = Test.getStandardPricebookId(),
+        IsActive = true
+    );
+    update standardPricebook;
 
-        Product2 testProduct = new Product2(
-            Name = 'Test Product',
-            Division__c = testDivision.Id,
-            Item_Group__c = testProductGroup.Id,
-            IsActive = true,
-            ProductCode = 'TEST001',
-            Create_PricebookEntry__c = false
-        );
-        insert testProduct;
+    Base_UoM_Master__c baseUom = new Base_UoM_Master__c(Name = 'Kilogram');
+    insert baseUom;
 
-        Sales_Organisation__c testSalesOrg1 = new Sales_Organisation__c(Name = '1000');
-        insert testSalesOrg1;
+    Product2 testProduct = new Product2(
+        Name = 'Test Product',
+        ProductCode = 'TP001',
+        Pack_Size__c = '10kg',
+        Base_UOM__c = baseUom.Id,
+        Division__c = testDivision.Id,
+        Item_Group__c = testProductGroup.Id,
+        IsActive = true
+    );
+    insert testProduct;
 
-        Sales_Organisation__c testSalesOrg2 = new Sales_Organisation__c(Name = '2000');
-        insert testSalesOrg2;
+    PricebookEntry pbe = new PricebookEntry(
+        Pricebook2Id = standardPricebook.Id,
+        Product2Id = testProduct.Id,
+        UnitPrice = 100,
+        IsActive = true
+    );
+    insert pbe;
 
-        Distribution_Channel__c testDistChannel1 = new Distribution_Channel__c(Name = '10');
-        insert testDistChannel1;
+    Sales_Organisation__c testSalesOrg1 = new Sales_Organisation__c(Name = '1000');
+    insert testSalesOrg1;
 
-        Distribution_Channel__c testDistChannel2 = new Distribution_Channel__c(Name = '20');
-        insert testDistChannel2;
+    Sales_Organisation__c testSalesOrg2 = new Sales_Organisation__c(Name = '2000');
+    insert testSalesOrg2;
 
-        Sales_Area__c testSalesArea1 = new Sales_Area__c(
-            Item_Master__c = testProduct.Id,
-            Sales_Organisation__c = testSalesOrg1.Id,
-            Distribution_Channel__c = testDistChannel1.Id
-        );
-        insert testSalesArea1;
+    Distribution_Channel__c testDistChannel1 = new Distribution_Channel__c(Name = '10');
+    insert testDistChannel1;
 
-        Sales_Area__c testSalesArea2 = new Sales_Area__c(
-            Item_Master__c = testProduct.Id,
-            Sales_Organisation__c = testSalesOrg2.Id,
-            Distribution_Channel__c = testDistChannel2.Id
-        );
-        insert testSalesArea2;
+    Distribution_Channel__c testDistChannel2 = new Distribution_Channel__c(Name = '20');
+    insert testDistChannel2;
 
-        Company_User__c testCompanyUser = new Company_User__c(
-            Company__c = testCompany.Id,
-            User__c = testUser.Id,
-            Division__c = testDivision.Id,
-            Product_Group__c = testProductGroup.Id
-        );
-        insert testCompanyUser;
-    }
+    Sales_Area__c testSalesArea1 = new Sales_Area__c(
+        Item_Master__c = testProduct.Id,
+        Sales_Organisation__c = testSalesOrg1.Id,
+        Distribution_Channel__c = testDistChannel1.Id
+    );
+    insert testSalesArea1;
+
+    Sales_Area__c testSalesArea2 = new Sales_Area__c(
+        Item_Master__c = testProduct.Id,
+        Sales_Organisation__c = testSalesOrg2.Id,
+        Distribution_Channel__c = testDistChannel2.Id
+    );
+    insert testSalesArea2;
+
+    Company_User__c testCompanyUser = new Company_User__c(
+        Company__c = testCompany.Id,
+        User__c = testUser.Id,
+        Division__c = testDivision.Id,
+        Product_Group__c = testProductGroup.Id
+    );
+    insert testCompanyUser;
+}
 
     @isTest
     static void testAllMethods() {

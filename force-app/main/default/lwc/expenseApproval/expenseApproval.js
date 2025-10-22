@@ -1,9 +1,11 @@
 import { LightningElement, wire, track } from 'lwc';
 import getPendingExpenseApprovals from '@salesforce/apex/ExpenseApprovalController.getPendingExpenseApprovals';
 import submitApproval from '@salesforce/apex/ExpenseApprovalController.submitApproval';
+import getLineItemFiles from '@salesforce/apex/ExpenseApprovalController.getLineItemFiles';
 import { ShowToastEvent } from 'lightning/platformShowToastEvent';
+import { NavigationMixin } from 'lightning/navigation';
 
-export default class ExpenseApproval extends LightningElement {
+export default class ExpenseApproval extends NavigationMixin(LightningElement) {
     @track expenses = [];
     @track isLoading = false;
     @track showModal = false;
@@ -199,5 +201,50 @@ export default class ExpenseApproval extends LightningElement {
         } catch (error) {
             return dateString;
         }
+    }
+
+    @track showFilesModal = false;
+    @track selectedFiles = [];
+    @track selectedLineItemName = '';
+
+    async handleViewAttachments(event) {
+        const lineItemId = event.currentTarget.dataset.lineitemId;
+        const lineItemName = event.currentTarget.dataset.lineitemName;
+
+        this.isLoading = true;
+        try {
+            const files = await getLineItemFiles({ lineItemId });
+            this.selectedFiles = files.map(f => ({
+                id: f.ContentDocumentId,
+                name: f.ContentDocument.Title,
+                fileType: f.ContentDocument.FileType
+            }));
+            this.selectedLineItemName = lineItemName;
+            this.showFilesModal = true;
+        } catch (error) {
+            console.error('Error fetching files:', error);
+            this.showToast('Error', error.body.message, 'error');
+        } finally {
+            this.isLoading = false;
+        }
+    }
+
+    handlePreviewFile(event) {
+        const documentId = event.currentTarget.dataset.docid;
+        this[NavigationMixin.Navigate]({
+            type: 'standard__namedPage',
+            attributes: {
+                pageName: 'filePreview'
+            },
+            state: {
+                selectedRecordId: documentId
+            }
+        });
+    }
+
+    closeFilesModal() {
+        this.showFilesModal = false;
+        this.selectedFiles = [];
+        this.selectedLineItemName = '';
     }
 }

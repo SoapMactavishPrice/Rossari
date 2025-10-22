@@ -3,22 +3,32 @@ public class OptyTriggerHandlerTest {
 
     @TestSetup
     static void setupTestData() {
-        Product2 testProduct = new Product2(
-            Name = 'Test Product',
+        Pricebook2 standardPricebook = new Pricebook2(
+            Id = Test.getStandardPricebookId(),
             IsActive = true
         );
-        insert testProduct;
-
-        Id standardPriceBookId = Test.getStandardPricebookId();
-
-        PricebookEntry standardPBE = new PricebookEntry(
-            Pricebook2Id = standardPriceBookId,
-            Product2Id = testProduct.Id,
-            UnitPrice = 100,
-            IsActive = true,
-            CurrencyIsoCode = 'INR'
+        update standardPricebook;
+ 
+        Base_UoM_Master__c baseUom = new Base_UoM_Master__c(Name = 'Kilogram');
+        insert baseUom;
+ 
+        Product2 prod = new Product2(
+            Name = 'Test Product',
+            ProductCode = 'TP001',
+            Pack_Size__c = '10kg',
+            Base_UOM__c = baseUom.Id,
+            IsActive = true
         );
-        insert standardPBE;
+        insert prod;
+ 
+        PricebookEntry pbe = new PricebookEntry(
+            Pricebook2Id = standardPricebook.Id,
+            Product2Id = prod.Id,
+            UnitPrice = 100,
+            IsActive = true
+        );
+        insert pbe;
+
     }
 
     @isTest
@@ -40,7 +50,7 @@ public class OptyTriggerHandlerTest {
         Pin_Code__c postal = new Pin_Code__c(Name = '560001', City__c = city.Id);
         insert postal;
 
-        Lead testLead = new Lead(
+        Lead testLead29 = new Lead(
             FirstName = 'Jane',
             LastName = 'Doe',
             Company = 'Test Inc',
@@ -54,10 +64,10 @@ public class OptyTriggerHandlerTest {
             CurrencyIsoCode = 'INR',
             MobilePhone = '8987453243'
         );
-        insert testLead;
+        insert testLead29;
 
         Product_Interested__c pi = new Product_Interested__c(
-            Lead__c = testLead.Id,
+            Lead__c = testLead29.Id,
             Product__c = product.Id,
             Quantity_in_Kgs__c = 50,
             Expected_Price__c = 250,
@@ -66,25 +76,25 @@ public class OptyTriggerHandlerTest {
         insert pi;
 
         Database.LeadConvert lc = new Database.LeadConvert();
-        lc.setLeadId(testLead.Id);
+        lc.setLeadId(testLead29.Id);
         lc.setConvertedStatus(getConvertedStatus());
         lc.setOpportunityName('Converted Opp');
         lc.setDoNotCreateOpportunity(false);
 
         Database.LeadConvertResult lcr = Database.convertLead(lc);
 
-        testLead = [SELECT Id, IsConverted, ConvertedOpportunityId, ConvertedAccountId FROM Lead WHERE Id = :testLead.Id];
-        Opportunity opp = [SELECT Id, CurrencyIsoCode FROM Opportunity WHERE Id = :testLead.ConvertedOpportunityId];
+        testLead29 = [SELECT Id, IsConverted, ConvertedOpportunityId, ConvertedAccountId FROM Lead WHERE Id = :testLead29.Id];
+        Opportunity opp = [SELECT Id, CurrencyIsoCode FROM Opportunity WHERE Id = :testLead29.ConvertedOpportunityId];
 
         opp.Pricebook2Id = Test.getStandardPricebookId();
         update opp;
 
         Map<Id, Lead> oldLeadMap = new Map<Id, Lead>{
-            testLead.Id => new Lead(Id = testLead.Id, IsConverted = false)
+            testLead29.Id => new Lead(Id = testLead29.Id, IsConverted = false)
         };
 
         Test.startTest();
-        OpportunityTriggerHandler.convertHandler(new List<Lead>{testLead}, oldLeadMap);
+        OpportunityTriggerHandler.convertHandler(new List<Lead>{testLead29}, oldLeadMap);
         Test.stopTest();
 
         List<OpportunityLineItem> oliList = [

@@ -1,203 +1,130 @@
 @isTest
-private class OpportunityTriggerHandlerTest {
+public class OpportunityTriggerHandlerTest {
     
-    @testSetup
-    static void setupTestData() {
-        Country__c india = new Country__c(Name = 'India');
-        insert india;
-        
+    @isTest
+    static void testOpportunityLineItemsCreation() {
+
+        // Query the Standard Pricebook
         Id standardPricebookId = Test.getStandardPricebookId();
+
+        Pricebook2 priceBook = new Pricebook2(Id = standardPricebookId, IsActive = true);
+        update priceBook;
+
+        Product2 prod = new Product2(Name='Test Product', IsActive=true);
+        insert prod;
+
+        // Create Lead
+        Lead lead = new Lead(FirstName='TestFirstName', LastName='TestLead', Company='Test Company', MobilePhone='1234567890');
+        insert lead;
+
+        // Create Product_Interested__c record linked to Lead with Add_in_Opportunity__c = true
+        Product_Interested__c pi = new Product_Interested__c(
+            Lead__c = lead.Id,
+            Product__c = prod.Id,
+            Quantity_in_Kgs__c = 10,
+            Expected_Price__c = 120,
+            Quantity_Frequency__c = 'Per/Month',
+            Add_in_Opportunity__c = true
+        );
+        insert pi;
+
+        String convertedStatus = [SELECT MasterLabel FROM LeadStatus WHERE IsConverted=true LIMIT 1].MasterLabel;
+
+        Database.LeadConvert leadConvert = new Database.LeadConvert();
+        leadConvert.setLeadId(lead.Id);
+        leadConvert.setConvertedStatus(convertedStatus);
+        leadConvert.setDoNotCreateOpportunity(false);
+
+        Database.LeadConvertResult lcr = Database.convertLead(leadConvert);
+
+        // Query Lead again as newLead, oldLead for convertHandler
+        Lead oldLead = [SELECT Id, IsConverted FROM Lead WHERE Id = :lead.Id];
+        Id oppId = lcr.getOpportunityId();
+        Lead newLead = [SELECT Id, IsConverted FROM Lead WHERE Id = :lead.Id];
+
+        Map<Id, Lead> oldMap = new Map<Id, Lead>{ oldLead.Id => oldLead };
+        List<Lead> newList = new List<Lead>{ newLead };
+
+        // Create maps needed by convertHandler
+        Map<Id, Id> leadToOppMap = new Map<Id, Id>{ lead.Id => oppId };
+        Map<Id, Id> leadToAccountMap = new Map<Id, Id>{ lead.Id => lcr.getAccountId() };
+
+        // You need to setup your convertHandler inputs correctly
+        // Since your method is static and takes (List<Lead>, Map<Id, Lead>) you call it directly
         
-        List<Product2> products = new List<Product2>{
-            new Product2(Name = 'Test Product 1', IsActive = true),
-            new Product2(Name = 'Test Product 2', IsActive = true)
-        };
-        insert products;
+        Test.startTest();
+        OpportunityTriggerHandler.convertHandler(newList, oldMap);
+        Test.stopTest();
+
+        // This runs the code creating OpportunityLineItems from Product_Interested__c for the converted opportunity.
+    }
+
+
+    @isTest static void testMarkConvertedOpportunitiesFuture() {
+        Set<Id> oppIds = new Set<Id>{'006000000000000000'};
+        Test.startTest();
+        OpportunityTriggerHandler.markConvertedOpportunitiesFuture(oppIds);
+        Test.stopTest();
+    }
+
+    @isTest static void testSetStandardPricebookAndName() {
+        Account acc = new Account(Name='Test Account');
+        insert acc;
+
+        Opportunity opp = new Opportunity(Name='Old Name', CloseDate=Date.today().addDays(10), StageName='Prospecting', AccountId = acc.Id);
+        insert opp;
+
+        List<Opportunity> oppList = [SELECT Id, Pricebook2Id, AccountId FROM Opportunity WHERE Id = :opp.Id];
+
+        Test.startTest();
+        OpportunityTriggerHandler.setStandardPricebook(oppList);
+        OpportunityTriggerHandler.setConvertedOpportunityName(oppList);
+        Test.stopTest();
+    }
+
+    @isTest static void testGetLostReasonPicklist() {
+        Test.startTest();
+        List<String> picklist = OpportunityTriggerHandler.getLostReasonPicklist();
+        Test.stopTest();
+    }
+
+    @isTest static void testUpdateOpportunityStatus() {
+        Opportunity opp = new Opportunity(Name='Test Opp', CloseDate=Date.today().addDays(10), StageName='Prospecting');
+        insert opp;
+
+        Map<String, Object> data = new Map<String, Object>();
+        data.put('opportunityId', opp.Id);
+        data.put('lostReason', 'Others');
+        data.put('note', 'Some note');
+        data.put('nextFollowUp', String.valueOf(Date.today().addDays(5)));
+        data.put('otherReasons', 'Reason detail here');
+
+        Test.startTest();
+        OpportunityTriggerHandler.updateOpportunityStatus(data);
+        Test.stopTest();
+    }
+
+    @isTest static void testHandleFollowUpTask() {
+        User u = [SELECT Id FROM User LIMIT 1];
+        u.IsActive = true;
+        update u;
+        System.runAs(u) {
+            Account acc = new Account(Name='Test Account');
+            insert acc;
         
-        List<PricebookEntry> pbes = new List<PricebookEntry>();
-        for (Product2 p : products) {
-            pbes.add(new PricebookEntry(
-                Pricebook2Id = standardPricebookId,
-                Product2Id = p.Id,
-                UnitPrice = 100,
-                IsActive = true
-            ));
+
+        Opportunity opp = new Opportunity(Name='Test Opp', CloseDate=Date.today().addDays(1), StageName='Prospecting', AccountId=acc.Id, OwnerId=u.Id);
+        insert opp;
+
+        Map<Id, Opportunity> oldMap = new Map<Id, Opportunity>{ opp.Id => opp };
+        Opportunity newOpp = opp;
+        newOpp.Next_Follow_Up__c = Date.today().addDays(2);
+
+        List<Opportunity> newOpps = new List<Opportunity>{newOpp};
+
+        Test.startTest();
+        OpportunityTriggerHandler.handleFollowUpTask(newOpps, oldMap);
+        Test.stopTest();
         }
-        insert pbes;
-        
-        List<Lead> leads = new List<Lead>{
-            new Lead(FirstName = 'Test', LastName = 'Leads', Company = 'Test Company 1', MobilePhone = '1234567890'),
-            new Lead(FirstName = 'Test', LastName = 'Lead', Company = 'Test Company 2', MobilePhone = '1234567890')
-        };
-        insert leads;
-        
-        List<Product_Interested__c> productInterests = new List<Product_Interested__c>();
-        for (Integer i = 0; i < leads.size(); i++) {
-            productInterests.add(new Product_Interested__c(
-                Lead__c = leads[i].Id,
-                Product__c = products[i].Id,
-                Quantity_in_Kgs__c = 10,
-                Expected_Price__c = 100,
-                Quantity_Frequency__c = 'Per/Month',
-                Add_in_Opportunity__c = true
-            ));
-        }
-        insert productInterests;
-    }
-    
-    @isTest
-    static void testConvertHandlerWithProductsToOpportunity() {
-        Lead testLead = [SELECT Id FROM Lead WHERE LastName = 'Leads' LIMIT 1];
-        Product_Interested__c pi = [SELECT Id FROM Product_Interested__c WHERE Lead__c = :testLead.Id LIMIT 1];
-        
-        Database.LeadConvert lc = new Database.LeadConvert();
-        lc.setLeadId(testLead.Id);
-        lc.setDoNotCreateOpportunity(false);
-        lc.setConvertedStatus('Qualified');
-        Database.LeadConvertResult lcr = Database.convertLead(lc);
-        
-        Lead convertedLead = [SELECT Id, IsConverted, ConvertedAccountId, ConvertedOpportunityId FROM Lead WHERE Id = :testLead.Id];
-        
-        Map<Id, Lead> oldLeadMap = new Map<Id, Lead>();
-        oldLeadMap.put(testLead.Id, new Lead(Id = testLead.Id, IsConverted = false));
-        
-        Test.startTest();
-        OpportunityTriggerHandler.convertHandler(new List<Lead>{convertedLead}, oldLeadMap);
-        Test.stopTest();
-        
-        List<OpportunityLineItem> olis = [SELECT Id FROM OpportunityLineItem WHERE OpportunityId = :convertedLead.ConvertedOpportunityId];
-        Product_Interested__c updatedPi = [SELECT Account__c FROM Product_Interested__c WHERE Id = :pi.Id];
-    }
-    
-    @isTest
-    static void testConvertHandlerWithoutProductsToOpportunity() {
-        Lead testLead = [SELECT Id FROM Lead WHERE LastName = 'Lead' LIMIT 1];
-        Product_Interested__c pi = [SELECT Id FROM Product_Interested__c WHERE Lead__c = :testLead.Id LIMIT 1];
-        pi.Add_in_Opportunity__c = false;
-        update pi;
-        
-        Database.LeadConvert lc = new Database.LeadConvert();
-        lc.setLeadId(testLead.Id);
-        lc.setDoNotCreateOpportunity(false);
-        lc.setConvertedStatus('Qualified');
-        Database.LeadConvertResult lcr = Database.convertLead(lc);
-        
-        Lead convertedLead = [SELECT Id, IsConverted, ConvertedAccountId, ConvertedOpportunityId FROM Lead WHERE Id = :testLead.Id];
-        
-        Map<Id, Lead> oldLeadMap = new Map<Id, Lead>();
-        oldLeadMap.put(testLead.Id, new Lead(Id = testLead.Id, IsConverted = false));
-        
-        Test.startTest();
-        OpportunityTriggerHandler.convertHandler(new List<Lead>{convertedLead}, oldLeadMap);
-        Test.stopTest();
-        
-        List<OpportunityLineItem> olis = [SELECT Id FROM OpportunityLineItem WHERE OpportunityId = :convertedLead.ConvertedOpportunityId];
-        Product_Interested__c updatedPi = [SELECT Account__c FROM Product_Interested__c WHERE Id = :pi.Id];
-    }
-    
-    @isTest
-    static void testConvertHandlerWithNoConversion() {
-        Lead testLead = [SELECT Id, IsConverted FROM Lead WHERE LastName = 'Leads' LIMIT 1];
-        
-        Map<Id, Lead> oldLeadMap = new Map<Id, Lead>();
-        oldLeadMap.put(testLead.Id, new Lead(Id = testLead.Id, IsConverted = false));
-        
-        Test.startTest();
-        OpportunityTriggerHandler.convertHandler(new List<Lead>{testLead}, oldLeadMap);
-        Test.stopTest();
-        
-        List<OpportunityLineItem> olis = [SELECT Id FROM OpportunityLineItem];
-        List<Product_Interested__c> pis = [SELECT Account__c FROM Product_Interested__c WHERE Lead__c = :testLead.Id];
-        for (Product_Interested__c pi : pis) {}
-    }
-    
-    @isTest
-    static void testGetLostReasonPicklist() {
-        Test.startTest();
-        List<String> picklistValues = OpportunityTriggerHandler.getLostReasonPicklist();
-        Test.stopTest();
-    }
-    
-    @isTest
-    static void testUpdateOpportunityStatusBasic() {
-        Opportunity testOpp = new Opportunity(
-            Name = 'Test Opportunity',
-            StageName = 'Prospecting',
-            CloseDate = System.today().addDays(30),
-            Loss_Reason__c = null
-        );
-        insert testOpp;
-        
-        Map<String, Object> oppData = new Map<String, Object>{
-            'opportunityId' => testOpp.Id,
-            'lostReason' => 'Price',
-            'note' => 'Test note',
-            'nextFollowUp' => String.valueOf(System.today().addDays(14))
-        };
-        
-        Test.startTest();
-        OpportunityTriggerHandler.updateOpportunityStatus(oppData);
-        Test.stopTest();
-    }
-    
-    @isTest
-    static void testUpdateOpportunityStatusOthersWithoutReason() {
-        Opportunity testOpp = new Opportunity(
-            Name = 'Test Opportunity',
-            StageName = 'Prospecting',
-            CloseDate = System.today().addDays(30),
-            Loss_Reason__c = null
-        );
-        insert testOpp;
-        
-        Map<String, Object> oppData = new Map<String, Object>{
-            'opportunityId' => testOpp.Id,
-            'lostReason' => 'Others',
-            'note' => 'Should fail'
-        };
-        
-        Test.startTest();
-        try {
-            OpportunityTriggerHandler.updateOpportunityStatus(oppData);
-        } catch (AuraHandledException e) {}
-        Test.stopTest();
-    }
-    
-    @isTest
-    static void testUpdateOpportunityStatusOthersWithReason() {
-        Opportunity testOpp = new Opportunity(
-            Name = 'Test Opportunity',
-            StageName = 'Prospecting',
-            CloseDate = System.today().addDays(30),
-            Loss_Reason__c = null
-        );
-        insert testOpp;
-        
-        Map<String, Object> oppData = new Map<String, Object>{
-            'opportunityId' => testOpp.Id,
-            'lostReason' => 'Others',
-            'note' => 'Other reason test',
-            'otherReasons' => 'Custom reason details',
-            'nextFollowUp' => String.valueOf(System.today().addDays(7))
-        };
-        
-        Test.startTest();
-        OpportunityTriggerHandler.updateOpportunityStatus(oppData);
-        Test.stopTest();
-    }
-    
-    @isTest
-    static void testUpdateOpportunityStatusInvalidId() {
-        Map<String, Object> oppData = new Map<String, Object>{
-            'opportunityId' => '001000000000000',
-            'lostReason' => 'Price',
-            'note' => 'Should fail'
-        };
-        
-        Test.startTest();
-        try {
-            OpportunityTriggerHandler.updateOpportunityStatus(oppData);
-        } catch (AuraHandledException e) {}
-        Test.stopTest();
     }
 }

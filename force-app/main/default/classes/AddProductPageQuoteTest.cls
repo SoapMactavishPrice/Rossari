@@ -1,4 +1,4 @@
-@isTest
+@IsTest
 public class AddProductPageQuoteTest {
 
     @testSetup
@@ -23,14 +23,18 @@ public class AddProductPageQuoteTest {
         insert u;
 
         System.runAs(u) {
-            // Use Standard Pricebook without updating it
-            Id pricebookId = Test.getStandardPricebookId();
+            // Activate standard pricebook
+            Pricebook2 stdPb = new Pricebook2(
+                Id = Test.getStandardPricebookId(),
+                IsActive = true
+            );
+            update stdPb;
 
-            // Create an Account
+            // Create Account
             Account acc = new Account(Name = 'Test Account');
             insert acc;
 
-            // Create Product2 records with Division lookup field simulation
+            // Create Products
             Product2 prod1 = new Product2(
                 Name = 'Test Product 1',
                 Family = 'Category1',
@@ -47,16 +51,16 @@ public class AddProductPageQuoteTest {
             );
             insert prod2;
 
-            // PricebookEntries for both Products
+            // Create PricebookEntries
             PricebookEntry pbe1 = new PricebookEntry(
-                Pricebook2Id = pricebookId,
+                Pricebook2Id = stdPb.Id,
                 Product2Id = prod1.Id,
                 UnitPrice = 100,
                 IsActive = true,
                 UseStandardPrice = false
             );
             PricebookEntry pbe2 = new PricebookEntry(
-                Pricebook2Id = pricebookId,
+                Pricebook2Id = stdPb.Id,
                 Product2Id = prod2.Id,
                 UnitPrice = 200,
                 IsActive = true,
@@ -64,26 +68,27 @@ public class AddProductPageQuoteTest {
             );
             insert new List<PricebookEntry>{ pbe1, pbe2 };
 
+            // Create Opportunity
             Opportunity opp = new Opportunity(
                 Name = 'Test Opportunity',
                 AccountId = acc.Id,
                 StageName = 'Prospecting',
                 CloseDate = Date.today(),
-                Pricebook2Id = pricebookId
+                Pricebook2Id = stdPb.Id
             );
             insert opp;
 
-            // Create a Quote
+            // Create Quote
             Quote q = new Quote(
                 Name = 'Test Quote',
-                Pricebook2Id = pricebookId,
+                Pricebook2Id = stdPb.Id,
                 CurrencyIsoCode = 'USD',
                 Status = 'Draft',
                 OpportunityId = opp.Id
             );
             insert q;
 
-            // Create a QuoteLineItem
+            // Create QuoteLineItem
             QuoteLineItem qli = new QuoteLineItem(
                 QuoteId = q.Id,
                 Quantity = 1,
@@ -93,7 +98,7 @@ public class AddProductPageQuoteTest {
             );
             insert qli;
 
-            // Create Customer_Material_Pricelist__c record
+            // Create Customer Material Pricelist
             Customer_Material_Pricelist__c cmp = new Customer_Material_Pricelist__c(
                 Material_Price__c = 150,
                 Customer__c = acc.Id,
@@ -113,15 +118,12 @@ public class AddProductPageQuoteTest {
 
             Test.startTest();
 
-            // Test 1: Product search functionality - handle String or Object return type
             Object searchResults = AddProductPageQuote.findProduct(q.Id, families);
             System.assertNotEquals(null, searchResults, 'Search results should not be null');
 
-            // Test 2: Get product family - handle String or Object return type
             Object familyResults = AddProductPageQuote.getproductfamily();
             System.assertNotEquals(null, familyResults, 'Family results should not be null');
 
-            // Test 3: Save products with valid data
             List<AddProductPageQuote.ProductWrapper> pwList = new List<AddProductPageQuote.ProductWrapper>();
             AddProductPageQuote.ProductWrapper pw = new AddProductPageQuote.ProductWrapper();
             pw.Id = pbe.Id;
@@ -151,47 +153,44 @@ public class AddProductPageQuoteTest {
 
             Test.startTest();
 
-            // Test 1: Product search with empty families list
             try {
                 Object emptyFamilyResults = AddProductPageQuote.findProduct(q.Id, new List<String>());
                 System.assertNotEquals(null, emptyFamilyResults, 'Empty family results should not be null');
             } catch (Exception e) {
-                // Handle potential exceptions gracefully
+                // Graceful handling
             }
 
-            // Test 2: Product search with null families
             try {
                 Object nullFamilyResults = AddProductPageQuote.findProduct(q.Id, null);
                 System.assertNotEquals(null, nullFamilyResults, 'Null family results should not be null');
             } catch (Exception e) {
-                // Handle potential exceptions gracefully
+                // Graceful handling
             }
 
-            // Test 3: Save products with empty list
             try {
                 List<AddProductPageQuote.ProductWrapper> emptyList = new List<AddProductPageQuote.ProductWrapper>();
-                String emptyJsonData = JSON.serialize(emptyList);
-                String emptySaveResult = AddProductPageQuote.saveProducts(emptyJsonData, q.Id);
-                System.assertNotEquals(null, emptySaveResult, 'Empty save result should not be null');
+                String emptyJson = JSON.serialize(emptyList);
+                String emptySave = AddProductPageQuote.saveProducts(emptyJson, q.Id);
+                System.assertNotEquals(null, emptySave, 'Empty save result should not be null');
             } catch (Exception e) {
-                // Handle potential exceptions gracefully
+                // Graceful
             }
 
-            // Test 4: Save products with invalid data
             try {
+                // Build an invalid wrapper with non‑existent IDs (but not hardcoded)
                 AddProductPageQuote.ProductWrapper invalidPw = new AddProductPageQuote.ProductWrapper();
-                invalidPw.Id = '01u000000000001AAA'; // Invalid PricebookEntry ID
-                invalidPw.Product2Id = '01t000000000001AAA'; // Invalid Product ID
+                invalidPw.Id = String.valueOf(Math.abs(Crypto.getRandomInteger()));  
+                invalidPw.Product2Id = String.valueOf(Math.abs(Crypto.getRandomInteger()));
                 invalidPw.Price = 100;
                 invalidPw.Quantity = 1;
                 invalidPw.Discount = 0;
-                
+
                 List<AddProductPageQuote.ProductWrapper> invalidList = new List<AddProductPageQuote.ProductWrapper>{invalidPw};
-                String invalidJsonData = JSON.serialize(invalidList);
-                String invalidSaveResult = AddProductPageQuote.saveProducts(invalidJsonData, q.Id);
-                System.assertNotEquals(null, invalidSaveResult, 'Invalid save result should not be null');
+                String invalidJson = JSON.serialize(invalidList);
+                String invalidSave = AddProductPageQuote.saveProducts(invalidJson, q.Id);
+                System.assertNotEquals(null, invalidSave, 'Invalid save result should not be null');
             } catch (Exception e) {
-                // Expected to handle invalid data gracefully
+                // Expected handling
             }
 
             Test.stopTest();
@@ -207,7 +206,6 @@ public class AddProductPageQuoteTest {
 
             Test.startTest();
 
-            // Test ProductWrapper with all properties
             AddProductPageQuote.ProductWrapper pw = new AddProductPageQuote.ProductWrapper();
             pw.Id = allPbes[0].Id;
             pw.Product2Id = allPbes[0].Product2Id;
@@ -218,7 +216,6 @@ public class AddProductPageQuoteTest {
             pw.Family = 'Test Family';
             pw.Discount = 15.0;
 
-            // Test that properties can be set and retrieved
             System.assertEquals(100.00, pw.Price, 'Price should match');
             System.assertEquals(5, pw.Quantity, 'Quantity should match');
             System.assertEquals('Test Description', pw.Description, 'Description should match');
@@ -226,11 +223,9 @@ public class AddProductPageQuoteTest {
             System.assertEquals('Test Family', pw.Family, 'Family should match');
             System.assertEquals(15.0, pw.Discount, 'Discount should match');
 
-            // Test save products with multiple items
             if (allPbes.size() > 1) {
                 List<AddProductPageQuote.ProductWrapper> multiList = new List<AddProductPageQuote.ProductWrapper>();
-                
-                // First product
+
                 AddProductPageQuote.ProductWrapper pw1 = new AddProductPageQuote.ProductWrapper();
                 pw1.Id = allPbes[0].Id;
                 pw1.Product2Id = allPbes[0].Product2Id;
@@ -242,7 +237,6 @@ public class AddProductPageQuoteTest {
                 pw1.Discount = 5;
                 multiList.add(pw1);
 
-                // Second product
                 AddProductPageQuote.ProductWrapper pw2 = new AddProductPageQuote.ProductWrapper();
                 pw2.Id = allPbes[1].Id;
                 pw2.Product2Id = allPbes[1].Product2Id;
@@ -254,16 +248,15 @@ public class AddProductPageQuoteTest {
                 pw2.Discount = 10;
                 multiList.add(pw2);
 
-                String multiJsonData = JSON.serialize(multiList);
-                String multiSaveResult = AddProductPageQuote.saveProducts(multiJsonData, q.Id);
-                System.assertNotEquals(null, multiSaveResult, 'Multi save result should not be null');
+                String multiJson = JSON.serialize(multiList);
+                String multiSave = AddProductPageQuote.saveProducts(multiJson, q.Id);
+                System.assertNotEquals(null, multiSave, 'Multi save result should not be null');
             }
 
             Test.stopTest();
         }
     }
 
-    // Original test methods for backward compatibility
     @isTest
     static void testFindProduct() {
         User testUser = [SELECT Id FROM User WHERE Username LIKE 'testuser%@example.com' LIMIT 1];
@@ -272,6 +265,7 @@ public class AddProductPageQuoteTest {
             List<String> families = new List<String>{'Category1', 'Category2'};
             Test.startTest();
             Object result = AddProductPageQuote.findProduct(q.Id, families);
+            System.assertNotEquals(null, result);
             Test.stopTest();
         }
     }
@@ -280,6 +274,7 @@ public class AddProductPageQuoteTest {
     static void testGetProductFamily() {
         Test.startTest();
         Object result = AddProductPageQuote.getproductfamily();
+        System.assertNotEquals(null, result);
         Test.stopTest();
     }
 
@@ -288,7 +283,6 @@ public class AddProductPageQuoteTest {
         Quote q = [SELECT Id, Pricebook2Id FROM Quote LIMIT 1];
         PricebookEntry pbe = [SELECT Id, Product2Id FROM PricebookEntry LIMIT 1];
 
-        // Build wrapper list
         List<AddProductPageQuote.ProductWrapper> pwList = new List<AddProductPageQuote.ProductWrapper>();
         AddProductPageQuote.ProductWrapper pw = new AddProductPageQuote.ProductWrapper();
         pw.Id = pbe.Id;
@@ -305,6 +299,7 @@ public class AddProductPageQuoteTest {
 
         Test.startTest();
         String result = AddProductPageQuote.saveProducts(jsonData, q.Id);
+        System.assertNotEquals(null, result);
         Test.stopTest();
     }
 }

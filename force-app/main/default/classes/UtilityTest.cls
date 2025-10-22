@@ -1,9 +1,15 @@
-@isTest
+@IsTest
 private class UtilityTest {
-    @isTest
+    @IsTest
     static void testAllMethods() {
         // Get standard pricebook ID without updating (fix for UNABLE_TO_LOCK_ROW)
         Id standardPricebookId = Test.getStandardPricebookId();
+
+        Pricebook2 standardPricebook = new Pricebook2(
+            Id = standardPricebookId,
+            IsActive = true
+        );
+        update standardPricebook;
 
         Account acc = new Account(Name = 'Test Account', Business_Type__c = 'Domestic');
         insert acc;
@@ -45,17 +51,21 @@ private class UtilityTest {
         Division__c division = new Division__c(Name = '10');
         insert division;
 
+        Base_UoM_Master__c baseUom = new Base_UoM_Master__c(Name = 'Kilogram');
+        insert baseUom;
+
         Product2 prod = new Product2(
             Name = 'Test Product',
-            ProductCode = 'TEST001',
+            ProductCode = 'TP001',
+            Pack_Size__c = '10kg',
+            Base_UOM__c = baseUom.Id,
             Plant_Name__c = plant.Id,
-            Division__c = division.Id,
             IsActive = true
         );
         insert prod;
 
         User testUser = new User(
-            Username = 'divisionuser@example.com',
+            Username = 'divisionuser' + DateTime.now().getTime() + '@example.com',
             Email = 'divisionuser@example.com',
             Alias = 'divuser',
             ProfileId = [SELECT Id FROM Profile WHERE Name = 'Standard User' LIMIT 1].Id,
@@ -64,80 +74,105 @@ private class UtilityTest {
             EmailEncodingKey = 'UTF-8',
             LanguageLocaleKey = 'en_US',
             Division_Code__c = '10',
+            Division_Code_2__c = '11',
+            Division_Code_3__c = '12',
             LastName = 'DivisionUser'
         );
         insert testUser;
 
-        List<Map<String, String>> contactResult = Utility.getContactName(acc.Id, 'Account');
-        List<Map<String, String>> contactResult2 = Utility.getContactName(opp.Id, 'Opportunity');
-        List<Map<String, String>> contactResult3 = Utility.getContactName(qt.Id, 'Quote');
+        // Call getContactName multiple ways to cover branches
+        Utility.getContactName(acc.Id, 'Account');
+        Utility.getContactName(opp.Id, 'Opportunity');
+        Utility.getContactName(qt.Id, 'Quote');
 
-        List<Map<String, String>> billToResult = Utility.getBillTo(acc.Id, 'Account');
-        List<Map<String, String>> billToResult2 = Utility.getBillTo(opp.Id, 'Opportunity');
-        List<Map<String, String>> billToResult3 = Utility.getBillTo(qt.Id, 'Quote');
-
-        List<Map<String, String>> shipToResult = Utility.getShipTo(acc.Id, 'Account');
-        List<Map<String, String>> shipToResult2 = Utility.getShipTo(opp.Id, 'Opportunity');
-
-        Address_Information__c shipToAddress = Utility.getShipToAddressInformation(shipTo.Id);
-
-        List<Map<String, String>> plantResult = Utility.getPlant();
-
-        String titleCaseResult = Utility.toTitleCase('test title case');
-
-        List<String> plantProductsResult = Utility.getProductsPlant('TEST001');
-
-        String salutationResult = Utility.getContactSalutation('Mr.');
-
-        List<String> divisionProductList = Utility.getUserDivisionProductList(testUser.Id);
-
+        // Exception test for getContactName with invalid id
         try {
-            List<Map<String, String>> invalidContact = Utility.getContactName('invalidId', 'Account');
+            Utility.getContactName('001000000000000AAA', 'Account');
+        } catch (AuraHandledException e) {
+        }
+
+        // Call getBillTo multiple ways
+        Utility.getBillTo(acc.Id, 'Account');
+        Utility.getBillTo(opp.Id, 'Opportunity');
+        Utility.getBillTo(qt.Id, 'Quote');
+
+        // Exception branch for getBillTo
+        try {
+            Utility.getBillTo('001000000000000AAA', 'Account');
+        } catch (AuraHandledException e) {
+        }
+
+        // Call getShipTo multiple ways
+        Utility.getShipTo(acc.Id, 'Account');
+        Utility.getShipTo(opp.Id, 'Opportunity');
+
+        // Exception branch for getShipTo
+        try {
+            Utility.getShipTo('001000000000000AAA', 'Account');
+        } catch (AuraHandledException e) {
+        }
+
+        // Test getShipToAddressInformation normal and exception
+        Utility.getShipToAddressInformation(shipTo.Id);
+        try {
+            Utility.getShipToAddressInformation('001000000000000AAA');
         } catch (Exception e) {
         }
 
+        // Test getPlant (returns all plants)
+        Utility.getPlant();
+
+        // Test toTitleCase with various strings
+        Utility.toTitleCase('hello world');
+        Utility.toTitleCase(null);
+        Utility.toTitleCase('');
+        Utility.toTitleCase('test<br/>string case');
+
+        // Test getProductsPlant with existing Product Code
+        Utility.getProductsPlant(prod.ProductCode);
+        // Exception test: invalid product code
         try {
-            List<Map<String, String>> invalidBillTo = Utility.getBillTo('invalidId', 'Account');
-        } catch (Exception e) {
+            Utility.getProductsPlant('INVALID');
+        } catch (AuraHandledException e) {
         }
 
-        try {
-            List<Map<String, String>> invalidShipTo = Utility.getShipTo('invalidId', 'Account');
-        } catch (Exception e) {
+        // Test getContactSalutation for valid and invalid values
+        List<Schema.PicklistEntry> saluts = Contact.Salutation.getDescribe().getPicklistValues();
+        if (!saluts.isEmpty()) {
+            Utility.getContactSalutation(saluts[0].getValue());
         }
+        Utility.getContactSalutation('InvalidValue');
 
-        try {
-            Address_Information__c invalidAddress = Utility.getShipToAddressInformation('invalidId');
-        } catch (Exception e) {
-        }
+        // Test getUserDivisionProductList for populated and null userId
+        Utility.getUserDivisionProductList(testUser.Id);
+        Utility.getUserDivisionProductList(null);
 
-        try {
-            List<String> invalidProduct = Utility.getProductsPlant('INVALID');
-        } catch (Exception e) {
-        }
-
-        try {
-            String invalidSalutation = Utility.getContactSalutation('Invalid');
-        } catch (Exception e) {
-        }
-
-        Lead rossariLead = new Lead(FirstName = 'Rossari', LastName = 'Company', Company = 'Rossari Ltd', MobilePhone = '8978765676');
-        insert rossariLead;
-
-        Company__c com = new Company__c(Name = 'Tristar Intermediates Private Limited');
-        insert com;
+        // Create objects for Sample Request email methods
+        Company__c company = new Company__c(Name = 'Tristar Intermediates Private Limited');
+        insert company;
 
         Account customerAccount = new Account(
             Name = 'Customer Account',
-            Rossari_Company__c = com.Id,
+            Rossari_Company__c = company.Id,
             Business_Type__c = 'Domestic'
         );
         insert customerAccount;
 
+        Lead lead = new Lead(
+            FirstName = 'LeadFirst',
+            LastName = 'LeadLast',
+            Company = 'Lead Company',
+            MobilePhone = '1234567890',
+            RecordTypeId = [SELECT Id FROM RecordType WHERE SObjectType = 'Lead' LIMIT 1].Id,
+            Business_Type__c = 'Domestic',
+            Rossari_Company__c = company.Id
+        );
+        insert lead;
+
         Sample_Request__c sampleRequest = new Sample_Request__c(
             Sample_Request_Date__c = Date.today(),
             Sample_Expected_Date__c = Date.today().addDays(5),
-            Lead__c = rossariLead.Id,
+            Lead__c = lead.Id,
             Opportunity__c = opp.Id,
             Customer_Name__c = customerAccount.Id,
             Additional_Email__c = 'test1@example.com,test2@example.com',
@@ -150,13 +185,18 @@ private class UtilityTest {
             Product__c = prod.Id,
             Sample_Qty_in_Kgs__c = 15,
             Sales_Price__c = 100,
-            Approval_Status__c = 'Pending'
+            Approval_Status__c = 'Approved'
         );
         insert lineItem;
 
+        // Test sending emails methods
         Test.startTest();
         Utility.sendSampleRequestEmail(sampleRequest.Id);
         Utility.sendSampleRequestApprovalEmail(sampleRequest.Id);
         Test.stopTest();
+
+        // More coverage of utility ns() helper
+        System.assertEquals('', Utility.ns(null));
+        System.assertEquals('abc', Utility.ns('abc'));
     }
 }

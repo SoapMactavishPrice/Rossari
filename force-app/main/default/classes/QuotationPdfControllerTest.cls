@@ -4,9 +4,15 @@ public class QuotationPdfControllerTest {
     static void testAllControllerScenarios() {
         Id standardPricebookId = Test.getStandardPricebookId(); // ✅ Reference only, no update
 
+        Pricebook2 standardPricebook = new Pricebook2(
+            Id = Test.getStandardPricebookId(),
+            IsActive = true
+        );
+        update standardPricebook;
+ 
         Base_UoM_Master__c baseUom = new Base_UoM_Master__c(Name = 'Kilogram');
         insert baseUom;
-
+ 
         Product2 prod = new Product2(
             Name = 'Test Product',
             ProductCode = 'TP001',
@@ -15,9 +21,9 @@ public class QuotationPdfControllerTest {
             IsActive = true
         );
         insert prod;
-
+ 
         PricebookEntry pbe = new PricebookEntry(
-            Pricebook2Id = standardPricebookId,
+            Pricebook2Id = standardPricebook.Id,
             Product2Id = prod.Id,
             UnitPrice = 100,
             IsActive = true

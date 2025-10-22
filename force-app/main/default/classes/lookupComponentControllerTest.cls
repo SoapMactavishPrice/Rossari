@@ -3,37 +3,65 @@ public class lookupComponentControllerTest {
 
     @testSetup
     static void setupData() {
+
+        Profile sysAdminProfile = [
+            SELECT Id FROM Profile WHERE Name = 'System Administrator' LIMIT 1
+        ];
+
+        User userPersonnel = new User(
+            FirstName = 'Test',
+            LastName = 'Admin',
+            Email = 'testadmin@example.com',
+            Username = 'testadmin@example.com.system',
+            Alias = 'tadm',
+            TimeZoneSidKey = 'Asia/Kolkata',
+            LocaleSidKey = 'en_US',
+            EmailEncodingKey = 'UTF-8',
+            LanguageLocaleKey = 'en_US',
+            ProfileId = sysAdminProfile.Id,
+            Division_Code__c = '10',     // your custom field
+            CommunityNickname = 'tadminnick'
+        );
+        insert userPersonnel;
+
         Id standardPricebookId = Test.getStandardPricebookId();
         
+       Pricebook2 standardPricebook = new Pricebook2(
+            Id = Test.getStandardPricebookId(),
+            IsActive = true
+        );
+        update standardPricebook;
+ 
         Base_UoM_Master__c baseUom = new Base_UoM_Master__c(Name = 'Kilogram');
         insert baseUom;
-    
+
+        Division__c division = new Division__c(Name = '10');
+        insert division;
+ 
         Product2 prod = new Product2(
             Name = 'Test Product',
             ProductCode = 'TP001',
             Pack_Size__c = '10kg',
             Base_UOM__c = baseUom.Id,
-            Family = 'Test Family',
-            IsActive = true
+            IsActive = true,
+            Division__c = division.Id
         );
         insert prod;
-    
+ 
         PricebookEntry pbe = new PricebookEntry(
-            Pricebook2Id = standardPricebookId,
+            Pricebook2Id = standardPricebook.Id,
             Product2Id = prod.Id,
             UnitPrice = 100,
             IsActive = true
         );
         insert pbe;
 
+
         Company__c company = new Company__c(
             Name = 'Rossari Biotech Limited',
             SAP_Code__c = '1000'
         );
         insert company;
-
-        Division__c division = new Division__c(Name = 'Test Division');
-        insert division;
 
         Product_Group__c productGroup = new Product_Group__c(Name = 'Test Group');
         insert productGroup;
@@ -64,102 +92,14 @@ public class lookupComponentControllerTest {
     @isTest
     static void testAllFindRecordsScenarios() {
         Test.startTest();
+
+        User userPersonnel = [SELECT Id FROM User WHERE Email = 'testadmin@example.com' LIMIT 1];
         
-        String result1 = lookupComponentController.findRecords(
-            'Test',
-            'PricebookEntry',
-            'Name',
-            new List<String>{'Name'},
-            '',
-            '',
-            '10',
-            '',
-            '',
-            'RBL'
-        );
-        
-        String result2 = lookupComponentController.findRecords(
-            '',
-            'PricebookEntry',
-            'Name',
-            new List<String>{'Name'},
-            '',
-            '',
-            '10',
-            '',
-            '',
-            'RBL'
-        );
-        
-        String result3 = lookupComponentController.findRecords(
-            'Test',
-            'PricebookEntry',
-            'Name',
-            new List<String>{'Name'},
-            '',
-            '',
-            '10',
-            '',
-            'USD',
-            'RBL'
-        );
-        
-        String result4 = lookupComponentController.findRecords(
-            'Test',
-            'PricebookEntry',
-            'Name',
-            new List<String>{'Name'},
-            'UnitPrice > 50',
-            'Product2.Name',
-            '10',
-            'Test Family',
-            '',
-            'RBL'
-        );
-        
-        String result5 = lookupComponentController.findRecords(
-            'Test',
-            'PricebookEntry',
-            'Name',
-            new List<String>{'Name'},
-            '',
-            '',
-            '',
-            '',
-            '',
-            'RBL'
-        );
-        
-        String result6 = lookupComponentController.findRecords(
-            'Test',
-            'PricebookEntry',
-            'Name',
-            new List<String>{'Name'},
-            'UnitPrice > 1000',
-            '',
-            '10',
-            '',
-            '',
-            'RBL'
-        );
-        
-        String result7 = lookupComponentController.findRecords(
-            'Test',
-            'PricebookEntry',
-            'Name',
-            new List<String>{'Name'},
-            '',
-            '',
-            '10',
-            'NonExistent Family',
-            '',
-            'RBL'
-        );
-        
-        try {
-            String result8 = lookupComponentController.findRecords(
+        System.runAs(userPersonnel) {
+
+            String result1 = lookupComponentController.findRecords(
                 'Test',
-                'Account',
+                'PricebookEntry',
                 'Name',
                 new List<String>{'Name'},
                 '',
@@ -169,7 +109,100 @@ public class lookupComponentControllerTest {
                 '',
                 'RBL'
             );
-        } catch (Exception e) {
+            
+            String result2 = lookupComponentController.findRecords(
+                '',
+                'PricebookEntry',
+                'Name',
+                new List<String>{'Name'},
+                '',
+                '',
+                '10',
+                '',
+                '',
+                'RBL'
+            );
+            
+            String result3 = lookupComponentController.findRecords(
+                'Test',
+                'PricebookEntry',
+                'Name',
+                new List<String>{'Name'},
+                '',
+                '',
+                '10',
+                '',
+                'USD',
+                'RBL'
+            );
+            
+            String result4 = lookupComponentController.findRecords(
+                'Test',
+                'PricebookEntry',
+                'Name',
+                new List<String>{'Name'},
+                'UnitPrice > 50',
+                'Product2.Name',
+                '10',
+                'Test Family',
+                '',
+                'RBL'
+            );
+            
+            String result5 = lookupComponentController.findRecords(
+                'Test',
+                'PricebookEntry',
+                'Name',
+                new List<String>{'Name'},
+                '',
+                '',
+                '',
+                '',
+                '',
+                'RBL'
+            );
+            
+            String result6 = lookupComponentController.findRecords(
+                'Test',
+                'PricebookEntry',
+                'Name',
+                new List<String>{'Name'},
+                'UnitPrice > 1000',
+                '',
+                '10',
+                '',
+                '',
+                'RBL'
+            );
+            
+            String result7 = lookupComponentController.findRecords(
+                'Test',
+                'PricebookEntry',
+                'Name',
+                new List<String>{'Name'},
+                '',
+                '',
+                '10',
+                'NonExistent Family',
+                '',
+                'RBL'
+            );
+            
+            try {
+                String result8 = lookupComponentController.findRecords(
+                    'Test',
+                    'Account',
+                    'Name',
+                    new List<String>{'Name'},
+                    '',
+                    '',
+                    '10',
+                    '',
+                    '',
+                    'RBL'
+                );
+            } catch (Exception e) {
+            }
         }
         
         Test.stopTest();

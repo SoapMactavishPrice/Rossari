@@ -1,0 +1,17 @@
+/*.slds-dropdown {
+    max-height: 300px;
+    overflow-y: auto;
+    width: 100%;
+}
+
+.slds-listbox__option {
+    cursor: pointer;
+}
+
+.slds-listbox__option:hover {
+    background-color: #f3f3f3;
+}
+
+.slds-input-has-icon_right .slds-input__icon_right {
+    right: 0.75rem;
+}*/

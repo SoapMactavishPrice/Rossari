@@ -1,0 +1,22 @@
+<template>
+    <div class="slds-form-element">
+        <label class="slds-form-element__label">
+            <template if:true={required}>
+                <abbr class="slds-required" title="required">* </abbr>
+            </template>
+            {label}
+        </label>
+        <div class="slds-form-element__control">
+            <lightning-record-picker
+                label="City"
+                placeholder="Search City..."
+                object-api-name="City__c"
+                display-field="Name"
+                value={selectedRecordId}
+                onchange={handleChange}
+                variant="label-stacked"
+                required={required}>
+            </lightning-record-picker>
+        </div>
+    </div>
+</template>

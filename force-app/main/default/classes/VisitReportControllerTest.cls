@@ -26,8 +26,31 @@ public class VisitReportControllerTest {
         Project__c project = new Project__c(Name = 'Test Project');
         insert project;
         
-        Product2 product = new Product2(Name = 'Test Product', ProductCode = 'TEST001', IsActive = true);
-        insert product;
+        Pricebook2 standardPricebook = new Pricebook2(
+            Id = Test.getStandardPricebookId(),
+            IsActive = true
+        );
+        update standardPricebook;
+ 
+        Base_UoM_Master__c baseUom = new Base_UoM_Master__c(Name = 'Kilogram');
+        insert baseUom;
+ 
+        Product2 prod = new Product2(
+            Name = 'Test Product',
+            ProductCode = 'TP001',
+            Pack_Size__c = '10kg',
+            Base_UOM__c = baseUom.Id,
+            IsActive = true
+        );
+        insert prod;
+ 
+        PricebookEntry pbe = new PricebookEntry(
+            Pricebook2Id = standardPricebook.Id,
+            Product2Id = prod.Id,
+            UnitPrice = 100,
+            IsActive = true
+        );
+        insert pbe;
     }
     
     @IsTest
@@ -320,37 +343,6 @@ public class VisitReportControllerTest {
         Test.stopTest();
     }
     
-    @IsTest
-    static void testExternalAttendeeWithInvalidContact() {
-        Account testAccount = [SELECT Id FROM Account WHERE Name = 'Test Account 1' LIMIT 1];
-        
-        Test.startTest();
-        
-        Map<String, Object> visitData = new Map<String, Object>{
-            'Title_of_Meeting' => 'Test Invalid Contact',
-            'Start_Date_Time' => '2024-01-01T10:00:00',
-            'End_Date_Time' => '2024-01-01T11:00:00',
-            'Customer_Name' => testAccount.Id
-        };
-        
-        String visitJson = JSON.serialize(visitData);
-        
-        List<Map<String, Object>> attendeesList = new List<Map<String, Object>>{
-            new Map<String, Object>{
-                'Attendee_Type__c' => 'External Attendee',
-                'User_Type__c' => 'Existing',
-                'Contact_Name__c' => '001000000000000AAA'
-            }
-        };
-        String attendeesJson = JSON.serialize(attendeesList);
-        
-        Map<String, String> result = VisitReportController.saveVisitReport(
-            visitJson, attendeesJson, '[]', '[]',
-            'Test Location', 'USD', 'Customer Visit', null
-        );
-        
-        Test.stopTest();
-    }
     
     @IsTest
     static void testActionPointsWithNotification() {

@@ -60,19 +60,32 @@ public class addProductIntrestedTest {
             Quantity_Frequency__c = 'Per/Month'
         );
         insert pi;*/
+       Pricebook2 standardPricebook = new Pricebook2(
+            Id = Test.getStandardPricebookId(),
+            IsActive = true
+        );
+        update standardPricebook;
+ 
+        Base_UoM_Master__c baseUom = new Base_UoM_Master__c(Name = 'Kilogram');
+        insert baseUom;
+ 
         Product2 prod = new Product2(
             Name = 'Test Product',
+            ProductCode = 'TP001',
+            Pack_Size__c = '10kg',
+            Base_UOM__c = baseUom.Id,
             IsActive = true
         );
         insert prod;
-    
+ 
         PricebookEntry pbe = new PricebookEntry(
-            Pricebook2Id = stdPbId,
+            Pricebook2Id = standardPricebook.Id,
             Product2Id = prod.Id,
             UnitPrice = 100,
             IsActive = true
         );
         insert pbe;
+
     
         // Product Interested
         Product_Interested__c pi = new Product_Interested__c(

@@ -13,6 +13,8 @@ import getDailyAllowanceByGrade from '@salesforce/apex/ExpenseController.getDail
 import getGradeDetails from '@salesforce/apex/ExpenseController.getGradeDetails';
 import getGradeDetailsWithSalesType from '@salesforce/apex/ExpenseController.getGradeDetailsWithSalesType';
 import getModeOfTravelOptions from '@salesforce/apex/ExpenseController.getModeOfTravelOptions';
+import getExportTransportModes from '@salesforce/apex/ExpenseController.getExportTransportModes';
+import getCityDetails from '@salesforce/apex/ExpenseController.getCityDetails';
 import { loadStyle } from 'lightning/platformResourceLoader';
 import LightningFileUploadHideLabelCss from '@salesforce/resourceUrl/LightningFileUploadHideLabelCss';
 
@@ -34,6 +36,15 @@ export default class ExpenseForm extends NavigationMixin(LightningElement) {
     @track fourWheelerPerKm = 0;
     @track twoWheelerPerKm = 0;
     @track canEditDailyAllowance = false;
+    @track lodgingHotel = 0; // Add this
+    @track boardingFood = 0;
+
+    @track lodgingHotelBClass = 0; // Add this
+    @track boardingFoodBClass = 0; // Add this
+    @track selectedCityId = ''; // Add this
+    @track selectedCityName = ''; // Add this
+    @track selectedCityType = ''; // Add this
+    @track isAClassCity = false; // Add this
 
     @track employeeOptions = [];
     @track typeOfExpenseOptions = [];
@@ -126,6 +137,25 @@ export default class ExpenseForm extends NavigationMixin(LightningElement) {
         return this.selectedVoucherType === 'Outstation' && this.salesType === 'Domestic';
     }
 
+    // NEW: Computed property for Export Outstation
+    get isExportOutstation() {
+        return this.selectedVoucherType === 'Outstation' && this.salesType === 'Export';
+    }
+
+    // NEW: Computed property for Domestic Outstation
+    get isDomesticOutstation() {
+        return this.selectedVoucherType === 'Outstation' && this.salesType === 'Domestic';
+    }
+
+    // NEW: Computed property to show limitation
+    get showLimitation() {
+        return this.isExportOutstation || this.isDomesticOutstation;
+    }
+
+    get showCityField() {
+        return this.salesType === 'Domestic';
+    }
+
     get currencySymbol() {
         const map = {
             'INR': '₹',
@@ -136,6 +166,36 @@ export default class ExpenseForm extends NavigationMixin(LightningElement) {
         };
         return map[this.selectedCurrency] || this.selectedCurrency;
     }
+
+    get salesTypeDebug() {
+    console.log('Sales Type Updated:', this.salesType, 'Show City Field:', this.showCityField);
+    return this.salesType;
+}
+
+    // Add this getter to your main component
+get debugInfo() {
+    return {
+        salesType: this.salesType,
+        showCityField: this.showCityField,
+        salesTypeOptions: this.salesTypeOptions,
+        selectedCityId: this.selectedCityId,
+        selectedCityName: this.selectedCityName
+    };
+}
+
+// Add this to renderedCallback
+renderedCallback() {
+    console.log('=== DEBUG INFO ===');
+    console.log('Sales Type:', this.salesType);
+    console.log('Show City Field:', this.showCityField);
+    console.log('Sales Type Options:', this.salesTypeOptions);
+    console.log('Selected City ID:', this.selectedCityId);
+    console.log('Selected City Name:', this.selectedCityName);
+    
+    // Check if city field element exists
+    const cityField = this.template.querySelector('c-city-lookup-component');
+    console.log('City Field in DOM:', !!cityField);
+}
 
     forceCurrencyUpdate() {
         // Create a deep copy to force re-render
@@ -164,10 +224,17 @@ export default class ExpenseForm extends NavigationMixin(LightningElement) {
     }
 
     loadSalesTypeOptions() {
-        // You'll need to create an Apex method to get these picklist values
         getSalesTypeOptions()
             .then(result => {
                 this.salesTypeOptions = result;
+                console.log('Sales Type Options loaded:', this.salesTypeOptions);
+                
+                // Auto-select Domestic if available
+                const domesticOption = this.salesTypeOptions.find(option => option.value === 'Domestic');
+                if (domesticOption && !this.salesType) {
+                    this.salesType = 'Domestic';
+                    console.log('Auto-selected Domestic sales type:', this.salesType);
+                }
             })
             .catch(error => {
                 console.error('Error loading sales type options:', error);
@@ -178,9 +245,47 @@ export default class ExpenseForm extends NavigationMixin(LightningElement) {
     async handleSalesTypeChange(event) {
         this.salesType = event.detail.value;
         
+        // Reset City when sales type changes
+        if (this.salesType !== 'Domestic') {
+            this.selectedCityId = '';
+            this.selectedCityName = '';
+            this.selectedCityType = '';
+            this.isAClassCity = false;
+        }
+        
+        // Auto-change currency to USD when Sales Type is Export
+        if (this.salesType === 'Export') {
+            this.selectedCurrency = 'USD';
+        } else if (this.salesType === 'Domestic') {
+            this.selectedCurrency = 'INR';
+        }
+        
         // Update grade details based on selected sales type
         if (this.userGradeName && this.salesType) {
             await this.updateGradeDetailsWithSalesType(this.userGradeName, this.salesType);
+            
+            // Update transport modes for Export Outstation
+            if (this.isExportOutstation) {
+                await this.updateExportTransportModes();
+            }
+        }
+    }
+
+    // NEW: Update transport modes for Export
+    async updateExportTransportModes() {
+        try {
+            if (this.userGradeName) {
+                const exportTransportModes = await getExportTransportModes({ gradeName: this.userGradeName });
+                console.log('Export transport modes loaded:', exportTransportModes);
+                
+                // Update all line items with export transport modes
+                this.lineItems = this.lineItems.map(item => ({
+                    ...item,
+                    transportOptions: exportTransportModes
+                }));
+            }
+        } catch (error) {
+            console.error('Error updating export transport modes:', error);
         }
     }
 
@@ -201,7 +306,16 @@ export default class ExpenseForm extends NavigationMixin(LightningElement) {
                 this.twoWheelerPerKm = gradeDetails.twoWheelerPerKm || 0;
                 this.specialAllowance = gradeDetails.specialAllowance || 0;
                 this.outOfPocket = gradeDetails.outOfPocket || 0;
+                this.lodgingHotel = gradeDetails.lodgingHotel || 0;
+                this.boardingFood = gradeDetails.boardingFood || 0;
+                this.lodgingHotelBClass = gradeDetails.lodgingHotelBClass || 0;
+                this.boardingFoodBClass = gradeDetails.boardingFoodBClass || 0;
                 this.canEditDailyAllowance = gradeDetails.canEditDailyAllowance || false;
+                
+                // For Domestic sales type, update daily allowance based on city if selected
+                if (salesType === 'Domestic' && this.selectedCityId) {
+                    await this.updateDailyAllowanceBasedOnCity();
+                }
                 
                 // Update transport modes from grade
                 if (gradeDetails.modeOfTravelOptions && gradeDetails.modeOfTravelOptions.length > 0) {
@@ -224,9 +338,11 @@ export default class ExpenseForm extends NavigationMixin(LightningElement) {
                     console.log('Updated mode of outstation travel options:', this.modeOfOutstationTravelOptions);
                 }
                 
-                // Update all line items with new transport options and rates
+                // Update all line items with new transport options, rates, and limitation texts
                 this.lineItems = this.lineItems.map(item => {
                     const transportOptions = this.getTransportOptionsForItem(item.typeOfExpenseId);
+                    const limitationText = this.computeLimitationText(item);
+                    
                     console.log('Updating line item with new grade data from sales type');
                     
                     return {
@@ -234,6 +350,7 @@ export default class ExpenseForm extends NavigationMixin(LightningElement) {
                         dailyAllowance: this.dailyAllowance,
                         disableDailyAllowance: !this.canEditDailyAllowance,
                         transportOptions: transportOptions,
+                        limitationText: limitationText,
                         // Auto-update KM rate if transport mode is set
                         kmRate: this.getUpdatedKMRateForItem(item)
                     };
@@ -350,30 +467,31 @@ export default class ExpenseForm extends NavigationMixin(LightningElement) {
     getTransportOptionsForItem(typeOfExpenseId, voucherType = this.selectedVoucherType) {
         console.log('=== getTransportOptionsForItem called ===');
         console.log('Voucher type:', voucherType);
+        console.log('Sales Type:', this.salesType);
         console.log('Expense type ID:', typeOfExpenseId);
 
-        // For Outstation voucher type - use Mode_of_Outstation_Travel__c from grade
-        if (voucherType === 'Outstation') {
-            console.log('Processing Outstation voucher type');
+        // For Outstation Export - use Mode_of_Travel__c from grade with Sales_Type__c = 'Export'
+        if (voucherType === 'Outstation' && this.salesType === 'Export') {
+            console.log('Processing Outstation Export voucher type');
+            
+            if (this.gradeTransportModeOptions.length > 0) {
+                console.log('Using export-specific modes:', this.gradeTransportModeOptions);
+                return this.gradeTransportModeOptions;
+            } else {
+                console.log('No export-specific modes found, returning all modes');
+                return this.allTransportModeOptions;
+            }
+        }
+
+        // For Outstation Domestic - use Mode_of_Outstation_Travel__c from grade
+        if (voucherType === 'Outstation' && this.salesType === 'Domestic') {
+            console.log('Processing Outstation Domestic voucher type');
             
             if (this.modeOfOutstationTravelOptions.length > 0) {
                 console.log('Using outstation-specific modes:', this.modeOfOutstationTravelOptions);
                 return this.modeOfOutstationTravelOptions;
             } else {
                 console.log('No outstation-specific modes found, returning all modes');
-                return this.allTransportModeOptions;
-            }
-        }
-
-        // For Local voucher type - use grade-specific modes
-        if (voucherType === 'Local') {
-            console.log('Processing Local voucher type');
-            
-            if (this.gradeTransportModeOptions.length > 0) {
-                console.log('Using grade-specific modes for Local:', this.gradeTransportModeOptions);
-                return this.gradeTransportModeOptions;
-            } else {
-                console.log('No grade-specific modes found for Local, returning all modes');
                 return this.allTransportModeOptions;
             }
         }
@@ -595,6 +713,13 @@ export default class ExpenseForm extends NavigationMixin(LightningElement) {
             this.updateLineItem(idx, 'glCodeName', expenseType.glCodeName || '');
         }
 
+        // Update limitation text
+        const limitationText = this.computeLimitationText({
+            ...this.lineItems[idx],
+            typeOfExpenseId: value
+        });
+        this.updateLineItem(idx, 'limitationText', limitationText);
+
         // If it's a food/hotel expense, clear transport mode values
         if (isFoodOrHotel) {
             console.log('Food/Hotel expense detected, clearing transport fields');
@@ -762,9 +887,138 @@ export default class ExpenseForm extends NavigationMixin(LightningElement) {
                     updatedItem.total = this.calculateLineItemTotal(updatedItem);
                 }
                 
+                // Update limitation text when expense type changes
+                if (field === 'typeOfExpenseId') {
+                    updatedItem.limitationText = this.computeLimitationText(updatedItem);
+                }
+                
                 return updatedItem;
             }
             return item;
+        });
+    }
+
+    //  Compute limitation text with City logic
+    computeLimitationText(item) {
+        if (!this.showLimitation || !item.typeOfExpenseId) {
+            return '';
+        }
+
+        const expenseType = this.typeOfExpenseOptions.find(opt => opt.value === item.typeOfExpenseId);
+        if (!expenseType || !expenseType.label) {
+            return '';
+        }
+
+        const label = expenseType.label.toLowerCase();
+        let limitation = '';
+
+        // For Domestic sales type, use City-based logic
+        if (this.salesType === 'Domestic') {
+            if (label.includes('hotel')) {
+                if (this.isAClassCity) {
+                    limitation = `Limit: ${this.currencySymbol}${this.lodgingHotel}`;
+                } else {
+                    limitation = `Limit: ${this.currencySymbol}${this.lodgingHotelBClass}`;
+                }
+            } else if (label.includes('food')) {
+                if (this.isAClassCity) {
+                    limitation = `Limit: ${this.currencySymbol}${this.boardingFood}`;
+                } else {
+                    limitation = `Limit: ${this.currencySymbol}${this.boardingFoodBClass}`;
+                }
+            }
+        } 
+        // For Export sales type, use existing logic
+        else if (this.salesType === 'Export') {
+            if (label.includes('hotel')) {
+                limitation = `Limit: ${this.currencySymbol}${this.lodgingHotel}`;
+            } else if (label.includes('food')) {
+                limitation = `Limit: ${this.currencySymbol}${this.boardingFood}`;
+            }
+        }
+
+        return limitation;
+    }
+
+    // In your main component, update handleCitySelected
+    async handleCitySelected(event) {
+        this.selectedCityId = event.detail.recordId;
+        
+        // Get city name from Apex
+        try {
+            const cityDetails = await getCityDetails({ cityId: this.selectedCityId });
+            
+            if (cityDetails.success) {
+                this.selectedCityName = cityDetails.cityName;
+                this.selectedCityType = cityDetails.cityType || '';
+                this.isAClassCity = cityDetails.isAClassCity || false;
+                
+                console.log('City selected:', this.selectedCityName, 'Type:', this.selectedCityType);
+                
+                // Update daily allowance based on city type for Domestic
+                if (this.salesType === 'Domestic') {
+                    await this.updateDailyAllowanceBasedOnCity();
+                }
+                
+                // Refresh limitation texts for all line items
+                this.refreshAllLimitationTexts();
+                
+                this.showToast('Success', `City ${this.selectedCityName} selected`, 'success');
+            } else {
+                this.showToast('Error', cityDetails.message || 'Failed to load city details', 'error');
+            }
+        } catch (error) {
+            console.error('Error getting city details:', error);
+            this.showToast('Error', 'Failed to load city details', 'error');
+        }
+    }
+
+    // NEW: Update daily allowance based on city type
+    async updateDailyAllowanceBasedOnCity() {
+        if (this.salesType === 'Domestic' && this.userGradeName) {
+            try {
+                const gradeDetails = await getGradeDetailsWithSalesType({ 
+                    gradeName: this.userGradeName, 
+                    salesType: 'Domestic' 
+                });
+                
+                if (gradeDetails.success) {
+                    // Update daily allowance based on city type
+                    if (this.isAClassCity) {
+                        this.dailyAllowance = gradeDetails.dailyAllowance || 0;
+                    } else {
+                        this.dailyAllowance = gradeDetails.dailyAllowanceBClass || gradeDetails.dailyAllowance || 0;
+                    }
+                    
+                    // Update all line items with new daily allowance
+                    this.lineItems = this.lineItems.map(item => {
+                        const updatedItem = {
+                            ...item,
+                            dailyAllowance: this.dailyAllowance
+                        };
+                        
+                        // Recalculate total
+                        updatedItem.total = this.calculateLineItemTotal(updatedItem);
+                        
+                        return updatedItem;
+                    });
+                    
+                    console.log('Updated daily allowance based on city type:', this.dailyAllowance);
+                }
+            } catch (error) {
+                console.error('Error updating daily allowance based on city:', error);
+            }
+        }
+    }
+
+    // NEW: Refresh all limitation texts
+    refreshAllLimitationTexts() {
+        this.lineItems = this.lineItems.map(item => {
+            const limitationText = this.computeLimitationText(item);
+            return {
+                ...item,
+                limitationText: limitationText
+            };
         });
     }
 
@@ -951,8 +1205,9 @@ export default class ExpenseForm extends NavigationMixin(LightningElement) {
         const initialTotal = initialAmountClaimed + initialDailyAllowance;
         
         // Pre-compute disabled states
-        const computedTransportDisabled = false; // Initial state
-        const computedLocationDisabled = false; // Initial state
+        const computedTransportDisabled = false;
+        const computedLocationDisabled = false;
+        const limitationText = ''; // Initialize limitation text
         
         const newItem = {
             key: this.nextKey++,
@@ -994,7 +1249,9 @@ export default class ExpenseForm extends NavigationMixin(LightningElement) {
             disableTransportMode: false,
             // Pre-computed disabled states
             computedTransportDisabled: computedTransportDisabled,
-            computedLocationDisabled: computedLocationDisabled
+            computedLocationDisabled: computedLocationDisabled,
+            // Add limitation text
+            limitationText: limitationText
         };
         this.lineItems = [...this.lineItems, newItem];
     }
@@ -1040,10 +1297,37 @@ export default class ExpenseForm extends NavigationMixin(LightningElement) {
         }
     }
 
+    getLimitationText(item) {
+        if (!this.showLimitation || !item.typeOfExpenseId) {
+            return '';
+        }
+
+        const expenseType = this.typeOfExpenseOptions.find(opt => opt.value === item.typeOfExpenseId);
+        if (!expenseType || !expenseType.label) {
+            return '';
+        }
+
+        const label = expenseType.label.toLowerCase();
+        let limitation = '';
+
+        if (label.includes('hotel')) {
+            limitation = `Limit: ${this.currencySymbol}${this.lodgingHotel}`;
+        } else if (label.includes('food')) {
+            limitation = `Limit: ${this.currencySymbol}${this.boardingFood}`;
+        }
+
+        return limitation;
+    }
+
     async handleVoucherTypeChange(event) {
         this.selectedVoucherType = event.detail.value;
         this.selectedTourId = '';
         this.selectedTourName = '';
+
+        // Reset currency if not Export
+        if (this.salesType !== 'Export') {
+            this.selectedCurrency = 'INR';
+        }
 
         try {
             this.isLoading = true;
@@ -1053,6 +1337,11 @@ export default class ExpenseForm extends NavigationMixin(LightningElement) {
             });
 
             console.log('=== Voucher type changed to:', this.selectedVoucherType);
+
+            // Update transport modes for Export if applicable
+            if (this.isExportOutstation) {
+                await this.updateExportTransportModes();
+            }
 
             // Force update all line items with correct transport options
             this.lineItems = this.lineItems.map(item => {
@@ -1082,8 +1371,8 @@ export default class ExpenseForm extends NavigationMixin(LightningElement) {
                     glCodeId: '',
                     glCodeName: '',
                     remark: '',
-                    modeOfTravel: '', // Reset Mode_of_Travel
-                    disableTransportFields: false, // Reset disable flag
+                    modeOfTravel: '',
+                    disableTransportFields: false,
                     // Preserve daily allowance for Local and Outstation vouchers
                     dailyAllowance: (this.selectedVoucherType === 'Local' || this.selectedVoucherType === 'Outstation') ? 
                                 (item.dailyAllowance || this.dailyAllowance) : 0,
@@ -1145,12 +1434,14 @@ export default class ExpenseForm extends NavigationMixin(LightningElement) {
                 Customer_Visited__c: customerVisitIds.length > 0 ? customerVisitIds[0] : null,
                 Visit_Report__c: this.visitReportId,
                 Cost_Center__c: this.costCenterId,
-                CurrencyIsoCode: this.selectedCurrency
+                CurrencyIsoCode: this.selectedCurrency,
+                City__c: this.selectedCityId
             };
 
             const lineItemsToSend = this.lineItems.map(item => ({
                 Type_of_Expense__c: item.typeOfExpenseId,
                 Amount_Claimed__c: item.amountClaimed,
+                Amount_Passed__c: item.amountClaimed,
                 Daily_Allowance__c: (this.selectedVoucherType === 'Local' || this.selectedVoucherType === 'Outstation') ? item.dailyAllowance : null,
                 Reason__c: this.selectedVoucherType === 'Misc' ? item.reason :
                     (this.selectedVoucherType === 'Outstation' ? item.outstationReason : null),
@@ -1160,6 +1451,7 @@ export default class ExpenseForm extends NavigationMixin(LightningElement) {
                     (this.selectedVoucherType === 'Outstation' ? item.outstationToLocation : null),
                 Mode_of_Transport__c: this.selectedVoucherType === 'Local' ? item.transportMode :
                     (this.selectedVoucherType === 'Outstation' ? item.outstationTransportMode : null),
+                    Mode_of_Travel__c: this.showModeOfTravelField ? item.modeOfTravel : null, 
                 Start_KM__c: this.selectedVoucherType === 'Local' ? (item.startKM || null) : null,
                 End_KM__c: this.selectedVoucherType === 'Local' ? (item.endKM || null) : null,
                 KM_Rate__c: this.selectedVoucherType === 'Local' ? item.kmRate : null,
@@ -1316,18 +1608,18 @@ export default class ExpenseForm extends NavigationMixin(LightningElement) {
                         this.showToast('Error', `Select Date for Outstation expense in row ${i + 1}`, 'error');
                         return false;
                     }
-                    if (!item.outstationFromLocation || item.outstationFromLocation.trim() === '') {
-                        this.showToast('Error', `Enter From Location for Outstation expense in row ${i + 1}`, 'error');
-                        return false;
-                    }
-                    if (!item.outstationToLocation || item.outstationToLocation.trim() === '') {
-                        this.showToast('Error', `Enter To Location for Outstation expense in row ${i + 1}`, 'error');
-                        return false;
-                    }
-                    if (!isFood && !item.outstationTransportMode) {
-                        this.showToast('Error', `Select Transport Mode for Outstation expense in row ${i + 1}`, 'error');
-                        return false;
-                    }
+                    // if (!item.outstationFromLocation || item.outstationFromLocation.trim() === '') {
+                    //     this.showToast('Error', `Enter From Location for Outstation expense in row ${i + 1}`, 'error');
+                    //     return false;
+                    // }
+                    // if (!item.outstationToLocation || item.outstationToLocation.trim() === '') {
+                    //     this.showToast('Error', `Enter To Location for Outstation expense in row ${i + 1}`, 'error');
+                    //     return false;
+                    // }
+                    // if (!isFood && !item.outstationTransportMode) {
+                    //     this.showToast('Error', `Select Transport Mode for Outstation expense in row ${i + 1}`, 'error');
+                    //     return false;
+                    // }
 
                     // If it's a food expense, clear any transport mode value
                     if (isFood && item.outstationTransportMode) {

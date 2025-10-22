@@ -5,17 +5,32 @@ public class ReusableLookupControllerTest {
     static void setupTestData() {
         Id standardPricebookId = Test.getStandardPricebookId();
 
+        Pricebook2 standardPricebook = new Pricebook2(
+            Id = standardPricebookId,
+            IsActive = true
+        );
+        update standardPricebook;
+
         Base_UoM_Master__c baseUom = new Base_UoM_Master__c(Name = 'Kilogram');
         insert baseUom;
 
-        Product2 prod1 = new Product2(
-            Name = 'Test Product 1',
+        Product2 prod = new Product2(
+            Name = 'Test Product',
             ProductCode = 'TP001',
             Pack_Size__c = '10kg',
             Base_UOM__c = baseUom.Id,
-            Family = 'Test Family 1',
             IsActive = true
         );
+        insert prod;
+
+        PricebookEntry pbe = new PricebookEntry(
+            Pricebook2Id = standardPricebookId,
+            Product2Id = prod.Id,
+            UnitPrice = 100,
+            IsActive = true
+        );
+        insert pbe;
+
         Product2 prod2 = new Product2(
             Name = 'Test Product 2',
             ProductCode = 'TP002',
@@ -24,15 +39,8 @@ public class ReusableLookupControllerTest {
             Family = 'Test Family 2',
             IsActive = true
         );
-        insert new List<Product2>{prod1, prod2};
+        insert prod2;
 
-        PricebookEntry pbe1 = new PricebookEntry(
-            Pricebook2Id = standardPricebookId,
-            Product2Id = prod1.Id,
-            UnitPrice = 100,
-            IsActive = true,
-            CurrencyIsoCode = 'USD'
-        );
         PricebookEntry pbe2 = new PricebookEntry(
             Pricebook2Id = standardPricebookId,
             Product2Id = prod2.Id,
@@ -40,7 +48,7 @@ public class ReusableLookupControllerTest {
             IsActive = true,
             CurrencyIsoCode = 'USD'
         );
-        insert new List<PricebookEntry>{pbe1, pbe2};
+        insert pbe2;
 
         Account testAccount = new Account(Name = 'Test Account');
         insert testAccount;

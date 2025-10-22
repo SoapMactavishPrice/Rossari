@@ -9,16 +9,29 @@ public class CustomerPriceList_API_Test {
         Account acc = new Account(Name = 'Test Account', SAP_Customer_Code__c = 'CUST001');
         insert acc;
         
-        Product2 prod = new Product2(Name = 'Test Product', ProductCode = 'PROD001');
+        Pricebook2 standardPricebook = new Pricebook2(
+            Id = Test.getStandardPricebookId(),
+            IsActive = true
+        );
+        update standardPricebook;
+ 
+        Base_UoM_Master__c baseUom = new Base_UoM_Master__c(Name = 'Kilogram');
+        insert baseUom;
+ 
+        Product2 prod = new Product2(
+            Name = 'Test Product',
+            ProductCode = 'TP001',
+            Pack_Size__c = '10kg',
+            Base_UOM__c = baseUom.Id,
+            IsActive = true
+        );
         insert prod;
-        
-        // Create pricebook entry for the product
+ 
         PricebookEntry pbe = new PricebookEntry(
-            Pricebook2Id = standardPricebookId,
+            Pricebook2Id = standardPricebook.Id,
             Product2Id = prod.Id,
             UnitPrice = 100,
-            IsActive = true,
-            UseStandardPrice = false
+            IsActive = true
         );
         insert pbe;
         

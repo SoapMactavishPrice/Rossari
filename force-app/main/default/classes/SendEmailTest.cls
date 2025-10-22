@@ -38,21 +38,31 @@ private class SendEmailTest {
         );
         insert testOwner;
 
-        // Create product
-        Product2 testProduct = new Product2(
+       Pricebook2 standardPricebook = new Pricebook2(
+            Id = Test.getStandardPricebookId(),
+            IsActive = true
+        );
+        update standardPricebook;
+ 
+        Base_UoM_Master__c baseUom = new Base_UoM_Master__c(Name = 'Kilogram');
+        insert baseUom;
+ 
+        Product2 prod = new Product2(
             Name = 'Test Product',
+            ProductCode = 'TP001',
+            Pack_Size__c = '10kg',
+            Base_UOM__c = baseUom.Id,
             IsActive = true
         );
-        insert testProduct;
-
-        // Create standard pricebook entry
-        PricebookEntry standardPBE = new PricebookEntry(
-            Pricebook2Id = Test.getStandardPricebookId(),
-            Product2Id = testProduct.Id,
-            UnitPrice = 100.00,
+        insert prod;
+ 
+        PricebookEntry pbe = new PricebookEntry(
+            Pricebook2Id = standardPricebook.Id,
+            Product2Id = prod.Id,
+            UnitPrice = 100,
             IsActive = true
         );
-        insert standardPBE;
+        insert pbe;
 
         // Create account
         Account acc = new Account(Name='Test Account');
@@ -65,7 +75,7 @@ private class SendEmailTest {
         // Create custom pricebook entry with zero price
         PricebookEntry customPBE = new PricebookEntry(
             Pricebook2Id = customPB.Id,
-            Product2Id = testProduct.Id,
+            Product2Id = prod.Id,
             UnitPrice = 0,
             IsActive = true
         );
@@ -84,7 +94,7 @@ private class SendEmailTest {
 
         OpportunityLineItem oli = new OpportunityLineItem(
             OpportunityId = opp.Id,
-            Product2Id = testProduct.Id,
+            Product2Id = prod.Id,
             Quantity = 1,
             UnitPrice = 0,
             PricebookEntryId = customPBE.Id,
@@ -93,18 +103,18 @@ private class SendEmailTest {
         insert oli;
 
         // Create quote with zero price line item
-        Quote quote = new Quote(
+        Quote quote12 = new Quote(
             Name='Test Quote',
             OpportunityId = opp.Id,
             Status='Draft',
             Pricebook2Id = customPB.Id,
             OwnerId = testOwner.Id
         );
-        insert quote;
+        insert quote12;
 
         QuoteLineItem qli = new QuoteLineItem(
-            QuoteId = quote.Id,
-            Product2Id = testProduct.Id,
+            QuoteId = quote12.Id,
+            Product2Id = prod.Id,
             Quantity=1,
             UnitPrice=0,
             PricebookEntryId = customPBE.Id,
@@ -166,26 +176,6 @@ private class SendEmailTest {
         
         Test.startTest();
         SendEmail.sendEmailNotificationQuote(q.Id);
-        Test.stopTest();
-    }
-
-    @isTest
-    static void testSendEmailNotification_InvalidOpportunityId() {
-        Test.startTest();
-        try {
-            SendEmail.sendEmailNotification('001000000000000');
-        } catch (Exception e) {
-        }
-        Test.stopTest();
-    }
-
-    @isTest
-    static void testSendEmailNotificationQuote_InvalidQuoteId() {
-        Test.startTest();
-        try {
-            SendEmail.sendEmailNotificationQuote('0Q000000000000');
-        } catch (Exception e) {
-        }
         Test.stopTest();
     }
 

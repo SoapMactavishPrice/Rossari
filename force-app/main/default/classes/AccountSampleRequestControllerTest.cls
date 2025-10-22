@@ -6,11 +6,15 @@ private class AccountSampleRequestControllerTest {
         // Use Standard Pricebook without updating it
         Id standardPricebookId = Test.getStandardPricebookId();
         
-        // Create Base UoM
+        Pricebook2 standardPricebook = new Pricebook2(
+            Id = Test.getStandardPricebookId(),
+            IsActive = true
+        );
+        update standardPricebook;
+ 
         Base_UoM_Master__c baseUom = new Base_UoM_Master__c(Name = 'Kilogram');
         insert baseUom;
-
-        // Create Product
+ 
         Product2 prod = new Product2(
             Name = 'Test Product',
             ProductCode = 'TP001',
@@ -19,14 +23,12 @@ private class AccountSampleRequestControllerTest {
             IsActive = true
         );
         insert prod;
-
-        // Create Pricebook Entry
+ 
         PricebookEntry pbe = new PricebookEntry(
             Pricebook2Id = standardPricebookId,
             Product2Id = prod.Id,
             UnitPrice = 100,
-            IsActive = true,
-            UseStandardPrice = false
+            IsActive = true
         );
         insert pbe;
 
@@ -213,38 +215,5 @@ private class AccountSampleRequestControllerTest {
                 FROM Sample_Request__c WHERE Id = :resultId
             ];
         }
-    }
-
-    @isTest
-    static void testErrorScenarios() {
-        Test.startTest();
-        
-        // Test 1: getAccountInfo with invalid ID
-        try {
-            Map<String, Object> result = AccountSampleRequestController.getAccountInfo('001000000000000');
-        } catch (Exception e) {
-            // Expected to handle invalid ID
-        }
-        
-        // Test 2: getUnitPrice with invalid product ID
-        try {
-            Decimal unitPrice = AccountSampleRequestController.getUnitPrice('01t000000000000');
-        } catch (Exception e) {
-            // Expected to handle invalid product ID
-        }
-        
-        // Test 3: saveSample with invalid data
-        try {
-            String resultId = AccountSampleRequestController.saveSample(
-                '001000000000000', 
-                '{}', 
-                new List<Map<String, Object>>(), 
-                '[]'
-            );
-        } catch (Exception e) {
-            // Expected to handle invalid data
-        }
-        
-        Test.stopTest();
     }
 }

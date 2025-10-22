@@ -19,53 +19,45 @@ private class QuoteLineItemTest {
         // Get Standard Pricebook ID without updating (fix for UNABLE_TO_LOCK_ROW)
         Id standardPricebookId = Test.getStandardPricebookId();
         
-        // Create Product
-        Product2 testProduct = new Product2(
+       Pricebook2 standardPricebook = new Pricebook2(
+            Id = Test.getStandardPricebookId(),
+            IsActive = true
+        );
+        update standardPricebook;
+ 
+        Base_UoM_Master__c baseUom = new Base_UoM_Master__c(Name = 'Kilogram');
+        insert baseUom;
+ 
+        Product2 prod = new Product2(
             Name = 'Test Product',
+            ProductCode = 'TP001',
+            Pack_Size__c = '10kg',
+            Base_UOM__c = baseUom.Id,
             IsActive = true
         );
-        insert testProduct;
-        
-        // Create Standard PricebookEntry
-        PricebookEntry standardPBE = new PricebookEntry(
-            Pricebook2Id = standardPricebookId,
-            Product2Id = testProduct.Id,
-            UnitPrice = 100.00,
-            IsActive = true,
-            UseStandardPrice = false
-        );
-        insert standardPBE;
-
-        // Create Custom Pricebook
-        Pricebook2 customPb = new Pricebook2(
-            Name = 'Custom Pricebook', 
-            IsActive = true
-        );
-        insert customPb;
-
-        // Create Custom PricebookEntry
-        PricebookEntry customPbe = new PricebookEntry(
-            Pricebook2Id = customPb.Id,
-            Product2Id = testProduct.Id,
-            UnitPrice = 120.00,
-            IsActive = true,
-            UseStandardPrice = false
-        );
-        insert customPbe;
+        insert prod;
 
         // Create Quote with custom pricebook
         Quote quote = new Quote(
             Name = 'Test Quote',
             OpportunityId = opp.Id,
-            Pricebook2Id = customPb.Id
+            Pricebook2Id = standardPricebook.Id
         );
         insert quote;
 
         Test.startTest();
+
+        PricebookEntry priceBookEntry = new PricebookEntry(
+            Pricebook2Id = standardPricebook.Id,
+            Product2Id = prod.Id,
+            UnitPrice = 100,
+            IsActive = true
+        );
+        insert priceBookEntry;
         // Test Case 1: Insert QuoteLineItem with UnitPrice as 0 (should trigger email)
         QuoteLineItem qli1 = new QuoteLineItem(
             QuoteId = quote.Id,
-            PricebookEntryId = customPbe.Id,
+            PricebookEntryId = priceBookEntry.Id,
             Quantity = 1,
             UnitPrice = 0
         );
@@ -74,7 +66,7 @@ private class QuoteLineItemTest {
         // Test Case 2: Update QuoteLineItem to have UnitPrice as 0 (should trigger email)
         QuoteLineItem qli2 = new QuoteLineItem(
             QuoteId = quote.Id,
-            PricebookEntryId = customPbe.Id,
+            PricebookEntryId = priceBookEntry.Id,
             Quantity = 1,
             UnitPrice = 150
         );
@@ -87,7 +79,7 @@ private class QuoteLineItemTest {
         // Test Case 3: Insert QuoteLineItem with valid UnitPrice (should NOT trigger email)
         QuoteLineItem qli4 = new QuoteLineItem(
             QuoteId = quote.Id,
-            PricebookEntryId = customPbe.Id,
+            PricebookEntryId = priceBookEntry.Id,
             Quantity = 1,
             UnitPrice = 200
         );
@@ -113,24 +105,39 @@ private class QuoteLineItemTest {
         // Get Standard Pricebook ID without updating
         Id standardPricebookId = Test.getStandardPricebookId();
 
-        Product2 testProduct = new Product2(Name = 'Test Product', IsActive = true);
-        insert testProduct;
-
-        PricebookEntry standardPBE = new PricebookEntry(
-            Pricebook2Id = standardPricebookId,
-            Product2Id = testProduct.Id,
-            UnitPrice = 100.00,
-            IsActive = true,
-            UseStandardPrice = false
+        Pricebook2 standardPricebook = new Pricebook2(
+            Id = Test.getStandardPricebookId(),
+            IsActive = true
         );
-        insert standardPBE;
+        update standardPricebook;
+ 
+        Base_UoM_Master__c baseUom = new Base_UoM_Master__c(Name = 'Kilogram');
+        insert baseUom;
+ 
+        Product2 prod = new Product2(
+            Name = 'Test Product',
+            ProductCode = 'TP001',
+            Pack_Size__c = '10kg',
+            Base_UOM__c = baseUom.Id,
+            IsActive = true
+        );
+        insert prod;
+ 
+        PricebookEntry pbe = new PricebookEntry(
+            Pricebook2Id = standardPricebook.Id,
+            Product2Id = prod.Id,
+            UnitPrice = 100,
+            IsActive = true
+        );
+        insert pbe;
+
 
         Pricebook2 customPb = new Pricebook2(Name = 'Custom Pricebook', IsActive = true);
         insert customPb;
 
         PricebookEntry customPbe = new PricebookEntry(
             Pricebook2Id = customPb.Id,
-            Product2Id = testProduct.Id,
+            Product2Id = Prod.Id,
             UnitPrice = 120.00,
             IsActive = true,
             UseStandardPrice = false
