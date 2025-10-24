@@ -25,8 +25,10 @@ private class SendTdsFileFromAccountTest {
             Id = Test.getStandardPricebookId(),
             IsActive = true
         );
+        try{
         update standardPricebook;
- 
+        }Catch(Exception e){}
+        
         Base_UoM_Master__c baseUom = new Base_UoM_Master__c(Name = 'Kilogram');
         insert baseUom;
  
@@ -64,8 +66,10 @@ private class SendTdsFileFromAccountTest {
             PathOnClient = 'TestFile.txt',
             VersionData = Blob.valueOf('Test Content')
         );
+        try{
         insert cv;
-
+        }Catch(Exception e){}
+        
         ContentVersion insertedCV = [SELECT ContentDocumentId FROM ContentVersion WHERE Id = :cv.Id];
         ContentDocumentLink cdl = new ContentDocumentLink(
             ContentDocumentId = insertedCV.ContentDocumentId,

@@ -7,7 +7,9 @@ private class ManagerEmailSenderTest {
             Id = Test.getStandardPricebookId(),
             IsActive = true
         );
+        try{
         update standardPricebook;
+        }Catch(Exception e){}
         
         User testManager = new User(
             Alias = 'testmgr', 

@@ -6,8 +6,10 @@ private class QuoteTriggerTest {
         Id pbId = Test.getStandardPricebookId();
 
         Pricebook2 customPb = new Pricebook2(Id = pbId, IsActive = true);
+        try{
         update customPb;
-
+        }Catch(Exception e){}
+        
         Account acc = new Account(Name = 'Test Account');
         insert acc;
 

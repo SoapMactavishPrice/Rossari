@@ -1,0 +1,5 @@
+.smallButton lightning-button {
+    --lwc-button-height: 24px;
+    --lwc-button-font-size: 12px;
+    --lwc-button-padding-horizontal: 0.5rem;
+}

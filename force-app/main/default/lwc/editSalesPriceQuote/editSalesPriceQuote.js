@@ -3,8 +3,8 @@ import { getRecord, getFieldValue } from 'lightning/uiRecordApi';
 import { getObjectInfo } from 'lightning/uiObjectInfoApi';
 import { ShowToastEvent } from 'lightning/platformShowToastEvent';
 import { NavigationMixin } from 'lightning/navigation';
-import getQuoteLineItems from '@salesforce/apex/EditSalesPriceQuoteController.getQuoteLineItems';
-import updateQuoteLineItems from '@salesforce/apex/EditSalesPriceQuoteController.updateQuoteLineItems';
+//import getQuoteLineItems from '@salesforce/apex/EditSalesPriceQuoteController.getQuoteLineItems';
+//import updateQuoteLineItems from '@salesforce/apex/EditSalesPriceQuoteController.updateQuoteLineItems';
 import QUOTE_LINE_ITEM_OBJECT from '@salesforce/schema/QuoteLineItem';
 import APPROVAL_STATUS_FIELD from '@salesforce/schema/QuoteLineItem.Approval_Status__c';
 

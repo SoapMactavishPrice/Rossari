@@ -3,37 +3,47 @@ public class VisitReportControllerTest {
     
     @TestSetup
     static void setupTestData() {
+        List<SObject> recordsToInsert = new List<SObject>();
+        
         List<Account> accounts = new List<Account>();
         Account acc1 = new Account(Name = 'Test Account 1', SAP_Customer_Code__c = 'SAP001', CurrencyIsoCode = 'USD');
         Account acc2 = new Account(Name = 'Test Account 2', SAP_Customer_Code__c = 'SAP002', CurrencyIsoCode = 'EUR');
         accounts.add(acc1);
         accounts.add(acc2);
-        insert accounts;
+        recordsToInsert.addAll(accounts);
         
+        insert recordsToInsert;
+        recordsToInsert.clear();
+
         List<Contact> contacts = new List<Contact>();
         Contact con1 = new Contact(FirstName = 'Test', LastName = 'Contact 1', AccountId = acc1.Id, Email = 'test1@test.com', Title = 'Manager');
         Contact con2 = new Contact(FirstName = 'Test', LastName = 'Contact 2', AccountId = acc1.Id, Email = 'test2@test.com', Title = 'Director');
         contacts.add(con1);
         contacts.add(con2);
-        insert contacts;
+        recordsToInsert.addAll(contacts);
         
         Competitor_Master__c competitor = new Competitor_Master__c(Name = 'Test Competitor', Competitor_Code__c = 'COMP001');
-        insert competitor;
+        recordsToInsert.add(competitor);
         
         Tour__c tour = new Tour__c(Name = 'Test Tour', Tour_Start_Date__c = Date.today(), Tour_End_Date__c = Date.today().addDays(7));
-        insert tour;
+        recordsToInsert.add(tour);
         
         Project__c project = new Project__c(Name = 'Test Project');
-        insert project;
+        recordsToInsert.add(project);
         
+        insert recordsToInsert;
+        recordsToInsert.clear();
+
         Pricebook2 standardPricebook = new Pricebook2(
             Id = Test.getStandardPricebookId(),
             IsActive = true
         );
+        try{
         update standardPricebook;
- 
+         }Catch(Exception e){}
+
         Base_UoM_Master__c baseUom = new Base_UoM_Master__c(Name = 'Kilogram');
-        insert baseUom;
+        recordsToInsert.add(baseUom);
  
         Product2 prod = new Product2(
             Name = 'Test Product',
@@ -42,15 +52,20 @@ public class VisitReportControllerTest {
             Base_UOM__c = baseUom.Id,
             IsActive = true
         );
-        insert prod;
- 
+        recordsToInsert.add(prod);
+        
+        insert recordsToInsert;
+        recordsToInsert.clear();
+
         PricebookEntry pbe = new PricebookEntry(
             Pricebook2Id = standardPricebook.Id,
             Product2Id = prod.Id,
             UnitPrice = 100,
             IsActive = true
         );
-        insert pbe;
+        recordsToInsert.add(pbe);
+        
+        insert recordsToInsert;
     }
     
     @IsTest
@@ -342,7 +357,6 @@ public class VisitReportControllerTest {
         
         Test.stopTest();
     }
-    
     
     @IsTest
     static void testActionPointsWithNotification() {

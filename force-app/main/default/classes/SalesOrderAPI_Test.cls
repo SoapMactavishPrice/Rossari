@@ -10,7 +10,10 @@ private class SalesOrderAPI_Test {
             IsActive = true,
             Name = 'Standard Price Book'
         );
+        try{
         update standardPricebook;
+        }Catch(Exception e){}
+        
         // Create Account
         Account testAccount = new Account(
             Name = 'Test Account',

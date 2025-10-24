@@ -145,6 +145,11 @@ global class InvoiceMaster_API {
 
             invRec.InvoiceStatus__c = String.isNotBlank(inv.invoiceStatus) ? inv.invoiceStatus : '';
             invRec.Sales_Person__c = String.isNotBlank(inv.salesPerson) ? (Id) userCodeMap.get(inv.salesPerson) : null;
+            invRec.Commision_agent__c = String.isNotBlank(inv.Commision_agent) ? inv.Commision_agent : '';
+            invRec.LR_Name__c = String.isNotBlank(inv.LR_Name) ? inv.LR_Name : '';
+            invRec.LR_Number__c = String.isNotBlank(inv.LR_Number) ? inv.LR_Number : '';
+            invRec.LR_Shipping_No__c = String.isNotBlank(inv.LR_Shipping_No) ? inv.LR_Shipping_No : '';
+            invRec.LR_Shipping_Date__c = inv.LR_Shipping_Date;
 
             //invoiceToInsert.add(invRec);
             //}
@@ -268,7 +273,11 @@ global class InvoiceMaster_API {
         Decimal totalGrossValue;
         String invoiceStatus; // Picklist
         string salesPerson; // Lookup
-
+        String Commision_agent;
+        String LR_Name;
+        String LR_Number;
+        String LR_Shipping_No;
+        Date LR_Shipping_Date;
         List < WrapperLine > invline;
     }
 

@@ -9,6 +9,15 @@
                             <span style="flex: 1;"><b>Sample Request Number:</b> {quote.quoteName}</span>
                             <span style="flex: 1;"><b>Sample Request Owner:</b> {quote.quoteOwnerName}</span>
                             <span style="flex: 1;"><b>Sample Request Sales HOD:</b> {quote.hodUserName}</span>
+                            <span style="flex: 1; text-align:right;">
+                                <lightning-button 
+                                    label="Approve all" 
+                                    variant="neutral" 
+                                    onclick={handleApproveAll}
+                                    disabled={quote.disableFields}
+                                    data-parent={quote.quoteId}>
+                                </lightning-button>
+                            </span>
                         </div>
                     </h3>
 

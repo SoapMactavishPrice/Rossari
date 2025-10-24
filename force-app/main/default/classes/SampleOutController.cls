@@ -3,92 +3,137 @@ public with sharing class SampleOutController {
     @AuraEnabled(cacheable=true)
     public static ResponseWrapper getSampleRequestData(Id sampleRequestId) {
         ResponseWrapper response = new ResponseWrapper();
-        
+
         try {
             Sample_Request__c request = [
                 SELECT Id, Name, CurrencyIsoCode, Lead__c, Customer_Name__c,
-                Lead__r.Street_1__c,
-                Lead__r.Street_2__c,
-                Lead__r.Street_3__c,
-                Lead__r.Pin_Code__c,
-                Lead__r.City__c,
-                Lead__r.State__c,
-                Lead__r.Country__c,
-                Customer_Name__r.Name
+                    Lead__r.Street_1__c,
+                    Lead__r.Street_2__c,
+                    Lead__r.Street_3__c,
+                    Lead__r.Pin_Code__c,
+                    Lead__r.City__c,
+                    Lead__r.State__c,
+                    Lead__r.Country__c,
+                    Lead__r.Shipping_Street_1__c,
+                    Lead__r.Shipping_Street_2__c,
+                    Lead__r.Shipping_Street_3__c,
+                    Lead__r.Shipping_Pin_Code__c,
+                    Lead__r.Shipping_City__c,
+                    Lead__r.Shipping_State__c,
+                    Lead__r.Shipping_Country__c,
+                    Customer_Name__r.Name
                 FROM Sample_Request__c
                 WHERE Id = :sampleRequestId
                 LIMIT 1
             ];
-            
+
             response.requestNumber = request.Name;
             response.currencyCode = request.CurrencyIsoCode;
+
             
-            // Map address from Lead if present, otherwise check Account address
             if (request.Lead__c != null) {
                 response.address = new Map<String, String>{
+                    
                     'Street1' => request.Lead__r.Street_1__c,
-                        'Street2' => request.Lead__r.Street_2__c,
-                        'Street3' => request.Lead__r.Street_3__c,
-                        'PinCodeId' => request.Lead__r.Pin_Code__c,
-                        'CityId' => request.Lead__r.City__c,
-                        'StateId' => request.Lead__r.State__c,
-                        'CountryId' => request.Lead__r.Country__c,
-                        'Source' => 'Lead'
-                        };
-                            } else if (request.Customer_Name__c != null) {
-                                // Query the Address_Information__c object for the account
-                                List<Address_Information__c> accountAddresses = [
-                                    SELECT Id, Street_1__c, Street_2__c, Street_3__c, 
-                                    Pin_Code__c, City__c, State__c, Country__c
-                                    FROM Address_Information__c 
-                                    WHERE Account__c = :request.Customer_Name__c 
-                                    ORDER BY CreatedDate DESC 
-                                    LIMIT 1
-                                ];
-                                
-                                if (!accountAddresses.isEmpty()) {
-                                    Address_Information__c accountAddress = accountAddresses[0];
-                                    response.address = new Map<String, String>{
-                                        'Street1' => accountAddress.Street_1__c,
-                                            'Street2' => accountAddress.Street_2__c,
-                                            'Street3' => accountAddress.Street_3__c,
-                                            'PinCodeId' => accountAddress.Pin_Code__c,
-                                            'CityId' => accountAddress.City__c,
-                                            'StateId' => accountAddress.State__c,
-                                            'CountryId' => accountAddress.Country__c,
-                                            'Source' => 'Account'
-                                            };
-                                                }
-                            }
-            
+                    'Street2' => request.Lead__r.Street_2__c,
+                    'Street3' => request.Lead__r.Street_3__c,
+                    'PinCodeId' => request.Lead__r.Pin_Code__c,
+                    'CityId' => request.Lead__r.City__c,
+                    'StateId' => request.Lead__r.State__c,
+                    'CountryId' => request.Lead__r.Country__c,
+
+                    
+                    'ShippingStreet1' => request.Lead__r.Shipping_Street_1__c,
+                    'ShippingStreet2' => request.Lead__r.Shipping_Street_2__c,
+                    'ShippingStreet3' => request.Lead__r.Shipping_Street_3__c,
+                    'ShippingPinCodeId' => request.Lead__r.Shipping_Pin_Code__c,
+                    'ShippingCityId' => request.Lead__r.Shipping_City__c,
+                    'ShippingStateId' => request.Lead__r.Shipping_State__c,
+                    'ShippingCountryId' => request.Lead__r.Shipping_Country__c,
+
+                    'Source' => 'Lead'
+                };
+            } else if (request.Customer_Name__c != null) {
+                
+                List<Address_Information__c> billingAddresses = [
+                    SELECT Id, Name, Street_1__c, Street_2__c, Street_3__c,
+                        Pin_Code__c, City__c, State__c, Country__c
+                    FROM Address_Information__c
+                    WHERE Account__c = :request.Customer_Name__c
+                    AND RecordType.Name = 'Bill To'
+                    ORDER BY CreatedDate DESC
+                    LIMIT 1
+                ];
+
+                List<Address_Information__c> shippingAddresses = [
+                    SELECT Id, Name, Street_1__c, Street_2__c, Street_3__c,
+                        Pin_Code__c, City__c, State__c, Country__c
+                    FROM Address_Information__c
+                    WHERE Account__c = :request.Customer_Name__c
+                    AND RecordType.Name = 'Ship To'
+                    ORDER BY CreatedDate DESC
+                    LIMIT 1
+                ];
+
+                Map<String, String> accountAddressMap = new Map<String, String>();
+
+                if (!billingAddresses.isEmpty()) {
+                    Address_Information__c billTo = billingAddresses[0];
+                    accountAddressMap.put('Street1', billTo.Street_1__c);
+                    accountAddressMap.put('Street2', billTo.Street_2__c);
+                    accountAddressMap.put('Street3', billTo.Street_3__c);
+                    accountAddressMap.put('PinCodeId', billTo.Pin_Code__c);
+                    accountAddressMap.put('CityId', billTo.City__c);
+                    accountAddressMap.put('StateId', billTo.State__c);
+                    accountAddressMap.put('CountryId', billTo.Country__c);
+                }
+
+                if (!shippingAddresses.isEmpty()) {
+                    Address_Information__c shipTo = shippingAddresses[0];
+                    accountAddressMap.put('ShippingStreet1', shipTo.Street_1__c);
+                    accountAddressMap.put('ShippingStreet2', shipTo.Street_2__c);
+                    accountAddressMap.put('ShippingStreet3', shipTo.Street_3__c);
+                    accountAddressMap.put('ShippingPinCodeId', shipTo.Pin_Code__c);
+                    accountAddressMap.put('ShippingCityId', shipTo.City__c);
+                    accountAddressMap.put('ShippingStateId', shipTo.State__c);
+                    accountAddressMap.put('ShippingCountryId', shipTo.Country__c);
+                }
+
+                if (!accountAddressMap.isEmpty()) {
+                    accountAddressMap.put('Source', 'Account');
+                    response.address = accountAddressMap;
+                }
+            }
+
             response.lineItems = [
                 SELECT 
-                Id, 
-                Product__c, 
-                Product__r.Name, 
-                Product__r.ProductCode,
-                Sample_Request_To_Plant__c,
-                Sample_Qty_in_Kgs__c,
-                Description__c,
-                Sales_Price__c
+                    Id, 
+                    Product__c, 
+                    Product__r.Name, 
+                    Product__r.ProductCode,
+                    Sample_Request_To_Plant__c,
+                    Sample_Qty_in_Kgs__c,
+                    Description__c,
+                    Sales_Price__c
                 FROM Sample_Request_Line_Item__c
                 WHERE Sample_Request__c = :sampleRequestId
                 AND Status__c = 'Ready' 
                 ORDER BY CreatedDate
             ];
-            
+
             response.plants = [
                 SELECT Id, Name, Plant_Name__c 
                 FROM Plant__c 
                 ORDER BY Name
             ];
-            
+
         } catch (Exception e) {
             throw new AuraHandledException('Error fetching data: ' + e.getMessage());
         }
-        
+
         return response;
     }
+
     
     @AuraEnabled(cacheable=true)
     public static Map<String, String> getAddressDataByPin(Id pinCodeId) {
@@ -140,8 +185,8 @@ public with sharing class SampleOutController {
         for (Schema.PicklistEntry entry : sapEntries) {
             sapOptions.add(new Map<String, String>{
                 'label' => entry.getLabel(),
-                    'value' => entry.getValue()
-                    });
+                'value' => entry.getValue()
+            });
         }
         result.put('sapSampleDocOptions', sapOptions);
         
@@ -151,8 +196,8 @@ public with sharing class SampleOutController {
         for (Schema.PicklistEntry entry : incoEntries) {
             incoOptions.add(new Map<String, String>{
                 'label' => entry.getLabel(),
-                    'value' => entry.getValue()
-                    });
+                'value' => entry.getValue()
+            });
         }
         result.put('incoTermsOptions', incoOptions);
         
@@ -173,9 +218,19 @@ public with sharing class SampleOutController {
         @AuraEnabled public String Street3;
         @AuraEnabled public String SAPSampleDocumentType;
         @AuraEnabled public String IncoTerms;
-        @AuraEnabled public String CurrencyIsoCode; 
+        @AuraEnabled public String CurrencyIsoCode;
         @AuraEnabled public String SampleReceivedByEndPerson;
+
+        // Shipping Address Fields
+        @AuraEnabled public String ShippingStreet1;
+        @AuraEnabled public String ShippingStreet2;
+        @AuraEnabled public String ShippingStreet3;
+        @AuraEnabled public Id ShippingPinCodeId;
+        @AuraEnabled public Id ShippingCityId;
+        @AuraEnabled public Id ShippingStateId;
+        @AuraEnabled public Id ShippingCountryId;
     }
+
     
     public class SampleOutLineData {
         @AuraEnabled public Id Product;
@@ -214,7 +269,16 @@ public with sharing class SampleOutController {
             sampleOut.Inco_Terms__c = outData.IncoTerms;
             sampleOut.CurrencyIsoCode = outData.CurrencyIsoCode;
             sampleOut.Sample_Received_By_End_Person__c = outData.SampleReceivedByEndPerson;
-            
+
+            // Shipping fields
+            sampleOut.Shipping_Street_1__c = outData.ShippingStreet1;
+            sampleOut.Shipping_Street_2__c = outData.ShippingStreet2;
+            sampleOut.Shipping_Street_3__c = outData.ShippingStreet3;
+            sampleOut.Shipping_Pin_Code__c = outData.ShippingPinCodeId;
+            sampleOut.Shipping_City__c = outData.ShippingCityId;
+            sampleOut.Shipping_State__c = outData.ShippingStateId;
+            sampleOut.Shipping_Country__c = outData.ShippingCountryId;
+
             insert sampleOut;
             
             // Create line items
@@ -224,8 +288,8 @@ public with sharing class SampleOutController {
                     Sample_Out__c = sampleOut.Id,
                     Product__c = line.Product,
                     Sample_Request_Line__c = line.SampleRequestLine,
-                    Sample_Qty_in_Kgs__c = line.SampleQtyInKgs,  // Changed from Sample_Qty_in_Kgs__c
-                    Price__c = line.Price,                 // Changed from Sales_Price__c
+                    Sample_Qty_in_Kgs__c = line.SampleQtyInKgs,
+                    Price__c = line.Price,
                     Description__c = line.Description
                 ));
             }
@@ -241,6 +305,7 @@ public with sharing class SampleOutController {
             throw new AuraHandledException('Error saving record: ' + e.getMessage());
         }
     }
+
     
     public class ResponseWrapper {
         @AuraEnabled public String requestNumber;

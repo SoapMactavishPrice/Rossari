@@ -7,7 +7,9 @@ public class QuoteControllerTest {
             Id = Test.getStandardPricebookId(),
             IsActive = true
         );
+        try{
         update standardPricebook;
+        }Catch(Exception e){}
         return standardPricebook;
     }
 

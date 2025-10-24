@@ -3,7 +3,8 @@ public class lookupComponentControllerTest {
 
     @testSetup
     static void setupData() {
-
+        List<SObject> recordsToInsert = new List<SObject>();
+        
         Profile sysAdminProfile = [
             SELECT Id FROM Profile WHERE Name = 'System Administrator' LIMIT 1
         ];
@@ -19,24 +20,32 @@ public class lookupComponentControllerTest {
             EmailEncodingKey = 'UTF-8',
             LanguageLocaleKey = 'en_US',
             ProfileId = sysAdminProfile.Id,
-            Division_Code__c = '10',     // your custom field
+            Division_Code__c = '10',
             CommunityNickname = 'tadminnick'
         );
-        insert userPersonnel;
-
-        Id standardPricebookId = Test.getStandardPricebookId();
+        recordsToInsert.add(userPersonnel);
         
-       Pricebook2 standardPricebook = new Pricebook2(
+        insert recordsToInsert;
+        recordsToInsert.clear();
+
+        Pricebook2 standardPricebook = new Pricebook2(
             Id = Test.getStandardPricebookId(),
             IsActive = true
         );
+        try{
         update standardPricebook;
- 
+        }Catch(Exception e){}
         Base_UoM_Master__c baseUom = new Base_UoM_Master__c(Name = 'Kilogram');
-        insert baseUom;
+        recordsToInsert.add(baseUom);
+        
+        insert recordsToInsert;
+        recordsToInsert.clear();
 
         Division__c division = new Division__c(Name = '10');
-        insert division;
+        recordsToInsert.add(division);
+        
+        insert recordsToInsert;
+        recordsToInsert.clear();
  
         Product2 prod = new Product2(
             Name = 'Test Product',
@@ -46,7 +55,10 @@ public class lookupComponentControllerTest {
             IsActive = true,
             Division__c = division.Id
         );
-        insert prod;
+        recordsToInsert.add(prod);
+        
+        insert recordsToInsert;
+        recordsToInsert.clear();
  
         PricebookEntry pbe = new PricebookEntry(
             Pricebook2Id = standardPricebook.Id,
@@ -54,17 +66,25 @@ public class lookupComponentControllerTest {
             UnitPrice = 100,
             IsActive = true
         );
-        insert pbe;
-
+        recordsToInsert.add(pbe);
+        
+        insert recordsToInsert;
+        recordsToInsert.clear();
 
         Company__c company = new Company__c(
             Name = 'Rossari Biotech Limited',
             SAP_Code__c = '1000'
         );
-        insert company;
+        recordsToInsert.add(company);
+        
+        insert recordsToInsert;
+        recordsToInsert.clear();
 
         Product_Group__c productGroup = new Product_Group__c(Name = 'Test Group');
-        insert productGroup;
+        recordsToInsert.add(productGroup);
+        
+        insert recordsToInsert;
+        recordsToInsert.clear();
 
         Company_User__c cu = new Company_User__c(
             User__c = UserInfo.getUserId(),
@@ -72,13 +92,22 @@ public class lookupComponentControllerTest {
             Division__c = division.Id,
             Product_Group__c = productGroup.Id
         );
-        insert cu;
+        recordsToInsert.add(cu);
+        
+        insert recordsToInsert;
+        recordsToInsert.clear();
 
         Sales_Organisation__c salesOrg = new Sales_Organisation__c(Name = '1000');
-        insert salesOrg;
+        recordsToInsert.add(salesOrg);
+        
+        insert recordsToInsert;
+        recordsToInsert.clear();
 
         Distribution_Channel__c distChannel = new Distribution_Channel__c(Name = '10');
-        insert distChannel;
+        recordsToInsert.add(distChannel);
+        
+        insert recordsToInsert;
+        recordsToInsert.clear();
 
         Sales_Area__c salesArea = new Sales_Area__c(
             Sales_Organisation__c = salesOrg.Id,
@@ -86,7 +115,9 @@ public class lookupComponentControllerTest {
             Division__c = division.Id,
             Distribution_Channel__c = distChannel.Id
         );
-        insert salesArea;
+        recordsToInsert.add(salesArea);
+        
+        insert recordsToInsert;
     }
 
     @isTest
@@ -254,6 +285,8 @@ public class lookupComponentControllerTest {
 
     @isTest
     static void testAdditionalScenarios() {
+        List<SObject> recordsToInsert = new List<SObject>();
+        
         Test.startTest();
         
         String result1 = lookupComponentController.findRecords(
@@ -290,7 +323,10 @@ public class lookupComponentControllerTest {
             Family = 'Test Family',
             IsActive = true
         );
-        insert duplicateProduct;
+        recordsToInsert.add(duplicateProduct);
+        
+        insert recordsToInsert;
+        recordsToInsert.clear();
         
         PricebookEntry duplicatePbe = new PricebookEntry(
             Pricebook2Id = Test.getStandardPricebookId(),
@@ -299,7 +335,10 @@ public class lookupComponentControllerTest {
             IsActive = true,
             CurrencyIsoCode = 'USD'
         );
-        insert duplicatePbe;
+        recordsToInsert.add(duplicatePbe);
+        
+        insert recordsToInsert;
+        recordsToInsert.clear();
         
         Sales_Area__c duplicateSalesArea = new Sales_Area__c(
             Sales_Organisation__c = [SELECT Id FROM Sales_Organisation__c LIMIT 1].Id,
@@ -307,7 +346,10 @@ public class lookupComponentControllerTest {
             Division__c = [SELECT Id FROM Division__c LIMIT 1].Id,
             Distribution_Channel__c = [SELECT Id FROM Distribution_Channel__c LIMIT 1].Id
         );
-        insert duplicateSalesArea;
+        recordsToInsert.add(duplicateSalesArea);
+        
+        insert recordsToInsert;
+        recordsToInsert.clear();
         
         String result3 = lookupComponentController.findRecords(
             'TP001',

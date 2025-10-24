@@ -141,6 +141,7 @@ public with sharing class ExpenseController {
             if (!grades.isEmpty()) {
                 Grade__c grade = grades[0];
                 result.put('dailyAllowance', grade.Daily_Allowance_A_class_cities__c != null ? grade.Daily_Allowance_A_class_cities__c : 0);
+                result.put('dailyAllowanceBClass', grade.Daily_Allowance_B_class_cities__c != null ? grade.Daily_Allowance_B_class_cities__c : 0);
                 result.put('fourWheelerPerKm', grade.Four_Wheeler_per_km__c != null ? grade.Four_Wheeler_per_km__c : 0);
                 result.put('twoWheelerPerKm', grade.Two_Wheeler_per_km__c != null ? grade.Two_Wheeler_per_km__c : 0);
                 result.put('specialAllowance', grade.Special_Allowance__c != null ? grade.Special_Allowance__c : 0);
@@ -195,6 +196,7 @@ public with sharing class ExpenseController {
                 if (!fallbackGrades.isEmpty()) {
                     Grade__c grade = fallbackGrades[0];
                     result.put('dailyAllowance', grade.Daily_Allowance_A_class_cities__c != null ? grade.Daily_Allowance_A_class_cities__c : 0);
+                    result.put('dailyAllowanceBClass', grade.Daily_Allowance_B_class_cities__c != null ? grade.Daily_Allowance_B_class_cities__c : 0);
                     result.put('fourWheelerPerKm', grade.Four_Wheeler_per_km__c != null ? grade.Four_Wheeler_per_km__c : 0);
                     result.put('twoWheelerPerKm', grade.Two_Wheeler_per_km__c != null ? grade.Two_Wheeler_per_km__c : 0);
                     result.put('specialAllowance', grade.Special_Allowance__c != null ? grade.Special_Allowance__c : 0);

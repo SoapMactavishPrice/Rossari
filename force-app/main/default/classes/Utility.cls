@@ -1,4 +1,6 @@
 public with sharing class Utility {
+
+    public static String baseUrl = System.Url.getOrgDomainUrl().toExternalForm();
     
     @AuraEnabled
     public static List<Map<String, String>> getContactName(String recordId, String objectType) {
@@ -371,8 +373,7 @@ public with sharing class Utility {
         
         Boolean isTargetCompany = (
             (sr.Lead__r != null && sr.Lead__r.RecordType != null && 
-                (sr.Lead__r.RecordType.Name == 'Tristar' || 
-                sr.Lead__r.RecordType.Name == 'Unitop')) ||
+                (sr.Lead__r.RecordType.Name == 'Unitop/Tristar')) ||
 
             (sr.Opportunity__r != null && sr.Opportunity__r.Account != null && sr.Opportunity__r.Account.Rossari_Company__r != null &&
                 (sr.Opportunity__r.Account.Rossari_Company__r.Name == 'Tristar Intermediates Private Limited' || 
@@ -483,8 +484,11 @@ public with sharing class Utility {
             emailBody += '<b>Customer Name:</b> ' + ns(sr.Customer_Name__r.Name) + '<br/>';
         }
 
-        emailBody += '<br/><b>Buisness Type:</b> ' + (isDomestic ? 'Domestic' : 'Export') + '<br/><br/>'
-            + productTable;
+        emailBody += '<br/><b>Buisness Type:</b> ' + (isDomestic ? 'Domestic' : 'Export') + '<br/><br/>';
+
+        emailBody += '<b>URL:</b> <a href="' + Utility.baseUrl + '/lightning/n/Sample_Request_Approval" target="_blank">Click here</a><br/><br/>';
+        
+        emailBody += productTable;
 
             
         Messaging.SingleEmailMessage mail = new Messaging.SingleEmailMessage();

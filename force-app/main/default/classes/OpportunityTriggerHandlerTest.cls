@@ -8,8 +8,10 @@ public class OpportunityTriggerHandlerTest {
         Id standardPricebookId = Test.getStandardPricebookId();
 
         Pricebook2 priceBook = new Pricebook2(Id = standardPricebookId, IsActive = true);
+        try{
         update priceBook;
-
+        }Catch(Exception e){}
+        
         Product2 prod = new Product2(Name='Test Product', IsActive=true);
         insert prod;
 

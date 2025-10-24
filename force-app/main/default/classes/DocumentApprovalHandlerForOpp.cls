@@ -176,8 +176,8 @@ public with sharing class DocumentApprovalHandlerForOpp {
         } else if (documentType == 'COA') {
             htmlBody += '<b>Remark:</b> ' + (leadRecord.COA_Doc_Remark__c != null ? leadRecord.COA_Doc_Remark__c : '') + '<br/>';
         }
-        htmlBody += '<b>URL:</b> <a href="https://rossari--devorg.sandbox.lightning.force.com/lightning/cmp/c__AttachTdsMsdsOnOpportunityCaller?c__recordId=' 
-                    + leadRecord.Id + '" target="_blank">Click here</a><br/><br/>';
+        htmlBody += '<b>URL:</b> <a href="' + Utility.baseUrl + '/lightning/cmp/c__AttachTdsMsdsOnOpportunityCaller?c__recordId=' 
+                        + leadRecord.Id + '" target="_blank">Click here</a><br/><br/>';
         htmlBody += 'Kindly review and provide the required document.<br/><br/>';
         htmlBody += 'Regards,<br/>';
         htmlBody += leadRecord.Owner.Name;
@@ -430,8 +430,8 @@ public with sharing class DocumentApprovalHandlerForOpp {
         htmlBody += '<b>Opportunity Name:</b> ' + lead.Name + '<br/>';
         htmlBody += '<b>Company:</b> ' + (lead.Account != null ? lead.Account.Name : '') + '<br/>';
         htmlBody += '<b>Contact Name:</b> ' + (lead.Contact__r != null ? lead.Contact__r.Name : '') + '<br/>';
-        htmlBody += '<b>URL:</b> <a href="https://rossari--devorg.sandbox.lightning.force.com/lightning/cmp/c__AttachTdsMsdsOnOpportunityCaller?c__recordId=' 
-                    + lead.Id + '" target="_blank">Click here</a><br/><br/>';
+        htmlBody += '<b>URL:</b> <a href="' + Utility.baseUrl + '/lightning/cmp/c__AttachTdsMsdsOnOpportunityCaller?c__recordId=' 
+                        + lead.Id + '" target="_blank">Click here</a><br/><br/>';
         htmlBody += 'Please confirm if any further action is required.<br/><br/>';
         htmlBody += 'Regards,<br/>';
         htmlBody += approverName;

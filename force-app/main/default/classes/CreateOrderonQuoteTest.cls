@@ -3,14 +3,21 @@ private class CreateOrderonQuoteTest {
     
     @TestSetup
     static void setupData() {
-        // Get Standard Pricebook ID
+        List<SObject> recordsToInsert = new List<SObject>();
+        
         Id standardPbId = Test.getStandardPricebookId();
         
         Account acc = new Account(Name = 'Test Account');
-        insert acc;
+        recordsToInsert.add(acc);
+        
+        insert recordsToInsert;
+        recordsToInsert.clear();
         
         Contact con = new Contact(FirstName = 'Test', LastName = 'Contact', Email = 'test@example.com', AccountId = acc.Id);
-        insert con;
+        recordsToInsert.add(con);
+        
+        insert recordsToInsert;
+        recordsToInsert.clear();
         
         Opportunity opp = new Opportunity(
             Name = 'Test Opp', 
@@ -19,16 +26,24 @@ private class CreateOrderonQuoteTest {
             AccountId = acc.Id,
             Pricebook2Id = standardPbId
         );
-        insert opp;
+        recordsToInsert.add(opp);
+        
+        insert recordsToInsert;
+        recordsToInsert.clear();
 
-       Pricebook2 standardPricebook = new Pricebook2(
+        Pricebook2 standardPricebook = new Pricebook2(
             Id = Test.getStandardPricebookId(),
             IsActive = true
         );
+        try{
         update standardPricebook;
- 
+         }Catch(Exception e){}
+
         Base_UoM_Master__c baseUom = new Base_UoM_Master__c(Name = 'Kilogram');
-        insert baseUom;
+        recordsToInsert.add(baseUom);
+        
+        insert recordsToInsert;
+        recordsToInsert.clear();
  
         Product2 prod = new Product2(
             Name = 'Test Product',
@@ -37,7 +52,10 @@ private class CreateOrderonQuoteTest {
             Base_UOM__c = baseUom.Id,
             IsActive = true
         );
-        insert prod;
+        recordsToInsert.add(prod);
+        
+        insert recordsToInsert;
+        recordsToInsert.clear();
  
         PricebookEntry pbe = new PricebookEntry(
             Pricebook2Id = standardPricebook.Id,
@@ -45,7 +63,10 @@ private class CreateOrderonQuoteTest {
             UnitPrice = 100,
             IsActive = true
         );
-        insert pbe;
+        recordsToInsert.add(pbe);
+        
+        insert recordsToInsert;
+        recordsToInsert.clear();
 
         Quote qt = new Quote(
             Name = 'Test Quote',
@@ -63,7 +84,10 @@ private class CreateOrderonQuoteTest {
             ShippingCountry = 'Country',
             ContactId = con.Id
         );
-        insert qt;
+        recordsToInsert.add(qt);
+        
+        insert recordsToInsert;
+        recordsToInsert.clear();
 
         QuoteLineItem qli = new QuoteLineItem(
             QuoteId = qt.Id,
@@ -72,7 +96,9 @@ private class CreateOrderonQuoteTest {
             UnitPrice = 100,
             Product2Id = prod.Id
         );
-        insert qli;
+        recordsToInsert.add(qli);
+        
+        insert recordsToInsert;
     }
     
     @IsTest

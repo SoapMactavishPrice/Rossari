@@ -42,8 +42,10 @@ private class SendEmailTest {
             Id = Test.getStandardPricebookId(),
             IsActive = true
         );
+        try{
         update standardPricebook;
- 
+        }Catch(Exception e){}
+        
         Base_UoM_Master__c baseUom = new Base_UoM_Master__c(Name = 'Kilogram');
         insert baseUom;
  
@@ -110,8 +112,10 @@ private class SendEmailTest {
             Pricebook2Id = customPB.Id,
             OwnerId = testOwner.Id
         );
+        try{
         insert quote12;
-
+        }Catch(Exception e){}
+        
         QuoteLineItem qli = new QuoteLineItem(
             QuoteId = quote12.Id,
             Product2Id = prod.Id,

@@ -3,17 +3,22 @@ public class addProductIntrestedTest {
     
     @testSetup
     static void setupData() {
-        Id stdPbId = Test.getStandardPricebookId();
-
+        List<SObject> recordsToInsert = new List<SObject>();
+        
         Account acc = new Account(Name = 'Rossari Chemicals Ltd.');
-        insert acc;
+        recordsToInsert.add(acc);
+        
+        insert recordsToInsert;
+        recordsToInsert.clear();
         
         Company__c rossari = new Company__c(
             Name = 'Rossari Biotech Limited'
         );
-        insert rossari;
+        recordsToInsert.add(rossari);
         
-        //  Insert test Lead (AFTER inserting the Account above)
+        insert recordsToInsert;
+        recordsToInsert.clear();
+        
         Lead testLead = new Lead(
             FirstName ='Prince',
             LastName = 'TestLead',
@@ -21,53 +26,24 @@ public class addProductIntrestedTest {
             Company = 'Rossari Chemicals Ltd.', 
             Status = 'Open - Not Contacted'
         );
-        insert testLead;
+        recordsToInsert.add(testLead);
         
+        insert recordsToInsert;
+        recordsToInsert.clear();
 
-        
-         /*Pricebook2 standardPricebook = new Pricebook2(
+        Pricebook2 standardPricebook = new Pricebook2(
             Id = Test.getStandardPricebookId(),
             IsActive = true
         );
+        try{
         update standardPricebook;
+        }Catch(Exception e){}
         
-        System.debug('check'+[SELECT Id FROM Pricebook2 WHERE IsStandard = true LIMIT 1]);
-        
-        Product2 prod = new Product2(
-            Name = 'Test Product',
-            IsActive = true
-        );
-        insert prod;
-        
-        PricebookEntry standardPBE = new PricebookEntry(
-            Pricebook2Id = standardPricebook.Id,
-            Product2Id = prod.Id,
-            UnitPrice = 100.00,
-            IsActive = true
-        );
-        insert standardPBE;
-    
-        
-        Product_Interested__c pi = new Product_Interested__c(
-            Lead__c = testLead.Id, // Ensure this is a valid Lead record
-            Product__c = prod.Id, // Ensure this is a valid Product2 record
-            New_Product_Name__c = 'New Product',
-            New_Product__c = true,
-            List_Price__c = 100,
-            Quantity_in_Kgs__c = 10,
-            Expected_Price__c = 95,
-            Add_in_Opportunity__c = true,
-            Quantity_Frequency__c = 'Per/Month'
-        );
-        insert pi;*/
-       Pricebook2 standardPricebook = new Pricebook2(
-            Id = Test.getStandardPricebookId(),
-            IsActive = true
-        );
-        update standardPricebook;
- 
         Base_UoM_Master__c baseUom = new Base_UoM_Master__c(Name = 'Kilogram');
-        insert baseUom;
+        recordsToInsert.add(baseUom);
+        
+        insert recordsToInsert;
+        recordsToInsert.clear();
  
         Product2 prod = new Product2(
             Name = 'Test Product',
@@ -76,7 +52,10 @@ public class addProductIntrestedTest {
             Base_UOM__c = baseUom.Id,
             IsActive = true
         );
-        insert prod;
+        recordsToInsert.add(prod);
+        
+        insert recordsToInsert;
+        recordsToInsert.clear();
  
         PricebookEntry pbe = new PricebookEntry(
             Pricebook2Id = standardPricebook.Id,
@@ -84,10 +63,11 @@ public class addProductIntrestedTest {
             UnitPrice = 100,
             IsActive = true
         );
-        insert pbe;
+        recordsToInsert.add(pbe);
+        
+        insert recordsToInsert;
+        recordsToInsert.clear();
 
-    
-        // Product Interested
         Product_Interested__c pi = new Product_Interested__c(
             Lead__c = testLead.Id,
             Product__c = prod.Id,
@@ -99,10 +79,10 @@ public class addProductIntrestedTest {
             Add_in_Opportunity__c = true,
             Quantity_Frequency__c = 'Per/Month'
         );
-        insert pi;
+        recordsToInsert.add(pi);
         
+        insert recordsToInsert;
     }
-    
     
     @isTest
     static void testGetProdInterest() {
@@ -111,8 +91,6 @@ public class addProductIntrestedTest {
         Test.startTest();
         Map<String, Object> result = addProductIntrested.getProdInterest(testLead.Id);
         Test.stopTest();
-        
-        
     }
     
     @isTest
@@ -122,7 +100,6 @@ public class addProductIntrestedTest {
         Test.startTest();
         String msg = addProductIntrested.deleteProductInterested(pi.Id);
         Test.stopTest();
-        
     }
     
     @isTest
@@ -132,7 +109,6 @@ public class addProductIntrestedTest {
         Test.startTest();
         List<Id> existingProducts = addProductIntrested.getExistingProducts(testLead.Id);
         Test.stopTest();
-        
     }
     
     @isTest
@@ -140,7 +116,6 @@ public class addProductIntrestedTest {
         Test.startTest();
         Map<String, List<Map<String, String>>> picklists = addProductIntrested.getPicklistValues();
         Test.stopTest();
-        
     }
     
     @isTest
@@ -169,7 +144,6 @@ public class addProductIntrestedTest {
         Test.startTest();
         Map<String, String> result = addProductIntrested.saveProductInterested(testLead.Id, jsonInput);
         Test.stopTest();
-        
     }
     
     @isTest
@@ -183,7 +157,7 @@ public class addProductIntrestedTest {
             'inId' => null,
                 'prodId' => prod.Id,
                 'volume' => 25.0,
-                'price' => null, // Null price
+                'price' => null,
                 'pbeId' => pbe.Id,
                 'unitPrice' => pbe.UnitPrice,
                 'prodFamily' => prod.Family,
@@ -198,6 +172,5 @@ public class addProductIntrestedTest {
         Test.startTest();
         Map<String, String> result = addProductIntrested.saveProductInterested(testLead.Id, jsonInput);
         Test.stopTest();
-        
     }
 }

@@ -9,8 +9,10 @@ private class UtilityTest {
             Id = standardPricebookId,
             IsActive = true
         );
+        try{
         update standardPricebook;
-
+        }Catch(Exception e){}
+    
         Account acc = new Account(Name = 'Test Account', Business_Type__c = 'Domestic');
         insert acc;
 

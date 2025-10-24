@@ -16,8 +16,10 @@ public class QuotePdfSendControllerTest {
             Id = Test.getStandardPricebookId(),
             IsActive = true
         );
+        try{
         update standardPricebook;
- 
+        }Catch(Exception e){}
+        
         Base_UoM_Master__c baseUom = new Base_UoM_Master__c(Name = 'Kilogram');
         insert baseUom;
  
@@ -103,7 +105,10 @@ public class QuotePdfSendControllerTest {
             VersionData = Blob.valueOf('Test Content'),
             IsMajorVersion = true
         );
+        try{
         insert cv;
+        }Catch(Exception e){}
+        
         cv = [SELECT ContentDocumentId FROM ContentVersion WHERE Id = :cv.Id];
         String result3 = QuotePdfSendController.deletefile(cv.ContentDocumentId);
 

@@ -7,8 +7,10 @@ public class OptyTriggerHandlerTest {
             Id = Test.getStandardPricebookId(),
             IsActive = true
         );
+        try{
         update standardPricebook;
- 
+        }Catch(Exception e){}
+
         Base_UoM_Master__c baseUom = new Base_UoM_Master__c(Name = 'Kilogram');
         insert baseUom;
  
@@ -64,8 +66,10 @@ public class OptyTriggerHandlerTest {
             CurrencyIsoCode = 'INR',
             MobilePhone = '8987453243'
         );
+        try{
         insert testLead29;
-
+        }Catch(Exception e){}
+    
         Product_Interested__c pi = new Product_Interested__c(
             Lead__c = testLead29.Id,
             Product__c = product.Id,

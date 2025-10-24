@@ -81,6 +81,19 @@ export default class quoteSalesPriceApproval extends NavigationMixin(LightningEl
         })
     }
 
+    handleApproveAll(event) {
+        const parentId = event.target.dataset.parent;
+
+        let specificQuote = this.quotes.find(quote => quote.quoteId == parentId);
+
+        for (let eachLine of specificQuote.quoteLineItems) {
+            eachLine.approvalStatus = 'Approved';
+            eachLine.updated = true;
+        }
+
+        specificQuote['updated'] = true;
+    }
+
     redirectToHome() {
         this[NavigationMixin.Navigate]({
             type: 'standard__namedPage',

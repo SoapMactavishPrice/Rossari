@@ -5,7 +5,6 @@
         </div>
 
         <div class="slds-p-around_small" style="padding: 0px;">
-
             <div class="slds-grid slds-wrap slds-gutters_x-small">
 
                 <div class="slds-col slds-size_1-of-4 slds-p-around_x-small">
@@ -14,13 +13,6 @@
                         onchange={handleFieldChange} required>
                     </lightning-input>
                 </div>
-
-                <!-- <div class="slds-col slds-size_1-of-4  slds-p-around_x-small">
-                    <lightning-combobox label="SAP Sample Document Type" value={sampleOut.SAPSampleDocumentType}
-                        options={sapSampleDocOptions} onchange={handleSampleOutChange} data-id="SAPSampleDocumentType"
-                        required>
-                    </lightning-combobox>
-                </div> -->
 
                 <div class="slds-col slds-size_1-of-4  slds-p-around_x-small">
                     <lightning-combobox label="Inco Terms" value={sampleOut.IncoTerms} options={incoTermsOptions}
@@ -40,50 +32,95 @@
                     </lightning-input>
                 </div>
 
-
                 <div class="slds-col slds-size_1-of-4  slds-p-around_x-small">
-                    <lightning-record-picker label="Pin Code" object-api-name="Pin_Code__c"
+                    <lightning-record-picker label="Billing Pin Code" object-api-name="Pin_Code__c"
                         placeholder="Search Pin Code..." value={selectedPinCode} onchange={handlePinCodeChange}
                         disabled={isPinCodeLoading}>
                     </lightning-record-picker>
-
                 </div>
 
                 <div class="slds-col slds-size_1-of-4  slds-p-around_x-small">
-                    <lightning-record-picker label="City" object-api-name="City__c" value={sampleOut.City}
+                    <lightning-record-picker label="Billing City" object-api-name="City__c" value={sampleOut.City}
                         onchange={handleAddressChange} data-field="City">
                     </lightning-record-picker>
                 </div>
 
                 <div class="slds-col slds-size_1-of-4  slds-p-around_x-small">
-                    <lightning-record-picker label="State" object-api-name="State__c" value={sampleOut.State}
+                    <lightning-record-picker label="Billing State" object-api-name="State__c" value={sampleOut.State}
                         onchange={handleAddressChange} data-field="State" required>
                     </lightning-record-picker>
                 </div>
 
                 <div class="slds-col slds-size_1-of-4  slds-p-around_x-small">
-                    <lightning-record-picker label="Country" object-api-name="Country__c" value={sampleOut.Country}
+                    <lightning-record-picker label="Billing Country" object-api-name="Country__c" value={sampleOut.Country}
                         onchange={handleAddressChange} data-field="Country" required>
                     </lightning-record-picker>
                 </div>
 
-
-                <!-- Street Address -->
                 <div class="slds-col slds-size_1-of-4  slds-p-around_x-small">
-                    <lightning-textarea label="Street 1" data-field="Street1" value={sampleOut.Street1}
+                    <lightning-textarea label="Billing Street 1" data-field="Street1" value={sampleOut.Street1}
                         onchange={handleFieldChange}>
                     </lightning-textarea>
                 </div>
 
                 <div class="slds-col slds-size_1-of-4  slds-p-around_x-small">
-                    <lightning-textarea label="Street 2" data-field="Street2" value={sampleOut.Street2}
+                    <lightning-textarea label="Billing Street 2" data-field="Street2" value={sampleOut.Street2}
                         onchange={handleFieldChange}>
                     </lightning-textarea>
                 </div>
 
                 <div class="slds-col slds-size_1-of-4  slds-p-around_x-small">
-                    <lightning-textarea label="Street 3" data-field="Street3" value={sampleOut.Street3}
+                    <lightning-textarea label="Billing Street 3" data-field="Street3" value={sampleOut.Street3}
                         onchange={handleFieldChange}>
+                    </lightning-textarea>
+                </div>
+
+                <div class="slds-col slds-size_1-of-4 slds-p-around_x-small"></div>
+
+                <!-- Shipping Address Fields -->
+                <div class="slds-col slds-size_1-of-4  slds-p-around_x-small">
+                    <lightning-record-picker label="Shipping Pin Code" object-api-name="Pin_Code__c"
+                        placeholder="Search Shipping Pin Code..." value={selectedShippingPinCode}
+                        onchange={handleShippingPinCodeChange} data-field="ShippingPinCodeId">
+                    </lightning-record-picker>
+                </div>
+
+                <div class="slds-col slds-size_1-of-4  slds-p-around_x-small">
+                    <lightning-record-picker label="Shipping City" object-api-name="City__c"
+                        value={sampleOut.ShippingCityId} onchange={handleShippingAddressChange}
+                        data-field="ShippingCityId">
+                    </lightning-record-picker>
+                </div>
+
+                <div class="slds-col slds-size_1-of-4  slds-p-around_x-small">
+                    <lightning-record-picker label="Shipping State" object-api-name="State__c"
+                        value={sampleOut.ShippingStateId} onchange={handleShippingAddressChange}
+                        data-field="ShippingStateId" required>
+                    </lightning-record-picker>
+                </div>
+
+                <div class="slds-col slds-size_1-of-4  slds-p-around_x-small">
+                    <lightning-record-picker label="Shipping Country" object-api-name="Country__c"
+                        value={sampleOut.ShippingCountryId} onchange={handleShippingAddressChange}
+                        data-field="ShippingCountryId" required>
+                    </lightning-record-picker>
+                </div>
+
+                <div class="slds-col slds-size_1-of-4  slds-p-around_x-small">
+                    <lightning-textarea label="Shipping Street 1" data-field="ShippingStreet1"
+                        value={sampleOut.ShippingStreet1} onchange={handleFieldChange}>
+                    </lightning-textarea>
+                </div>
+
+                <div class="slds-col slds-size_1-of-4  slds-p-around_x-small">
+                    <lightning-textarea label="Shipping Street 2" data-field="ShippingStreet2"
+                        value={sampleOut.ShippingStreet2} onchange={handleFieldChange}>
+                    </lightning-textarea>
+                </div>
+
+                <div class="slds-col slds-size_1-of-4  slds-p-around_x-small">
+                    <lightning-textarea label="Shipping Street 3" data-field="ShippingStreet3"
+                        value={sampleOut.ShippingStreet3} onchange={handleFieldChange}>
                     </lightning-textarea>
                 </div>
 
@@ -92,6 +129,7 @@
                         onchange={handleSampleOutChange} data-id="CurrencyIsoCode" disabled>
                     </lightning-combobox>
                 </div>
+
             </div>
 
             <!-- Line Items Table -->
@@ -99,37 +137,26 @@
                 <table class="slds-table slds-table_bordered slds-table_cell-buffer">
                     <thead>
                         <tr>
-                            <th
-                                style="text-align: center; font-size: 13px; background-color: #9d0b0f; font-weight: bold; padding: 4px 6px; color: white;">
+                            <th style="text-align: center; font-size: 13px; background-color: #9d0b0f; font-weight: bold; padding: 4px 6px; color: white;">
                                 Select
                             </th>
-                            <th
-                                style="text-align: center; font-size: 13px; background-color: #9d0b0f; font-weight: bold; padding: 4px 6px; color: white;">
+                            <th style="text-align: center; font-size: 13px; background-color: #9d0b0f; font-weight: bold; padding: 4px 6px; color: white;">
                                 Product Name
                             </th>
-                            <th
-                                style="text-align: center; font-size: 13px; background-color: #9d0b0f; font-weight: bold; padding: 4px 6px; color: white;">
+                            <th style="text-align: center; font-size: 13px; background-color: #9d0b0f; font-weight: bold; padding: 4px 6px; color: white;">
                                 Product Code
                             </th>
-                            <!-- <th
-                                style="text-align: center; font-size: 13px; background-color: #9d0b0f; font-weight: bold; padding: 4px 6px; color: white;">
-                                Sample Request To Plant
-                            </th> -->
-                            <th
-                                style="text-align: center; font-size: 13px; background-color: #9d0b0f; font-weight: bold; padding: 4px 6px; color: white;">
+                            <th style="text-align: center; font-size: 13px; background-color: #9d0b0f; font-weight: bold; padding: 4px 6px; color: white;">
                                 Qty (in Kgs)
                             </th>
-                            <th
-                                style="text-align: center; font-size: 13px; background-color: #9d0b0f; font-weight: bold; padding: 4px 6px; color: white;">
+                            <th style="text-align: center; font-size: 13px; background-color: #9d0b0f; font-weight: bold; padding: 4px 6px; color: white;">
                                 Price
                             </th>
-                            <th
-                                style="text-align: center; font-size: 13px; background-color: #9d0b0f; font-weight: bold; padding: 4px 6px; color: white;">
+                            <th style="text-align: center; font-size: 13px; background-color: #9d0b0f; font-weight: bold; padding: 4px 6px; color: white;">
                                 Actions
                             </th>
                         </tr>
                     </thead>
-
                     <tbody>
                         <template for:each={sampleOutLines} for:item="item" for:index="index">
                             <tr key={item.Id}>
@@ -167,12 +194,10 @@
                                     <lightning-button-icon icon-name="utility:add" alternative-text="Add"
                                         onclick={handleAddProduct} data-index={index} class="slds-m-right_x-small">
                                     </lightning-button-icon>
-
                                     <lightning-button-icon icon-name="utility:delete" alternative-text="Delete"
                                         onclick={handleDelete} data-index={index}>
                                     </lightning-button-icon>
                                 </td>
-
                             </tr>
                         </template>
                     </tbody>
@@ -184,8 +209,8 @@
                 </lightning-button>
                 <lightning-button label="Cancel" onclick={handleCancel} disabled={isLoading} class="slds-m-left_small">
                 </lightning-button>
-
             </div>
         </div>
     </lightning-quick-action-panel>
+
 </template>

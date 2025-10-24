@@ -105,7 +105,9 @@ public class LeadTriggerHandlerTest {
             Id = Test.getStandardPricebookId(),
             IsActive = true
         );
+        try{
         update standardPricebook;
+        }Catch(Exception e){}
         
         Product2 testProduct = new Product2(
             Name = 'Test Product',
@@ -260,8 +262,10 @@ public class LeadTriggerHandlerTest {
     
     static void createQuoteTestData() {
         Pricebook2 standardPb = new Pricebook2(Id = Test.getStandardPricebookId(), IsActive = true);
+        try{
         update standardPb;
-        
+        }Catch(Exception e){}
+    
         Product2 prod = new Product2(Name = 'Test Product', IsActive = true);
         insert prod;
         

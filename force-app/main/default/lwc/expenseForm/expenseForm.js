@@ -36,12 +36,15 @@ export default class ExpenseForm extends NavigationMixin(LightningElement) {
     @track fourWheelerPerKm = 0;
     @track twoWheelerPerKm = 0;
     @track canEditDailyAllowance = false;
-    @track lodgingHotel = 0; // Add this
+    @track lodgingHotel = 0; 
     @track boardingFood = 0;
+    @track dailyAllowanceBClass = 0; 
+    @track lodgingHotelBClass = 0; 
+    @track boardingFoodBClass = 0; 
 
-    @track lodgingHotelBClass = 0; // Add this
-    @track boardingFoodBClass = 0; // Add this
-    @track selectedCityId = ''; // Add this
+    @track lodgingHotelBClass = 0; 
+    @track boardingFoodBClass = 0; 
+    @track selectedCityId = ''; 
     @track selectedCityName = ''; // Add this
     @track selectedCityType = ''; // Add this
     @track isAClassCity = false; // Add this
@@ -241,34 +244,47 @@ renderedCallback() {
             });
     }
 
-    // Add handler for sales type change
+    // Update handler for sales type change
     async handleSalesTypeChange(event) {
         this.salesType = event.detail.value;
         
-        // Reset City when sales type changes
+        console.log('Sales Type changed to:', this.salesType);
+        
+        // Reset City when sales type changes to non-Domestic
         if (this.salesType !== 'Domestic') {
             this.selectedCityId = '';
             this.selectedCityName = '';
             this.selectedCityType = '';
             this.isAClassCity = false;
+            
+            // For non-Domestic, use default A Class rates
+            if (this.userGradeName) {
+                await this.updateGradeDetailsWithSalesType(this.userGradeName, this.salesType);
+            }
+        } else {
+            // For Domestic, if city is already selected, update allowances based on city
+            if (this.selectedCityId) {
+                await this.updateAllowancesBasedOnCity();
+            } else if (this.userGradeName) {
+                // If no city selected but Domestic, use default grade details
+                await this.updateGradeDetailsWithSalesType(this.userGradeName, this.salesType);
+            }
         }
         
-        // Auto-change currency to USD when Sales Type is Export
+        // Auto-change currency
         if (this.salesType === 'Export') {
             this.selectedCurrency = 'USD';
         } else if (this.salesType === 'Domestic') {
             this.selectedCurrency = 'INR';
         }
         
-        // Update grade details based on selected sales type
-        if (this.userGradeName && this.salesType) {
-            await this.updateGradeDetailsWithSalesType(this.userGradeName, this.salesType);
-            
-            // Update transport modes for Export Outstation
-            if (this.isExportOutstation) {
-                await this.updateExportTransportModes();
-            }
+        // Update transport modes for Export Outstation
+        if (this.isExportOutstation) {
+            await this.updateExportTransportModes();
         }
+        
+        // Refresh all limitation texts
+        this.refreshAllLimitationTexts();
     }
 
     // NEW: Update transport modes for Export
@@ -301,20 +317,26 @@ renderedCallback() {
             console.log('Grade details with sales type received:', gradeDetails);
             
             if (gradeDetails.success) {
+                // Store ALL rates (both A and B Class)
                 this.dailyAllowance = gradeDetails.dailyAllowance || 0;
+                this.dailyAllowanceBClass = gradeDetails.dailyAllowanceBClass || gradeDetails.dailyAllowance || 0; // Add this
                 this.fourWheelerPerKm = gradeDetails.fourWheelerPerKm || 0;
                 this.twoWheelerPerKm = gradeDetails.twoWheelerPerKm || 0;
                 this.specialAllowance = gradeDetails.specialAllowance || 0;
                 this.outOfPocket = gradeDetails.outOfPocket || 0;
                 this.lodgingHotel = gradeDetails.lodgingHotel || 0;
                 this.boardingFood = gradeDetails.boardingFood || 0;
-                this.lodgingHotelBClass = gradeDetails.lodgingHotelBClass || 0;
-                this.boardingFoodBClass = gradeDetails.boardingFoodBClass || 0;
+                this.lodgingHotelBClass = gradeDetails.lodgingHotelBClass || gradeDetails.lodgingHotel || 0; // Add this
+                this.boardingFoodBClass = gradeDetails.boardingFoodBClass || gradeDetails.boardingFood || 0; // Add this
                 this.canEditDailyAllowance = gradeDetails.canEditDailyAllowance || false;
                 
-                // For Domestic sales type, update daily allowance based on city if selected
+                console.log('All allowances loaded - A Class DA:', this.dailyAllowance, 'B Class DA:', this.dailyAllowanceBClass);
+                console.log('A Class Lodging:', this.lodgingHotel, 'B Class Lodging:', this.lodgingHotelBClass);
+                console.log('A Class Boarding:', this.boardingFood, 'B Class Boarding:', this.boardingFoodBClass);
+                
+                // For Domestic sales type, update allowances based on city if selected
                 if (salesType === 'Domestic' && this.selectedCityId) {
-                    await this.updateDailyAllowanceBasedOnCity();
+                    await this.updateAllowancesBasedOnCity();
                 }
                 
                 // Update transport modes from grade
@@ -915,20 +937,12 @@ renderedCallback() {
         // For Domestic sales type, use City-based logic
         if (this.salesType === 'Domestic') {
             if (label.includes('hotel')) {
-                if (this.isAClassCity) {
-                    limitation = `Limit: ${this.currencySymbol}${this.lodgingHotel}`;
-                } else {
-                    limitation = `Limit: ${this.currencySymbol}${this.lodgingHotelBClass}`;
-                }
+                limitation = `Limit: ${this.currencySymbol}${this.lodgingHotel}`;
             } else if (label.includes('food')) {
-                if (this.isAClassCity) {
-                    limitation = `Limit: ${this.currencySymbol}${this.boardingFood}`;
-                } else {
-                    limitation = `Limit: ${this.currencySymbol}${this.boardingFoodBClass}`;
-                }
+                limitation = `Limit: ${this.currencySymbol}${this.boardingFood}`;
             }
         } 
-        // For Export sales type, use existing logic
+        // For Export sales type, use existing logic (no city type dependency)
         else if (this.salesType === 'Export') {
             if (label.includes('hotel')) {
                 limitation = `Limit: ${this.currencySymbol}${this.lodgingHotel}`;
@@ -940,11 +954,11 @@ renderedCallback() {
         return limitation;
     }
 
-    // In your main component, update handleCitySelected
+
     async handleCitySelected(event) {
         this.selectedCityId = event.detail.recordId;
         
-        // Get city name from Apex
+        // Get city details including city type
         try {
             const cityDetails = await getCityDetails({ cityId: this.selectedCityId });
             
@@ -953,11 +967,11 @@ renderedCallback() {
                 this.selectedCityType = cityDetails.cityType || '';
                 this.isAClassCity = cityDetails.isAClassCity || false;
                 
-                console.log('City selected:', this.selectedCityName, 'Type:', this.selectedCityType);
+                console.log('City selected:', this.selectedCityName, 'Type:', this.selectedCityType, 'Is A Class:', this.isAClassCity);
                 
-                // Update daily allowance based on city type for Domestic
+                // Update allowances based on city type for Domestic sales type
                 if (this.salesType === 'Domestic') {
-                    await this.updateDailyAllowanceBasedOnCity();
+                    await this.updateAllowancesBasedOnCity();
                 }
                 
                 // Refresh limitation texts for all line items
@@ -973,8 +987,8 @@ renderedCallback() {
         }
     }
 
-    // NEW: Update daily allowance based on city type
-    async updateDailyAllowanceBasedOnCity() {
+    // NEW: Update all allowances based on city type
+    async updateAllowancesBasedOnCity() {
         if (this.salesType === 'Domestic' && this.userGradeName) {
             try {
                 const gradeDetails = await getGradeDetailsWithSalesType({ 
@@ -983,12 +997,23 @@ renderedCallback() {
                 });
                 
                 if (gradeDetails.success) {
-                    // Update daily allowance based on city type
+                    // Update ALL allowances based on city type
                     if (this.isAClassCity) {
+                        // Use A Class city rates
                         this.dailyAllowance = gradeDetails.dailyAllowance || 0;
+                        this.lodgingHotel = gradeDetails.lodgingHotel || 0;
+                        this.boardingFood = gradeDetails.boardingFood || 0;
                     } else {
+                        // Use B Class city rates
                         this.dailyAllowance = gradeDetails.dailyAllowanceBClass || gradeDetails.dailyAllowance || 0;
+                        this.lodgingHotel = gradeDetails.lodgingHotelBClass || gradeDetails.lodgingHotel || 0;
+                        this.boardingFood = gradeDetails.boardingFoodBClass || gradeDetails.boardingFood || 0;
                     }
+                    
+                    console.log('Updated allowances based on city type - A Class:', this.isAClassCity);
+                    console.log('Daily Allowance:', this.dailyAllowance);
+                    console.log('Lodging Hotel:', this.lodgingHotel);
+                    console.log('Boarding Food:', this.boardingFood);
                     
                     // Update all line items with new daily allowance
                     this.lineItems = this.lineItems.map(item => {
@@ -1000,13 +1025,14 @@ renderedCallback() {
                         // Recalculate total
                         updatedItem.total = this.calculateLineItemTotal(updatedItem);
                         
+                        // Update limitation text
+                        updatedItem.limitationText = this.computeLimitationText(updatedItem);
+                        
                         return updatedItem;
                     });
-                    
-                    console.log('Updated daily allowance based on city type:', this.dailyAllowance);
                 }
             } catch (error) {
-                console.error('Error updating daily allowance based on city:', error);
+                console.error('Error updating allowances based on city:', error);
             }
         }
     }

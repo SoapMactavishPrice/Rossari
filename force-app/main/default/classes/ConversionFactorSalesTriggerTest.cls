@@ -3,20 +3,27 @@ public class ConversionFactorSalesTriggerTest {
 
     @TestSetup
     static void setupTestData() {
-        // Create Base UoMs
-        insert new List<Base_UoM_Master__c>{
-            new Base_UoM_Master__c(Name = 'PCS'),
-            new Base_UoM_Master__c(Name = 'KG')
-        };
+        List<SObject> recordsToInsert = new List<SObject>();
+        
+        recordsToInsert.add(new Base_UoM_Master__c(Name = 'PCS'));
+        recordsToInsert.add(new Base_UoM_Master__c(Name = 'KG'));
+        
+        insert recordsToInsert;
+        recordsToInsert.clear();
 
         Pricebook2 standardPricebook = new Pricebook2(
             Id = Test.getStandardPricebookId(),
             IsActive = true
         );
+        try{
         update standardPricebook;
- 
+        }Catch(Exception e){}
+    
         Base_UoM_Master__c baseUom = new Base_UoM_Master__c(Name = 'Kilogram');
-        insert baseUom;
+        recordsToInsert.add(baseUom);
+        
+        insert recordsToInsert;
+        recordsToInsert.clear();
  
         Product2 prod = new Product2(
             Name = 'Test Product',
@@ -25,7 +32,10 @@ public class ConversionFactorSalesTriggerTest {
             Base_UOM__c = baseUom.Id,
             IsActive = true
         );
-        insert prod;
+        recordsToInsert.add(prod);
+        
+        insert recordsToInsert;
+        recordsToInsert.clear();
  
         PricebookEntry pbe = new PricebookEntry(
             Pricebook2Id = standardPricebook.Id,
@@ -33,7 +43,9 @@ public class ConversionFactorSalesTriggerTest {
             UnitPrice = 100,
             IsActive = true
         );
-        insert pbe;
+        recordsToInsert.add(pbe);
+        
+        insert recordsToInsert;
     }
 
     @IsTest
@@ -42,7 +54,6 @@ public class ConversionFactorSalesTriggerTest {
         Base_UoM_Master__c baseUomPCS = [SELECT Id FROM Base_UoM_Master__c WHERE Name = 'PCS' LIMIT 1];
         Base_UoM_Master__c baseUomKG = [SELECT Id FROM Base_UoM_Master__c WHERE Name = 'KG' LIMIT 1];
 
-        // ✅ Unique record
         Conversion_factor_for_Sales__c unique = new Conversion_factor_for_Sales__c(
             Item_Master__c = prod.Id,
             Alt_Quantity__c = 10,
@@ -52,7 +63,6 @@ public class ConversionFactorSalesTriggerTest {
         );
         insert unique;
 
-        // ✅ Duplicate record (existing)
         Conversion_factor_for_Sales__c duplicate = new Conversion_factor_for_Sales__c(
             Item_Master__c = prod.Id,
             Alt_Quantity__c = 10,
@@ -64,7 +74,6 @@ public class ConversionFactorSalesTriggerTest {
             insert duplicate;
         } catch (DmlException e) {}
 
-        // ✅ Internal duplicates in same transaction
         List<Conversion_factor_for_Sales__c> batch = new List<Conversion_factor_for_Sales__c>{
             new Conversion_factor_for_Sales__c(
                 Item_Master__c = prod.Id,

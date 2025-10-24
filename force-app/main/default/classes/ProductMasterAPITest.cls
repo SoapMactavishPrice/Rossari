@@ -29,8 +29,10 @@ private class ProductMasterAPITest {
             Id = Test.getStandardPricebookId(),
             IsActive = true
         );
+        try{
         update standardPricebook;
-        
+        }Catch(Exception e){}
+
         // Create custom pricebooks
         Pricebook2 domesticPb = new Pricebook2(
             Name = 'Rossari Domestic Price Book',

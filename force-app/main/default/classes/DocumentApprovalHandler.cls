@@ -125,8 +125,8 @@ public class DocumentApprovalHandler {
         else if (documentType == 'Technical') htmlBody += '<b>Remark:</b> ' + (leadRecord.Tech_Doc_Remark__c != null ? leadRecord.Tech_Doc_Remark__c : '') + '<br/>';
         else if (documentType == 'COA') htmlBody += '<b>Remark:</b> ' + (leadRecord.COA_Doc_Remark__c != null ? leadRecord.COA_Doc_Remark__c : '') + '<br/>';
 
-        htmlBody += '<b>URL:</b> <a href="https://rossari--devorg.sandbox.lightning.force.com/lightning/cmp/c__AttachTdsMsdsOnOppCaller?c__recordId=' 
-                    + leadRecord.Id + '" target="_blank">Click here</a><br/><br/>';
+        htmlBody += '<b>URL:</b> <a href="' + Utility.baseUrl + '/lightning/cmp/c__AttachTdsMsdsOnOppCaller?c__recordId=' 
+                        + leadRecord.Id + '" target="_blank">Click here</a><br/><br/>';
         htmlBody += 'Kindly review and provide the required document.<br/><br/>';
         htmlBody += 'Regards,<br/>' + leadRecord.Owner.Name;
 
@@ -353,8 +353,8 @@ public class DocumentApprovalHandler {
         htmlBody += '<b>Lead First Name:</b> ' + lead.FirstName + '<br/>';
         htmlBody += '<b>Lead Last Name:</b> ' + lead.LastName + '<br/>';
         htmlBody += '<b>Company:</b> ' + lead.Company + '<br/>';
-        htmlBody += '<b>URL:</b> <a href="https://rossari--devorg.sandbox.lightning.force.com/lightning/cmp/c__AttachTdsMsdsOnOppCaller?c__recordId=' 
-                    + lead.Id + '" target="_blank">Click here</a><br/><br/>';
+        htmlBody += '<b>URL:</b> <a href="' + Utility.baseUrl + '/lightning/cmp/c__AttachTdsMsdsOnOppCaller?c__recordId=' 
+                        + lead.Id + '" target="_blank">Click here</a><br/><br/>';
         htmlBody += 'Please confirm if any further action is required.<br/><br/>';
         htmlBody += 'Regards,<br/>';
         htmlBody += approverName;

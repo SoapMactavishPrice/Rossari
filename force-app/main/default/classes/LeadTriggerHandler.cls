@@ -134,7 +134,7 @@ l.Status = 'Working';
         
         for (Lead l : leads) {
             String rtDevName = rtMap.get(l.RecordTypeId).DeveloperName;
-            if ((rtDevName == 'Unitop' || rtDevName == 'Tristar') && String.isBlank(l.Lead_Type__c)) {
+            if ((rtDevName == 'Unitop_Tristar') && String.isBlank(l.Lead_Type__c)) {
                 l.Lead_Type__c = 'Primary';
             }
         }
@@ -757,8 +757,8 @@ l.Status = 'Working';
     public static void setRossariCompanyOnAccount(List<Lead> newLeads, Map<Id, Lead> oldLeadMap) {
         Map<String, String> recordTypeToCompanyName = new Map<String, String>{
             'RBL' => 'Rossari Biotech Limited',
-                'Tristar' => 'Rossari Biotech Limited', 
-                'Unitop' => 'Rossari Biotech Limited'
+                'Unitop_Tristar' => 'Rossari Biotech Limited'
+              //  'Unitop' => 'Rossari Biotech Limited'
                 };
                     
                     Set<Id> convertedLeadIds = new Set<Id>();
@@ -840,7 +840,7 @@ l.Status = 'Working';
                 String accountRecordTypeDevName = accountRecordTypes.get(acc.RecordTypeId)?.DeveloperName;
 
                 
-                if ((leadRecordTypeDevName == 'Tristar' || leadRecordTypeDevName == 'Unitop') 
+                if ((leadRecordTypeDevName == 'Unitop_Tristar') 
                     && accountRecordTypeDevName == 'Secondary') {
                     ld.addError('Leads with Record Type "' + leadRecordTypeDevName + '" must be converted to an Account with Record Type = "Primary", not "Secondary".');
                 }

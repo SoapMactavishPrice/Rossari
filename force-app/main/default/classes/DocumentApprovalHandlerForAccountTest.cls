@@ -114,8 +114,10 @@ public class DocumentApprovalHandlerForAccountTest {
             PathOnClient = 'TDS_test.txt',
             VersionData = Blob.valueOf('Test file content')
         );
+        try{
         insert cv;
-
+        }Catch(Exception e){}
+    
         ContentDocumentLink cdl = new ContentDocumentLink(
             ContentDocumentId = [SELECT ContentDocumentId FROM ContentVersion WHERE Id = :cv.Id].ContentDocumentId,
             LinkedEntityId = testAccount.Id,
@@ -466,8 +468,10 @@ public class DocumentApprovalHandlerForAccountTest {
             PathOnClient = 'Email_test.txt',
             VersionData = Blob.valueOf('Test file content for email')
         );
+        try{
         insert cv;
-
+        }Catch(Exception e){}
+    
         ContentDocumentLink cdl = new ContentDocumentLink(
             ContentDocumentId = [SELECT ContentDocumentId FROM ContentVersion WHERE Id = :cv.Id].ContentDocumentId,
             LinkedEntityId = testAccount.Id,

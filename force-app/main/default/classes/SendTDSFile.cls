@@ -282,7 +282,7 @@ public without sharing class SendTDSFile {
             this.isTristarOrUnitop = false;
             this.enableSendEmail = false;
 
-            if (lead.RecordType.Name == 'Tristar' || lead.RecordType.Name == 'Unitop') {
+            if (lead.RecordType.Name == 'Unitop_Tristar') {
                 this.isTristarOrUnitop = true;
             }
 

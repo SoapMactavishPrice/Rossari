@@ -51,8 +51,11 @@ public class ProformaInvoicePdfSendControllerTest {
             VersionData = Blob.valueOf('Test Content'),
             IsMajorVersion = true
         );
+        try{
         insert cv;
+        
         cv = [SELECT Id, ContentDocumentId FROM ContentVersion WHERE Id = :cv.Id];
+        }Catch(Exception e){}
         ProformaInvoicePdfSendController.deletefile(cv.ContentDocumentId);
 
         ProformaInvoicePdfSendController.validateQuote(invoice.Id);

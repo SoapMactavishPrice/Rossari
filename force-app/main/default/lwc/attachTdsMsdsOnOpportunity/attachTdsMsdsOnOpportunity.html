@@ -525,7 +525,7 @@
                                 <tr>
                                     <td colspan="4" class="slds-text-align_center">
                                         <lightning-button label="Cancel" class="slds-p-right_medium" onclick={backTorecord}></lightning-button>
-                                        <lightning-button label="Save" variant="success" onclick={uploadFilesToRecord} disabled={isSaveDisabled}></lightning-button>
+                                        <lightning-button label="Save" variant="brand" onclick={uploadFilesToRecord} disabled={isSaveDisabled}></lightning-button>
                                         <template if:true={documentModel.isAccessEnabled}>
                                             <lightning-button label="Send Email" variant="brand" class="slds-p-left_medium" onclick={openModaltoSend}></lightning-button>
                                         </template>

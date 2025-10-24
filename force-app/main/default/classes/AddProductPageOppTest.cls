@@ -3,22 +3,20 @@ public class AddProductPageOppTest {
 
     @TestSetup
     static void setupTestData() {
-        // Create base UOM
         Base_UoM_Master__c baseUom = new Base_UoM_Master__c(Name = 'Kilogram');
         insert baseUom;
 
-        // Create Standard Pricebook (get ID and activate)
         Pricebook2 standardPricebook = new Pricebook2(
             Id = Test.getStandardPricebookId(),
             IsActive = true
         );
+        try{
         update standardPricebook;
-
-        // Create Account
+        }Catch(Exception e){}
+    
         Account acc = new Account(Name = 'Test Account');
         insert acc;
 
-        // Create Opportunity
         Opportunity opp = new Opportunity(
             Name = 'Test Opportunity',
             AccountId = acc.Id,
@@ -29,18 +27,15 @@ public class AddProductPageOppTest {
         );
         insert opp;
 
-        // Create Division
         Division__c div1 = new Division__c(Name = 'Test Division', Division_Code__c = '11');
         insert div1;
 
-        // Create Sales Org and Distribution Channel
         Sales_Organisation__c so1 = new Sales_Organisation__c(Name = 'SO1');
         insert so1;
 
         Distribution_Channel__c dc1 = new Distribution_Channel__c(Name = 'DC1', Distribution_Code__c = 'DC01');
         insert dc1;
 
-        // Create Customer Sales Area
         Customer_Sales_Area__c csa = new Customer_Sales_Area__c(
             Comapany_Code__c = acc.Id,
             Sales_Organisation__c = so1.Id,
@@ -49,7 +44,6 @@ public class AddProductPageOppTest {
         );
         insert csa;
 
-        // Create Company and Company User
         Company__c company = new Company__c(Name = 'Test Company', SAP_Code__c = so1.Name);
         insert company;
 
@@ -59,7 +53,6 @@ public class AddProductPageOppTest {
         );
         insert cu;
 
-        // Create Product
         Product2 testProduct = new Product2(
             Name = 'Test Product',
             ProductCode = 'TEST001',
@@ -70,7 +63,6 @@ public class AddProductPageOppTest {
         );
         insert testProduct;
 
-        // Create PricebookEntry
         PricebookEntry standardPbe = new PricebookEntry(
             Pricebook2Id = standardPricebook.Id,
             Product2Id = testProduct.Id,
@@ -81,7 +73,6 @@ public class AddProductPageOppTest {
         );
         insert standardPbe;
 
-        // Update current user's division codes
         User u = [SELECT Id FROM User WHERE Id = :UserInfo.getUserId()];
         u.Division_Code__c = '11';
         u.Division_Code_2__c = '11';
@@ -105,7 +96,6 @@ public class AddProductPageOppTest {
         try {
             AddProductPageOpp.getCustomerSalesArea('006000000000000AAA');
         } catch (AuraHandledException e) {
-            // Expected
         }
 
         AddProductPageOpp.findProduct(opp.Id, new List<String>());
@@ -154,7 +144,6 @@ public class AddProductPageOppTest {
         insert oli;
         AddProductPageOpp.findProduct(opp.Id, new List<String>());
 
-        // Setup Product with Customer_Material_Pricelist__c
         Product2 testProductCMPL = new Product2(
             Name = 'Test Product CMPL',
             ProductCode = 'TEST003',
@@ -186,7 +175,6 @@ public class AddProductPageOppTest {
 
         AddProductPageOpp.saveProducts(JSON.serialize(new List<AddProductPageOpp.ProductWrapper>()), opp.Id);
 
-        // Add new valid product
         Product2 validProduct = new Product2(
             Name = 'Test Product Valid',
             ProductCode = 'TEST004',

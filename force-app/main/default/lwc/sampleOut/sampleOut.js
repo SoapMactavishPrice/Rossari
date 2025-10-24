@@ -23,6 +23,7 @@ export default class SampleOutForm extends NavigationMixin(LightningElement) {
     @track isLoading = false;
     @track showSpinner = false;
     @track selectedPinCode = '';
+    @track selectedShippingPinCode = '';
     @track selectedCityId = '';
     @track selectedStateId = '';
     @track selectedCountryId = '';
@@ -125,6 +126,38 @@ export default class SampleOutForm extends NavigationMixin(LightningElement) {
         }
     }
 
+    handleShippingPinCodeChange(event) {
+        const shippingPinCodeId = event.detail.recordId;
+        this.selectedShippingPinCode = shippingPinCodeId;
+
+        if (shippingPinCodeId) {
+            this.isPinCodeLoading = true;
+            getAddressDataByPin({ pinCodeId: shippingPinCodeId })
+                .then(result => {
+                    this.sampleOut = {
+                        ...this.sampleOut,
+                        ShippingPinCodeId: shippingPinCodeId,
+                        ShippingCityId: result.cityId || null,
+                        ShippingStateId: result.stateId || null,
+                        ShippingCountryId: result.countryId || null,
+                        // Additional shipping region or zone fields can be added here if needed
+                    };
+                })
+                .catch(error => {
+                    console.error('Error fetching shipping address data:', error);
+                })
+                .finally(() => {
+                    this.isPinCodeLoading = false;
+                });
+        } else {
+            this.sampleOut = {
+                ...this.sampleOut,
+                ShippingPinCodeId: null
+            };
+        }
+    }
+
+
 
 
     // loadData() {
@@ -189,6 +222,7 @@ export default class SampleOutForm extends NavigationMixin(LightningElement) {
         getSampleRequestData({ sampleRequestId: this.recordId })
             .then(result => {
                 if (result) {
+                    console.log('sample Req data: ', result);
                     this.plants = result.plants.map(plant => ({
                         label: `${plant.Name} - ${plant.Plant_Name__c}`,
                         value: plant.Id
@@ -196,10 +230,11 @@ export default class SampleOutForm extends NavigationMixin(LightningElement) {
 
                     this.sampleOut.CurrencyIsoCode = result.currencyCode;
 
-                    // 🆕 Autofill address from lead or account if available
+                    // Autofill billing and shipping address from lead or account if available
                     if (result.address) {
                         console.log('Address source:', result.address.Source); // Debug info
 
+                        // Billing Address
                         this.sampleOut = {
                             ...this.sampleOut,
                             Street1: result.address.Street1 || '',
@@ -208,10 +243,23 @@ export default class SampleOutForm extends NavigationMixin(LightningElement) {
                             PinCode: result.address.PinCodeId || '',
                             City: result.address.CityId || '',
                             State: result.address.StateId || '',
-                            Country: result.address.CountryId || ''
+                            Country: result.address.CountryId || '',
+
+                            // Shipping Address with same or distinct source
+                            ShippingStreet1: result.address.ShippingStreet1 || '',
+                            ShippingStreet2: result.address.ShippingStreet2 || '',
+                            ShippingStreet3: result.address.ShippingStreet3 || '',
+                            ShippingPinCodeId: result.address.ShippingPinCodeId || '',
+                            ShippingCityId: result.address.ShippingCityId || '',
+                            ShippingStateId: result.address.ShippingStateId || '',
+                            ShippingCountryId: result.address.ShippingCountryId || ''
                         };
 
-                        this.selectedPinCode = result.address.PinCodeId || '';
+                        // Note: update selectedPinCode with billing Pin Code, adjust as needed if you want to track shipping pin separately
+                        this.selectedPinCode = this.sampleOut.PinCode;
+                        this.selectedShippingPinCode = this.sampleOut.ShippingPinCodeId;
+                        
+                        console.log('Sample Out Data: ', JSON.parse(JSON.stringify(this.sampleOut)));
                     }
 
                     if (result.lineItems && result.lineItems.length > 0) {
@@ -240,6 +288,7 @@ export default class SampleOutForm extends NavigationMixin(LightningElement) {
                 this.showSpinner = false;
             });
     }
+
 
     addEmptyRow() {
         this.sampleOutLines = [{
@@ -341,15 +390,6 @@ export default class SampleOutForm extends NavigationMixin(LightningElement) {
         this.sampleOut = { ...this.sampleOut, [field]: value };
     }
 
-
-    handleAddressChange(event) {
-        const field = event.target.dataset.field;
-        const value = event.detail.recordId;
-
-        console.log('Field:', field, 'Value:', value);
-        this.sampleOut = { ...this.sampleOut, [field]: value };
-    }
-
     handleLineChange(event) {
         const index = parseInt(event.target.dataset.index, 10);
         const field = event.target.dataset.field;
@@ -365,6 +405,21 @@ export default class SampleOutForm extends NavigationMixin(LightningElement) {
             }
             return line;
         });
+    }
+
+
+    handleAddressChange(event) {
+        const field = event.target.dataset.field;
+        const value = event.detail.recordId;
+
+        this.sampleOut = { ...this.sampleOut, [field]: value };
+    }
+
+    handleShippingAddressChange(event) {
+        const field = event.target.dataset.field;
+        const value = event.detail.recordId;
+
+        this.sampleOut = { ...this.sampleOut, [field]: value };
     }
 
     handleSave() {
@@ -393,7 +448,15 @@ export default class SampleOutForm extends NavigationMixin(LightningElement) {
             SAPSampleDocumentType: this.sampleOut.SAPSampleDocumentType,
             IncoTerms: this.sampleOut.IncoTerms,
             CurrencyIsoCode: this.sampleOut.CurrencyIsoCode,
-            SampleReceivedByEndPerson: this.sampleOut.SampleReceivedByEndPerson
+            SampleReceivedByEndPerson: this.sampleOut.SampleReceivedByEndPerson,
+            // Shipping fields
+            ShippingStreet1: this.sampleOut.ShippingStreet1,
+            ShippingStreet2: this.sampleOut.ShippingStreet2,
+            ShippingStreet3: this.sampleOut.ShippingStreet3,
+            ShippingPinCodeId: this.sampleOut.ShippingPinCodeId,
+            ShippingCityId: this.sampleOut.ShippingCityId,
+            ShippingStateId: this.sampleOut.ShippingStateId,
+            ShippingCountryId: this.sampleOut.ShippingCountryId
         };
 
         const linesToSend = selectedLines.map(line => ({
@@ -404,34 +467,33 @@ export default class SampleOutForm extends NavigationMixin(LightningElement) {
             Description: line.Description
         }));
 
-
         saveSampleOut({
             sampleOutJson: JSON.stringify(sampleOutToSend),
             sampleOutLinesJson: JSON.stringify(linesToSend)
         })
-
-            .then(result => {
-                this.showSuccess('Sample Out created successfully');
-                this.navigateToRecord(result);
-            })
-            .catch(error => {
-                let errorMessage = 'An unexpected error occurred';
-                if (error.body) {
-                    try {
-                        const errorBody = JSON.parse(error.body.message);
-                        errorMessage = errorBody.message || error.body.message;
-                    } catch (e) {
-                        errorMessage = error.body.message || error.message;
-                    }
-                } else {
-                    errorMessage = error.message;
+        .then(result => {
+            this.showSuccess('Sample Out created successfully');
+            this.navigateToRecord(result);
+        })
+        .catch(error => {
+            let errorMessage = 'An unexpected error occurred';
+            if (error.body) {
+                try {
+                    const errorBody = JSON.parse(error.body.message);
+                    errorMessage = errorBody.message || error.body.message;
+                } catch (e) {
+                    errorMessage = error.body.message || error.message;
                 }
-                this.showError('Error saving sample out', errorMessage);
-            })
-            .finally(() => {
-                this.isLoading = false;
-            });
+            } else {
+                errorMessage = error.message;
+            }
+            this.showError('Error saving sample out', errorMessage);
+        })
+        .finally(() => {
+            this.isLoading = false;
+        });
     }
+
 
     validateForm() {
 
@@ -457,12 +519,22 @@ export default class SampleOutForm extends NavigationMixin(LightningElement) {
         }
         console.log('State', this.sampleOut.State, 'Boolean State', !this.sampleOut.State);
         if (!this.sampleOut.State) {
-            this.showError('Missing Required Field', 'Please select State');
+            this.showError('Missing Required Field', 'Please select Billing State');
             return false;
         }
 
         if (!this.sampleOut.Country) {
-            this.showError('Missing Required Field', 'Please select Country');
+            this.showError('Missing Required Field', 'Please select Billing Country');
+            return false;
+        }
+
+        if (!this.sampleOut.ShippingStateId) {
+            this.showError('Missing Required Field', 'Please select Shipping State');
+            return false;
+        }
+
+        if (!this.sampleOut.ShippingCountryId) {
+            this.showError('Missing Required Field', 'Please select Shipping Country');
             return false;
         }
 
