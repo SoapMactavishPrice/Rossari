@@ -1,6 +1,6 @@
 <template>
     <lightning-card>
-        <h4 style="text-align: center; font-size: 24px; font-weight: bold; padding-bottom: 20px;">Sales Price Approval Dashboard</h4>
+        <h4 style="text-align: center; font-size: 24px; font-weight: bold; padding-bottom: 20px;">Sample Request Approval Dashboard</h4>
         <template if:true={quotes}>
             <template for:each={quotes} for:item="quote">
                 <div key={quote.quoteId} class="slds-box slds-m-bottom_medium">
@@ -10,13 +10,13 @@
                             <span style="flex: 1;"><b>Sample Request Owner:</b> {quote.quoteOwnerName}</span>
                             <span style="flex: 1;"><b>Sample Request Sales HOD:</b> {quote.hodUserName}</span>
                             <span style="flex: 1; text-align:right;">
-                                <lightning-button 
-                                    label="Approve all" 
-                                    variant="neutral" 
+                                <button
                                     onclick={handleApproveAll}
                                     disabled={quote.disableFields}
-                                    data-parent={quote.quoteId}>
-                                </lightning-button>
+                                    data-parent={quote.quoteId}
+                                    class="slds-button slds-button_brand my-tiny-btn"
+                                >Approve All
+                                </button>
                             </span>
                         </div>
                     </h3>

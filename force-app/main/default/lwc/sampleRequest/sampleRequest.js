@@ -8,6 +8,7 @@ import saveSampleRequest from '@salesforce/apex/SampleRequestController.saveSamp
 import getPicklistDependencies from '@salesforce/apex/SampleRequestController.getPicklistDependencies';
 import getUnitPrice from '@salesforce/apex/SampleRequestController.getUnitPrice';
 import getCurrentUserZone from '@salesforce/apex/SampleRequestController.getCurrentUserZone';
+import getRecordTypeFromLead from '@salesforce/apex/Utility.getRecordTypeFromLead';
 
 const LEAD_FIELDS = ['Lead.Company', 'Lead.CurrencyIsoCode', 'Lead.Lead_Number__c'];
 
@@ -23,6 +24,7 @@ export default class SampleRequestForm extends NavigationMixin(LightningElement)
     @track sendEmailToPlant = true;
     @track sampleCategoryOptions = [];
     @track additionalEmails = '';
+    @track leadRecordType;
     @track allSAPDocTypeOptions = {
         Paid: [],
         Unpaid: []
@@ -61,6 +63,8 @@ export default class SampleRequestForm extends NavigationMixin(LightningElement)
     connectedCallback() {
         this.loadInitialData();
         this.loadPicklists();
+        this.getRecordType();
+
 
         getCurrentUserZone()
             .then(result => {
@@ -73,6 +77,14 @@ export default class SampleRequestForm extends NavigationMixin(LightningElement)
 
     get isUnpaidSampleCategory() {
         return this.selectedSampleCategory === 'Unpaid';
+    }
+
+    getRecordType() {
+        getRecordTypeFromLead({ leadId: this.recordId }).then(result => {
+            this.leadRecordType = result;
+        }).catch(error => {
+            this.showError('Error fetching lead record type', error.body ? error.body.message : error.message);
+        });
     }
 
 

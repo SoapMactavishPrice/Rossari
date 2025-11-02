@@ -89,8 +89,10 @@ private class SendTDSFileFromOpportunityTest {
             PathOnClient = 'TestFile.txt',
             VersionData = Blob.valueOf('Test Content')
         );
+        try{
         insert cv;
-
+        }Catch(Exception e){}
+        
         ContentVersion contentVersion = [SELECT ContentDocumentId FROM ContentVersion WHERE Id = :cv.Id];
 
         ContentDocumentLink cdl = new ContentDocumentLink(

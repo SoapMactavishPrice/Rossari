@@ -16,7 +16,7 @@ public class CustomerOnboardingFormController {
     @auraEnabled
     public static Quote getCustomerDetail(string Id){
         Quote quo= [select Id,Name,AccountId,Account.Account_Name_2__c,Account.Cust_Acct_Group__c,Account.Account_Group__c,Account.SE_Name__c,Account.Title__c,Account.SAP_Customer_Code__c,Account.Pan_No__c,Account.Street1__c,Account.Postal_Code__c,Account.Post_Code__c,Account.City1__c,Account.Sales_Organisation__r.Name,
-                    Account.City__c,Account.Country_Text__c , Account.State__c, Account.Country__c, Account.State1__c,Account.Street2__c,Account.Phone,Account.Email_Id__c from Quote where Id =:Id limit 1];
+                    Account.City__c,Account.Country_Text__c , Account.State__c, Account.Country__c, Account.State1__c,Account.Street2__c,Account.Phone,Account.Email_Id__c,Account.SFDC_Customer_Code__c from Quote where Id =:Id limit 1];
         return quo;
     }
     

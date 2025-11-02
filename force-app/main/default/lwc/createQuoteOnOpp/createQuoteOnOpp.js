@@ -10,6 +10,7 @@ import getSalesOrg from '@salesforce/apex/QuoteController.getSalesOrg';
 import getDistributionChannel from '@salesforce/apex/QuoteController.getDistributionChannel';
 import getDivision from '@salesforce/apex/QuoteController.getDivision';
 import getSalesArea from '@salesforce/apex/QuoteController.getSalesArea';
+import getRecordTypeFromOpportunity from '@salesforce/apex/Utility.getRecordTypeFromOpportunity';
 export default class CreateQuoteFromOpportunity extends NavigationMixin(LightningElement) {
     @api recordId;
     @track oppLineItems = [];
@@ -35,11 +36,21 @@ export default class CreateQuoteFromOpportunity extends NavigationMixin(Lightnin
     @track error;
     @track generatedIds = new Set();
     @track isLoading = false;
+    @track leadRecordType;
     @track hasProducts = false;
 
     connectedCallback() {
         this.loadInitialData();
         this.handleGetSalesOrg();
+        this.getRecordType();
+    }
+
+    getRecordType() {
+        getRecordTypeFromOpportunity({ opportunityId: this.recordId }).then(result => {
+            this.leadRecordType = result;
+        }).catch(error => {
+            this.showError('Error fetching lead record type', error.body ? error.body.message : error.message);
+        });
     }
 
     loadInitialData() {

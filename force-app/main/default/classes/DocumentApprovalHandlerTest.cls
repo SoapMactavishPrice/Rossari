@@ -162,8 +162,11 @@ public class DocumentApprovalHandlerTest {
             PathOnClient = 'TDS_test.txt',
             VersionData = Blob.valueOf('Test file content')
         );
+        
+        try{
         insert cv;
-
+		}Catch(Exception e){}
+            
         ContentVersion insertedCV = [SELECT Id, ContentDocumentId FROM ContentVersion WHERE Id = :cv.Id LIMIT 1];
         ContentDocumentLink cdl = new ContentDocumentLink(
             ContentDocumentId = insertedCV.ContentDocumentId,

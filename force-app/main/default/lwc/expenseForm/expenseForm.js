@@ -9,7 +9,6 @@ import getTransportModes from '@salesforce/apex/ExpenseController.getTransportMo
 import createCustomerVisit from '@salesforce/apex/ExpenseController.createCustomerVisit';
 import searchTours from '@salesforce/apex/TourLookupController.searchTours';
 import getSalesTypeOptions from '@salesforce/apex/ExpenseController.getSalesTypeOptions';
-import getDailyAllowanceByGrade from '@salesforce/apex/ExpenseController.getDailyAllowanceByGrade';
 import getGradeDetails from '@salesforce/apex/ExpenseController.getGradeDetails';
 import getGradeDetailsWithSalesType from '@salesforce/apex/ExpenseController.getGradeDetailsWithSalesType';
 import getModeOfTravelOptions from '@salesforce/apex/ExpenseController.getModeOfTravelOptions';

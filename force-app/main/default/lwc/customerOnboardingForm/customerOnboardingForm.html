@@ -211,13 +211,13 @@
                                 <lightning-layout-item size="2" class="slds-p-around_small">
                                     <lightning-input label="Order Probability of the Item (%)"
                                         value={row.Order_Probability} data-id={row.uniqueId}
-                                        data-field="Order_Probability" onchange={handleSalesRowChange}>
+                                        data-field="Order_Probability" onchange={handleSalesRowChange} disabled>
                                     </lightning-input>
                                 </lightning-layout-item>
 
                                 <lightning-layout-item size="2" class="slds-p-around_small">
                                     <lightning-input label="Currency" value={row.Currency} data-id={row.uniqueId}
-                                        data-field="Currency" onchange={handleSalesRowChange}>
+                                        data-field="Currency" onchange={handleSalesRowChange} disabled>
                                     </lightning-input>
                                 </lightning-layout-item>
 
@@ -230,14 +230,14 @@
 
                                 <lightning-layout-item size="2" class="slds-p-around_small">
                                     <lightning-input label="Price Group" value={row.Price_Group} data-id={row.uniqueId}
-                                        data-field="Price_Group" onchange={handleSalesRowChange}>
+                                        data-field="Price_Group" onchange={handleSalesRowChange} disabled>
                                     </lightning-input>
                                 </lightning-layout-item>
 
                                 <lightning-layout-item size="2" class="slds-p-around_small">
                                     <lightning-input label="Price Procedure Dterm" value={row.Price_Procedure_Dterm}
                                         data-id={row.uniqueId} data-field="Price_Procedure_Dterm"
-                                        onchange={handleSalesRowChange}>
+                                        onchange={handleSalesRowChange} disabled>
                                     </lightning-input>
                                 </lightning-layout-item>
 
@@ -254,21 +254,21 @@
                                 <lightning-layout-item size="2" class="slds-p-around_small">
                                     <lightning-input label="Delivery Priority" value={row.Delivery_Priority}
                                         data-id={row.uniqueId} data-field="Delivery_Priority"
-                                        onchange={handleSalesRowChange}>
+                                        onchange={handleSalesRowChange} disabled>
                                     </lightning-input>
                                 </lightning-layout-item>
 
                                 <lightning-layout-item size="2" class="slds-p-around_small">
                                     <lightning-input label="Order Combination" value={row.Order_Combination}
                                         data-id={row.uniqueId} data-field="Order_Combination"
-                                        onchange={handleSalesRowChange}>
+                                        onchange={handleSalesRowChange} disabled>
                                     </lightning-input>
                                 </lightning-layout-item>
 
                                 <lightning-layout-item size="2" class="slds-p-around_small">
                                     <lightning-input label="Shipping Conditions" value={row.Shipping_Conditions}
                                         data-id={row.uniqueId} data-field="Shipping_Conditions"
-                                        onchange={handleSalesRowChange}>
+                                        onchange={handleSalesRowChange} disabled>
                                     </lightning-input>
                                 </lightning-layout-item>
 
@@ -305,7 +305,7 @@
                                 <lightning-layout-item size="2" class="slds-p-around_small">
                                     <lightning-input label="Account Assignment Group"
                                         value={row.Account_Assignment_Group} data-id={row.uniqueId}
-                                        data-field="Account_Assignment_Group" onchange={handleSalesRowChange}>
+                                        data-field="Account_Assignment_Group" onchange={handleSalesRowChange} disabled>
                                     </lightning-input>
                                 </lightning-layout-item>
 
@@ -359,11 +359,14 @@
                                         <td>{row.Division}</td>
                                         <td>{row.Partner_Function}</td>
                                         <td>
-                                            <c-reusable-lookup label="Parent Account" data-uniqueid={row.uniqueId}
-                                                object-api-name="user" selected-icon-name="standard:account"
-                                                object-label="Employee Number" field-api-name="Name"
-                                                other-field-api-name="EmployeeNumber" onvalueselected={handleEmpChange}>
-                                            </c-reusable-lookup>
+                                            <template if:true={row.isVE}>
+                                                <c-reusable-lookup label="Parent Account" data-uniqueid={row.uniqueId}
+                                                    object-api-name="user" selected-icon-name="standard:account"
+                                                    object-label="Employee Number" field-api-name="Name"
+                                                    other-field-api-name="EmployeeNumber"
+                                                    onvalueselected={handleEmpChange} lead-record-type={leadRecordType}>
+                                                </c-reusable-lookup>
+                                            </template>
                                         </td>
                                     </tr>
                                 </template>

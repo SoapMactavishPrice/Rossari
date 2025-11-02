@@ -593,19 +593,46 @@ public with sharing class ExpenseController {
         }
     }
     
-    // Method to determine record type based on Entity Codes
+    // Replace the existing determineRecordType method with this new version
     private static String determineRecordType(User currentUser) {
         Map<String, String> recordTypeMap = getExpenseRecordTypes();
         String recordTypeId = null;
         
-        // Check Entity_Code_1__c for RBL record type
-        if (currentUser.Entity_Code_1__c == '1000' && recordTypeMap.containsKey('RBL')) {
-            recordTypeId = recordTypeMap.get('RBL');
-        }
-        // Check Entity_Code_2__c or Entity_Code_3__c for Unitop/Tristar record type
-        else if ((currentUser.Entity_Code_2__c == '3000' || currentUser.Entity_Code_3__c == '4000') && 
-                 recordTypeMap.containsKey('Unitop_Tristar')) {
-            recordTypeId = recordTypeMap.get('Unitop_Tristar');
+        // Check if user has a cost center value
+        if (String.isNotBlank(currentUser.Cost_Center__c)) {
+            try {
+                // Query Cost_Center__c records with Sales_Org__c and Sales_Org__r.Name
+                List<Cost_Center__c> costCenters = [
+                    SELECT Id, Name, Sales_Org__c, Sales_Org__r.Name 
+                    FROM Cost_Center__c 
+                    WHERE Name = :currentUser.Cost_Center__c 
+                    AND Sales_Org__c != null
+                    LIMIT 1
+                ];
+                
+                if (!costCenters.isEmpty()) {
+                    Cost_Center__c userCostCenter = costCenters[0];
+                    String salesOrgName = userCostCenter.Sales_Org__r.Name;
+                    
+                    System.debug('User Cost Center: ' + userCostCenter.Name + ', Sales Org: ' + salesOrgName);
+                    
+                    // Determine record type based on Sales Organization name
+                    if (salesOrgName == '1000' && recordTypeMap.containsKey('RBL')) {
+                        recordTypeId = recordTypeMap.get('RBL');
+                    } else if ((salesOrgName == '3000' || salesOrgName == '4000') && 
+                               recordTypeMap.containsKey('Unitop_Tristar')) {
+                                   recordTypeId = recordTypeMap.get('Unitop_Tristar');
+                               }
+                    
+                    System.debug('Determined Record Type ID: ' + recordTypeId);
+                } else {
+                    System.debug('No Cost Center found with name: ' + currentUser.Cost_Center__c);
+                }
+            } catch (Exception e) {
+                System.debug('Error determining record type from cost center: ' + e.getMessage());
+            }
+        } else {
+            System.debug('User does not have a Cost Center value');
         }
         
         return recordTypeId;

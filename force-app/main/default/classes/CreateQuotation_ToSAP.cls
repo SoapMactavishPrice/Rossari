@@ -66,7 +66,8 @@ public class CreateQuotation_ToSAP {
 
         Quote quote = [SELECT Id, Name, AccountId, Account.SAP_Customer_Code__c, Account.CurrencyIsoCode,
             Sales_Organisations__c, Distribution_Channel__c, Division__c,
-            Sales_Organisations__r.Name, Distribution_Channel__r.Distribution_Code__c, Division__r.Division_Code__c
+            Sales_Organisations__r.Name, Distribution_Channel__r.Distribution_Code__c, Division__r.Division_Code__c,
+            PO_No__c
             FROM Quote WHERE Id = :quoteId
         ];
 
@@ -107,7 +108,7 @@ public class CreateQuotation_ToSAP {
         salesInquiry.put('SalesDocument', '');
         salesInquiry.put('Inco_term', '');
         salesInquiry.put('Payment_terms', '');
-        salesInquiry.put('PurchNoC', 'PO987452');
+        salesInquiry.put('PurchNoC', quote.PO_No__c);
         salesInquiry.put('SalesPerson', '');
         salesInquiry.put('BillTo', '');
         salesInquiry.put('payer', '');

@@ -97,6 +97,8 @@ export default class SendQuoteToSAP extends LightningElement {
 
     // Handle View Inventory button click
     handleViewInventory(event) {
+        event.stopPropagation();  // Prevent event from bubbling up
+        event.preventDefault();
         const productId = event.currentTarget.dataset.productId;
         const material = event.currentTarget.dataset.material;
         const productName = this.orderLineItemList.find(item => item.Product2Id === productId)?.Product2?.Name;
@@ -202,7 +204,7 @@ export default class SendQuoteToSAP extends LightningElement {
     handleMainSubmit(event) {
         this.showSpinner = true;
         event.preventDefault();
-        const mandatoryFields = ['Sales_Organisations__c', 'Distribution_Channel__c', 'Division__c', 'RequestedDeliveryDate__c'];
+        const mandatoryFields = ['Sales_Organisations__c', 'Distribution_Channel__c', 'Division__c', 'RequestedDeliveryDate__c', 'PO_No__c'];
         const lwcInputFields = this.template.querySelectorAll('lightning-input-field');
         let validationFlag = false;
         if (lwcInputFields) {

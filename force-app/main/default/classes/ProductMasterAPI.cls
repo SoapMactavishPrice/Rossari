@@ -433,6 +433,7 @@ global class ProductMasterAPI {
                     if (allUOMmap.containsKey(data.SALES_UOM)) {
                         obj.Sales_UOM__c = allUOMmap.get(data.SALES_UOM).id;
                     }
+                    obj.Pack_Size__c = data.PACK_SIZE;
                     SalesAreaListtoInsert.put(data.ITEM_NUMBER + '_' + data.SALES_ORGANISATION + '_' + data.DISTRIBUTION_CHANNEL + '_' + data.PLANT_CODE, obj);
 
 
@@ -592,6 +593,7 @@ global class ProductMasterAPI {
         public String DIVISION; //28
         public String PLANT_CODE; //1100
         public String SALES_UOM;
+        public String PACK_SIZE;
     }
     class cls_CONV_FACT_SALE {
         // public String SFDC_ID; //

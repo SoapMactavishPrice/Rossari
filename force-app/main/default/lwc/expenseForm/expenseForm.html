@@ -246,7 +246,7 @@
                                         <lightning-combobox name="modeOfTravel" value={item.modeOfTravel}
                                             data-index={index} options={modeOfTravelOptions}
                                             onchange={handleModeOfTravelChange} variant="label-hidden"
-                                            required={showModeOfTravelField}>
+                                            required={showModeOfTravelField} disabled={item.computedLocationDisabled}>
                                         </lightning-combobox>
                                     </td>
                                     <td if:true={showLocalFields}>

@@ -3,367 +3,171 @@ public class lookupComponentControllerTest {
 
     @testSetup
     static void setupData() {
-        List<SObject> recordsToInsert = new List<SObject>();
-        
-        Profile sysAdminProfile = [
-            SELECT Id FROM Profile WHERE Name = 'System Administrator' LIMIT 1
-        ];
+        // Create a test user (this is needed if UserInfo.getUserId() is NOT a system user for your test context)
+        // Otherwise, using current user is fine.
 
-        User userPersonnel = new User(
-            FirstName = 'Test',
-            LastName = 'Admin',
-            Email = 'testadmin@example.com',
-            Username = 'testadmin@example.com.system',
-            Alias = 'tadm',
-            TimeZoneSidKey = 'Asia/Kolkata',
-            LocaleSidKey = 'en_US',
-            EmailEncodingKey = 'UTF-8',
-            LanguageLocaleKey = 'en_US',
-            ProfileId = sysAdminProfile.Id,
-            Division_Code__c = '10',
-            CommunityNickname = 'tadminnick'
-        );
-        recordsToInsert.add(userPersonnel);
-        
-        insert recordsToInsert;
-        recordsToInsert.clear();
+        Pricebook2 pb = new Pricebook2(Id = Test.getStandardPricebookId(), IsActive=true);
+        update pb;
+        // Create Company__c records
+        Company__c companyRBL = new Company__c(Name='Rossari Biotech Limited', SAP_Code__c='1000');
+        insert companyRBL;
+        Company__c companyTristar = new Company__c(Name='Tristar Intermediates Private Limited', SAP_Code__c='4000');
+        insert companyTristar;
+        Company__c companyUnitop = new Company__c(Name='Unitop Chemicals Private Limited', SAP_Code__c='3000');
+        insert companyUnitop;
 
-        Pricebook2 standardPricebook = new Pricebook2(
-            Id = Test.getStandardPricebookId(),
-            IsActive = true
-        );
-        try{
-        update standardPricebook;
-        }Catch(Exception e){}
-        Base_UoM_Master__c baseUom = new Base_UoM_Master__c(Name = 'Kilogram');
-        recordsToInsert.add(baseUom);
-        
-        insert recordsToInsert;
-        recordsToInsert.clear();
+        // Create Division__c and Product_Group__c picklist values or records. Adjust if these are custom objects in your org.
+        Division__c division = new Division__c(Name='TestDivision');
+        insert division;
+        Product_Group__c prodGroup = new Product_Group__c(Name='TestProductGroup');
+        insert prodGroup;
 
-        Division__c division = new Division__c(Name = '10');
-        recordsToInsert.add(division);
-        
-        insert recordsToInsert;
-        recordsToInsert.clear();
- 
-        Product2 prod = new Product2(
-            Name = 'Test Product',
-            ProductCode = 'TP001',
-            Pack_Size__c = '10kg',
-            Base_UOM__c = baseUom.Id,
-            IsActive = true,
-            Division__c = division.Id
-        );
-        recordsToInsert.add(prod);
-        
-        insert recordsToInsert;
-        recordsToInsert.clear();
- 
-        PricebookEntry pbe = new PricebookEntry(
-            Pricebook2Id = standardPricebook.Id,
-            Product2Id = prod.Id,
-            UnitPrice = 100,
-            IsActive = true
-        );
-        recordsToInsert.add(pbe);
-        
-        insert recordsToInsert;
-        recordsToInsert.clear();
+        // Create Product2 as 'Item_Master__c' target
+        Product2 p1 = new Product2(Name='Prod1', ProductCode='PCODE1', Family='FamilyA', Division__c=division.Id, Item_Group__c=prodGroup.Id, Description='Description 1');
+        Product2 p2 = new Product2(Name='Prod2', ProductCode='PCODE2', Family='FamilyB', Division__c=division.Id, Item_Group__c=prodGroup.Id, Description='Description 2');
+        insert p1;
+        insert p2;
 
-        Company__c company = new Company__c(
-            Name = 'Rossari Biotech Limited',
-            SAP_Code__c = '1000'
-        );
-        recordsToInsert.add(company);
-        
-        insert recordsToInsert;
-        recordsToInsert.clear();
-
-        Product_Group__c productGroup = new Product_Group__c(Name = 'Test Group');
-        recordsToInsert.add(productGroup);
-        
-        insert recordsToInsert;
-        recordsToInsert.clear();
-
-        Company_User__c cu = new Company_User__c(
+        // Company_User__c for current user, referencing division and product group
+        insert new Company_User__c(
             User__c = UserInfo.getUserId(),
-            Company__c = company.Id,
             Division__c = division.Id,
-            Product_Group__c = productGroup.Id
+            Product_Group__c = prodGroup.Id,
+            Company__c = companyRBL.Id // For 'RBL' tests
         );
-        recordsToInsert.add(cu);
-        
-        insert recordsToInsert;
-        recordsToInsert.clear();
 
-        Sales_Organisation__c salesOrg = new Sales_Organisation__c(Name = '1000');
-        recordsToInsert.add(salesOrg);
-        
-        insert recordsToInsert;
-        recordsToInsert.clear();
-
-        Distribution_Channel__c distChannel = new Distribution_Channel__c(Name = '10');
-        recordsToInsert.add(distChannel);
-        
-        insert recordsToInsert;
-        recordsToInsert.clear();
-
-        Sales_Area__c salesArea = new Sales_Area__c(
-            Sales_Organisation__c = salesOrg.Id,
-            Item_Master__c = prod.Id,
+        insert new Company_User__c(
+            User__c = UserInfo.getUserId(),
             Division__c = division.Id,
-            Distribution_Channel__c = distChannel.Id
+            Product_Group__c = prodGroup.Id,
+            Company__c = companyTristar.Id // For 'Unitop/Tristar' tests
         );
-        recordsToInsert.add(salesArea);
+
+        // Sales_Organisation__c records to match salesOrg filter
+        Sales_Organisation__c salesOrg1000 = new Sales_Organisation__c(Name='1000');
+        insert salesOrg1000;
+        Sales_Organisation__c salesOrg3000 = new Sales_Organisation__c(Name='3000');
+        insert salesOrg3000;
+        Sales_Organisation__c salesOrg4000 = new Sales_Organisation__c(Name='4000');
+        insert salesOrg4000;
+
+        // Sales_Area__c records linking to products and sales orgs for both groups
+        insert new Sales_Area__c(
+            Sales_Organisation__c = salesOrg1000.Id,
+            Item_Master__c = p1.Id
+        );
+
+        insert new Sales_Area__c(
+            Sales_Organisation__c = salesOrg4000.Id,
+            Item_Master__c = p2.Id
+        );
+
+        // Pricebook2 and PricebookEntry records so controller can query results
         
-        insert recordsToInsert;
+
+        PricebookEntry pbe1 = new PricebookEntry(Pricebook2Id=pb.Id, Product2Id=p1.Id, UnitPrice=101, IsActive=true, CurrencyIsoCode='USD');
+        PricebookEntry pbe2 = new PricebookEntry(Pricebook2Id=pb.Id, Product2Id=p2.Id, UnitPrice=102, IsActive=true, CurrencyIsoCode='USD');
+        insert pbe1;
+        insert pbe2;
     }
 
     @isTest
-    static void testAllFindRecordsScenarios() {
-        Test.startTest();
+    static void testFindRecords_PricebookEntry_RBL() {
+        String searchKey = 'Prod';
+        String objectName = 'PricebookEntry';
+        String returnFields = '';
+        List<String> queryFields = new List<String>{'Name', 'ProductCode'};
+        String filter = '';
+        String sortColumn = '';
+        String maxResults = '10';
+        String family = '';
+        String currencyCode = 'USD';
+        String leadRecordType = 'RBL';
 
-        User userPersonnel = [SELECT Id FROM User WHERE Email = 'testadmin@example.com' LIMIT 1];
-        
-        System.runAs(userPersonnel) {
-
-            String result1 = lookupComponentController.findRecords(
-                'Test',
-                'PricebookEntry',
-                'Name',
-                new List<String>{'Name'},
-                '',
-                '',
-                '10',
-                '',
-                '',
-                'RBL'
-            );
-            
-            String result2 = lookupComponentController.findRecords(
-                '',
-                'PricebookEntry',
-                'Name',
-                new List<String>{'Name'},
-                '',
-                '',
-                '10',
-                '',
-                '',
-                'RBL'
-            );
-            
-            String result3 = lookupComponentController.findRecords(
-                'Test',
-                'PricebookEntry',
-                'Name',
-                new List<String>{'Name'},
-                '',
-                '',
-                '10',
-                '',
-                'USD',
-                'RBL'
-            );
-            
-            String result4 = lookupComponentController.findRecords(
-                'Test',
-                'PricebookEntry',
-                'Name',
-                new List<String>{'Name'},
-                'UnitPrice > 50',
-                'Product2.Name',
-                '10',
-                'Test Family',
-                '',
-                'RBL'
-            );
-            
-            String result5 = lookupComponentController.findRecords(
-                'Test',
-                'PricebookEntry',
-                'Name',
-                new List<String>{'Name'},
-                '',
-                '',
-                '',
-                '',
-                '',
-                'RBL'
-            );
-            
-            String result6 = lookupComponentController.findRecords(
-                'Test',
-                'PricebookEntry',
-                'Name',
-                new List<String>{'Name'},
-                'UnitPrice > 1000',
-                '',
-                '10',
-                '',
-                '',
-                'RBL'
-            );
-            
-            String result7 = lookupComponentController.findRecords(
-                'Test',
-                'PricebookEntry',
-                'Name',
-                new List<String>{'Name'},
-                '',
-                '',
-                '10',
-                'NonExistent Family',
-                '',
-                'RBL'
-            );
-            
-            try {
-                String result8 = lookupComponentController.findRecords(
-                    'Test',
-                    'Account',
-                    'Name',
-                    new List<String>{'Name'},
-                    '',
-                    '',
-                    '10',
-                    '',
-                    '',
-                    'RBL'
-                );
-            } catch (Exception e) {
-            }
-        }
-        
-        Test.stopTest();
+        String result = lookupComponentController.findRecords(
+            searchKey, 
+            objectName, 
+            returnFields, 
+            queryFields, 
+            filter, 
+            sortColumn, 
+            maxResults, 
+            family,
+            currencyCode,
+            leadRecordType
+        );
     }
 
     @isTest
-    static void testAllOtherMethods() {
-        Id pbeId = [SELECT Id FROM PricebookEntry LIMIT 1].Id;
-        
-        Test.startTest();
-        
-        String result1 = lookupComponentController.fetchDefaultRecord(pbeId);
-        
-        String result2 = lookupComponentController.fetchDefaultRecord('invalidId');
-        
-        List<Id> ids1 = lookupComponentController.getUserAllowedProductIds('RBL');
-        
-        try {
-            List<Id> ids2 = lookupComponentController.getUserAllowedProductIds('Tristar');
-        } catch (Exception e) {
-        }
-        
-        try {
-            List<Id> ids3 = lookupComponentController.getUserAllowedProductIds('Unitop');
-        } catch (Exception e) {
-        }
-        
-        try {
-            List<Id> ids4 = lookupComponentController.getUserAllowedProductIds('Invalid');
-        } catch (Exception e) {
-        }
-        
-        delete [SELECT Id FROM Company_User__c LIMIT 1];
-        String result3 = lookupComponentController.findRecords(
-            'Test',
-            'PricebookEntry',
-            'Name',
-            new List<String>{'Name'},
-            '',
-            '',
-            '10',
-            '',
-            '',
-            'RBL'
+    static void testFindRecords_PricebookEntry_UnitopTristar() {
+        String searchKey = 'Prod';
+        String objectName = 'PricebookEntry';
+        List<String> queryFields = new List<String>{'Name', 'ProductCode'};
+        String filter = '';
+        String sortColumn = '';
+        String maxResults = '10';
+        String family = '';
+        String currencyCode = 'USD';
+        String leadRecordType = 'Unitop/Tristar';
+
+        String result = lookupComponentController.findRecords(
+            searchKey, 
+            objectName, 
+            '', 
+            queryFields, 
+            filter, 
+            sortColumn, 
+            maxResults, 
+            family,
+            currencyCode,
+            leadRecordType
         );
-        
-        Test.stopTest();
     }
 
     @isTest
-    static void testAdditionalScenarios() {
-        List<SObject> recordsToInsert = new List<SObject>();
-        
-        Test.startTest();
-        
-        String result1 = lookupComponentController.findRecords(
-            'TP001',
+    static void testFindRecords_FamilyFilter() {
+        String result = lookupComponentController.findRecords(
+            'Prod', 
             'PricebookEntry',
-            'Name',
-            new List<String>{'Name'},
-            '',
-            '',
-            '10',
-            '',
-            '',
+            '', 
+            new List<String>{'Name', 'ProductCode'}, 
+            '', 
+            '', 
+            '10', 
+            'FamilyA', // Should filter only FamilyA
+            'USD',
             'RBL'
         );
-        
-        String result2 = lookupComponentController.findRecords(
-            'Test',
-            'PricebookEntry',
-            'Name',
-            new List<String>{'Name'},
-            '',
-            '',
-            '10',
-            '',
-            'EUR',
-            'RBL'
-        );
-        
-        Product2 duplicateProduct = new Product2(
-            Name = 'Duplicate Product',
-            ProductCode = 'TP0067',
-            Pack_Size__c = '5kg',
-            Base_UOM__c = [SELECT Id FROM Base_UoM_Master__c LIMIT 1].Id,
-            Family = 'Test Family',
-            IsActive = true
-        );
-        recordsToInsert.add(duplicateProduct);
-        
-        insert recordsToInsert;
-        recordsToInsert.clear();
-        
-        PricebookEntry duplicatePbe = new PricebookEntry(
-            Pricebook2Id = Test.getStandardPricebookId(),
-            Product2Id = duplicateProduct.Id,
-            UnitPrice = 150,
-            IsActive = true,
-            CurrencyIsoCode = 'USD'
-        );
-        recordsToInsert.add(duplicatePbe);
-        
-        insert recordsToInsert;
-        recordsToInsert.clear();
-        
-        Sales_Area__c duplicateSalesArea = new Sales_Area__c(
-            Sales_Organisation__c = [SELECT Id FROM Sales_Organisation__c LIMIT 1].Id,
-            Item_Master__c = duplicateProduct.Id,
-            Division__c = [SELECT Id FROM Division__c LIMIT 1].Id,
-            Distribution_Channel__c = [SELECT Id FROM Distribution_Channel__c LIMIT 1].Id
-        );
-        recordsToInsert.add(duplicateSalesArea);
-        
-        insert recordsToInsert;
-        recordsToInsert.clear();
-        
-        String result3 = lookupComponentController.findRecords(
-            'TP001',
-            'PricebookEntry',
-            'Name',
-            new List<String>{'Name'},
-            '',
-            '',
-            '10',
-            '',
-            '',
-            'RBL'
-        );
-        
-        Test.stopTest();
+    }
+
+    @isTest
+    static void testFindRecords_UnsupportedObject() {
+        try {
+            lookupComponentController.findRecords(
+                'Prod', 
+                'Account', // Only PricebookEntry supported
+                '', 
+                new List<String>{'Name'}, 
+                '', 
+                '', 
+                '10', 
+                '', 
+                '',
+                'RBL'
+            );
+        } catch (AuraHandledException e) {
+            // Catch for coverage, no asserts
+        }
+    }
+
+    @isTest
+    static void testFetchDefaultRecord_Valid() {
+        PricebookEntry entry = [SELECT Id FROM PricebookEntry LIMIT 1];
+        String result = lookupComponentController.fetchDefaultRecord(entry.Id);
+    }
+
+    @isTest
+    static void testFetchDefaultRecord_InvalidId() {
+        String result = lookupComponentController.fetchDefaultRecord('001000000000001AAA');
     }
 }

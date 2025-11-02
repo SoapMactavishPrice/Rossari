@@ -8,6 +8,7 @@ import saveSampleRequest from '@salesforce/apex/AccountSampleRequestController.s
 import getPicklistDependencies from '@salesforce/apex/AccountSampleRequestController.getPicklistDependencies';
 import getUnitPrice from '@salesforce/apex/AccountSampleRequestController.getUnitPrice';
 import getCurrentUserZone from '@salesforce/apex/SampleRequestController.getCurrentUserZone';
+import getRecordTypeFromCustomerAccount from '@salesforce/apex/Utility.getRecordTypeFromCustomerAccount';
 
 
 const ACCOUNT_FIELDS = ['Account.Name', 'Account.CurrencyIsoCode', 'Account.SAP_Customer_Code__c'];
@@ -23,6 +24,7 @@ export default class AccountSampleRequest extends NavigationMixin(LightningEleme
     @track filesData = [];
     @track sendEmailToPlant = true;
     @track sampleCategoryOptions = [];
+    @track leadRecordType;
     @track allSAPDocTypeOptions = {
         Paid: [],
         Unpaid: []
@@ -55,6 +57,7 @@ export default class AccountSampleRequest extends NavigationMixin(LightningEleme
     connectedCallback() {
         this.loadInitialData();
         this.loadPicklists();
+        this.getRecordType();
 
         getCurrentUserZone()
             .then(result => {
@@ -63,6 +66,14 @@ export default class AccountSampleRequest extends NavigationMixin(LightningEleme
             .catch(error => {
                 this.showError('Error fetching user zone', error.body?.message || error.message);
             });
+    }
+
+    getRecordType() {
+        getRecordTypeFromCustomerAccount({ accountId: this.recordId }).then(result => {
+            this.leadRecordType = result;
+        }).catch(error => {
+            this.showError('Error fetching lead record type', error.body ? error.body.message : error.message);
+        });
     }
 
     async loadInitialData() {

@@ -6,7 +6,7 @@ public with sharing class SampleOutController {
 
         try {
             Sample_Request__c request = [
-                SELECT Id, Name, CurrencyIsoCode, Lead__c, Customer_Name__c,
+                SELECT Id, Name, CurrencyIsoCode, Lead__c, Customer_Name__c, Opportunity__c,
                     Lead__r.Street_1__c,
                     Lead__r.Street_2__c,
                     Lead__r.Street_3__c,
@@ -21,7 +21,8 @@ public with sharing class SampleOutController {
                     Lead__r.Shipping_City__c,
                     Lead__r.Shipping_State__c,
                     Lead__r.Shipping_Country__c,
-                    Customer_Name__r.Name
+                    Customer_Name__r.Name,
+                    Opportunity__r.AccountId  // Get Account from Opportunity
                 FROM Sample_Request__c
                 WHERE Id = :sampleRequestId
                 LIMIT 1
@@ -30,79 +31,16 @@ public with sharing class SampleOutController {
             response.requestNumber = request.Name;
             response.currencyCode = request.CurrencyIsoCode;
 
-            
+            // Determine the source and fetch addresses accordingly
             if (request.Lead__c != null) {
-                response.address = new Map<String, String>{
-                    
-                    'Street1' => request.Lead__r.Street_1__c,
-                    'Street2' => request.Lead__r.Street_2__c,
-                    'Street3' => request.Lead__r.Street_3__c,
-                    'PinCodeId' => request.Lead__r.Pin_Code__c,
-                    'CityId' => request.Lead__r.City__c,
-                    'StateId' => request.Lead__r.State__c,
-                    'CountryId' => request.Lead__r.Country__c,
-
-                    
-                    'ShippingStreet1' => request.Lead__r.Shipping_Street_1__c,
-                    'ShippingStreet2' => request.Lead__r.Shipping_Street_2__c,
-                    'ShippingStreet3' => request.Lead__r.Shipping_Street_3__c,
-                    'ShippingPinCodeId' => request.Lead__r.Shipping_Pin_Code__c,
-                    'ShippingCityId' => request.Lead__r.Shipping_City__c,
-                    'ShippingStateId' => request.Lead__r.Shipping_State__c,
-                    'ShippingCountryId' => request.Lead__r.Shipping_Country__c,
-
-                    'Source' => 'Lead'
-                };
+                // Fetch from Lead
+                response.address = getAddressFromLead(request);
+            } else if (request.Opportunity__c != null && request.Opportunity__r.AccountId != null) {
+                // Fetch from Opportunity's Account
+                response.address = getAddressFromAccount(request.Opportunity__r.AccountId);
             } else if (request.Customer_Name__c != null) {
-                
-                List<Address_Information__c> billingAddresses = [
-                    SELECT Id, Name, Street_1__c, Street_2__c, Street_3__c,
-                        Pin_Code__c, City__c, State__c, Country__c
-                    FROM Address_Information__c
-                    WHERE Account__c = :request.Customer_Name__c
-                    AND RecordType.Name = 'Bill To'
-                    ORDER BY CreatedDate DESC
-                    LIMIT 1
-                ];
-
-                List<Address_Information__c> shippingAddresses = [
-                    SELECT Id, Name, Street_1__c, Street_2__c, Street_3__c,
-                        Pin_Code__c, City__c, State__c, Country__c
-                    FROM Address_Information__c
-                    WHERE Account__c = :request.Customer_Name__c
-                    AND RecordType.Name = 'Ship To'
-                    ORDER BY CreatedDate DESC
-                    LIMIT 1
-                ];
-
-                Map<String, String> accountAddressMap = new Map<String, String>();
-
-                if (!billingAddresses.isEmpty()) {
-                    Address_Information__c billTo = billingAddresses[0];
-                    accountAddressMap.put('Street1', billTo.Street_1__c);
-                    accountAddressMap.put('Street2', billTo.Street_2__c);
-                    accountAddressMap.put('Street3', billTo.Street_3__c);
-                    accountAddressMap.put('PinCodeId', billTo.Pin_Code__c);
-                    accountAddressMap.put('CityId', billTo.City__c);
-                    accountAddressMap.put('StateId', billTo.State__c);
-                    accountAddressMap.put('CountryId', billTo.Country__c);
-                }
-
-                if (!shippingAddresses.isEmpty()) {
-                    Address_Information__c shipTo = shippingAddresses[0];
-                    accountAddressMap.put('ShippingStreet1', shipTo.Street_1__c);
-                    accountAddressMap.put('ShippingStreet2', shipTo.Street_2__c);
-                    accountAddressMap.put('ShippingStreet3', shipTo.Street_3__c);
-                    accountAddressMap.put('ShippingPinCodeId', shipTo.Pin_Code__c);
-                    accountAddressMap.put('ShippingCityId', shipTo.City__c);
-                    accountAddressMap.put('ShippingStateId', shipTo.State__c);
-                    accountAddressMap.put('ShippingCountryId', shipTo.Country__c);
-                }
-
-                if (!accountAddressMap.isEmpty()) {
-                    accountAddressMap.put('Source', 'Account');
-                    response.address = accountAddressMap;
-                }
+                // Fetch from Account (Customer_Name__c)
+                response.address = getAddressFromAccount(request.Customer_Name__c);
             }
 
             response.lineItems = [
@@ -134,27 +72,108 @@ public with sharing class SampleOutController {
         return response;
     }
 
+    // Helper method to get address from Lead
+    private static Map<String, String> getAddressFromLead(Sample_Request__c request) {
+        return new Map<String, String>{
+            'Street1' => request.Lead__r.Street_1__c,
+            'Street2' => request.Lead__r.Street_2__c,
+            'Street3' => request.Lead__r.Street_3__c,
+            'PinCodeId' => request.Lead__r.Pin_Code__c,
+            'CityId' => request.Lead__r.City__c,
+            'StateId' => request.Lead__r.State__c,
+            'CountryId' => request.Lead__r.Country__c,
+            'ShippingStreet1' => request.Lead__r.Shipping_Street_1__c,
+            'ShippingStreet2' => request.Lead__r.Shipping_Street_2__c,
+            'ShippingStreet3' => request.Lead__r.Shipping_Street_3__c,
+            'ShippingPinCodeId' => request.Lead__r.Shipping_Pin_Code__c,
+            'ShippingCityId' => request.Lead__r.Shipping_City__c,
+            'ShippingStateId' => request.Lead__r.Shipping_State__c,
+            'ShippingCountryId' => request.Lead__r.Shipping_Country__c,
+            'Source' => 'Lead'
+        };
+    }
+
+    // Helper method to get address from Account (used for both Opportunity and Customer_Name)
+    private static Map<String, String> getAddressFromAccount(Id accountId) {
+        Map<String, String> accountAddressMap = new Map<String, String>();
+        
+        // Fetch Billing Address (Bill To)
+        List<Address_Information__c> billingAddresses = [
+            SELECT Id, Name, Street_1__c, Street_2__c, Street_3__c,
+                Pin_Code__c, City__c, State__c, Country__c
+            FROM Address_Information__c
+            WHERE Account__c = :accountId
+            AND RecordType.Name = 'Bill To'
+            ORDER BY CreatedDate DESC
+            LIMIT 1
+        ];
+
+        // Fetch Shipping Address (Ship To)
+        List<Address_Information__c> shippingAddresses = [
+            SELECT Id, Name, Street_1__c, Street_2__c, Street_3__c,
+                Pin_Code__c, City__c, State__c, Country__c
+            FROM Address_Information__c
+            WHERE Account__c = :accountId
+            AND RecordType.Name = 'Ship To'
+            ORDER BY CreatedDate DESC
+            LIMIT 1
+        ];
+
+        // Populate billing address
+        if (!billingAddresses.isEmpty()) {
+            Address_Information__c billTo = billingAddresses[0];
+            accountAddressMap.put('Street1', billTo.Street_1__c);
+            accountAddressMap.put('Street2', billTo.Street_2__c);
+            accountAddressMap.put('Street3', billTo.Street_3__c);
+            accountAddressMap.put('PinCodeId', billTo.Pin_Code__c);
+            accountAddressMap.put('CityId', billTo.City__c);
+            accountAddressMap.put('StateId', billTo.State__c);
+            accountAddressMap.put('CountryId', billTo.Country__c);
+        }
+
+        // Populate shipping address
+        if (!shippingAddresses.isEmpty()) {
+            Address_Information__c shipTo = shippingAddresses[0];
+            accountAddressMap.put('ShippingStreet1', shipTo.Street_1__c);
+            accountAddressMap.put('ShippingStreet2', shipTo.Street_2__c);
+            accountAddressMap.put('ShippingStreet3', shipTo.Street_3__c);
+            accountAddressMap.put('ShippingPinCodeId', shipTo.Pin_Code__c);
+            accountAddressMap.put('ShippingCityId', shipTo.City__c);
+            accountAddressMap.put('ShippingStateId', shipTo.State__c);
+            accountAddressMap.put('ShippingCountryId', shipTo.Country__c);
+        }
+
+        if (!accountAddressMap.isEmpty()) {
+            accountAddressMap.put('Source', 'Account');
+        }
+
+        return accountAddressMap;
+    }
     
     @AuraEnabled(cacheable=true)
     public static Map<String, String> getAddressDataByPin(Id pinCodeId) {
         Map<String, String> result = new Map<String, String>();
         
-        Pin_Code__c pin = [
-            SELECT Id, Name, City__c, City__r.Name, 
-            City__r.State__c, City__r.State__r.Name,
-            City__r.State__r.Country__c, City__r.State__r.Country__r.Name,
-            City__r.State__r.Zone__c, City__r.State__r.Country__r.Region__c
-            FROM Pin_Code__c
-            WHERE Id = :pinCodeId
-            LIMIT 1
-        ];
-        
-        if (pin != null) {
-            result.put('cityId', pin.City__c);
-            result.put('stateId', pin.City__r.State__c);
-            result.put('countryId', pin.City__r.State__r.Country__c);
-            result.put('zone', pin.City__r.State__r.Zone__c);
-            result.put('region', pin.City__r.State__r.Country__r.Region__c);
+        try {
+            Pin_Code__c pin = [
+                SELECT Id, Name, City__c, City__r.Name, 
+                City__r.State__c, City__r.State__r.Name,
+                City__r.State__r.Country__c, City__r.State__r.Country__r.Name,
+                City__r.State__r.Zone__c, City__r.State__r.Country__r.Region__c
+                FROM Pin_Code__c
+                WHERE Id = :pinCodeId
+                LIMIT 1
+            ];
+            
+            if (pin != null) {
+                result.put('cityId', pin.City__c);
+                result.put('stateId', pin.City__r.State__c);
+                result.put('countryId', pin.City__r.State__r.Country__c);
+                result.put('zone', pin.City__r.State__r.Zone__c);
+                result.put('region', pin.City__r.State__r.Country__r.Region__c);
+            }
+        } catch (Exception e) {
+            throw new AuraHandledException('Error fetching address data: ' + e.getMessage());
         }
         
         return result;
@@ -204,7 +223,6 @@ public with sharing class SampleOutController {
         return result;
     }
     
-    
     public class SampleOutData {
         @AuraEnabled public Id SampleRequest;
         @AuraEnabled public Date SampleSentByFactoryToHO;
@@ -231,7 +249,6 @@ public with sharing class SampleOutController {
         @AuraEnabled public Id ShippingCountryId;
     }
 
-    
     public class SampleOutLineData {
         @AuraEnabled public Id Product;
         @AuraEnabled public Id SampleRequestLine;
@@ -306,13 +323,12 @@ public with sharing class SampleOutController {
         }
     }
 
-    
     public class ResponseWrapper {
         @AuraEnabled public String requestNumber;
         @AuraEnabled public List<Sample_Request_Line_Item__c> lineItems;
         @AuraEnabled public List<Plant__c> plants;
         @AuraEnabled public String currencyCode;
-        @AuraEnabled public Map<String, String> address; // NEW
+        @AuraEnabled public Map<String, String> address;
     }
     
     public static void updateSampleOutAddresses(List<Sample_Out__c> newSampleOuts) {
@@ -347,7 +363,6 @@ public with sharing class SampleOutController {
         }
     }
     
-    
     public static void markRequestsCompleted(List<Sample_Out__c> sampleOuts) {
         Set<Id> sampleRequestIds = new Set<Id>();
         for (Sample_Out__c so : sampleOuts) {
@@ -372,5 +387,4 @@ public with sharing class SampleOutController {
             }
         }
     }
-    
 }

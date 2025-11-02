@@ -28,6 +28,7 @@ export default class LookUpComponent extends LightningElement {
     @api defaultRecordId = '';
     @api disabled = false;
     @api searchWithMiddle = false;
+    @api leadRecordType;
     @track displayFieldsList = [];
 
     @api
@@ -143,7 +144,8 @@ export default class LookUpComponent extends LightningElement {
             maxResults: this.maxResults,
             searchWithMiddle: (this.searchWithMiddle == 'true'),
             family: this.family,
-            currencyCode: this.currencyCode
+            currencyCode: this.currencyCode,
+            leadRecordType: this.leadRecordType
         })
             .then(result => {
                 let vData = JSON.parse(result);

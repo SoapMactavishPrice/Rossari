@@ -17,7 +17,8 @@ public with sharing class ReusableLookupController {
             Boolean isProduct = inputWrapper.objectApiName == 'Product2';
             String fieldsToQuery;
 
-            List<String> productIds = Utility.getUserDivisionProductList(UserInfo.getUserId());
+            // List<String> productIds = Utility.getUserDivisionProductList(UserInfo.getUserId());
+            List<String> productIds = Utility.getUserAllowedProductIds(inputWrapper.leadRecordType);
             
             // Step 1: Compose the SELECT clause
             if (isPricebookEntry) {
@@ -178,5 +179,6 @@ public with sharing class ReusableLookupController {
         @AuraEnabled public String selectedRecordId {get; set;}
         @AuraEnabled public String parentRecordId {get; set;}
         @AuraEnabled public String parentFieldApiName {get; set;}
+        @AuraEnabled public String leadRecordType {get; set;}
     }
 }

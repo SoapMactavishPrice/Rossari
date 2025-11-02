@@ -8,6 +8,7 @@ import saveSampleRequest from '@salesforce/apex/OpportunitySampleRequestControll
 import getPicklistDependencies from '@salesforce/apex/OpportunitySampleRequestController.getPicklistDependencies';
 import getUnitPrice from '@salesforce/apex/OpportunitySampleRequestController.getUnitPrice';
 import getCurrentUserZone from '@salesforce/apex/OpportunitySampleRequestController.getCurrentUserZone';
+import getRecordTypeFromOpportunity from '@salesforce/apex/Utility.getRecordTypeFromOpportunity';
 
 const LEAD_FIELDS = ['Opportunity.Account.Name', 'Opportunity.CurrencyIsoCode'];
 
@@ -22,6 +23,7 @@ export default class SampleRequestForm extends NavigationMixin(LightningElement)
     @track filesData = [];
     @track sendEmailToPlant = true;
     @track sampleCategoryOptions = [];
+    @track leadRecordType;
     @track allSAPDocTypeOptions = {
         Paid: [],
         Unpaid: []
@@ -58,6 +60,7 @@ export default class SampleRequestForm extends NavigationMixin(LightningElement)
     connectedCallback() {
         this.loadInitialData();
         this.loadPicklists();
+        this.getRecordType();
 
         getCurrentUserZone()
             .then(result => {
@@ -66,6 +69,14 @@ export default class SampleRequestForm extends NavigationMixin(LightningElement)
             .catch(error => {
                 this.showError('Error fetching user zone', error.body?.message || error.message);
             });
+    }
+
+    getRecordType() {
+        getRecordTypeFromOpportunity({ opportunityId: this.recordId }).then(result => {
+            this.leadRecordType = result;
+        }).catch(error => {
+            this.showError('Error fetching lead record type', error.body ? error.body.message : error.message);
+        });
     }
 
     get isUnpaidSampleCategory() {

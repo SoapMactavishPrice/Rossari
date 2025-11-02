@@ -15,7 +15,7 @@
             <div class="modal-body">
                 <lightning-record-edit-form object-api-name="Quote" record-id={recordId} onsubmit={handleMainSubmit}
                     onsuccess={handleMainSuccess} onerror={handleNewError} data-id="mainform">
-                <!-- <lightning-record-edit-form object-api-name="Quote" record-id={recordId}> -->
+                    <!-- <lightning-record-edit-form object-api-name="Quote" record-id={recordId}> -->
                     <lightning-messages></lightning-messages>
                     <lightning-layout multiple-rows>
 
@@ -46,6 +46,13 @@
                             </label>
                             <lightning-input-field field-name="Division__c"
                                 variant="label-hidden"></lightning-input-field>
+                        </lightning-layout-item>
+                        <lightning-layout-item size="6" padding="around-small" class="pt0">
+                            <label class="slds-form-element__label">
+                                <span style="color: red;">* </span>
+                                PO Number
+                            </label>
+                            <lightning-input-field field-name="PO_No__c" variant="label-hidden"></lightning-input-field>
                         </lightning-layout-item>
                         <!-- <lightning-layout-item size="6" padding="around-small" class="pt0">
                             <label class="slds-form-element__label">

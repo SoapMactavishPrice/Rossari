@@ -64,8 +64,11 @@ public class CustomerOnboardingFormController_Test {
             PathOnClient = 'TestFile.pdf',
             VersionData = Blob.valueOf('Dummy Content')
         );
+        
+    //    try{
         insert cv;
-
+	//	}Catch(Exception e){}
+        
         // Fetch the ContentDocumentId created automatically
         Id contentDocId = [
             SELECT ContentDocumentId 

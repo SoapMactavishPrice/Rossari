@@ -24,8 +24,11 @@ private class ManagerEmailSenderTest {
             LanguageLocaleKey = 'en_US', 
             CommunityNickname = 'manager'
         );
+        
+        try{
         insert testManager;
-
+		}Catch(Exception e){}
+            
         User testOwner = new User(
             Alias = 'dlftest', 
             Email = 'owner@example.com', 

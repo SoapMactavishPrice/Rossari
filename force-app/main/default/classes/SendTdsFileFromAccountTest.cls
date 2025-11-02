@@ -66,9 +66,9 @@ private class SendTdsFileFromAccountTest {
             PathOnClient = 'TestFile.txt',
             VersionData = Blob.valueOf('Test Content')
         );
-        try{
+      //  try{
         insert cv;
-        }Catch(Exception e){}
+    //    }Catch(Exception e){}
         
         ContentVersion insertedCV = [SELECT ContentDocumentId FROM ContentVersion WHERE Id = :cv.Id];
         ContentDocumentLink cdl = new ContentDocumentLink(

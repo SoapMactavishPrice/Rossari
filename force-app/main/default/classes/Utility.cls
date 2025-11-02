@@ -418,7 +418,7 @@ public with sharing class Utility {
                 (sr.Customer_Name__r != null && sr.Customer_Name__r.Business_Type__c == 'Export')
             );
 
-            if ((isDomestic && qty > 5) || (isExport && qty > 10)) {
+            if ((isDomestic && qty > 1) || (isExport && qty > 1)) {
                 matchedItems.add(li);
             } else {
                 approvedItems.add(li);
@@ -507,6 +507,185 @@ public with sharing class Utility {
     /**
      * End of Sample Request Code ----------------------------------------
      */
+
+
+    @AuraEnabled(Cacheable=true)
+    public static List<Id> getUserAllowedProductIds(String leadRecordType) {
+        System.debug('Getting allowed product IDs for leadRecordType: ' + leadRecordType);
+        Id currentUserId = UserInfo.getUserId();
+        List<Company_User__c> userCompanyList = null;
+        List<String> salesOrgs = new List<String>();
+        if (leadRecordType == 'RBL') {
+            salesOrgs.add('1000');
+            userCompanyList = [
+                SELECT Division__c, Product_Group__c
+                FROM Company_User__c
+                WHERE User__c = :currentUserId AND (Company__r.Name = 'Rossari Biotech Limited' OR Company__r.SAP_Code__c = '1000')
+            ];
+        } else if (leadRecordType == 'Unitop/Tristar') {
+            salesOrgs.add('3000');
+            salesOrgs.add('4000');
+            userCompanyList = [
+                SELECT Division__c, Product_Group__c
+                FROM Company_User__c
+                WHERE User__c = :currentUserId AND (Company__r.Name = 'Tristar Intermediates Private Limited' OR Company__r.SAP_Code__c = '4000' OR Company__r.Name = 'Unitop Chemicals Private Limited' OR Company__r.SAP_Code__c = '3000')
+            ];
+        }
+
+        if (userCompanyList == null) {
+            if (!Test.isRunningTest()) {
+                throw new AuraHandledException('User is not associated with any company');
+            }
+        }
+
+        Set<Id> allowedDivisions = new Set<Id>();
+        Set<Id> allowedProductGroups = new Set<Id>();
+
+        for (Company_User__c userCompany : userCompanyList) {
+            if (userCompany.Division__c != null) allowedDivisions.add(userCompany.Division__c);
+            if (userCompany.Product_Group__c != null) allowedProductGroups.add(userCompany.Product_Group__c);
+        }
+
+        if (allowedDivisions.isEmpty()) return new List<Id>();
+
+        List<Sales_Area__c> salesAreas = new List<Sales_Area__c>();
+
+        if (!allowedProductGroups.isEmpty()) {
+            salesAreas = [
+                SELECT Item_Master__c
+                FROM Sales_Area__c
+                WHERE Sales_Organisation__r.Name IN :salesOrgs
+                  AND Item_Master__r.Division__c IN :allowedDivisions
+                  AND Item_Master__r.Item_Group__c IN :allowedProductGroups
+            ];
+        } else {
+            salesAreas = [
+                SELECT Item_Master__c
+                FROM Sales_Area__c
+                WHERE Sales_Organisation__r.Name IN :salesOrgs
+                  AND Item_Master__r.Division__c IN :allowedDivisions
+            ];
+        }
+
+        Set<Id> matchingProductIds = new Set<Id>();
+        for (Sales_Area__c sa : salesAreas) {
+            if (sa.Item_Master__c != null) {
+                matchingProductIds.add(sa.Item_Master__c);
+            }
+        }
+
+        return new List<Id>(matchingProductIds);
+    }
+
+    @AuraEnabled
+    public static String getRecordTypeFromLead(String leadId) {
+        if (String.isBlank(leadId)) return null;
+            Lead ld = [SELECT RecordType.Name FROM Lead WHERE Id = :leadId LIMIT 1];
+            if (ld != null && ld.RecordType != null && !String.isBlank(ld.RecordType.Name)) {
+                return ld.RecordType.Name;
+            }
+            return null;
+    }
+
+    @AuraEnabled
+    public static String getRecordTypeFromCustomerAccount(String accountId) {
+        if (String.isBlank(accountId)) return null;
+        Account acc = [SELECT Rossari_Company__r.Name FROM Account WHERE Id = :accountId LIMIT 1];
+
+        String companyName = null;
+        if (acc != null && acc.Rossari_Company__r != null) {
+            companyName = acc.Rossari_Company__r.Name;
+        }
+
+        if (!String.isBlank(companyName)) {
+            if (companyName == 'Rossari Biotech Limited') return 'RBL';
+            if (companyName == 'Tristar Intermediates Private Limited' || companyName == 'Unitop Chemicals Private Limited') return 'Unitop/Tristar';
+        }
+
+        return null;
+    }
+
+    @AuraEnabled
+    public static String getRecordTypeFromOpportunity(String opportunityId) {
+        if (String.isBlank(opportunityId)) return null;
+        Opportunity opp = [SELECT Account.Rossari_Company__r.Name FROM Opportunity WHERE Id = :opportunityId LIMIT 1];
+
+        String companyName = null;
+        if (opp != null && opp.Account != null && opp.Account.Rossari_Company__r != null) {
+            companyName = opp.Account.Rossari_Company__r.Name;
+        }
+
+        if (!String.isBlank(companyName)) {
+            if (companyName == 'Rossari Biotech Limited') return 'RBL';
+            if (companyName == 'Tristar Intermediates Private Limited' || companyName == 'Unitop Chemicals Private Limited') return 'Unitop/Tristar';
+        }
+
+        return null;
+    }
+
+    @AuraEnabled
+    public static String getRecordTypeFromQuote(String quoteId) {
+        if (String.isBlank(quoteId)) return null;
+        Quote opp = [SELECT Account.Rossari_Company__r.Name FROM Quote WHERE Id = :quoteId LIMIT 1];
+
+        String companyName = null;
+        if (opp != null && opp.Account != null && opp.Account.Rossari_Company__r != null) {
+            companyName = opp.Account.Rossari_Company__r.Name;
+        }
+
+        if (!String.isBlank(companyName)) {
+            if (companyName == 'Rossari Biotech Limited') return 'RBL';
+            if (companyName == 'Tristar Intermediates Private Limited' || companyName == 'Unitop Chemicals Private Limited') return 'Unitop/Tristar';
+        }
+
+        return null;
+    }
+
+    @AuraEnabled
+    public static String getRecordType(String sampleRequestId) {
+        if (String.isBlank(sampleRequestId)) return null;
+        try {
+            Sample_Request__c sr = [
+                SELECT Id,
+                       Lead__c, Lead__r.RecordType.Name,
+                       Customer_Name__c, Customer_Name__r.Rossari_Company__r.Name,
+                       Opportunity__c, Opportunity__r.Account.Rossari_Company__r.Name
+                FROM Sample_Request__c
+                WHERE Id = :sampleRequestId
+                LIMIT 1
+            ];
+
+            // 1) If Lead present and its RecordType.Name is available, return it
+            if (sr.Lead__c != null && sr.Lead__r != null && sr.Lead__r.RecordType != null &&
+                !String.isBlank(sr.Lead__r.RecordType.Name)) {
+                return sr.Lead__r.RecordType.Name;
+            }
+
+            // 2) If Customer_Name__r present, check its Rossari company name
+            String companyName = null;
+            if (sr.Customer_Name__c != null && sr.Customer_Name__r != null &&
+                sr.Customer_Name__r.Rossari_Company__r != null) {
+                companyName = sr.Customer_Name__r.Rossari_Company__r.Name;
+            }
+
+            // 3) If no customer, try Opportunity -> Account -> Rossari_Company__r
+            if (companyName == null && sr.Opportunity__c != null && sr.Opportunity__r != null &&
+                sr.Opportunity__r.Account != null && sr.Opportunity__r.Account.Rossari_Company__r != null) {
+                companyName = sr.Opportunity__r.Account.Rossari_Company__r.Name;
+            }
+
+            if (!String.isBlank(companyName)) {
+                if (companyName == 'Rossari Biotech Limited') return 'RBL';
+                if (companyName == 'Tristar Intermediates Private Limited' ||
+                    companyName == 'Unitop Chemicals Private Limited') return 'Unitop/Tristar';
+            }
+
+            // Fallback: no matching information found
+            return null;
+        } catch (Exception e) {
+            throw new AuraHandledException(e.getMessage());
+        }
+    }
 
 
     public class OpportunityHeaderWrapper {

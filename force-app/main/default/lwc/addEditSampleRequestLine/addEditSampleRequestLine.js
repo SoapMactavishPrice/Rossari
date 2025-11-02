@@ -6,16 +6,27 @@ import saveLineItems from '@salesforce/apex/SampleRequestController.saveLineItem
 import { NavigationMixin } from 'lightning/navigation';
 import getStatusPicklistValues from '@salesforce/apex/SampleRequestController.getStatusPicklistValues';
 import deleteLineItem from '@salesforce/apex/SampleRequestController.deleteLineItem';
+import getRecordType from '@salesforce/apex/Utility.getRecordType';
 
 export default class SampleRequestLineItems extends NavigationMixin(LightningElement) {
     @api recordId;
     @track lineItems = [];
+    @track leadRecordType;
     // @track plantOptions = []; // Plant - removed
     @track statusOptions = []; // Added missing statusOptions declaration
     @track isLoading = false;
 
     connectedCallback() {
         this.loadData();
+        this.getRecordTypes();
+    }
+
+    getRecordTypes() {
+        getRecordType({sampleRequestId: this.recordId}).then(result => {
+            this.leadRecordType = result;
+        }).catch(error => {
+            this.showError('Error fetching record type', error.body ? error.body.message : error.message);
+        });
     }
 
     loadData() {

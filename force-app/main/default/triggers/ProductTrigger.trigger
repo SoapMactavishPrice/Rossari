@@ -61,7 +61,7 @@ trigger ProductTrigger on Product2 (before insert, before update, after insert, 
                     entriesToInsert.add(new PricebookEntry(
                         Pricebook2Id = standardPB.Id,
                     Product2Id = prod.Id,
-                    UnitPrice = 1, // Customize this value as needed
+                    UnitPrice = 0, // Customize this value as needed
                     UseStandardPrice = false,
                     CurrencyIsoCode = curr.IsoCode,
                     IsActive = true
