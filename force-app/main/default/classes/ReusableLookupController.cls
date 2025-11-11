@@ -17,8 +17,12 @@ public with sharing class ReusableLookupController {
             Boolean isProduct = inputWrapper.objectApiName == 'Product2';
             String fieldsToQuery;
 
+            List<String> productIds = new List<String>();
+
             // List<String> productIds = Utility.getUserDivisionProductList(UserInfo.getUserId());
-            List<String> productIds = Utility.getUserAllowedProductIds(inputWrapper.leadRecordType);
+            if (inputWrapper.leadRecordType != null) {
+                productIds = Utility.getUserAllowedProductIds(inputWrapper.leadRecordType);
+            }
             
             // Step 1: Compose the SELECT clause
             if (isPricebookEntry) {
@@ -46,7 +50,7 @@ public with sharing class ReusableLookupController {
             
             String filterCriteria = '';
             // Step 2: Build WHERE filter
-            if (isProduct && String.isBlank(inputWrapper.selectedRecordId)) {
+            if (isProduct && String.isBlank(inputWrapper.selectedRecordId) && String.isNotBlank(inputWrapper.leadRecordType)) {
                 filterCriteria = 'Id IN :productIds';
             }
             

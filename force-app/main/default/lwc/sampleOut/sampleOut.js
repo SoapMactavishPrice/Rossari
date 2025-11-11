@@ -6,6 +6,7 @@ import saveSampleOut from '@salesforce/apex/SampleOutController.saveSampleOut';
 import getAddressDataByPin from '@salesforce/apex/SampleOutController.getAddressDataByPin';
 import getPicklistValues from '@salesforce/apex/SampleOutController.getPicklistValues';
 import getCurrencyFromRequest from '@salesforce/apex/SampleOutController.getCurrencyFromRequest';
+import getRecordType from '@salesforce/apex/Utility.getRecordType';
 import { CurrentPageReference } from 'lightning/navigation';
 
 export default class SampleOutForm extends NavigationMixin(LightningElement) {
@@ -19,6 +20,7 @@ export default class SampleOutForm extends NavigationMixin(LightningElement) {
         SampleReceivedByEndPerson: ''
     };
     @track sampleOutLines = [];
+    @track leadRecordType;
     @track plants = [];
     @track isLoading = false;
     @track showSpinner = false;
@@ -52,10 +54,19 @@ export default class SampleOutForm extends NavigationMixin(LightningElement) {
             this.loadData();
             this.loadPicklistValues();
             this.fetchCurrencyFromRequest();
+            this.getRecordTypes();
         } else {
             console.error('No recordId provided');
             this.showError('Error', 'No Sample Request specified');
         }
+    }
+
+    getRecordTypes() {
+        getRecordType({sampleRequestId: this.recordId}).then(result => {
+            this.leadRecordType = result;
+        }).catch(error => {
+            this.showError('Error fetching record type', error.body ? error.body.message : error.message);
+        });
     }
 
     fetchCurrencyFromRequest() {
