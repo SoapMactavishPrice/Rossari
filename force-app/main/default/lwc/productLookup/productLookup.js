@@ -1,9 +1,8 @@
 import { LightningElement, api } from 'lwc';
 import fetchRecords from '@salesforce/apex/ReusableLookupController.fetchRecords';
-/** The delay used when debouncing event handlers before invoking Apex. */
 const DELAY = 500;
 
-export default class ReusableLookup extends LightningElement {
+export default class ProductLookup extends LightningElement {
     @api helpText = "custom search lookup";
     @api label = "Parent Account";
     @api required;
@@ -20,7 +19,6 @@ export default class ReusableLookup extends LightningElement {
     @api selectedRecordId = "";
     @api parentRecordId;
     @api parentFieldApiName;
-    @api leadRecordType;
 
 
 
@@ -28,7 +26,6 @@ export default class ReusableLookup extends LightningElement {
     preventClosingOfSerachPanel = false;
 
     get methodInput() {
-        console.log('leadRecordType in reusable lookup==>', this.leadRecordType);
         return {
             objectApiName: this.objectApiName,
             fieldApiName: this.fieldApiName,
@@ -36,8 +33,7 @@ export default class ReusableLookup extends LightningElement {
             searchString: this.searchString,
             selectedRecordId: this.selectedRecordId,
             parentRecordId: this.parentRecordId,
-            parentFieldApiName: this.parentFieldApiName,
-            leadRecordType: this.leadRecordType
+            parentFieldApiName: this.parentFieldApiName
         };
     }
 

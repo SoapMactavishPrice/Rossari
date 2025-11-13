@@ -36,7 +36,7 @@ public class addProductIntrestedTest {
             IsActive = true
         );
         try{
-        update standardPricebook;
+            update standardPricebook;
         }Catch(Exception e){}
         
         Base_UoM_Master__c baseUom = new Base_UoM_Master__c(Name = 'Kilogram');
@@ -91,6 +91,7 @@ public class addProductIntrestedTest {
         Test.startTest();
         Map<String, Object> result = addProductIntrested.getProdInterest(testLead.Id);
         Test.stopTest();
+
     }
     
     @isTest
@@ -100,6 +101,7 @@ public class addProductIntrestedTest {
         Test.startTest();
         String msg = addProductIntrested.deleteProductInterested(pi.Id);
         Test.stopTest();
+
     }
     
     @isTest
@@ -109,6 +111,7 @@ public class addProductIntrestedTest {
         Test.startTest();
         List<Id> existingProducts = addProductIntrested.getExistingProducts(testLead.Id);
         Test.stopTest();
+
     }
     
     @isTest
@@ -116,6 +119,7 @@ public class addProductIntrestedTest {
         Test.startTest();
         Map<String, List<Map<String, String>>> picklists = addProductIntrested.getPicklistValues();
         Test.stopTest();
+
     }
     
     @isTest
@@ -140,10 +144,12 @@ public class addProductIntrestedTest {
                 });
         
         String jsonInput = JSON.serialize(inputList);
+        String divisionId = null; // Add divisionId parameter
         
         Test.startTest();
-        Map<String, String> result = addProductIntrested.saveProductInterested(testLead.Id, jsonInput);
+        Map<String, String> result = addProductIntrested.saveProductInterested(testLead.Id, jsonInput, divisionId);
         Test.stopTest();
+
     }
     
     @isTest
@@ -168,9 +174,55 @@ public class addProductIntrestedTest {
                 });
         
         String jsonInput = JSON.serialize(inputList);
+        String divisionId = null; // Add divisionId parameter
         
         Test.startTest();
-        Map<String, String> result = addProductIntrested.saveProductInterested(testLead.Id, jsonInput);
+        Map<String, String> result = addProductIntrested.saveProductInterested(testLead.Id, jsonInput, divisionId);
         Test.stopTest();
+
+    }
+    
+    @isTest
+    static void testSaveProductInterestedWithDivisionId() {
+        Lead testLead = [SELECT Id FROM Lead LIMIT 1];
+        Product2 prod = [SELECT Id, Family FROM Product2 LIMIT 1];
+        PricebookEntry pbe = [SELECT Id, UnitPrice FROM PricebookEntry WHERE Product2Id = :prod.Id LIMIT 1];
+        
+        List<Map<String, Object>> inputList = new List<Map<String, Object>>();
+        inputList.add(new Map<String, Object>{
+            'inId' => null,
+                'prodId' => prod.Id,
+                'volume' => 30.0,
+                'price' => 90.0,
+                'pbeId' => pbe.Id,
+                'unitPrice' => pbe.UnitPrice,
+                'prodFamily' => prod.Family,
+                'Add_In_Opty' => true,
+                'New_Product_Name' => 'Product with Division',
+                'New_Product' => false,
+                'frequency' => 'Weekly'
+                });
+        
+        String jsonInput = JSON.serialize(inputList);
+        String divisionId = 'testDivisionId123'; // Test with division ID
+        
+        Test.startTest();
+        Map<String, String> result = addProductIntrested.saveProductInterested(testLead.Id, jsonInput, divisionId);
+        Test.stopTest();
+
+        
+        // Verify that lead division was updated
+        Lead updatedLead = [SELECT Id, Division__c FROM Lead WHERE Id = :testLead.Id];
+
+    }
+    
+    @isTest
+    static void testGetDivisionRecords() {
+        Lead testLead = [SELECT Id FROM Lead LIMIT 1];
+        
+        Test.startTest();
+        List<Division__c> divisions = addProductIntrested.getDivisionRecords(testLead.Id);
+        Test.stopTest();
+
     }
 }

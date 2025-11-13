@@ -155,48 +155,122 @@
                         </lightning-combobox>
                     </lightning-layout-item>
 
+                    <!-- File Upload Section -->
+                    <lightning-layout-item size="12" large-device-size="10.3" small-device-size="10.3"
+                        class="slds-m-around_small">
+                        <div class="slds-grid slds-gutters">
+                            <div class="slds-col slds-size_4-of-12">
+                                <lightning-file-upload
+                                    label="Upload Files"
+                                    name="fileUploader"
+                                    accept="image/*, .pdf, .doc, .docx, .xls, .xlsx, .png, .jpg, .jpeg"
+                                    multiple
+                                    onuploadfinished={handleUploadFinished}>
+                                </lightning-file-upload>
+                            </div>
+                            <div class="slds-col slds-size_2-of-12 slds-align-middle">
+                                <lightning-button-icon
+                                    icon-name="utility:preview"
+                                    alternative-text="View Files"
+                                    title="View Uploaded Files"
+                                    onclick={openFilePreviewModal}
+                                    class="slds-m-left_small"
+                                    disabled={hasNoFiles}>
+                                </lightning-button-icon>
+                            </div>
+                            <div class="slds-col slds-size_6-of-12"></div>
+                        </div>
+                    </lightning-layout-item>
+
+                    <!-- File Preview Modal -->
+                    <template if:true={isFilePreviewModalOpen}>
+                        <section role="dialog" tabindex="-1" class="slds-modal slds-fade-in-open">
+                            <div class="slds-modal__container">
+                                <header class="slds-modal__header">
+                                    <h2 class="slds-text-heading_medium">Uploaded Files</h2>
+                                    <button
+                                        class="slds-button slds-button_icon slds-modal__close slds-button_icon-inverse"
+                                        title="Close" onclick={closeFilePreviewModal}>
+                                        <lightning-icon icon-name="utility:close" alternative-text="close"
+                                            size="small"></lightning-icon>
+                                    </button>
+                                </header>
+                                <div class="slds-modal__content slds-p-around_medium">
+                                    <template if:true={uploadedFiles}>
+                                        <template for:each={uploadedFiles} for:item="file">
+                                            <div key={file.documentId} class="slds-grid slds-gutters slds-m-bottom_small">
+                                                <div class="slds-col slds-size_10-of-12">
+                                                    <lightning-icon icon-name="doctype:attachment" size="small"></lightning-icon>
+                                                    <span class="slds-m-left_small">{file.name}</span>
+                                                </div>
+                                                <div class="slds-col slds-size_2-of-12 slds-text-align_right">
+                                                    <lightning-button-icon
+                                                        icon-name="utility:preview"
+                                                        alternative-text="Preview"
+                                                        title="Preview File"
+                                                        data-file-id={file.documentId}
+                                                        onclick={handleFilePreview}>
+                                                    </lightning-button-icon>
+                                                </div>
+                                            </div>
+                                        </template>
+                                    </template>
+                                    <template if:false={uploadedFiles}>
+                                        <p class="slds-text-align_center">No files uploaded</p>
+                                    </template>
+                                </div>
+                                <footer class="slds-modal__footer">
+                                    <lightning-button variant="neutral" label="Close" onclick={closeFilePreviewModal}></lightning-button>
+                                </footer>
+                            </div>
+                        </section>
+                        <div class="slds-backdrop slds-backdrop_open"></div>
+                    </template>
+
 
                     <!-- Customer Visit Fields -->
                     <template if:true={isCustomerVisit}>
 
                         <lightning-layout-item size="12" large-device-size="2" small-device-size="2"
-                        class="slds-m-around_small">Customer Type <abbr class="slds-required" title="required">*</abbr>
+                            class="slds-m-around_small">Customer Type <abbr class="slds-required"
+                                title="required">*</abbr>
                             <lightning-record-edit-form object-api-name="Visit_Report__c">
                                 <lightning-input-field field-name="Customer_Type__c" variant="label-hidden"
-                                    data-label="Customer_Type" onchange={handleCustomerTypeChange}></lightning-input-field>
+                                    data-label="Customer_Type"
+                                    onchange={handleCustomerTypeChange}></lightning-input-field>
                             </lightning-record-edit-form>
                         </lightning-layout-item>
 
                         <!-- Existing Customer Fields - Show when Customer Type is 'Existing' -->
                         <template if:true={showExistingCustomerFields}>
 
-                        <lightning-layout-item size="12" large-device-size="3" small-device-size="3"
-                            class="slds-m-around_small">
-                            <br />
-                            <c-custom-account-lookup placeholder="Search by Customer..." data-label="Customer_Name"
-                                record-id={dataMap.Customer_Name} record-name={dataMap.Customer_Name_Display}
-                                onrecordselected={handleAccountSelectedForBillTo} style="margin-top: -6px;">
-                            </c-custom-account-lookup>
+                            <lightning-layout-item size="12" large-device-size="3" small-device-size="3"
+                                class="slds-m-around_small">
+                                <br />
+                                <c-custom-account-lookup placeholder="Search by Customer..." data-label="Customer_Name"
+                                    record-id={dataMap.Customer_Name} record-name={dataMap.Customer_Name_Display}
+                                    onrecordselected={handleAccountSelectedForBillTo} style="margin-top: -6px;">
+                                </c-custom-account-lookup>
 
-                        </lightning-layout-item>
+                            </lightning-layout-item>
 
-                        <lightning-layout-item size="12" large-device-size="2" small-device-size="2"
-                            class="slds-m-around_small">
-                            <br />
-                            <lightning-input type="text" label="Customer Code" value={sapCustomerCode}
-                                style="margin-top: -19px;" disabled>
-                            </lightning-input>
-                        </lightning-layout-item>
+                            <lightning-layout-item size="12" large-device-size="2" small-device-size="2"
+                                class="slds-m-around_small">
+                                <br />
+                                <lightning-input type="text" label="Customer Code" value={sapCustomerCode}
+                                    style="margin-top: -19px;" disabled>
+                                </lightning-input>
+                            </lightning-layout-item>
 
 
-                        <lightning-layout-item size="12" large-device-size="3" small-device-size="3"
-                            class="slds-m-around_small">
-                            <br />
-                            <lightning-input type="text" label="Primary/ Secondary Tag" value={recordTypeName}
-                                style="margin-top: -19px;" disabled>
-                            </lightning-input>
-                        </lightning-layout-item>
-                    </template>
+                            <lightning-layout-item size="12" large-device-size="3" small-device-size="3"
+                                class="slds-m-around_small">
+                                <br />
+                                <lightning-input type="text" label="Primary/ Secondary Tag" value={recordTypeName}
+                                    style="margin-top: -19px;" disabled>
+                                </lightning-input>
+                            </lightning-layout-item>
+                        </template>
 
                         <!-- New Customer Field - Show when Customer Type is 'New' -->
                         <template if:true={showNewCustomerField}>
@@ -414,11 +488,17 @@
                                     <lightning-layout-item size="12" large-device-size="4" small-device-size="10"
                                         class="slds-m-around_xx-small">
                                         Product
-                                        <c-reusable-lookup label="Parent Account" selected-icon-name="standard:account"
-                                            object-label="" object-api-name="Product2" field-api-name="Name"
-                                            data-index={item.index} data-label="prodId" onvalueselected={lookUpAccount}>
+                                        <!-- <c-reusable-lookup label="Product" selected-icon-name="standard:product"
+                                            object-label="Product" object-api-name="Product2" field-api-name="Name"
+                                            lead-record-type="Default" data-index={item.index} data-label="prodId"
+                                            onvalueselected={lookUpAccount}>
+                                        </c-reusable-lookup> -->
+                                        <c-product-lookup label="Product" selected-icon-name="standard:product"
+                                            object-label="Product" object-api-name="Product2" field-api-name="Name"
+                                            lead-record-type="Default" data-index={item.index} data-label="prodId"
+                                            onvalueselected={lookUpAccount}>
+                                        </c-product-lookup>
 
-                                        </c-reusable-lookup>
                                     </lightning-layout-item>
                                     <lightning-layout-item size="12" large-device-size="2" small-device-size="10"
                                         class="slds-m-around_xx-small">

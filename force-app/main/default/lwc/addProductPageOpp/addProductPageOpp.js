@@ -5,6 +5,9 @@ import getproductfamily from '@salesforce/apex/AddProductPageOpp.getproductfamil
 import getCustomerSalesArea from '@salesforce/apex/AddProductPageOpp.getCustomerSalesArea';
 import getDistributionChannel from '@salesforce/apex/AddProductPageOpp.getDistributionChannel';
 import getDivision from '@salesforce/apex/AddProductPageOpp.getDivision';
+import getDetail from '@salesforce/apex/AddProductPageOpp.getDetail';
+import getProductPackSize from '@salesforce/apex/AddProductPageOpp.getProductPackSize';
+import saveOppDetail from '@salesforce/apex/AddProductPageOpp.saveOppDetail';
 import { ShowToastEvent } from 'lightning/platformShowToastEvent';
 import { RefreshEvent } from 'lightning/refresh';
 const DELAY = 300;
@@ -16,7 +19,7 @@ const COLS = [
     { label: 'Product Category', fieldName: 'Family', type: 'text' },
     // { label: 'Pack Size', fieldName: 'PackSize', type: 'text' },
     { label: 'List Price', fieldName: 'Price', type: 'currency', cellAttributes: { alignment: 'left' } },
-    { label: 'Product Description', fieldName: 'Description', type: 'text' }
+    // { label: 'Product Description', fieldName: 'Description', type: 'text' }
 
 ];
 
@@ -81,8 +84,10 @@ export default class AddProductPage extends NavigationMixin(LightningElement) {
     @track selectedSalesArea = '';
     @track distributionChannel = [];
     @track selectedDistributionChannel = '';
-    @track selectedDivision = [];
-    @track division = '';
+    @track selectedDivision = '';
+    @track division = [];
+
+    @track isSalesAreaDropdownVisible = false;
 
     connectedCallback() {
         //this.measureLoadTime();
@@ -103,11 +108,39 @@ export default class AddProductPage extends NavigationMixin(LightningElement) {
 
         // this.getproductfamily();
 
-        this.getCustomerSalesArea();
+        this.getOpportunityDetails();
 
         // this.openModal();
+        // this.handlerFetchProductList();
+    }
+
+    getOpportunityDetails() {
+        getDetail({
+            recordId: this.recId
+        }).then(result => {
+            let data = JSON.parse(result);
+            console.log('getOpportunityDetails = ', data);
+            this.isSalesAreaDropdownVisible = !data.flag;
+            if (data.flag) {
+                this.selectedSalesArea = data.salesOrg;
+                this.selectedDistributionChannel = data.distributionChannel;
+                this.selectedDivision = data.division;
+                this.handlerFetchProductList();
+            } else {
+                this.getCustomerSalesArea();
+            }
+        });
+    }
+
+    handlerFetchProductList() {
         this.showSpinner = true;
-        findProducts({ recordId: this.recId, productFamily: [] }).then(result => {
+        findProducts({
+            recordId: this.recId,
+            productFamily: [],
+            salesOrg: this.selectedSalesArea,
+            distributionChannel: this.selectedDistributionChannel,
+            division: this.selectedDivision
+        }).then(result => {
             // console.log('connectedCallback = ', result);
             let dataObj = JSON.parse(result);
             // console.log(result);
@@ -193,6 +226,7 @@ export default class AddProductPage extends NavigationMixin(LightningElement) {
     handleDivisionChange(event) {
         this.selectedDivision = event.detail.value;
         // Add any additional logic when division changes
+        this.handlerFetchProductList();
     }
 
     getproductfamily() {
@@ -468,6 +502,7 @@ export default class AddProductPage extends NavigationMixin(LightningElement) {
         this.isFirstPage = false;
         this.isSecondPage = true;
         this.SelectedProductData = [];
+        let selectedProductIds = []
         for (let i = 0; i < this.selectedProductCode.length; i++) {
             //this.selectedProductCode[i].index = i;
             for (let j = 0; j < this.AllProductData.length; j++) {
@@ -475,28 +510,52 @@ export default class AddProductPage extends NavigationMixin(LightningElement) {
                     this.SelectedProductData.push(this.AllProductData[j]);
                 }
             }
-
         }
+
+        // this.handlerPackSize(selectedProductIds);
 
         // //setTimeout(() => {
         //     console.log(this.selectedProductCode.length + '  --- ' + this.SelectedProductData.length);
-        //     if (this.SelectedProductData.length > 0) {
+        // if (this.SelectedProductData.length > 0) {
 
-        //         for (let j = 0; j < this.SelectedProductData.length; j++) {
-        //             this.SelectedProductData[j].hindex = j;
-        //             this.SelectedProductData[j].index = j;
-        //         }
+        //     for (let j = 0; j < this.SelectedProductData.length; j++) {
+        //         // selectedProductIds.push(this.SelectedProductData[j].Product2Id);
+        //         console.log('SelectedProductData[j].Product2Id = ', this.SelectedProductData[j].Product2Id);
 
         //     }
-        //console.log('selectedProductCode = ', JSON.stringify(this.selectedProductCode));
+
+        // }
+        // console.log('selectedProductIds = ', selectedProductIds);
         this.SelectedProductData = [...new Set(this.SelectedProductData)];
+        this.SelectedProductData.forEach(element => {
+            if (element.Product2Id != undefined) {
+                selectedProductIds.push(element.Product2Id);
+            }
+        });
+        console.log('SelectedProductData + selectedProductIds = ', this.SelectedProductData.length + '  --- ' + selectedProductIds);
+        
+        this.handlerPackSize(selectedProductIds);
+        
         clearTimeout(this.timeoutId); // no-op if invalid id
         this.timeoutId = setTimeout(this.updateIndex.bind(this), 1000);
         //}, 600);
 
+    }
 
+    handlerPackSize(pIds) {
+
+        getProductPackSize({
+            pCodeList: JSON.stringify(pIds),
+            SalesOrg: this.selectedSalesArea,
+            DistChan: this.selectedDistributionChannel
+        }).then(result => {
+            console.log('result = ', result);
+        }).catch(error => {
+            console.log('error = ', error);
+        });
 
     }
+
 
     updateIndex() {
 
@@ -579,15 +638,12 @@ export default class AddProductPage extends NavigationMixin(LightningElement) {
             saveProducts({ recordData: str, recId: this.recId }).then(result => {
                 if (result == 'success') {
                     this.selectedRecord = [];
-
-
-                    this.dispatchEvent(new ShowToastEvent({
-                        title: 'Success',
-                        message: 'Product Added Successfully',
-                        variant: 'success',
-                    }));
-                    this.dispatchEvent(new RefreshEvent());
-                    this.goBackToRecord();
+                    // this.dispatchEvent(new ShowToastEvent({
+                    //     title: 'Success',
+                    //     message: 'Product Added Successfully',
+                    //     variant: 'success',
+                    // }));
+                    this.handlerOppDetailSave();
                 } else {
                     this.dispatchEvent(
                         new ShowToastEvent({
@@ -597,22 +653,17 @@ export default class AddProductPage extends NavigationMixin(LightningElement) {
                         }),
                     );
                 }
-
-
-
-
-            })
-                .catch(error => {
-                    this.dispatchEvent(
-                        new ShowToastEvent({
-                            title: 'Error Product Adding',
-                            message: error.body.message,
-                            variant: 'error',
-                        }),
-                    );
-                    this.updateRecordView();
-                    //this.closeModal();
-                });
+            }).catch(error => {
+                this.dispatchEvent(
+                    new ShowToastEvent({
+                        title: 'Error Product Adding',
+                        message: error.body.message,
+                        variant: 'error',
+                    }),
+                );
+                this.updateRecordView();
+                //this.closeModal();
+            });
         } else {
             this.dispatchEvent(new ShowToastEvent({
                 title: 'Error',
@@ -996,6 +1047,40 @@ export default class AddProductPage extends NavigationMixin(LightningElement) {
 
     }
 
+    handlerOppDetailSave() {
+        saveOppDetail({
+            recordId: this.recId,
+            salesOrg: this.selectedSalesArea,
+            distributionChannel: this.selectedDistributionChannel,
+            division: this.selectedDivision
+        }).then(result => {
+            //console.log('result', result);
+            if (result == 'success') {
+                this.dispatchEvent(new ShowToastEvent({
+                    title: 'Success',
+                    message: 'Product Added Successfully',
+                    variant: 'success',
+                }));
+            } else {
+                this.dispatchEvent(new ShowToastEvent({
+                    title: 'Success',
+                    message: 'Product Added ' + result,
+                    variant: 'success',
+                }));
+            }
+            this.dispatchEvent(new RefreshEvent());
+            this.goBackToRecord();
+        }).catch(error => {
+            this.dispatchEvent(
+                new ShowToastEvent({
+                    title: 'Error Opp Detail Saving',
+                    message: error.body.message,
+                    variant: 'error',
+                }),
+            );
+            //this.closeModal();
+        });
+    }
 
 
 }

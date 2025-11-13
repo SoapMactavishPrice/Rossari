@@ -227,11 +227,11 @@ export default class AddCompanyUser extends NavigationMixin(LightningElement) {
                 hasMissingFields = true;
                 isValid = false;
             }
-            if (row.Division__c && !row.Product_Group__c) {
-                errorMessages.add('Please select Product Group for all rows');
-                hasMissingFields = true;
-                isValid = false;
-            }
+            // if (row.Division__c && !row.Product_Group__c) {
+            //     errorMessages.add('Please select Product Group for all rows');
+            //     hasMissingFields = true;
+            //     isValid = false;
+            // }
         });
 
         if (hasMissingFields) {

@@ -1,6 +1,7 @@
 import { LightningElement, wire, track } from 'lwc';
 import findProducts from '@salesforce/apex/AddProductPageQuote.findProduct';
 import saveProducts from '@salesforce/apex/AddProductPageQuote.saveProducts';
+import getQuotationDetails from '@salesforce/apex/AddProductPageQuote.getQuotationDetails';
 import getproductfamily from '@salesforce/apex/AddProductPageQuote.getproductfamily';
 import { ShowToastEvent } from 'lightning/platformShowToastEvent';
 import { RefreshEvent } from 'lightning/refresh';
@@ -92,10 +93,34 @@ export default class AddProductPage extends NavigationMixin(LightningElement) {
         console.log('connected call back called');
 
         // this.getproductfamily();
-
+        this.handleQuotationDetails();
         // this.openModal();
+
+    }
+
+    handleQuotationDetails() {
+        getQuotationDetails({
+            recordId: this.recId
+        }).then(result => {
+            let data = JSON.parse(result);
+            console.log('getQuotationDetails = ', data);
+            this.selectedSalesArea = data.salesOrg;
+            this.selectedDistributionChannel = data.distributionChannel;
+            this.selectedDivision = data.division;
+            this.handlerFetchProductList();
+        });
+    }
+
+    handlerFetchProductList() {
+
         this.showSpinner = true;
-        findProducts({ recordId: this.recId, productFamily: [] }).then(result => {
+        findProducts({
+            recordId: this.recId,
+            productFamily: [],
+            salesOrg: this.selectedSalesArea,
+            distributionChannel: this.selectedDistributionChannel,
+            division: this.selectedDivision
+        }).then(result => {
             // console.log('connectedCallback = ', result);
             let dataObj = JSON.parse(result);
             // console.log(result);
@@ -121,6 +146,7 @@ export default class AddProductPage extends NavigationMixin(LightningElement) {
 
             // this.PriceBook = dataObj.priceBook;
         });
+
     }
 
     getproductfamily() {

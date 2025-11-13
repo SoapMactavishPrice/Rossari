@@ -4,6 +4,7 @@ import getLineItem from '@salesforce/apex/CreateQuotation_ToSAP.getLineItem';
 import quoteValidation from '@salesforce/apex/CreateQuotation_ToSAP.quoteValidation';
 import createQuotation from '@salesforce/apex/CreateQuotation_ToSAP.createQuotation';
 import syncQuoteLineItems from '@salesforce/apex/CreateQuotation_ToSAP.syncQuoteLineItems';
+import getPartnerFunctions from '@salesforce/apex/CreateQuotation_ToSAP.getPartnerFunctions';
 import getInventoryData from '@salesforce/apex/GetInventory_FromSAP.fetchInventoryData';
 // import updateQuotation from '@salesforce/apex/CreateQuotation_ToSAP.updateQuotation';
 import { CloseActionScreenEvent } from 'lightning/actions';
@@ -19,8 +20,10 @@ export default class SendQuoteToSAP extends LightningElement {
     @track ResponseMessage = '';
     @track errorResponseMessage = '';
     @track syncDataResponseFlag = true;
-    @track partnerfunctionOptions = [];
-    @track partnerfunctionValue = '';
+    @track billtopartyOptions = [];
+    @track billtopartyValue = '';
+    @track shiptopartyOptions = [];
+    @track shiptopartyValue = '';
 
     // Inventory Modal Properties
     @track showInventoryModal = false;
@@ -74,6 +77,7 @@ export default class SendQuoteToSAP extends LightningElement {
             }
         }).catch((error) => {
             console.log('= erorr quoteValidation : ', error);
+            this.errorResponseMessage = error;
             this.showSpinner = false;
         });
     }
@@ -88,11 +92,74 @@ export default class SendQuoteToSAP extends LightningElement {
             this.orderLineItemList = data.quoteLineItemList;
             console.log('orderLineItemList ', this.orderLineItemList);
             this.showSpinner = false;
+            this.handlerGetPartnerFunctions();
         }).catch(error => {
             console.error('Error fetching line items:', error);
             this.showToast('Error', 'Failed to load line items', 'error');
             this.showSpinner = false;
         });
+    }
+
+    handlerGetPartnerFunctions() {
+        getPartnerFunctions({
+            qId: this.recordId
+        }).then(result => {
+            let data = JSON.parse(result);
+            console.log('getPartnerFunctions result ', data);
+
+            // Create temporary arrays to hold the new options
+            const newBillToPartyOptions = [];
+            const newShipToPartyOptions = [];
+
+            if (data && data.length > 0) {
+                data.forEach(ele => {
+                    const name = ele.Name || '';
+                    const id = ele.Id || '';
+                    const option = {
+                        label: name,
+                        value: id
+                    };
+
+                    if (name.includes('AG')) {
+                        newBillToPartyOptions.push(option);
+                    }
+                    if (name.includes('WE')) {
+                        newShipToPartyOptions.push(option);
+                    }
+                });
+
+                // Assign the new arrays to trigger reactivity
+                this.billtopartyOptions = [...newBillToPartyOptions];
+                this.shiptopartyOptions = [...newShipToPartyOptions];
+
+                console.log('billtopartyOptions: ', this.billtopartyOptions);
+                console.log('shiptopartyOptions: ', this.shiptopartyOptions);
+            }
+        }).catch(error => {
+            console.error('Error fetching partner functions:', error);
+            // Optionally show error to user
+            this.dispatchEvent(
+                new ShowToastEvent({
+                    title: 'Error',
+                    message: 'Error loading partner functions: ' + error.message,
+                    variant: 'error',
+                }),
+            );
+        });
+    }
+
+    handleInputChange(event) {
+        const fieldName = event.currentTarget.dataset.name;
+        const value = event.target.value;
+        if (fieldName == 'billtopartydata') {
+            this.billtopartyValue = value;
+        }
+        if (fieldName == 'shiptopartydata') {
+            this.shiptopartyValue = value;
+        }
+        console.log(this.billtopartyValue);
+        console.log(this.shiptopartyValue);
+        
     }
 
     // Handle View Inventory button click
@@ -142,32 +209,30 @@ export default class SendQuoteToSAP extends LightningElement {
         // Call the Apex method to get inventory data
         getInventoryData({
             materialNumber: material
-        })
-            .then(result => {
-                if (result && result.length > 0) {
-                    this.inventoryData = result.map(item => ({
-                        ...item,
-                        // Format dates if needed
-                        formattedManufactureDate: item.dateOfManufacture ?
-                            new Date(item.dateOfManufacture).toLocaleDateString() : 'N/A',
-                        formattedExpiryDate: item.shelfLifeExpirationDate ?
-                            new Date(item.shelfLifeExpirationDate).toLocaleDateString() : 'N/A'
-                    }));
+        }).then(result => {
+            if (result && result.length > 0) {
+                this.inventoryData = result.map(item => ({
+                    ...item,
+                    // Format dates if needed
+                    formattedManufactureDate: item.dateOfManufacture ?
+                        new Date(item.dateOfManufacture).toLocaleDateString() : 'N/A',
+                    formattedExpiryDate: item.shelfLifeExpirationDate ?
+                        new Date(item.shelfLifeExpirationDate).toLocaleDateString() : 'N/A'
+                }));
 
-                    // Calculate totals
-                    // this.calculateTotals();
-                } else {
-                    this.inventoryData = [];
-                    this.totalStock = 0;
-                    this.totalValue = 0;
-                }
-                this.isLoading = false;
-            })
-            .catch(error => {
-                console.error('Error loading inventory data:', error);
-                this.showToast('Error', 'Failed to load inventory data', 'error');
-                this.isLoading = false;
-            });
+                // Calculate totals
+                // this.calculateTotals();
+            } else {
+                this.inventoryData = [];
+                this.totalStock = 0;
+                this.totalValue = 0;
+            }
+            this.isLoading = false;
+        }).catch(error => {
+            console.error('Error loading inventory data:', error);
+            this.showToast('Error', 'Failed to load inventory data', 'error');
+            this.isLoading = false;
+        });
     }
 
     // Close the inventory modal
@@ -215,9 +280,12 @@ export default class SendQuoteToSAP extends LightningElement {
                 }
                 field.reportValidity();
             });
-            // if (this.partnerfunctionValue == '') {
-            //     validationFlag = true;
-            // }
+            if (this.billtopartyValue == '') {
+                validationFlag = true;
+            }
+            if (this.shiptopartyValue == '') {
+                validationFlag = true;
+            }
             if (validationFlag) {
                 console.log('validation flag trigger');
                 // Optionally show a toast message for validation errors
@@ -259,7 +327,9 @@ export default class SendQuoteToSAP extends LightningElement {
         this.syncDataResponseFlag = true;
         this.showSpinner = true;
         createQuotation({
-            quoteId: this.recordId
+            quoteId: this.recordId,
+            btp: this.billtopartyValue,
+            stp: this.shiptopartyValue
         }).then((result) => {
             console.log('createQuotation result ', result);
             let data = JSON.parse(result);

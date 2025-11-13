@@ -1,6 +1,6 @@
 <template>
     <lightning-card>
-        <h4 style="text-align: center; font-size: 24px; font-weight: bold; padding-bottom: 20px;">Sales Price Approval Dashboard</h4>
+        <h4 style="text-align: center; font-size: 24px; font-weight: bold; padding-bottom: 20px;">Discount Approval Dashboard</h4>
         <template if:true={quotes}>
             <template for:each={quotes} for:item="quote">
                 <div key={quote.quoteId} class="slds-box slds-m-bottom_medium">
@@ -13,24 +13,37 @@
                         </div>
                     </h3>
 
-                    <table class="slds-table slds-table_cell-buffer slds-table_bordered">
+                    <table class="slds-table slds-table_cell-buffer slds-table_bordered" style="table-layout: fixed; width: 100%;">
                         <thead>
                             <tr>
-                                <th scope="col" style="width: 20%">Product Name</th>
-                                <th scope="col" style="text-align: center;">Quantity</th>
-                                <th scope="col" style="text-align: center;">List Price</th>
-                                <th scope="col" style="text-align: center;">Sales Price</th>
-                                <th scope="col">Approval Status</th>
-                                <th scope="col">Approval Comments</th>
+                                <th scope="col" style="width: 200px;">Product Name</th>
+                                <th scope="col" style="width: 100px; text-align: center;">Quantity</th>
+                                <th scope="col" style="width: 100px; text-align: center;">List Price</th>
+                                <th scope="col" style="width: 100px; text-align: center;">Sales Price</th>
+                                <th scope="col" style="width: 100px; text-align: center;">Discount %</th>
+                                <th scope="col" style="width: 100px; text-align: center;">Approval Level</th>
+                                <th scope="col" style="width: 100px; text-align: center;">Approver</th>
+                                <th scope="col" style="width: 100px;">Approval Status</th>
+                                <th scope="col" style="width: 150px;">Approval Comments</th>
                             </tr>
                         </thead>
                         <tbody>
                             <template for:each={quote.quoteLineItems} for:item="item">
                                 <tr key={item.quoteLineItemId}>
-                                    <td>{item.productName}</td>
+                                    <td style="width: 15%" >{item.productName}</td>
                                     <td style="text-align: center;">{item.quantity}</td>
                                     <td style="text-align: center;">{item.listPrice}</td>
                                     <td style="text-align: center;">{item.salesPrice}</td>
+                                    <td style="text-align: center;">
+                                        <lightning-formatted-number value={item.discount} style-class="slds-text-align_center">
+                                        </lightning-formatted-number>%
+                                    </td>
+                                    <td style="text-align: center;">
+                                        <lightning-badge label={item.approvalLevel} 
+                                                         class={item.approvalLevelClass}>
+                                        </lightning-badge>
+                                    </td>
+                                    <td style="text-align: center;">{item.discountApproverName}</td>
                                     <td>
                                         <lightning-combobox
                                             name="ApprovalStatus"

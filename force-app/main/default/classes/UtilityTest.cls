@@ -107,6 +107,9 @@ private class UtilityTest {
         // Call getShipTo multiple ways
         Utility.getShipTo(acc.Id, 'Account');
         Utility.getShipTo(opp.Id, 'Opportunity');
+        
+        Utility.getRecordTypeFromOpportunity(opp.Id);
+        Utility.getRecordTypeFromQuote(qt.Id);
 
         // Exception branch for getShipTo
         try {
@@ -170,6 +173,9 @@ private class UtilityTest {
             Rossari_Company__c = company.Id
         );
         insert lead;
+        
+        Utility.getRecordTypeFromLead(lead.Id);
+        Utility.getRecordTypeFromCustomerAccount(customerAccount.Id);
 
         Sample_Request__c sampleRequest = new Sample_Request__c(
             Sample_Request_Date__c = Date.today(),
@@ -195,10 +201,19 @@ private class UtilityTest {
         Test.startTest();
         Utility.sendSampleRequestEmail(sampleRequest.Id);
         Utility.sendSampleRequestApprovalEmail(sampleRequest.Id);
+        Utility.getRecordType(sampleRequest.Id);
         Test.stopTest();
 
         // More coverage of utility ns() helper
         System.assertEquals('', Utility.ns(null));
         System.assertEquals('abc', Utility.ns('abc'));
     }
+    
+    @IsTest
+    static void testGetUserAllowedProductIds_RBL() {
+        Test.startTest();
+        List<Id> productIds = Utility.getUserAllowedProductIds('RBL');
+        Test.stopTest();
+    }
+    
 }

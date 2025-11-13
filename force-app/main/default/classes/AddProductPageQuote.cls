@@ -1,6 +1,27 @@
 public with sharing class AddProductPageQuote {
+
     @AuraEnabled
-    public static String findProduct(string recordId, List < String > productFamily) {
+    public static string getQuotationDetails(string recordId){
+        try {
+            Quote op = [
+                SELECT Id, Pricebook2Id, Pricebook2.Name, AccountId, CurrencyIsoCode,
+                OpportunityId, Opportunity.Sales_Organisations__c, Opportunity.Distribution_Channel__c,
+                Opportunity.Sales_Organisations__r.Name, Opportunity.Distribution_Channel__r.Distribution_Code__c,
+                Opportunity.Division__r.Name
+                FROM Quote WHERE Id =: recordId
+            ];
+            Map<String, Object> mapName = new Map<String, Object>();
+            mapName.put('salesOrg', op.Opportunity.Sales_Organisations__r.Name);
+            mapName.put('distributionChannel', op.Opportunity.Distribution_Channel__r.Distribution_Code__c);
+            mapName.put('division', op.Opportunity.Division__r.Name);
+            return JSON.serialize(mapName);
+        } catch (Exception e) {
+            throw new AuraHandledException(e.getMessage());
+        }
+    }
+
+    @AuraEnabled
+    public static String findProduct(string recordId, List < String > productFamily, string salesOrg, string distributionChannel, string division) {
 
         // Example multipicklist field on User: User.Division_Code__c 
         User currentUser = [
@@ -9,18 +30,32 @@ public with sharing class AddProductPageQuote {
             WHERE Id = :UserInfo.getUserId()
         ];
 
+        List<Sales_Area__c> salesAreaList = new List<Sales_Area__c>();
+        salesAreaList = [
+            SELECT Id, Name, Sales_Organisation__c, Distribution_Channel__c, Sales_Organisation__r.Name,
+            Distribution_Channel__r.Distribution_Code__c, Item_Master__c
+            FROM Sales_Area__c
+            WHERE Distribution_Channel__r.Distribution_Code__c = :distributionChannel
+            AND Sales_Organisation__r.Name = :salesOrg
+        ];
+
+        Set<String> salesAreaProductSet = new Set<String>();
+        for (Sales_Area__c salesArea : salesAreaList) {
+            salesAreaProductSet.add(salesArea.Item_Master__c);
+        }
+
         // Multipicklist values come as a semicolon-separated string, e.g. "East;West;North"
         Set<String> divSet = new Set<String>();
 
-        if (String.isNotBlank(currentUser.Division_Code__c)) {
-            divSet.addAll(currentUser.Division_Code__c.split(';'));
-        }
-        if (String.isNotBlank(currentUser.Division_Code_2__c)) {
-            divSet.addAll(currentUser.Division_Code_2__c.split(';'));
-        }
-        if (String.isNotBlank(currentUser.Division_Code_3__c)) {
-            divSet.addAll(currentUser.Division_Code_3__c.split(';'));
-        }
+        // if (String.isNotBlank(currentUser.Division_Code__c)) {
+        //     divSet.addAll(currentUser.Division_Code__c.split(';'));
+        // }
+        // if (String.isNotBlank(currentUser.Division_Code_2__c)) {
+        //     divSet.addAll(currentUser.Division_Code_2__c.split(';'));
+        // }
+        // if (String.isNotBlank(currentUser.Division_Code_3__c)) {
+        //     divSet.addAll(currentUser.Division_Code_3__c.split(';'));
+        // }
 
         // Debug to check values
         System.debug('Region Set => ' + divSet);
@@ -55,7 +90,7 @@ public with sharing class AddProductPageQuote {
             prodId.add(pd.Id);
         }
 
-        String query = 'SELECT Id,CurrencyIsoCode,UnitPrice,Product2Id,Product2.Name,Product2.Family,Product2.ProductCode,Product2.Description FROM PricebookEntry WHERE Pricebook2Id = \'' + op.Pricebook2Id + '\'  AND Product2.Division__r.Division_Code__c IN :divSet AND Product2Id IN :prodId AND CurrencyIsoCode =\''+op.currencyISOcode+'\'ORDER BY Product2.Name ASC';
+        String query = 'SELECT Id,CurrencyIsoCode,UnitPrice,Product2Id,Product2.Name,Product2.Family,Product2.ProductCode,Product2.Description FROM PricebookEntry WHERE Pricebook2Id = \'' + op.Pricebook2Id + '\'  AND Product2.Division__r.Division_Code__c = :division AND Product2Id IN :prodId AND CurrencyIsoCode =\''+op.currencyISOcode+'\'ORDER BY Product2.Name ASC';
         List < PricebookEntry > lstPBE = (List < PricebookEntry > ) Database.query(query);
         // return lstPBE;
 
@@ -73,24 +108,26 @@ public with sharing class AddProductPageQuote {
         List < ProductWrapper > lstProduct = new List < ProductWrapper > ();
         integer i = 0;
         for (PricebookEntry pbe: lstPBE) {
-            ProductWrapper pw = new ProductWrapper();
-            pw.Id = pbe.Id;
-            pw.purl = '/lightning/r/' + pbe.Id + '/view';
-            pw.Product2Id = pbe.Product2Id;
-            pw.Name = pbe.Product2.Name;
-            pw.ProductCode = pbe.Product2.ProductCode;
-            pw.Description = pbe.Product2.Description;
-            pw.ListPrice = pbe.UnitPrice;
+            if (salesAreaProductSet.contains(pbe.Product2Id)) {
+                ProductWrapper pw = new ProductWrapper();
+                pw.Id = pbe.Id;
+                pw.purl = '/lightning/r/' + pbe.Id + '/view';
+                pw.Product2Id = pbe.Product2Id;
+                pw.Name = pbe.Product2.Name;
+                pw.ProductCode = pbe.Product2.ProductCode;
+                pw.Description = pbe.Product2.Description;
+                pw.ListPrice = pbe.UnitPrice;
 
-            if (cmplMap.containsKey(pbe.Product2Id)) {
-                pw.Price = cmplMap.get(pbe.Product2Id).Material_Price__c;
-            } else {
-                pw.Price = pbe.UnitPrice;
+                if (cmplMap.containsKey(pbe.Product2Id)) {
+                    pw.Price = cmplMap.get(pbe.Product2Id).Material_Price__c;
+                } else {
+                    pw.Price = pbe.UnitPrice;
+                }
+                pw.Family = pbe.Product2.Family;
+                pw.index = i++;
+                pw.showError = false;
+                lstProduct.add(pw);
             }
-            pw.Family = pbe.Product2.Family;
-            pw.index = i++;
-            pw.showError = false;
-            lstProduct.add(pw);
         }
 
         wc.productList = lstProduct;

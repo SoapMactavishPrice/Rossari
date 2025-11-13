@@ -1,23 +1,78 @@
 import { LightningElement, track, api, wire } from 'lwc';
-//import { CloseActionScreenEvent } from 'lightning/actions';
 import { ShowToastEvent } from "lightning/platformShowToastEvent";
 import { NavigationMixin } from 'lightning/navigation';
 import saveProductInterested from '@salesforce/apex/addProductIntrested.saveProductInterested';
 import deleteProductInterested from '@salesforce/apex/addProductIntrested.deleteProductInterested';
-//import isFetchdata from '@salesforce/apex/lwcAssessmentAnswerController.isFetchdata';
 import getPicklistValues from '@salesforce/apex/addProductIntrested.getPicklistValues';
 import getExistingProducts from '@salesforce/apex/addProductIntrested.getExistingProducts';
 import getProdInterest from '@salesforce/apex/addProductIntrested.getProdInterest';
-
+import getDivisionRecords from '@salesforce/apex/addProductIntrested.getDivisionRecords';
 
 export default class LwcProductIntrestedPage extends NavigationMixin(LightningElement) {
     @api recordId;
 
-
     @track currencyCode = '';
     @track leadRecordType = '';
+    @track leadRecordTypeDev = '';
+    @track divisionId = '';
     options = [];
     @track frequencyOptions = [];
+    @track divisionOptions = [];
+
+    // Add businessType to your component
+    @track businessType = '';
+    @track isDivision;
+
+    // Update handleDivisionChange to refresh lookups
+    handleDivisionChange(event) {
+        this.divisionId = event.detail.value;
+        console.log('Selected Division ID:', this.divisionId);
+        this.isDivision = !!this.divisionId;
+        console.log('isDivision:', this.isDivision);
+
+
+        // Update all lookup components
+        this.updateLookupComponents();
+    }
+
+    // Add method to update lookup components
+    updateLookupComponents() {
+        const lookupComponents = this.template.querySelectorAll('c-look-up-component');
+        lookupComponents.forEach(component => {
+            if (component && typeof component.updateParameters === 'function') {
+                component.updateParameters({
+                    divisionId: this.divisionId,
+                    businessType: this.businessType,
+                    leadRecordType: this.leadRecordType,
+                    currencyCode: this.currencyCode
+                });
+            }
+        });
+    }
+
+    // Make sure getProd sets the businessType
+    // getProd() {
+    //     this.showSpinner = true;
+    //     getProdInterest({ Id: this.recordId }).then(result => {
+    //         console.log('result--<>>>---', JSON.stringify(result));
+    //         let data = JSON.parse(JSON.stringify(result));
+    //         this.currencyCode = data.currencyCode;
+    //         this.leadRecordType = data.leadRecordType;
+    //         this.businessType = data.businessType; // Make sure this is set
+
+    //         // Get existing Division from Lead if available
+    //         if (data.leadDivision) {
+    //             this.divisionId = data.leadDivision;
+    //             console.log('isDivision', this.isDivision);
+    //             this.isDivision = !!this.divisionId;
+    //         }
+
+    //         // ... rest of your code
+
+    //         // Update lookup components after data is loaded
+    //         this.updateLookupComponents();
+    //     });
+    // }
 
     @wire(getPicklistValues)
     wiredPicklist({ error, data }) {
@@ -48,7 +103,6 @@ export default class LwcProductIntrestedPage extends NavigationMixin(LightningEl
         }
     }
 
-
     @track where = '';
     @track Exist = [];
     getExisting() {
@@ -65,7 +119,18 @@ export default class LwcProductIntrestedPage extends NavigationMixin(LightningEl
         })
     }
 
+    // Handle Division Change
+    // handleDivisionChange(event) {
+    //     this.divisionId = event.detail.value;
+    //     console.log('Selected Division ID:', this.divisionId);
+    // }
+
     lookupRecord(event) {
+        // if (!this.divisionId) {
+        //     this.showToast('Error', 'Please select Division first', 'error');
+        //     return;
+        // }
+
         const selectedRecord = event.detail.selectedRecord;
         const index = event.target.dataset.index;
         console.log('event.detail.-->', selectedRecord);
@@ -81,13 +146,10 @@ export default class LwcProductIntrestedPage extends NavigationMixin(LightningEl
         this.addAnswer[index].unitPrice = selectedRecord.unitPrice;
         this.addAnswer[index].prodFamily = selectedRecord.familyField;
         console.log('Updated Field:', index, JSON.stringify(this.addAnswer[index].prodCode));
-
     }
 
     @track tempIndex = 0;
     @track addAnswer = [];
-
-
 
     connectedCallback() {
         this.getProd();
@@ -95,17 +157,34 @@ export default class LwcProductIntrestedPage extends NavigationMixin(LightningEl
 
         getPicklistValues()
             .then(result => {
-
                 this.frequencyOptions = result.frequency;
-
             })
             .catch(error => {
                 console.error('Error loading picklists:', error);
             });
-
     }
-    @track showSpinner = false;
 
+    loadDivisionRecords() {
+        getDivisionRecords({ leadId: this.recordId })
+            .then(result => {
+                this.divisionOptions = result.map(division => ({
+                    label: division.Name,
+                    value: division.Id
+                }));
+                console.log('Loaded division options:', this.divisionOptions);
+
+                // Show message if no divisions found
+                if (this.divisionOptions.length === 0) {
+                    this.showSuccess('Info', 'No divisions available for your user profile and lead record type.', 'info');
+                }
+            })
+            .catch(error => {
+                console.error('Error loading division records:', error);
+                this.showSuccess('Error', 'Failed to load division records', 'error');
+            });
+    }
+
+    @track showSpinner = false;
 
     getProd() {
         this.showSpinner = true;
@@ -114,6 +193,14 @@ export default class LwcProductIntrestedPage extends NavigationMixin(LightningEl
             let data = JSON.parse(JSON.stringify(result));
             this.currencyCode = data.currencyCode;
             this.leadRecordType = data.leadRecordType;
+            this.leadRecordTypeDev = data.leadRecordTypeDev;
+
+            // Get existing Division from Lead if available
+            if (data.leadDivision) {
+                this.divisionId = data.leadDivision;
+                this.isDivision = !!this.divisionId;
+                console.log('isDivision', this.isDivision);
+            }
 
             if (!data.currencyCode) {
                 this.showSuccess('Error', 'Please fill Currency', 'Error');
@@ -138,16 +225,14 @@ export default class LwcProductIntrestedPage extends NavigationMixin(LightningEl
                         prodCode: ele.Product_Code__c,
                         price: ele.Expected_Price__c,
                         volume: ele.Quantity_in_Kgs__c,
-                        // Add_In_Opty: ele.Add_in_Opportunity__c,
                         Add_In_Opty: ele.Add_in_Opportunity__c ?? true,
                         New_Product: ele.New_Product__c,
                         New_Product_Name: ele.New_Product_Name__c,
-                        //   prodFamily: ele.Product_Family__c,
                         isEdit: true,
                         frequency: ele.Quantity_Frequency__c,
                         pbeId: ele.Price_book_Entry_Id__c,
                         unitPrice: parseFloat(ele.List_Price__c || 0),
-                        prodName: ele.Product__r?.Name || '' // Use optional chaining and provide default value
+                        prodName: ele.Product__r?.Name || ''
                     };
                     this.addAnswer.push(temp);
                 });
@@ -175,11 +260,15 @@ export default class LwcProductIntrestedPage extends NavigationMixin(LightningEl
                 }];
             }
             this.showSpinner = false;
+
+            // Load division records after setting initial data
+            this.loadDivisionRecords();
         }).catch(error => {
             console.error('Error loading product interest:', error);
             this.showSpinner = false;
         });
     }
+
 
     handlefrequencyChange(event) {
         let index = event.target.dataset.index;
@@ -379,9 +468,12 @@ export default class LwcProductIntrestedPage extends NavigationMixin(LightningEl
         console.log('validate--> inside save', validate);
 
         if (validate) {
-            //let isDupliacte  =this.validateAnswers();
-            //if (isDupliacte) {
-            saveProductInterested({ Id: this.recordId, JS: JSON.stringify(this.addAnswer) }).then(result => {
+            // Pass divisionId to Apex method
+            saveProductInterested({
+                Id: this.recordId,
+                JS: JSON.stringify(this.addAnswer),
+                divisionId: this.divisionId // Pass division ID to Apex
+            }).then(result => {
                 console.log('result-->', result);
                 if (result.message == 'success') {
                     this.showSuccess('success', 'Record Created Successfully !!!', 'Success');
@@ -395,7 +487,6 @@ export default class LwcProductIntrestedPage extends NavigationMixin(LightningEl
                 }
             })
         }
-
     }
 
 

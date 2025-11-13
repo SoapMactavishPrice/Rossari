@@ -11,6 +11,7 @@ import getDistributionChannel from '@salesforce/apex/QuoteController.getDistribu
 import getDivision from '@salesforce/apex/QuoteController.getDivision';
 import getSalesArea from '@salesforce/apex/QuoteController.getSalesArea';
 import getRecordTypeFromOpportunity from '@salesforce/apex/Utility.getRecordTypeFromOpportunity';
+
 export default class CreateQuoteFromOpportunity extends NavigationMixin(LightningElement) {
     @api recordId;
     @track oppLineItems = [];
@@ -39,82 +40,209 @@ export default class CreateQuoteFromOpportunity extends NavigationMixin(Lightnin
     @track leadRecordType;
     @track hasProducts = false;
 
-    connectedCallback() {
-        this.loadInitialData();
-        this.handleGetSalesOrg();
-        this.getRecordType();
+    // Add method to calculate discount
+    calculateDiscount(listPrice, salesPrice) {
+        if (!listPrice || listPrice <= 0 || !salesPrice || salesPrice <= 0) {
+            return 0;
+        }
+
+        // Don't calculate discount if sales price is greater than list price
+        if (salesPrice > listPrice) {
+            return 0;
+        }
+
+        // Calculate discount percentage: ((List Price - Sales Price) / List Price) * 100
+        const discount = ((listPrice - salesPrice) / listPrice) * 100;
+
+        // Round to 2 decimal places
+        return Math.round(discount * 100) / 100;
     }
 
-    getRecordType() {
-        getRecordTypeFromOpportunity({ opportunityId: this.recordId }).then(result => {
-            this.leadRecordType = result;
-        }).catch(error => {
-            this.showError('Error fetching lead record type', error.body ? error.body.message : error.message);
+    // Update handleValueSelectedOnAccount method
+    handleValueSelectedOnAccount(event) {
+        console.log('=== DEBUG: handleValueSelectedOnAccount triggered ===');
+        console.log('Event detail:', JSON.stringify(event.detail));
+
+        const selectedRecord = event.detail;
+        const index = parseInt(event.target.dataset.index, 10);
+
+        if (!selectedRecord) {
+            console.log("No record selected");
+            return;
+        }
+
+        console.log('Selected record description:', selectedRecord.description);
+
+        this.oppLineItems = this.oppLineItems.map((item) => {
+            if (item.index === index) {
+                const listPrice = selectedRecord.unitPrice || 0;
+                const salesPrice = selectedRecord.unitPrice || 0; // Initially set sales price same as list price
+                const discount = this.calculateDiscount(listPrice, salesPrice);
+
+                const updatedItem = {
+                    ...item,
+                    PricebookEntryId: selectedRecord.id,
+                    pbeId: selectedRecord.id,
+                    UnitPrice: salesPrice,
+                    salesPrice: salesPrice,
+                    listPrice: listPrice,
+                    Product2Id: selectedRecord.proId,
+                    prodId: selectedRecord.proId,
+                    Description: selectedRecord.description || '',
+                    Customer_Target_Price__c: item.Customer_Target_Price__c || 0,
+                    Container_Type__c: item.Container_Type__c || '',
+                    Customer_Product_Name__c: item.Customer_Product_Name__c || '',
+                    Customer_HS_Code__c: item.Customer_HS_Code__c || '',
+                    Discount: discount, // Auto-calculate discount
+                    Product2: {
+                        Id: selectedRecord.proId,
+                        Name: selectedRecord.mainField,
+                        ProductCode: selectedRecord.subField || '',
+                        Description: selectedRecord.description || ''
+                    },
+                    prodName: selectedRecord.mainField,
+                    prodCode: selectedRecord.subField || '',
+                    isEdit: true
+                };
+
+                console.log('Updated item - List Price:', updatedItem.listPrice, 'Sales Price:', updatedItem.salesPrice, 'Discount:', updatedItem.Discount);
+                return updatedItem;
+            }
+            return item;
+        });
+
+        this.oppLineItems = [...this.oppLineItems];
+    }
+
+    // Update handlePriceChange method to auto-calculate discount
+    handlePriceChange(event) {
+        const index = parseInt(event.target.dataset.index, 10);
+        const newPrice = parseFloat(event.target.value) || 0;
+
+        this.oppLineItems = this.oppLineItems.map(item => {
+            if (item.index === index) {
+                const listPrice = item.listPrice || 0;
+                const discount = this.calculateDiscount(listPrice, newPrice);
+
+                return {
+                    ...item,
+                    salesPrice: newPrice,
+                    UnitPrice: newPrice,
+                    Discount: discount // Auto-calculate discount when price changes
+                };
+            }
+            return item;
         });
     }
 
-    loadInitialData() {
-        this.isLoading = true;
-        getQuoteInitialData({ opportunityId: this.recordId })
+    // Remove the handleDiscountChange method since discount is now read-only
+    // handleDiscountChange(event) {
+    //     const index = parseInt(event.target.dataset.index, 10);
+    //     const newDiscount = parseFloat(event.target.value) || 0;
+
+    //     this.oppLineItems = this.oppLineItems.map(item =>
+    //         item.index === index ? {
+    //             ...item,
+    //             Discount: newDiscount,
+    //         } : item
+    //     );
+    // }
+
+    // Update addAnswerItem method to calculate discount for new items
+    addAnswerItem(event) {
+        const index = parseInt(event.target.dataset.index, 10);
+        const originalItem = this.oppLineItems.find(item => item.index === index);
+
+        if (!originalItem) {
+            console.error('Item not found for index:', index);
+            return;
+        }
+
+        const listPrice = originalItem.listPrice || 0;
+        const salesPrice = originalItem.salesPrice || 0;
+        const discount = this.calculateDiscount(listPrice, salesPrice);
+
+        const newItem = {
+            ...originalItem,
+            index: this.generateRandomNum(),
+            tempId: Date.now().toString() + Math.random().toString(16).slice(2),
+            Id: null,
+            isEdit: false,
+            isNew: true,
+            Quantity: 1,
+            salesPrice: salesPrice,
+            UnitPrice: salesPrice,
+            listPrice: listPrice,
+            Discount: discount, // Set calculated discount
+            Description: originalItem.Description,
+            Customer_Target_Price__c: originalItem.Customer_Target_Price__c || 0,
+            Container_Type__c: originalItem.Container_Type__c || '',
+            Customer_Product_Name__c: originalItem.Customer_Product_Name__c || '',
+            Customer_HS_Code__c: originalItem.Customer_HS_Code__c || '',
+            selected: true,
+        };
+
+        const originalIndex = this.oppLineItems.findIndex(item => item.index === index);
+        this.oppLineItems.splice(originalIndex + 1, 0, newItem);
+        this.oppLineItems = [...this.oppLineItems];
+    }
+
+    // Update loadOppLineItems method to calculate discount for existing items
+    loadOppLineItems() {
+        getOppLineItems({ opportunityId: this.recordId })
             .then(result => {
-                this.quoteFields = {
-                    ...this.quoteFields,
-                    name: result.opportunityName,
-                    currencyCode: result.defaultCurrency,
-                    pricebookId: result.pricebookId
-                };
-                this.statusOptions = result.statusOptions;
-                this.currencyOptions = result.currencyOptions;
-                this.contacts = result.contacts.map(contact => ({
-                    label: contact.Name,
-                    value: contact.Id
-                }));
-                this.paymentTerms = result.paymentTerms; // Add this
-                this.incoTermsOptions = result.incoTermsOptions; // Add this
+                console.log('>>> Opp Line Items Raw Result:', result);
+                if (result && result.length > 0) {
+                    this.hasProducts = true;
+                    this.oppLineItems = result.map(item => {
+                        const listPrice = item.PricebookEntry?.UnitPrice || item.UnitPrice || 0;
+                        const salesPrice = item.UnitPrice || 0;
+                        const discount = this.calculateDiscount(listPrice, salesPrice);
 
-                // Set default contact if available from Apex
-                if (result.defaultContact) {
-                    this.quoteFields.contactId = result.defaultContact.value;
+                        return {
+                            ...item,
+                            index: this.generateRandomNum(),
+                            tempId: Date.now().toString() + Math.random().toString(16).slice(2),
+                            isEdit: !!item.Id,
+                            isNew: !item.Id,
+                            salesPrice: salesPrice,
+                            listPrice: listPrice,
+                            Discount: discount, // Set calculated discount
+                            pbeId: item.PricebookEntryId,
+                            prodId: item.Product2Id,
+                            prodName: item.Product2?.Name || '',
+                            prodCode: item.Product2?.ProductCode || '',
+                            Description: item.Product2?.Description,
+                            selected: true,
+                            Customer_Target_Price__c: 0,
+                            Container_Type__c: '',
+                            Customer_Product_Name__c: '',
+                            Customer_HS_Code__c: '',
+                            Product2: {
+                                Id: item.Product2Id,
+                                Name: item.Product2?.Name || '',
+                                ProductCode: item.Product2?.ProductCode || '',
+                                Description: item.Description || '',
+                            }
+                        };
+                    });
+                } else {
+                    this.hasProducts = false;
+                    this.showToast('Warning',
+                        'No products available in Opportunity. Please add products before creating a Quote.',
+                        'warning');
                 }
-
-
-                if (this.statusOptions.length > 0) {
-                    this.quoteFields.status = this.statusOptions[0].value;
-                }
-
-                const date = new Date();
-                date.setDate(date.getDate() + 30);
-                this.quoteFields.expirationDate = date.toISOString().split('T')[0];
-
-                this.loadOppLineItems();
             })
             .catch(error => {
                 this.error = error.body.message;
                 this.showToast('Error', this.error, 'error');
+            })
+            .finally(() => {
                 this.isLoading = false;
             });
     }
 
-    handlePaymentTermSelected(event) {
-        const selectedRecord = event.detail;
-        if (selectedRecord) {
-            this.quoteFields.paymentTermId = selectedRecord.id;
-        }
-    }
-
-    handleDiscountChange(event) {
-        const index = parseInt(event.target.dataset.index, 10);
-        const newDiscount = parseFloat(event.target.value) || 0;
-
-        this.oppLineItems = this.oppLineItems.map(item =>
-            item.index === index ? {
-                ...item,
-                Discount: newDiscount,
-                //  salesPrice: item.UnitPrice * (1 - (newDiscount / 100))
-            } : item
-        );
-    }
-
+    // Rest of your existing methods remain exactly the same...
     handleContactClick() {
         if (this.contacts.length === 0) {
             this.showToast('Warning', 'No contacts available for Account. Please Create a Contact.', 'warning');
@@ -134,15 +262,33 @@ export default class CreateQuoteFromOpportunity extends NavigationMixin(Lightnin
     }
 
     handleContainerTypeChange(event) {
-        const index = parseInt(event.target.dataset.index, 10);
-        const newContainerType = event.target.value;
+        let newContainerType = event.target.value;
 
-        this.oppLineItems = this.oppLineItems.map(item =>
-            item.index === index ? {
-                ...item,
-                Container_Type__c: newContainerType
-            } : item
-        );
+        // Remove any numbers and special characters, convert to uppercase
+        newContainerType = newContainerType.replace(/[^A-Za-z\s]/g, '').toUpperCase();
+
+        // Check if it's a line item (has data-index attribute)
+        const index = event.target.dataset.index;
+
+        if (index) {
+            // It's a line item container type
+            const itemIndex = parseInt(index, 10);
+            this.oppLineItems = this.oppLineItems.map(item =>
+                item.index === itemIndex ? {
+                    ...item,
+                    Container_Type__c: newContainerType
+                } : item
+            );
+        } else {
+            // It's the header container type
+            this.quoteFields = {
+                ...this.quoteFields,
+                containerType: newContainerType
+            };
+        }
+
+        // Update the input value to reflect the cleaned-up version
+        event.target.value = newContainerType;
     }
 
     handleProductNameChange(event) {
@@ -167,149 +313,6 @@ export default class CreateQuoteFromOpportunity extends NavigationMixin(Lightnin
                 Customer_HS_Code__c: newHSCode
             } : item
         );
-    }
-
-    loadOppLineItems() {
-        getOppLineItems({ opportunityId: this.recordId })
-            .then(result => {
-                console.log('>>> Opp Line Items Raw Result:', result);
-                if (result && result.length > 0) {
-                    this.hasProducts = true;
-                    this.oppLineItems = result.map(item => ({
-                        ...item,
-                        index: this.generateRandomNum(),
-                        tempId: Date.now().toString() + Math.random().toString(16).slice(2),
-                        isEdit: !!item.Id,
-                        isNew: !item.Id,
-                        salesPrice: item.UnitPrice,
-                        listPrice: item.PricebookEntry?.UnitPrice || item.UnitPrice,
-                        pbeId: item.PricebookEntryId,
-                        prodId: item.Product2Id,
-                        prodName: item.Product2?.Name || '',
-                        prodCode: item.Product2?.ProductCode || '',
-                        Description: item.Product2?.Description,
-                        Discount: item.Discount || 0,
-                        selected: true,
-                        Customer_Target_Price__c: 0,  // Initialize with default value
-                        Container_Type__c: '',  // Initialize with default value
-                        Customer_Product_Name__c: '',
-                        Customer_HS_Code__c: '',
-                        Product2: {
-                            Id: item.Product2Id,
-                            Name: item.Product2?.Name || '',
-                            ProductCode: item.Product2?.ProductCode || '',
-                            Description: item.Description || '',
-                        }
-                    }));
-                } else {
-                    this.hasProducts = false;
-                    this.showToast('Warning',
-                        'No products available in Opportunity. Please add products before creating a Quote.',
-                        'warning');
-                }
-            })
-            .catch(error => {
-                this.error = error.body.message;
-                this.showToast('Error', this.error, 'error');
-            })
-            .finally(() => {
-                this.isLoading = false;
-            });
-    }
-
-    get disableCreateButton() {
-
-        return this.isLoading || this.oppLineItems.length === 0 || !this.hasProducts;
-    }
-
-    generateRandomNum() {
-        let randomId;
-        do {
-            randomId = Math.floor(Math.random() * 9000) + 1000;
-        } while (this.generatedIds.has(randomId));
-        this.generatedIds.add(randomId);
-        return randomId;
-    }
-
-    handleCheckboxChange(event) {
-        const index = parseInt(event.target.dataset.index, 10);
-        const isChecked = event.target.checked;
-
-        this.oppLineItems = this.oppLineItems.map(item => {
-            if (item.index === index) {
-                return { ...item, selected: isChecked };
-            }
-            return item;
-        });
-    }
-
-    handleValueSelectedOnAccount(event) {
-        console.log('=== DEBUG: handleValueSelectedOnAccount triggered ===');
-        console.log('Event detail:', JSON.stringify(event.detail));
-
-        const selectedRecord = event.detail;
-        const index = parseInt(event.target.dataset.index, 10);
-
-        if (!selectedRecord) {
-            console.log("No record selected");
-            return;
-        }
-
-        console.log('Selected record description:', selectedRecord.description);
-
-        this.oppLineItems = this.oppLineItems.map((item) => {
-            if (item.index === index) {
-                const updatedItem = {
-                    ...item,
-                    PricebookEntryId: selectedRecord.id,
-                    pbeId: selectedRecord.id,
-                    UnitPrice: selectedRecord.unitPrice || 0,
-                    salesPrice: selectedRecord.unitPrice || 0,
-                    listPrice: selectedRecord.unitPrice || 0,
-                    Product2Id: selectedRecord.proId,
-                    prodId: selectedRecord.proId,
-                    Description: selectedRecord.description || '', // Get description from selected product
-                    Customer_Target_Price__c: item.Customer_Target_Price__c || 0,
-                    Container_Type__c: item.Container_Type__c || '',
-                    Customer_Product_Name__c: item.Customer_Product_Name__c || '',
-                    Customer_HS_Code__c: item.Customer_HS_Code__c || '',
-                    Product2: {
-                        Id: selectedRecord.proId,
-                        Name: selectedRecord.mainField,
-                        ProductCode: selectedRecord.subField || '',
-                        Description: selectedRecord.description || '' // Get description from selected product
-                    },
-                    prodName: selectedRecord.mainField,
-                    prodCode: selectedRecord.subField || '',
-                    isEdit: true
-                };
-
-                console.log('Updated item description:', updatedItem.Description);
-                return updatedItem;
-            }
-            return item;
-        });
-
-        this.oppLineItems = [...this.oppLineItems];
-    }
-
-
-
-    handlePriceChange(event) {
-        const index = parseInt(event.target.dataset.index, 10);
-        const newPrice = parseFloat(event.target.value) || 0;
-
-        this.oppLineItems = this.oppLineItems.map(item => {
-            if (item.index === index) {
-                return {
-                    ...item,
-                    salesPrice: newPrice,
-                    UnitPrice: newPrice,
-                    Discount: 0 // Reset discount when price is manually changed
-                };
-            }
-            return item;
-        });
     }
 
     handleQuantityChange(event) {
@@ -356,7 +359,9 @@ export default class CreateQuoteFromOpportunity extends NavigationMixin(Lightnin
         };
 
         // Show container type only when CIF is selected
-        this.showContainerType = newValue === 'CIF';
+        // this.showContainerType = newValue === 'CIF';
+
+        this.showContainerType = true;
 
         // Optional: Clear container type when CIF is not selected
         if (!this.showContainerType) {
@@ -406,20 +411,6 @@ export default class CreateQuoteFromOpportunity extends NavigationMixin(Lightnin
         }
     }
 
-    // handleFieldChange(event) {
-    //     const field = event.target.dataset.field;
-    //     this.quoteFields = {
-    //         ...this.quoteFields,
-    //         [field]: event.detail.value
-    //     };
-
-    //     // If currency changes, we may want to refresh prices
-    //     if (field === 'currencyCode') {
-    //         // You could add logic here to refresh prices if needed
-    //         console.log('Currency changed to:', this.quoteFields.currencyCode);
-    //     }
-    // }
-
     validateData(itemsToValidate = this.oppLineItems) {
         let isValid = true;
 
@@ -428,43 +419,13 @@ export default class CreateQuoteFromOpportunity extends NavigationMixin(Lightnin
             return false;
         }
 
-
         if (!this.quoteFields.contactId) {
             this.showToast('Error', 'Please select a Contact', 'error');
             return false;
         }
 
-
         if (!this.quoteFields.expirationDate) {
             this.showToast('Error', 'Please select an expiration date', 'error');
-            return false;
-        }
-
-        // if (this.salesOrgValue == '') {
-        //     this.showToast('Error', 'Please select a Sales Organization', 'error');
-        //     return false;
-        // }
-
-        // if (this.distChValue == '') {
-        //     this.showToast('Error', 'Please select a Distribution Channel', 'error');
-        //     return false;
-        // }
-
-        // if (this.divisionValue == '') {
-        //     this.showToast('Error', 'Please select a Division', 'error');
-        //     return false;
-        // }
-
-
-        // Incoterms validation
-        if (!this.quoteFields.incoTerms || this.quoteFields.incoTerms.trim() === '') {
-            this.showToast('Error', 'Please select Inco terms', 'error');
-            return false;
-        }
-
-        // Payment Term validation
-        if (!this.quoteFields.paymentTermId || this.quoteFields.paymentTermId.trim() === '') {
-            this.showToast('Error', 'Please select a Payment Terms', 'error');
             return false;
         }
 
@@ -495,7 +456,6 @@ export default class CreateQuoteFromOpportunity extends NavigationMixin(Lightnin
         }
 
         return isValid;
-
     }
 
     handleTransportationCostChange(event) {
@@ -505,12 +465,12 @@ export default class CreateQuoteFromOpportunity extends NavigationMixin(Lightnin
         };
     }
 
-    handleContainerTypeChange(event) {
-        this.quoteFields = {
-            ...this.quoteFields,
-            containerType: event.target.value
-        };
-    }
+    // handleContainerTypeChange(event) {
+    //     this.quoteFields = {
+    //         ...this.quoteFields,
+    //         containerType: event.target.value
+    //     };
+    // }
 
     createQuote() {
         const selectedItems = this.oppLineItems.filter(item => item.selected);
@@ -536,15 +496,15 @@ export default class CreateQuoteFromOpportunity extends NavigationMixin(Lightnin
             Quantity: item.Quantity,
             Discount: item.Discount,
             Description: item.Description,
-            CustomerTargetPrice: item.Customer_Target_Price__c || 0, // Change to wrapper field name
-            ContainerType: item.Container_Type__c || '',// Change to wrapper field name
+            CustomerTargetPrice: item.Customer_Target_Price__c || 0,
+            ContainerType: item.Container_Type__c || '',
             CustomerProductName: item.Customer_Product_Name__c,
             CustomerHsCode: item.Customer_HS_Code__c
         }));
 
         createQuoteFromOpportunity({
             opportunityId: this.recordId,
-            lineItems: lineItemsWithNewFields, // This now matches the wrapper structure
+            lineItems: lineItemsWithNewFields,
             quoteName: this.quoteFields.name,
             status: this.quoteFields.status,
             expirationDate: this.quoteFields.expirationDate,
@@ -553,8 +513,8 @@ export default class CreateQuoteFromOpportunity extends NavigationMixin(Lightnin
             pricebookId: this.quoteFields.pricebookId,
             incoTerms: this.quoteFields.incoTerms,
             paymentTermId: this.quoteFields.paymentTermId,
-            transportationCost: this.quoteFields.transportationCost, // Add this
-            containerType: this.quoteFields.containerType // Add this
+            transportationCost: this.quoteFields.transportationCost,
+            containerType: this.quoteFields.containerType
         })
             .then(quoteId => {
                 this.showToast('Success', 'Quote created successfully', 'success');
@@ -587,38 +547,6 @@ export default class CreateQuoteFromOpportunity extends NavigationMixin(Lightnin
             .finally(() => {
                 this.isLoading = false;
             });
-    }
-
-    addAnswerItem(event) {
-        const index = parseInt(event.target.dataset.index, 10);
-        const originalItem = this.oppLineItems.find(item => item.index === index);
-
-        if (!originalItem) {
-            console.error('Item not found for index:', index);
-            return;
-        }
-
-        const newItem = {
-            ...originalItem,
-            index: this.generateRandomNum(),
-            tempId: Date.now().toString() + Math.random().toString(16).slice(2),
-            Id: null,
-            isEdit: false,
-            isNew: true,
-            Quantity: 1,
-            salesPrice: originalItem.salesPrice,
-            UnitPrice: originalItem.salesPrice,
-            Description: originalItem.Description,
-            Customer_Target_Price__c: originalItem.Customer_Target_Price__c || 0, // Preserve this field
-            Container_Type__c: originalItem.Container_Type__c || '', // Preserve this field
-            Customer_Product_Name__c: originalItem.Customer_Product_Name__c || '', // Preserve this field
-            Customer_HS_Code__c: originalItem.Customer_HS_Code__c || '', // Preserve this field
-            selected: true,
-        };
-
-        const originalIndex = this.oppLineItems.findIndex(item => item.index === index);
-        this.oppLineItems.splice(originalIndex + 1, 0, newItem);
-        this.oppLineItems = [...this.oppLineItems];
     }
 
     removeAnswer(event) {
@@ -667,6 +595,79 @@ export default class CreateQuoteFromOpportunity extends NavigationMixin(Lightnin
                 actionName: 'view'
             }
         });
+    }
+
+    generateRandomNum() {
+        let randomId;
+        do {
+            randomId = Math.floor(Math.random() * 9000) + 1000;
+        } while (this.generatedIds.has(randomId));
+        this.generatedIds.add(randomId);
+        return randomId;
+    }
+
+    connectedCallback() {
+        this.loadInitialData();
+        this.handleGetSalesOrg();
+        this.getRecordType();
+    }
+
+    getRecordType() {
+        getRecordTypeFromOpportunity({ opportunityId: this.recordId }).then(result => {
+            this.leadRecordType = result;
+        }).catch(error => {
+            this.showError('Error fetching lead record type', error.body ? error.body.message : error.message);
+        });
+    }
+
+    loadInitialData() {
+        this.isLoading = true;
+        getQuoteInitialData({ opportunityId: this.recordId })
+            .then(result => {
+                this.quoteFields = {
+                    ...this.quoteFields,
+                    name: result.opportunityName,
+                    currencyCode: result.defaultCurrency,
+                    pricebookId: result.pricebookId,
+                    incoTerms: result.opportunityIncoTerms || '',
+                    paymentTermId: result.opportunityPaymentTermId || ''
+                };
+
+                this.statusOptions = result.statusOptions;
+                this.currencyOptions = result.currencyOptions;
+                this.contacts = result.contacts.map(contact => ({
+                    label: contact.Name,
+                    value: contact.Id
+                }));
+                this.paymentTerms = result.paymentTerms;
+                this.incoTermsOptions = result.incoTermsOptions;
+
+                if (result.defaultContact) {
+                    this.quoteFields.contactId = result.defaultContact.value;
+                }
+
+                if (this.statusOptions.length > 0) {
+                    this.quoteFields.status = this.statusOptions[0].value;
+                }
+
+                const date = new Date();
+                date.setDate(date.getDate() + 30);
+                this.quoteFields.expirationDate = date.toISOString().split('T')[0];
+
+                //  this.showContainerType = this.quoteFields.incoTerms === 'CIF';
+
+                this.showContainerType = true;
+
+                console.log('Opportunity Inco Terms:', result.opportunityIncoTerms);
+                console.log('Opportunity Payment Term ID:', result.opportunityPaymentTermId);
+
+                this.loadOppLineItems();
+            })
+            .catch(error => {
+                this.error = error.body.message;
+                this.showToast('Error', this.error, 'error');
+                this.isLoading = false;
+            });
     }
 
     // ------------------------- HA Changes -----------------------
@@ -730,7 +731,6 @@ export default class CreateQuoteFromOpportunity extends NavigationMixin(Lightnin
             if (result != '') {
                 console.log('>>> SalesArea Result:', JSON.parse(result));
                 let parsedResult = JSON.parse(result);
-                // this.quoteFields.salesArea = JSON.parse(result);
                 if (parsedResult[0].Payment_Term__c != null) {
                     this.quoteFields.paymentTermId = parsedResult[0].Payment_Term__c;
                 }

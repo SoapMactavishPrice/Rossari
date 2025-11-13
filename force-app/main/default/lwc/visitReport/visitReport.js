@@ -18,6 +18,9 @@ import ENTITY_CODE_2_FIELD from '@salesforce/schema/User.Entity_Code_2__c';
 import ENTITY_CODE_3_FIELD from '@salesforce/schema/User.Entity_Code_3__c';
 import DIVISION_CODE_FIELD from '@salesforce/schema/User.Division_Code__c';
 
+import { NavigationMixin } from 'lightning/navigation';
+import getExistingFiles from '@salesforce/apex/VisitReportController.getExistingFiles';
+
 // Combine all fields into one array
 const USER_FIELDS = [
     NAME_FIELD,
@@ -27,7 +30,60 @@ const USER_FIELDS = [
     DIVISION_CODE_FIELD
 ];
 
-export default class VisitReport extends LightningElement {
+export default class VisitReport extends NavigationMixin(LightningElement) {
+
+    @track uploadedFiles = [];
+    @track isFilePreviewModalOpen = false;
+    @track uploadedFileIds = []; // Store ContentDocumentIds
+    @track uploadedFileIds2 = []; // Store ContentDocumentIds
+
+    get hasNoFiles() {
+        return !this.uploadedFiles || this.uploadedFiles.length === 0;
+    }
+
+    handleUploadFinished(event) {
+        const uploadedFiles = event.detail.files;
+        uploadedFiles.forEach(file => {
+            this.uploadedFiles.push({
+                documentId: file.documentId,
+                name: file.name,
+                contentVersionId: file.contentVersionId
+            });
+            this.uploadedFileIds.push(file.documentId);
+            this.uploadedFileIds2.push(file.documentId);
+        });
+        
+        this.dispatchEvent(
+            new ShowToastEvent({
+                title: 'Success',
+                message: uploadedFiles.length + ' file(s) uploaded successfully',
+                variant: 'success'
+            })
+        );
+    }
+
+    openFilePreviewModal() {
+        if (this.uploadedFiles && this.uploadedFiles.length > 0) {
+            this.isFilePreviewModalOpen = true;
+        }
+    }
+
+    closeFilePreviewModal() {
+        this.isFilePreviewModalOpen = false;
+    }
+
+    handleFilePreview(event) {
+        const fileId = event.currentTarget.dataset.fileId;
+        this[NavigationMixin.Navigate]({
+            type: 'standard__namedPage',
+            attributes: {
+                pageName: 'filePreview'
+            },
+            state: {
+                selectedRecordId: fileId
+            }
+        });
+    }
 
     @track dataMap = {
         Mode: '',
@@ -1065,10 +1121,29 @@ export default class VisitReport extends LightningElement {
 
         if (this.selectedExistingVisitReportId) {
             await this.loadExistingVisitReportData();
-            this.isFormDisabled = false; // Keep basic fields disabled
-            this.showRemainingSections = true; // Show remaining sections
+            await this.loadExistingFiles(); // Load existing files
+            this.isFormDisabled = false;
+            this.showRemainingSections = true;
         }
+    }
 
+    async loadExistingFiles() {
+        try {
+            const files = await getExistingFiles({ recordId: this.selectedExistingVisitReportId });
+            
+            this.uploadedFiles = files.map(file => ({
+                documentId: file.ContentDocumentId,
+                name: file.ContentDocument.Title + '.' + file.ContentDocument.FileExtension,
+                contentVersionId: file.Id
+            }));
+            
+            this.uploadedFileIds = files.map(file => file.ContentDocumentId);
+            this.uploadedFileIds2 = files.map(file => file.ContentDocumentId + ' - dummy');
+            
+            console.log('Loaded existing files:', this.uploadedFiles);
+        } catch (error) {
+            console.error('Error loading existing files:', error);
+        }
     }
 
     // Add this method to load attendees
@@ -1302,7 +1377,6 @@ export default class VisitReport extends LightningElement {
 
     // Add this method to clear the form
     clearForm() {
-
         this.dataMap = {
             Mode: '',
             Title_of_Meeting: '',
@@ -1338,6 +1412,12 @@ export default class VisitReport extends LightningElement {
             isExternalExisting: false
         }];
 
+        // Clear files
+        this.uploadedFiles = [];
+        this.uploadedFileIds = [];
+        this.uploadedFileIds2 = [];
+        this.isFilePreviewModalOpen = false;
+
         // Clear other properties
         this.showExistingCustomerFields = false;
         this.showNewCustomerField = false;
@@ -1352,7 +1432,6 @@ export default class VisitReport extends LightningElement {
         this.accountContacts = [];
         this.selectedExistingVisitReportId = null;
         this.selectedExistingVisitReportName = '';
-
     }
 
 
@@ -1405,7 +1484,12 @@ export default class VisitReport extends LightningElement {
         this.showSpinner = true;
 
         try {
-            // ✅ FIX: Ensure all data is properly structured before saving
+            let validFiles = [];
+            for (let fileId of this.uploadedFileIds2) {
+                if (!fileId.includes('dummy')) {
+                    validFiles.push(fileId);
+                }
+            }
             const saveData = {
                 visit: JSON.stringify(this.dataMap),
                 Attendees: JSON.stringify(this.Attendees),
@@ -1414,7 +1498,8 @@ export default class VisitReport extends LightningElement {
                 location: this.location,
                 currencyCode: this.currencyCode,
                 visitType: this.selectedVisitReportType,
-                existingVisitReportId: this.selectedExistingVisitReportId
+                existingVisitReportId: this.selectedExistingVisitReportId,
+                fileIds: JSON.stringify(validFiles) // Pass file IDs
             };
 
             console.log('Saving data:', saveData);
@@ -1431,10 +1516,8 @@ export default class VisitReport extends LightningElement {
                     })
                 );
 
-                // Open record in new tab
                 window.open('/' + result.Id, '_blank');
 
-                // ✅ FIX: Consistent reload behavior for all types
                 setTimeout(() => {
                     window.location.reload();
                 }, 2000);

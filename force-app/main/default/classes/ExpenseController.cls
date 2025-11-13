@@ -424,7 +424,7 @@ public with sharing class ExpenseController {
                                 WHERE Name LIKE :searchTerm 
                                 AND IsActive = true
                                 ORDER BY Name 
-                                LIMIT 50];
+                                LIMIT 150];
             
             List<Map<String, String>> options = new List<Map<String, String>>();
             for (User u : users) {

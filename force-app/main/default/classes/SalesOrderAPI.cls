@@ -438,6 +438,7 @@ global class SalesOrderAPI {
                                     orderItem.First_Date__c = Date.valueOf(item.FIRST_DATE);
                                 }
                                 // orderItem.SAP_NET_VALUE__c = item.NET_VALUE;
+                                orderItem.Reason_for_Rejection__c = item.RFR;
 
                                 mpOrderLineItemList.put(String.valueOf(ord.Id + '' + orderItem.SAP_Line_No__c), orderItem);
                                 orderItemList.add(orderItem);
@@ -669,6 +670,7 @@ global class SalesOrderAPI {
         public String ROUTE_LABEL_NAME; //0
         // public String SCHEDULE_DATE;
         public String FIRST_DATE;
+        public String RFR;
         public List<cls_ITEM_TEXT> ITEM_TEXT;
         public List<cls_SCHED_LINES> SCHED_LINES;
     }

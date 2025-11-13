@@ -35,15 +35,15 @@ export default class ExpenseForm extends NavigationMixin(LightningElement) {
     @track fourWheelerPerKm = 0;
     @track twoWheelerPerKm = 0;
     @track canEditDailyAllowance = false;
-    @track lodgingHotel = 0; 
+    @track lodgingHotel = 0;
     @track boardingFood = 0;
-    @track dailyAllowanceBClass = 0; 
-    @track lodgingHotelBClass = 0; 
-    @track boardingFoodBClass = 0; 
+    @track dailyAllowanceBClass = 0;
+    @track lodgingHotelBClass = 0;
+    @track boardingFoodBClass = 0;
 
-    @track lodgingHotelBClass = 0; 
-    @track boardingFoodBClass = 0; 
-    @track selectedCityId = ''; 
+    @track lodgingHotelBClass = 0;
+    @track boardingFoodBClass = 0;
+    @track selectedCityId = '';
     @track selectedCityName = ''; // Add this
     @track selectedCityType = ''; // Add this
     @track isAClassCity = false; // Add this
@@ -81,6 +81,7 @@ export default class ExpenseForm extends NavigationMixin(LightningElement) {
     acceptedFormats = ['.pdf', '.jpg', '.jpeg', '.png', '.doc', '.docx'];
     nextKey = 0;
     isLoading = false;
+    @track lineItems = [];
 
     get isNotLoading() {
         return !this.isLoading;
@@ -158,6 +159,10 @@ export default class ExpenseForm extends NavigationMixin(LightningElement) {
         return this.salesType === 'Domestic';
     }
 
+    get showKMOrTollParkingField() {
+        return this.selectedVoucherType === 'Local' || this.selectedVoucherType === 'Outstation' && this.lineItems.some(item => item.modeOfTravel === 'Own Vehicle');
+    }
+
     get currencySymbol() {
         const map = {
             'INR': '₹',
@@ -170,34 +175,34 @@ export default class ExpenseForm extends NavigationMixin(LightningElement) {
     }
 
     get salesTypeDebug() {
-    console.log('Sales Type Updated:', this.salesType, 'Show City Field:', this.showCityField);
-    return this.salesType;
-}
+        console.log('Sales Type Updated:', this.salesType, 'Show City Field:', this.showCityField);
+        return this.salesType;
+    }
 
     // Add this getter to your main component
-get debugInfo() {
-    return {
-        salesType: this.salesType,
-        showCityField: this.showCityField,
-        salesTypeOptions: this.salesTypeOptions,
-        selectedCityId: this.selectedCityId,
-        selectedCityName: this.selectedCityName
-    };
-}
+    get debugInfo() {
+        return {
+            salesType: this.salesType,
+            showCityField: this.showCityField,
+            salesTypeOptions: this.salesTypeOptions,
+            selectedCityId: this.selectedCityId,
+            selectedCityName: this.selectedCityName
+        };
+    }
 
-// Add this to renderedCallback
-renderedCallback() {
-    console.log('=== DEBUG INFO ===');
-    console.log('Sales Type:', this.salesType);
-    console.log('Show City Field:', this.showCityField);
-    console.log('Sales Type Options:', this.salesTypeOptions);
-    console.log('Selected City ID:', this.selectedCityId);
-    console.log('Selected City Name:', this.selectedCityName);
-    
-    // Check if city field element exists
-    const cityField = this.template.querySelector('c-city-lookup-component');
-    console.log('City Field in DOM:', !!cityField);
-}
+    // Add this to renderedCallback
+    renderedCallback() {
+        console.log('=== DEBUG INFO ===');
+        console.log('Sales Type:', this.salesType);
+        console.log('Show City Field:', this.showCityField);
+        console.log('Sales Type Options:', this.salesTypeOptions);
+        console.log('Selected City ID:', this.selectedCityId);
+        console.log('Selected City Name:', this.selectedCityName);
+
+        // Check if city field element exists
+        const cityField = this.template.querySelector('c-city-lookup-component');
+        console.log('City Field in DOM:', !!cityField);
+    }
 
     forceCurrencyUpdate() {
         // Create a deep copy to force re-render
@@ -230,7 +235,7 @@ renderedCallback() {
             .then(result => {
                 this.salesTypeOptions = result;
                 console.log('Sales Type Options loaded:', this.salesTypeOptions);
-                
+
                 // Auto-select Domestic if available
                 const domesticOption = this.salesTypeOptions.find(option => option.value === 'Domestic');
                 if (domesticOption && !this.salesType) {
@@ -246,16 +251,16 @@ renderedCallback() {
     // Update handler for sales type change
     async handleSalesTypeChange(event) {
         this.salesType = event.detail.value;
-        
+
         console.log('Sales Type changed to:', this.salesType);
-        
+
         // Reset City when sales type changes to non-Domestic
         if (this.salesType !== 'Domestic') {
             this.selectedCityId = '';
             this.selectedCityName = '';
             this.selectedCityType = '';
             this.isAClassCity = false;
-            
+
             // For non-Domestic, use default A Class rates
             if (this.userGradeName) {
                 await this.updateGradeDetailsWithSalesType(this.userGradeName, this.salesType);
@@ -269,19 +274,19 @@ renderedCallback() {
                 await this.updateGradeDetailsWithSalesType(this.userGradeName, this.salesType);
             }
         }
-        
+
         // Auto-change currency
         if (this.salesType === 'Export') {
             this.selectedCurrency = 'USD';
         } else if (this.salesType === 'Domestic') {
             this.selectedCurrency = 'INR';
         }
-        
+
         // Update transport modes for Export Outstation
         if (this.isExportOutstation) {
             await this.updateExportTransportModes();
         }
-        
+
         // Refresh all limitation texts
         this.refreshAllLimitationTexts();
     }
@@ -292,7 +297,7 @@ renderedCallback() {
             if (this.userGradeName) {
                 const exportTransportModes = await getExportTransportModes({ gradeName: this.userGradeName });
                 console.log('Export transport modes loaded:', exportTransportModes);
-                
+
                 // Update all line items with export transport modes
                 this.lineItems = this.lineItems.map(item => ({
                     ...item,
@@ -307,14 +312,14 @@ renderedCallback() {
     async updateGradeDetailsWithSalesType(gradeName, salesType) {
         try {
             console.log('Updating grade details with sales type:', gradeName, salesType);
-            
-            const gradeDetails = await getGradeDetailsWithSalesType({ 
-                gradeName: gradeName, 
-                salesType: salesType 
+
+            const gradeDetails = await getGradeDetailsWithSalesType({
+                gradeName: gradeName,
+                salesType: salesType
             });
-            
+
             console.log('Grade details with sales type received:', gradeDetails);
-            
+
             if (gradeDetails.success) {
                 // Store ALL rates (both A and B Class)
                 this.dailyAllowance = gradeDetails.dailyAllowance || 0;
@@ -328,16 +333,16 @@ renderedCallback() {
                 this.lodgingHotelBClass = gradeDetails.lodgingHotelBClass || gradeDetails.lodgingHotel || 0; // Add this
                 this.boardingFoodBClass = gradeDetails.boardingFoodBClass || gradeDetails.boardingFood || 0; // Add this
                 this.canEditDailyAllowance = gradeDetails.canEditDailyAllowance || false;
-                
+
                 console.log('All allowances loaded - A Class DA:', this.dailyAllowance, 'B Class DA:', this.dailyAllowanceBClass);
                 console.log('A Class Lodging:', this.lodgingHotel, 'B Class Lodging:', this.lodgingHotelBClass);
                 console.log('A Class Boarding:', this.boardingFood, 'B Class Boarding:', this.boardingFoodBClass);
-                
+
                 // For Domestic sales type, update allowances based on city if selected
                 if (salesType === 'Domestic' && this.selectedCityId) {
                     await this.updateAllowancesBasedOnCity();
                 }
-                
+
                 // Update transport modes from grade
                 if (gradeDetails.modeOfTravelOptions && gradeDetails.modeOfTravelOptions.length > 0) {
                     this.gradeTransportModeOptions = gradeDetails.modeOfTravelOptions.map(mode => ({
@@ -358,14 +363,14 @@ renderedCallback() {
                     }));
                     console.log('Updated mode of outstation travel options:', this.modeOfOutstationTravelOptions);
                 }
-                
+
                 // Update all line items with new transport options, rates, and limitation texts
                 this.lineItems = this.lineItems.map(item => {
                     const transportOptions = this.getTransportOptionsForItem(item.typeOfExpenseId);
                     const limitationText = this.computeLimitationText(item);
-                    
+
                     console.log('Updating line item with new grade data from sales type');
-                    
+
                     return {
                         ...item,
                         dailyAllowance: this.dailyAllowance,
@@ -376,7 +381,7 @@ renderedCallback() {
                         kmRate: this.getUpdatedKMRateForItem(item)
                     };
                 });
-                
+
                 if (gradeDetails.fallback) {
                     this.showToast('Info', `Using default grade configuration for ${gradeName}`, 'info');
                 } else {
@@ -385,7 +390,7 @@ renderedCallback() {
             } else {
                 this.showToast('Warning', gradeDetails.message || 'No grade configuration found', 'warning');
             }
-            
+
         } catch (error) {
             console.error('Error updating grade details with sales type:', error);
             this.showToast('Error', 'Failed to load grade configuration', 'error');
@@ -465,7 +470,7 @@ renderedCallback() {
             this.lineItems = this.lineItems.map(item => {
                 const transportOptions = this.getTransportOptionsForItem('', this.selectedVoucherType);
                 console.log('Initializing line item with transport options:', transportOptions);
-                
+
                 return {
                     ...item,
                     dailyAllowance: this.dailyAllowance,
@@ -494,7 +499,7 @@ renderedCallback() {
         // For Outstation Export - use Mode_of_Travel__c from grade with Sales_Type__c = 'Export'
         if (voucherType === 'Outstation' && this.salesType === 'Export') {
             console.log('Processing Outstation Export voucher type');
-            
+
             if (this.gradeTransportModeOptions.length > 0) {
                 console.log('Using export-specific modes:', this.gradeTransportModeOptions);
                 return this.gradeTransportModeOptions;
@@ -507,7 +512,7 @@ renderedCallback() {
         // For Outstation Domestic - use Mode_of_Outstation_Travel__c from grade
         if (voucherType === 'Outstation' && this.salesType === 'Domestic') {
             console.log('Processing Outstation Domestic voucher type');
-            
+
             if (this.modeOfOutstationTravelOptions.length > 0) {
                 console.log('Using outstation-specific modes:', this.modeOfOutstationTravelOptions);
                 return this.modeOfOutstationTravelOptions;
@@ -519,8 +524,8 @@ renderedCallback() {
 
         // For other voucher types - apply expense type filtering
         console.log('Processing other voucher type:', voucherType);
-        const availableModes = this.gradeTransportModeOptions.length > 0 ? 
-                            this.gradeTransportModeOptions : this.allTransportModeOptions;
+        const availableModes = this.gradeTransportModeOptions.length > 0 ?
+            this.gradeTransportModeOptions : this.allTransportModeOptions;
 
         if (!typeOfExpenseId) {
             console.log('No expense type ID, returning available modes');
@@ -534,7 +539,7 @@ renderedCallback() {
         }
 
         console.log('Expense type found:', expenseType.name);
-        
+
         if (expenseType.name === 'Public') {
             const publicModes = availableModes.filter(mode => mode.value === 'Bus');
             console.log('Filtered for Public expense:', publicModes);
@@ -544,7 +549,7 @@ renderedCallback() {
             console.log('Filtered for Private expense:', privateModes);
             return privateModes;
         }
-        
+
         console.log('No specific filtering, returning all available modes');
         return availableModes;
     }
@@ -572,14 +577,14 @@ renderedCallback() {
         const empId = event.detail.value;
         this.selectedEmployeeId = empId;
         const emp = this.employeeOptions.find(e => e.value === empId);
-        
+
         if (emp) {
             this.division = emp.division;
             this.zone = emp.zone;
             this.userGradeName = emp.grade || '';
-            
+
             console.log('Selected employee grade:', emp.grade);
-            
+
             if (emp.grade) {
                 // Use sales type if available, otherwise use default grade details
                 if (this.salesType) {
@@ -588,14 +593,14 @@ renderedCallback() {
                     // Fallback to original method without sales type
                     try {
                         const gradeDetails = await getGradeDetails({ gradeName: emp.grade });
-                        
+
                         console.log('Grade details received (without sales type):', gradeDetails);
-                        
+
                         this.dailyAllowance = gradeDetails.dailyAllowance || 0;
                         this.fourWheelerPerKm = gradeDetails.fourWheelerPerKm || 0;
                         this.twoWheelerPerKm = gradeDetails.twoWheelerPerKm || 0;
                         this.canEditDailyAllowance = gradeDetails.canEditDailyAllowance || false;
-                        
+
                         // Update transport modes from grade
                         if (gradeDetails.modeOfTravelOptions && gradeDetails.modeOfTravelOptions.length > 0) {
                             this.gradeTransportModeOptions = gradeDetails.modeOfTravelOptions.map(mode => ({
@@ -607,7 +612,7 @@ renderedCallback() {
                             this.gradeTransportModeOptions = [];
                             console.log('No transport modes found in grade for employee:', emp.grade);
                         }
-                        
+
                         // Update all line items with new transport options and recalculate totals
                         this.lineItems = this.lineItems.map(item => {
                             const transportOptions = this.getTransportOptionsForItem(item.typeOfExpenseId);
@@ -619,15 +624,15 @@ renderedCallback() {
                                 // Auto-update KM rate if transport mode is set
                                 kmRate: this.getUpdatedKMRateForItem(item)
                             };
-                            
+
                             // Recalculate total with new daily allowance
                             updatedItem.total = this.calculateLineItemTotal(updatedItem);
-                            
+
                             return updatedItem;
                         });
-                        
+
                         console.log('Updated line items with new grade data');
-                        
+
                     } catch (error) {
                         console.error('Error fetching grade details:', error);
                         this.dailyAllowance = 0;
@@ -719,7 +724,7 @@ renderedCallback() {
         this.updateLineItem(idx, 'isPrivate', isPrivate);
         this.updateLineItem(idx, 'isPublic', isPublic);
         this.updateLineItem(idx, 'isFoodOrHotel', isFoodOrHotel);
-        
+
         // Update disable flags
         this.updateLineItem(idx, 'disableTransportFields', isFoodOrHotel);
 
@@ -763,6 +768,9 @@ renderedCallback() {
         console.log('Mode of Travel changed for index:', idx);
         console.log('Selected Mode of Travel:', value);
 
+        this.selectedModeOfTravel = value;
+
+
         // Update the field
         this.updateLineItem(idx, 'modeOfTravel', value);
 
@@ -786,7 +794,7 @@ renderedCallback() {
         const amountClaimed = parseFloat(item.amountClaimed) || 0;
         const dailyAllowance = parseFloat(item.dailyAllowance) || 0;
         const total = amountClaimed + dailyAllowance;
-        
+
         this.updateLineItem(index, 'total', total);
     }
 
@@ -794,10 +802,10 @@ renderedCallback() {
     handleAmountClaimedChange(event) {
         const idx = parseInt(event.target.dataset.index, 10);
         const value = parseFloat(event.target.value) || 0;
-        
+
         // This will automatically trigger total calculation in updateLineItem
         this.updateLineItem(idx, 'amountClaimed', value);
-        
+
         // For Local vouchers, also update the calculated amount display
         if (this.selectedVoucherType === 'Local') {
             this.updateCalculatedAmountDisplay(idx);
@@ -826,7 +834,7 @@ renderedCallback() {
         const idx = parseInt(event.target.dataset.index, 10);
         const value = parseFloat(event.target.value) || 0;
         this.updateLineItem(idx, 'tollParking', value);
-        
+
         // Auto-calculate amount for Local voucher
         if (this.selectedVoucherType === 'Local') {
             const calculatedAmount = this.calculateAmountClaimedForLocal(this.lineItems[idx]);
@@ -843,10 +851,10 @@ renderedCallback() {
     handleStartKMChange(event) {
         const idx = parseInt(event.target.dataset.index, 10);
         const value = parseFloat(event.target.value) || 0;
-        
+
         // Update the field
         this.updateLineItem(idx, 'startKM', value);
-        
+
         // Auto-calculate amount for Local voucher
         if (this.selectedVoucherType === 'Local') {
             const calculatedAmount = this.calculateAmountClaimedForLocal(this.lineItems[idx]);
@@ -858,10 +866,10 @@ renderedCallback() {
     handleEndKMChange(event) {
         const idx = parseInt(event.target.dataset.index, 10);
         const value = parseFloat(event.target.value) || 0;
-        
+
         // Update the field
         this.updateLineItem(idx, 'endKM', value);
-        
+
         // Auto-calculate amount for Local voucher
         if (this.selectedVoucherType === 'Local') {
             const calculatedAmount = this.calculateAmountClaimedForLocal(this.lineItems[idx]);
@@ -873,10 +881,10 @@ renderedCallback() {
     handleKMRateChange(event) {
         const idx = parseInt(event.target.dataset.index, 10);
         const value = parseFloat(event.target.value) || 0;
-        
+
         // Update the field
         this.updateLineItem(idx, 'kmRate', value);
-        
+
         // Auto-calculate amount for Local voucher
         if (this.selectedVoucherType === 'Local') {
             const calculatedAmount = this.calculateAmountClaimedForLocal(this.lineItems[idx]);
@@ -896,23 +904,23 @@ renderedCallback() {
         this.lineItems = this.lineItems.map((item, i) => {
             if (i === index) {
                 const updatedItem = { ...item, [field]: value };
-                
+
                 // Recompute disabled states when relevant fields change
                 if (field === 'disableTransportFields' || field === 'disableTransportMode' || field === 'isFoodOrHotel') {
                     updatedItem.computedTransportDisabled = updatedItem.disableTransportFields || updatedItem.disableTransportMode;
                     updatedItem.computedLocationDisabled = updatedItem.disableTransportFields;
                 }
-                
+
                 // Recalculate total whenever amountClaimed or dailyAllowance changes
                 if (field === 'amountClaimed' || field === 'dailyAllowance') {
                     updatedItem.total = this.calculateLineItemTotal(updatedItem);
                 }
-                
+
                 // Update limitation text when expense type changes
                 if (field === 'typeOfExpenseId') {
                     updatedItem.limitationText = this.computeLimitationText(updatedItem);
                 }
-                
+
                 return updatedItem;
             }
             return item;
@@ -940,7 +948,7 @@ renderedCallback() {
             } else if (label.includes('food')) {
                 limitation = `Limit: ${this.currencySymbol}${this.boardingFood}`;
             }
-        } 
+        }
         // For Export sales type, use existing logic (no city type dependency)
         else if (this.salesType === 'Export') {
             if (label.includes('hotel')) {
@@ -956,26 +964,26 @@ renderedCallback() {
 
     async handleCitySelected(event) {
         this.selectedCityId = event.detail.recordId;
-        
+
         // Get city details including city type
         try {
             const cityDetails = await getCityDetails({ cityId: this.selectedCityId });
-            
+
             if (cityDetails.success) {
                 this.selectedCityName = cityDetails.cityName;
                 this.selectedCityType = cityDetails.cityType || '';
                 this.isAClassCity = cityDetails.isAClassCity || false;
-                
+
                 console.log('City selected:', this.selectedCityName, 'Type:', this.selectedCityType, 'Is A Class:', this.isAClassCity);
-                
+
                 // Update allowances based on city type for Domestic sales type
                 if (this.salesType === 'Domestic') {
                     await this.updateAllowancesBasedOnCity();
                 }
-                
+
                 // Refresh limitation texts for all line items
                 this.refreshAllLimitationTexts();
-                
+
                 this.showToast('Success', `City ${this.selectedCityName} selected`, 'success');
             } else {
                 this.showToast('Error', cityDetails.message || 'Failed to load city details', 'error');
@@ -990,11 +998,11 @@ renderedCallback() {
     async updateAllowancesBasedOnCity() {
         if (this.salesType === 'Domestic' && this.userGradeName) {
             try {
-                const gradeDetails = await getGradeDetailsWithSalesType({ 
-                    gradeName: this.userGradeName, 
-                    salesType: 'Domestic' 
+                const gradeDetails = await getGradeDetailsWithSalesType({
+                    gradeName: this.userGradeName,
+                    salesType: 'Domestic'
                 });
-                
+
                 if (gradeDetails.success) {
                     // Update ALL allowances based on city type
                     if (this.isAClassCity) {
@@ -1008,25 +1016,25 @@ renderedCallback() {
                         this.lodgingHotel = gradeDetails.lodgingHotelBClass || gradeDetails.lodgingHotel || 0;
                         this.boardingFood = gradeDetails.boardingFoodBClass || gradeDetails.boardingFood || 0;
                     }
-                    
+
                     console.log('Updated allowances based on city type - A Class:', this.isAClassCity);
                     console.log('Daily Allowance:', this.dailyAllowance);
                     console.log('Lodging Hotel:', this.lodgingHotel);
                     console.log('Boarding Food:', this.boardingFood);
-                    
+
                     // Update all line items with new daily allowance
                     this.lineItems = this.lineItems.map(item => {
                         const updatedItem = {
                             ...item,
                             dailyAllowance: this.dailyAllowance
                         };
-                        
+
                         // Recalculate total
                         updatedItem.total = this.calculateLineItemTotal(updatedItem);
-                        
+
                         // Update limitation text
                         updatedItem.limitationText = this.computeLimitationText(updatedItem);
-                        
+
                         return updatedItem;
                     });
                 }
@@ -1092,7 +1100,7 @@ renderedCallback() {
         if (type === 'local') {
             this.updateLineItem(index, 'transportMode', transportMode);
             this.updateLineItem(index, 'kmRate', kmRate);
-            
+
             // Auto-calculate amount claimed for Local voucher
             if (this.selectedVoucherType === 'Local') {
                 const calculatedAmount = this.calculateAmountClaimedForLocal({
@@ -1199,7 +1207,7 @@ renderedCallback() {
             const amountClaimed = parseFloat(item.amountClaimed) || 0;
             const dailyAllowance = parseFloat(item.dailyAllowance) || 0;
             const total = amountClaimed + dailyAllowance;
-            
+
             return {
                 ...item,
                 total: total
@@ -1224,16 +1232,16 @@ renderedCallback() {
     addLineItem() {
         const transportOptions = this.getTransportOptionsForItem('', this.selectedVoucherType);
         console.log('Adding new line item with transport options:', transportOptions);
-        
+
         const initialAmountClaimed = 0;
         const initialDailyAllowance = this.dailyAllowance || 0;
         const initialTotal = initialAmountClaimed + initialDailyAllowance;
-        
+
         // Pre-compute disabled states
         const computedTransportDisabled = false;
         const computedLocationDisabled = false;
         const limitationText = ''; // Initialize limitation text
-        
+
         const newItem = {
             key: this.nextKey++,
             typeOfExpenseId: '',
@@ -1308,7 +1316,7 @@ renderedCallback() {
     handleDailyAllowanceChange(event) {
         const idx = parseInt(event.target.dataset.index, 10);
         const value = parseFloat(event.target.value) || 0;
-        
+
         // This will automatically trigger total calculation in updateLineItem
         this.updateLineItem(idx, 'dailyAllowance', value);
     }
@@ -1372,7 +1380,7 @@ renderedCallback() {
             this.lineItems = this.lineItems.map(item => {
                 const transportOptions = this.getTransportOptionsForItem('', this.selectedVoucherType);
                 console.log('Setting transport options for item:', transportOptions);
-                
+
                 return {
                     ...item,
                     typeOfExpenseId: '',
@@ -1399,8 +1407,8 @@ renderedCallback() {
                     modeOfTravel: '',
                     disableTransportFields: false,
                     // Preserve daily allowance for Local and Outstation vouchers
-                    dailyAllowance: (this.selectedVoucherType === 'Local' || this.selectedVoucherType === 'Outstation') ? 
-                                (item.dailyAllowance || this.dailyAllowance) : 0,
+                    dailyAllowance: (this.selectedVoucherType === 'Local' || this.selectedVoucherType === 'Outstation') ?
+                        (item.dailyAllowance || this.dailyAllowance) : 0,
                     disableDailyAllowance: !this.canEditDailyAllowance
                 };
             });
@@ -1476,7 +1484,7 @@ renderedCallback() {
                     (this.selectedVoucherType === 'Outstation' ? item.outstationToLocation : null),
                 Mode_of_Transport__c: this.selectedVoucherType === 'Local' ? item.transportMode :
                     (this.selectedVoucherType === 'Outstation' ? item.outstationTransportMode : null),
-                    Mode_of_Travel__c: this.showModeOfTravelField ? item.modeOfTravel : null, 
+                Mode_of_Travel__c: this.showModeOfTravelField ? item.modeOfTravel : null,
                 Start_KM__c: this.selectedVoucherType === 'Local' ? (item.startKM || null) : null,
                 End_KM__c: this.selectedVoucherType === 'Local' ? (item.endKM || null) : null,
                 KM_Rate__c: this.selectedVoucherType === 'Local' ? item.kmRate : null,

@@ -57,7 +57,8 @@
                     </div>
 
                     <div class="slds-col slds-size_1-of-2 slds-medium-size_1-of-4">
-                        <lightning-input type="text" label="Grade" value={userGradeName} disabled variant="label-stacked">
+                        <lightning-input type="text" label="Grade" value={userGradeName} disabled
+                            variant="label-stacked">
                         </lightning-input>
                     </div>
 
@@ -67,13 +68,8 @@
                     </div> -->
 
                     <div class="slds-col slds-size_1-of-2 slds-medium-size_1-of-4">
-                        <lightning-combobox
-                            name="salesType"
-                            label="Sales Type"
-                            value={salesType}
-                            options={salesTypeOptions}
-                            onchange={handleSalesTypeChange}
-                            required>
+                        <lightning-combobox name="salesType" label="Sales Type" value={salesType}
+                            options={salesTypeOptions} onchange={handleSalesTypeChange} required>
                         </lightning-combobox>
                     </div>
 
@@ -88,10 +84,9 @@
                         </lightning-combobox>
                     </div>
 
-                    <div class="slds-col slds-size_1-of-2 slds-medium-size_1-of-4" style="margin-top: -17px;" if:true={showCityField}>
-                        <c-city-lookup-component 
-                            onselected={handleCitySelected}
-                            selected-record-id={selectedCityId} 
+                    <div class="slds-col slds-size_1-of-2 slds-medium-size_1-of-4" style="margin-top: -17px;"
+                        if:true={showCityField}>
+                        <c-city-lookup-component onselected={handleCitySelected} selected-record-id={selectedCityId}
                             selected-record-name={selectedCityName}>
                         </c-city-lookup-component>
                     </div>
@@ -155,11 +150,11 @@
                                     style="text-align: center; font-size: 13px; background-color: #9d0b0f; font-weight: bold; padding: 4px 6px; color: white;">
                                     To Location
                                 </th>
-                                <th class="start-km" if:true={showKMFields}
+                                <th class="start-km" if:true={showKMOrTollParkingField}
                                     style="text-align: center; font-size: 13px; background-color: #9d0b0f; font-weight: bold; padding: 4px 6px; color: white;">
                                     Start KM
                                 </th>
-                                <th class="end-km" if:true={showKMFields}
+                                <th class="end-km" if:true={showKMOrTollParkingField}
                                     style="text-align: center; font-size: 13px; background-color: #9d0b0f; font-weight: bold; padding: 4px 6px; color: white;">
                                     End KM
                                 </th>
@@ -257,8 +252,9 @@
                                         </lightning-combobox>
                                     </td>
                                     <td if:true={showOutstationFields}>
-                                        <lightning-combobox name="outstationTransportMode" value={item.outstationTransportMode} 
-                                            data-index={index} options={item.transportOptions}
+                                        <lightning-combobox name="outstationTransportMode"
+                                            value={item.outstationTransportMode} data-index={index}
+                                            options={item.transportOptions}
                                             onchange={handleOutstationTransportModeChange} variant="label-hidden"
                                             required={showOutstationFields} disabled={item.computedTransportDisabled}>
                                         </lightning-combobox>
@@ -280,24 +276,26 @@
                                     <td if:true={showOutstationFields}>
                                         <lightning-input type="text" value={item.outstationFromLocation}
                                             data-index={index} onchange={handleOutstationFromLocationChange}
-                                            variant="label-hidden" required={showOutstationFields} disabled={item.computedLocationDisabled}>
+                                            variant="label-hidden" required={showOutstationFields}
+                                            disabled={item.computedLocationDisabled}>
                                         </lightning-input>
                                     </td>
 
                                     <td if:true={showOutstationFields}>
                                         <lightning-input type="text" value={item.outstationToLocation}
                                             data-index={index} onchange={handleOutstationToLocationChange}
-                                            variant="label-hidden" required={showOutstationFields} disabled={item.computedLocationDisabled}>
+                                            variant="label-hidden" required={showOutstationFields}
+                                            disabled={item.computedLocationDisabled}>
                                         </lightning-input>
                                     </td>
 
-                                    <td if:true={showKMFields}>
+                                    <td if:true={showKMOrTollParkingField}>
                                         <lightning-input type="number" value={item.startKM} data-index={index}
                                             onchange={handleStartKMChange} variant="label-hidden" step="0.1"
                                             required={item.isPrivate} disabled={item.disableKMFields}>
                                         </lightning-input>
                                     </td>
-                                    <td if:true={showKMFields}>
+                                    <td if:true={showKMOrTollParkingField}>
                                         <lightning-input type="number" value={item.endKM} data-index={index}
                                             onchange={handleEndKMChange} variant="label-hidden" step="0.1"
                                             required={item.isPrivate} disabled={item.disableKMFields}>
@@ -349,7 +347,7 @@
                                             </lightning-input>
                                         </div>
                                         <template if:true={showLimitation}>
-                                            <div class="slds-text-color_weak slds-text-align_center slds-m-top_xx-small" 
+                                            <div class="slds-text-color_weak slds-text-align_center slds-m-top_xx-small"
                                                 style="font-size: 0.75rem;">
                                                 {item.limitationText}
                                             </div>
@@ -361,8 +359,9 @@
                                             <span class="slds-form-element__addon">
                                                 {currencySymbol}
                                             </span>
-                                            <lightning-input type="number" value={item.dailyAllowance} data-index={index}
-                                                onchange={handleDailyAllowanceChange} variant="label-hidden" step="0.01"
+                                            <lightning-input type="number" value={item.dailyAllowance}
+                                                data-index={index} onchange={handleDailyAllowanceChange}
+                                                variant="label-hidden" step="0.01"
                                                 disabled={item.disableDailyAllowance}>
                                             </lightning-input>
                                         </div>

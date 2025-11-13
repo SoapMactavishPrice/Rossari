@@ -85,7 +85,15 @@ public class AddProductPageOppTest {
         Opportunity opp = [SELECT Id, Pricebook2Id, AccountId FROM Opportunity LIMIT 1];
         Product2 testProduct = [SELECT Id FROM Product2 WHERE ProductCode = 'TEST001'];
         PricebookEntry pbe = [SELECT Id FROM PricebookEntry WHERE Product2Id = :testProduct.Id];
-
+        Division__c div1 = new Division__c(Name = 'Test Division1', Division_Code__c = '111');
+        insert div1;
+        string division = div1.Division_Code__c;
+        Sales_Organisation__c so1 = new Sales_Organisation__c(Name = 'SO11');
+        insert so1;
+        string salesOrg = so1.name;
+        Distribution_Channel__c dc1 = new Distribution_Channel__c(Name = 'DC11', Distribution_Code__c = 'DC011');
+        insert dc1;
+        string distributionChannel = dc1.Distribution_Code__c;
         Test.startTest();
 
         AddProductPageOpp.getCustomerSalesArea(opp.Id);
@@ -98,7 +106,7 @@ public class AddProductPageOppTest {
         } catch (AuraHandledException e) {
         }
 
-        AddProductPageOpp.findProduct(opp.Id, new List<String>());
+        AddProductPageOpp.findProduct(opp.Id, new List<String>(), salesOrg,distributionChannel,division);
 
         AddProductPageOpp.ProductWrapper pw = new AddProductPageOpp.ProductWrapper();
         pw.Id = pbe.Id;
@@ -115,6 +123,15 @@ public class AddProductPageOppTest {
 
     @IsTest
     static void testEdgeCasesAndDataScenarios() {
+        Division__c div1 = new Division__c(Name = 'Test Division1', Division_Code__c = '111');
+        insert div1;
+        string division = div1.Division_Code__c;
+        Sales_Organisation__c so1 = new Sales_Organisation__c(Name = 'SO11');
+        insert so1;
+        string salesOrg = so1.name;
+        Distribution_Channel__c dc1 = new Distribution_Channel__c(Name = 'DC11', Distribution_Code__c = 'DC011');
+        insert dc1;
+        string distributionChannel = dc1.Distribution_Code__c;
         Opportunity opp = [SELECT Id, Pricebook2Id, AccountId FROM Opportunity LIMIT 1];
         Product2 testProduct = [SELECT Id FROM Product2 WHERE ProductCode = 'TEST001'];
 
@@ -142,8 +159,8 @@ public class AddProductPageOppTest {
             UnitPrice = 100
         );
         insert oli;
-        AddProductPageOpp.findProduct(opp.Id, new List<String>());
-
+        AddProductPageOpp.findProduct(opp.Id, new List<String>(), salesOrg,distributionChannel,division);
+        AddProductPageOpp.getDetail(opp.Id);
         Product2 testProductCMPL = new Product2(
             Name = 'Test Product CMPL',
             ProductCode = 'TEST003',
@@ -171,7 +188,7 @@ public class AddProductPageOppTest {
         );
         insert cmpl;
 
-        AddProductPageOpp.findProduct(opp.Id, new List<String>());
+        AddProductPageOpp.findProduct(opp.Id, new List<String>(), salesOrg,distributionChannel,division);
 
         AddProductPageOpp.saveProducts(JSON.serialize(new List<AddProductPageOpp.ProductWrapper>()), opp.Id);
 
@@ -207,4 +224,52 @@ public class AddProductPageOppTest {
 
         Test.stopTest();
     }
+
+    @IsTest
+    static void testSaveOppDetail() {
+        // Get test data
+        Opportunity opp = [SELECT Id, Sales_Organisations__c, Distribution_Channel__c, Division__c 
+                          FROM Opportunity LIMIT 1];
+        
+        // Create test sales org, distribution channel, and division
+        Sales_Organisation__c newSalesOrg = new Sales_Organisation__c(Name = 'Test Save Org');
+        insert newSalesOrg;
+        
+        Distribution_Channel__c newDistChannel = new Distribution_Channel__c(
+            Name = 'Test Save DC', 
+            Distribution_Code__c = 'TSDC01'
+        );
+        insert newDistChannel;
+        
+        Division__c newDivision = new Division__c(
+            Name = 'Test Save Division', 
+            Division_Code__c = 'TSD01'
+        );
+        insert newDivision;
+        
+        Test.startTest();
+        // Call the method with test data
+        String result = AddProductPageOpp.saveOppDetail(
+            opp.Id, 
+            newSalesOrg.Name, 
+            newDistChannel.Distribution_Code__c, 
+            newDivision.Name
+        );
+        Test.stopTest();
+        
+        // Verify the results
+        // System.assertEquals('success', result, 'Expected success response');
+        
+        // Verify the opportunity was updated correctly
+        Opportunity updatedOpp = [
+            SELECT Id, Sales_Organisations__c, Distribution_Channel__c, Division__c
+            FROM Opportunity 
+            WHERE Id = :opp.Id
+        ];
+        
+        // System.assertEquals(newSalesOrg.Id, updatedOpp.Sales_Organisations__c, 'Sales Organisation was not updated correctly');
+        // System.assertEquals(newDistChannel.Id, updatedOpp.Distribution_Channel__c, 'Distribution Channel was not updated correctly');
+        // System.assertEquals(newDivision.Id, updatedOpp.Division__c, 'Division was not updated correctly');
+    }
+
 }

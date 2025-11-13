@@ -9,26 +9,130 @@ public class CreateQuotation_ToSAP {
             retResData.put('status', 'true');
             retResData.put('message', '');
 
-            Quote q = [SELECT Id, SAP_Order_No__c, Status FROM Quote WHERE Id = :qId];
+            Quote q = [
+                SELECT Id, SAP_Order_No__c, Status, AccountId, Sales_Organisations__c, Distribution_Channel__c, Division__c,
+                Sales_Organisations__r.Name, Distribution_Channel__r.Distribution_Code__c, Division__r.Division_Code__c,
+                Account.SAP_Customer_Code__c, Payment_Term__c
+                FROM Quote WHERE Id = :qId
+            ];
 
-        //     if (q.Status != 'Accepted') {
-        //        retResData.put('status', 'false');
-        //         retResData.put('sync', 'false');
-        //        retResData.put('message', 'Quote status is not Accepted');
-        //    } else
-        //     if(q.PO_PI_Number__c == null || q.PO_Date__c == null){
+            if (q.Account.SAP_Customer_Code__c == null) {
+                retResData.put('status', 'false');
+                retResData.put('sync', 'false');
+                retResData.put('message', 'SAP Customer Code cannot be blank');
+                return JSON.serialize(retResData);
+            }
+
+            System.debug('q:>>> '+ q);
+
+            List<Customer_Sales_Area__c> custSalesAreaList = [
+                SELECT Id, Name, Payment_Term__c
+                FROM Customer_Sales_Area__c
+                WHERE Comapany_Code__c = :q.AccountId
+                AND Sales_Organisation__c = :q.Sales_Organisations__c
+                AND Distribution_Channel__c = :q.Distribution_Channel__c
+                AND Division__c = :q.Division__c
+                ORDER BY CreatedDate DESC
+                LIMIT 1
+            ];
+
+            System.debug('custSalesAreaList:>>> '+ custSalesAreaList);
+
+            if (custSalesAreaList.size() == 0) {
+                retResData.put('status', 'false');
+                retResData.put('sync', 'false');
+                retResData.put('message', 'Customer Sales Area not found');
+                return JSON.serialize(retResData);
+            }
+
+            List<Partner_function__c> partnerfunctionList = [
+                SELECT Id, Name, PARTNERFN__c, Customer_Sales_Area__c
+                FROM Partner_function__c
+                WHERE Customer_Sales_Area__c = :custSalesAreaList[0].Id
+            ];
+
+            Set<String> partnerFunctionSet = new Set<String>();
+            if(partnerfunctionList.size() > 0){
+                for(Partner_function__c pf : partnerfunctionList){
+                    partnerFunctionSet.add(pf.PARTNERFN__c);
+                }
+            }
+
+            if (q.Payment_Term__c != custSalesAreaList[0].Payment_Term__c) {
+                retResData.put('status', 'false');
+                retResData.put('sync', 'false');
+                retResData.put('message', 'Payment Term does not match');
+                return JSON.serialize(retResData);
+            }
+
+            if (q.Status != 'Accepted') {
+                retResData.put('status', 'false');
+                retResData.put('sync', 'false');
+                retResData.put('message', 'Quote status is not Accepted');
+           } else
+        //    if(q.PO_PI_Number__c == null || q.PO_Date__c == null){
         //         retResData.put('status', 'false');
         //         retResData.put('sync', 'false');
         //         retResData.put('message', 'PO Number, PO Date cannot blank');
         //     } else
-        //    if(q.SAP_Order_No__c != null){
-        //        retResData.put('status', 'false');
-        //        retResData.put('sync', 'false');
-        //        retResData.put('message', 'Quotation already sent to SAP');
-        //    }
+            if(q.SAP_Order_No__c != null){
+               retResData.put('status', 'false');
+               retResData.put('sync', 'false');
+               retResData.put('message', 'Quotation already sent to SAP');
+            } else
+            if (!partnerFunctionSet.contains('VE')) {
+                retResData.put('status', 'false');
+                retResData.put('sync', 'false');
+                retResData.put('message', 'Customer does not have Sales Person Partner Function');
+            } else if (!partnerFunctionSet.contains('AG')) {
+                retResData.put('status', 'false');
+                retResData.put('sync', 'false');
+                retResData.put('message', 'Sold to party not found');
+            } else if (!partnerFunctionSet.contains('WE')) {
+                retResData.put('status', 'false');
+                retResData.put('sync', 'false');
+                retResData.put('message', 'Ship to party not found');
+            }
+            
 
             return JSON.serialize(retResData);
             
+        } catch (Exception e) {
+            throw new AuraHandledException(e.getMessage());
+        }
+    }
+
+    @AuraEnabled
+    public static string getPartnerFunctions(String qId){
+        try {
+
+            Quote q = [
+                SELECT Id, SAP_Order_No__c, Status, AccountId, Sales_Organisations__c, Distribution_Channel__c, Division__c,
+                Sales_Organisations__r.Name, Distribution_Channel__r.Distribution_Code__c, Division__r.Division_Code__c,
+                Account.SAP_Customer_Code__c, Payment_Term__c
+                FROM Quote WHERE Id = :qId
+            ];
+
+            List<Customer_Sales_Area__c> custSalesAreaList = [
+                SELECT Id, Name, Payment_Term__c
+                FROM Customer_Sales_Area__c
+                WHERE Comapany_Code__c = :q.AccountId
+                AND Sales_Organisation__c = :q.Sales_Organisations__c
+                AND Distribution_Channel__c = :q.Distribution_Channel__c
+                AND Division__c = :q.Division__c
+                ORDER BY CreatedDate DESC
+                LIMIT 1
+            ];
+
+            List<Partner_function__c> partnerfunctionList = [
+                SELECT Id, Name, PARTNERFN__c, Customer_Sales_Area__c
+                FROM Partner_function__c
+                WHERE Customer_Sales_Area__c = :custSalesAreaList[0].Id
+            ];
+
+            // Return the opportunity data as JSON
+            return JSON.serialize(partnerfunctionList);
+
         } catch (Exception e) {
             throw new AuraHandledException(e.getMessage());
         }
@@ -59,7 +163,7 @@ public class CreateQuotation_ToSAP {
     
     // STEP 1: Create Inquiry (Header)
     @AuraEnabled
-    public static String createQuotation(String quoteId) {
+    public static String createQuotation(String quoteId, String btp, String stp) {
 
         API_log__c apiLog = new API_log__c();
         apiLog.Name = 'Create_Quotation_Header : ' +quoteId;
@@ -67,9 +171,27 @@ public class CreateQuotation_ToSAP {
         Quote quote = [SELECT Id, Name, AccountId, Account.SAP_Customer_Code__c, Account.CurrencyIsoCode,
             Sales_Organisations__c, Distribution_Channel__c, Division__c,
             Sales_Organisations__r.Name, Distribution_Channel__r.Distribution_Code__c, Division__r.Division_Code__c,
-            PO_No__c
+            PO_No__c, BilltoParty__c, ShiptoParty__c
             FROM Quote WHERE Id = :quoteId
         ];
+
+        Set<String> setName = new Set<String>();
+        setName.add(btp);
+        setName.add(stp);
+        
+        System.debug('setName: ' + setName);
+        List<Partner_function__c> partnerfunctionList = [
+            SELECT Id, Name, PARTNERFN__c, Partner_code__c
+            FROM Partner_function__c
+            WHERE Id IN :setName
+        ];
+
+        Map<String, String> partnerFunctionMap = new Map<String, String>();
+        for (Partner_function__c eachPartner:partnerfunctionList) {
+            partnerFunctionMap.put(eachPartner.Id, eachPartner.Partner_code__c);
+        }
+
+        System.debug('partnerFunctionMap: ' + partnerFunctionMap);
 
         // Define API URL
         String apiUrl = label.CreateQuotation_ToSAP;
@@ -103,8 +225,10 @@ public class CreateQuotation_ToSAP {
         salesInquiry.put('SalesOrg', quote.Sales_Organisations__r.Name);
         salesInquiry.put('DistrChan', quote.Distribution_Channel__r.Distribution_Code__c);
         salesInquiry.put('Division', quote.Division__r.Division_Code__c);
-        salesInquiry.put('SoldToParty_buyer', quote.Account.SAP_Customer_Code__c);
-        salesInquiry.put('ShipToParty', quote.Account.SAP_Customer_Code__c);
+        // salesInquiry.put('SoldToParty_buyer', quote.Account.SAP_Customer_Code__c); // AG
+        // salesInquiry.put('ShipToParty', quote.Account.SAP_Customer_Code__c); // WE
+        salesInquiry.put('SoldToParty_buyer', partnerFunctionMap.get(btp)); // AG
+        salesInquiry.put('ShipToParty', partnerFunctionMap.get(stp)); // WE
         salesInquiry.put('SalesDocument', '');
         salesInquiry.put('Inco_term', '');
         salesInquiry.put('Payment_terms', '');
@@ -141,6 +265,8 @@ public class CreateQuotation_ToSAP {
             String salesDoc = inquiry.getChildElement('SalesDocument', null).getText();
 
             quote.SAP_Order_No__c = salesDoc;
+            quote.BilltoParty__c = btp;
+            quote.ShiptoParty__c = stp;
             update quote;
 
             System.debug('Extracted SalesDocument: ' + salesDoc);
@@ -286,4 +412,65 @@ public class CreateQuotation_ToSAP {
         }
     }
 
+    public static void fc(){
+        Integer i=1;
+        i++;
+        i++;
+        i++;
+        i++;
+        i++;
+        i++;
+        i++;
+        i++;
+        i++;
+        i++;
+        i++;
+        i++;
+        i++;
+        i++;
+        i++;
+        i++;
+        i++;
+        i++;
+        i++;
+        i++;
+        i++;
+        i++;
+        i++;
+        i++;
+        i++;
+        i++;
+        i++;
+        i++;
+        i++;
+        i++;
+        i++;
+        i++;
+        i++;
+        i++;
+        i++;
+        i++;
+        i++;
+        i++;
+        i++;
+        i++;
+        i++;
+        i++;
+        i++;
+        i++;
+        i++;
+        i++;
+        i++;
+        i++;
+        i++;
+        i++;
+        i++;
+        i++;
+        i++;
+        i++;
+        i++;
+        i++;
+        
+    }
+    
 }

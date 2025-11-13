@@ -54,6 +54,22 @@
                             </label>
                             <lightning-input-field field-name="PO_No__c" variant="label-hidden"></lightning-input-field>
                         </lightning-layout-item>
+                        <lightning-layout-item size="6" padding="around-small" class="pt0">
+                            <label class="slds-form-element__label">
+                                <span style="color: red;">* </span>
+                                Payment Term
+                            </label>
+                            <lightning-input-field field-name="Payment_Term__c" variant="label-hidden"
+                                disabled></lightning-input-field>
+                        </lightning-layout-item>
+                        <lightning-layout-item size="6" padding="around-small" class="pt0">
+                            <label class="slds-form-element__label">
+                                <span style="color: red;">* </span>
+                                Inco Terms
+                            </label>
+                            <lightning-input-field field-name="Inco_Terms__c" variant="label-hidden"
+                                disabled></lightning-input-field>
+                        </lightning-layout-item>
                         <!-- <lightning-layout-item size="6" padding="around-small" class="pt0">
                             <label class="slds-form-element__label">
                                 <span style="color: red;">* </span>
@@ -62,14 +78,24 @@
                             <lightning-input-field field-name="RequestedDeliveryDate__c" variant="label-hidden"
                                 disabled></lightning-input-field>
                         </lightning-layout-item> -->
-                        <!-- <lightning-layout-item size="12" padding="around-small" class="pt0">
-                            <label class="slds-form-element__label"><span style="color: red;">* </span>Partner
-                                Function</label>
-                            <lightning-combobox name="partnerfunction" variant="label-hidden"
-                                options={partnerfunctionOptions} placeholder="Select Partner Function"
-                                onchange={handleInputChange} value={partnerfunctionValue}
-                                data-name="partnerfunctiondata"></lightning-combobox>
-                        </lightning-layout-item> -->
+                        <lightning-layout-item size="6" padding="around-small" class="pt0">
+                            <label class="slds-form-element__label">
+                                <span style="color: red;">* </span>Bill to party
+                            </label>
+                            <lightning-combobox name="billtoparty" variant="label-hidden"
+                                options={billtopartyOptions} placeholder="Select Bill to party"
+                                onchange={handleInputChange} value={billtopartyValue}
+                                data-name="billtopartydata"></lightning-combobox>
+                        </lightning-layout-item>
+                        <lightning-layout-item size="6" padding="around-small" class="pt0">
+                            <label class="slds-form-element__label">
+                                <span style="color: red;">* </span>Ship to party
+                            </label>
+                            <lightning-combobox name="shiptoparty" variant="label-hidden"
+                                options={shiptopartyOptions} placeholder="Select Ship to party"
+                                onchange={handleInputChange} value={shiptopartyValue}
+                                data-name="shiptopartydata"></lightning-combobox>
+                        </lightning-layout-item>
 
                         <lightning-layout-item size="12" padding="around-small" style="padding: 0 0 10px 0;">
                             <div class="subheaddiv">Quotation Product Information</div>

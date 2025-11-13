@@ -18,8 +18,14 @@
             </table>
         </div>
 
+        <div class="slds-col slds-size_1-of-8 slds-p-around_x-small">
+            <lightning-combobox label="Division" placeholder="Select Division" value={divisionId}
+                options={divisionOptions} onchange={handleDivisionChange} variant="label-stacked">
+            </lightning-combobox>
+        </div>
+
         <!-- Data table -->
-        <div class="slds-scrollable_x custom-scroll" style="margin-top: 10px;">
+        <div class="slds-scrollable_x custom-scroll" style="margin-top: 10px;" if:true={isDivision}>
             <table class=" slds-table slds-table_cell-buffer slds-table_bordered slds-table_col-bordered">
                 <thead>
                     <tr>
@@ -76,7 +82,8 @@
                                             icon-name="standard:product" data-index={answer.index} data-label="pbeId"
                                             currency-code={currencyCode} family={answer.prodFamily}
                                             default-record-id={answer.pbeId} onrecordselection={lookupRecord}
-                                            onfocus={lookupRecord} lead-record-type={leadRecordType}>
+                                            onfocus={lookupRecord} lead-record-type={leadRecordType}
+                                            division-id={divisionId}>
                                         </c-look-up-component>
                                     </div>
                                 </template>

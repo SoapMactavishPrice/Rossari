@@ -30,7 +30,7 @@ public class VisitReportController {
     
     @AuraEnabled
     public static map<string,string> saveVisitReport(string visit, string Attendees, string ProductInterestPoint, string ActionPoint, 
-                                                     string location, string currencyCode, string visitType, string existingVisitReportId) {
+                                                    string location, string currencyCode, string visitType, string existingVisitReportId, string fileIds) {
         
         map<string,string> result = new map<string,string>();
         try {
@@ -38,6 +38,7 @@ public class VisitReportController {
             List<object>ProductInterestPointList =(List<object>)JSON.deserializeUntyped(ProductInterestPoint);
             List<object>AttendeesList =(List<object>)JSON.deserializeUntyped(Attendees);
             List<object>ActionPointList =(List<object>)JSON.deserializeUntyped(ActionPoint);
+            List<String> contentDocumentIds = String.isNotBlank(fileIds) ? (List<String>)JSON.deserialize(fileIds, List<String>.class) : new List<String>();
             List<Task> taskList = new List<Task>();
             
             Visit_Report__c vrc;
@@ -48,7 +49,7 @@ public class VisitReportController {
             if (existingVisitReportId != null && !String.isBlank(existingVisitReportId)) {
                 // UPDATE EXISTING RECORD
                 vrc = [SELECT Id, Title_of_Meeting__c, Start_Date_Time__c, End_Date_Time__c,CurrencyIsoCode  
-                       FROM Visit_Report__c WHERE Id = :existingVisitReportId];
+                    FROM Visit_Report__c WHERE Id = :existingVisitReportId];
                 
                 // Update only the fields that should be editable for existing records
                 if(visitMap.containsKey('Discussion_Details_from_the_Meeting') && String.isNotBlank(String.valueOf(visitMap.get('Discussion_Details_from_the_Meeting'))))
@@ -158,6 +159,11 @@ public class VisitReportController {
                 insert e;
             }
             
+            // Link files to Visit Report
+            if (!contentDocumentIds.isEmpty()) {
+                linkFilesToRecord(vrc.Id, contentDocumentIds);
+            }
+            
             // PROCESS ATTENDEES (for both new and existing records)
             List<Attendees__c> attList = new List<Attendees__c>();
             
@@ -244,47 +250,47 @@ public class VisitReportController {
             if (!attList.isEmpty()) upsert attList;
             if (!eventAttendees.isEmpty()) insert eventAttendees;
             
-           // PROCESS PRODUCT INTERESTS
-List<Product_Interest_and_Pricing_Benchmark__c> pIList = new List<Product_Interest_and_Pricing_Benchmark__c>();
-for (Object obj : ProductInterestPointList) {
-    Map<String, Object> objMap = (Map<String, Object>)obj;
-    if(String.isNotBlank(String.valueOf(objMap.get('prodId')))) {
-        Product_Interest_and_Pricing_Benchmark__c cp = new Product_Interest_and_Pricing_Benchmark__c();
-        cp.Visit_Report__c = vrc.Id;
-
-        // ✅ Use the same currency as the Visit Report (Account's currency)
-        cp.CurrencyIsoCode = vrc.CurrencyIsoCode;
-        
-        if (objMap.containsKey('prodId') && String.isNotBlank(String.valueOf(objMap.get('prodId')))) {
-            cp.Product__c = (Id)objMap.get('prodId');
-        }
-        if (objMap.containsKey('qty') && String.isNotBlank(String.valueOf(objMap.get('qty')))) {
-            Decimal qty = Decimal.valueOf(String.valueOf(objMap.get('qty')));
-            cp.Expected_Qty_in_Kgs__c = qty > 0 ? qty : null;
-        }
-        if (objMap.containsKey('ExpDate')) {
-            String expDateStr = String.valueOf(objMap.get('ExpDate'));
-            if (String.isNotBlank(expDateStr) && expDateStr != 'false') {
-                try {
-                    cp.Expected_Date__c = Date.valueOf(expDateStr);
-                } catch (Exception ex) {
-                    // Optionally log or handle the error
+        // PROCESS PRODUCT INTERESTS
+            List<Product_Interest_and_Pricing_Benchmark__c> pIList = new List<Product_Interest_and_Pricing_Benchmark__c>();
+            for (Object obj : ProductInterestPointList) {
+                Map<String, Object> objMap = (Map<String, Object>)obj;
+                if(String.isNotBlank(String.valueOf(objMap.get('prodId')))) {
+                    Product_Interest_and_Pricing_Benchmark__c cp = new Product_Interest_and_Pricing_Benchmark__c();
+                    cp.Visit_Report__c = vrc.Id;
+            
+                    // ✅ Use the same currency as the Visit Report (Account's currency)
+                    cp.CurrencyIsoCode = vrc.CurrencyIsoCode;
+                    
+                    if (objMap.containsKey('prodId') && String.isNotBlank(String.valueOf(objMap.get('prodId')))) {
+                        cp.Product__c = (Id)objMap.get('prodId');
+                    }
+                    if (objMap.containsKey('qty') && String.isNotBlank(String.valueOf(objMap.get('qty')))) {
+                        Decimal qty = Decimal.valueOf(String.valueOf(objMap.get('qty')));
+                        cp.Expected_Qty_in_Kgs__c = qty > 0 ? qty : null;
+                    }
+                    if (objMap.containsKey('ExpDate')) {
+                        String expDateStr = String.valueOf(objMap.get('ExpDate'));
+                        if (String.isNotBlank(expDateStr) && expDateStr != 'false') {
+                            try {
+                                cp.Expected_Date__c = Date.valueOf(expDateStr);
+                            } catch (Exception ex) {
+                                // Optionally log or handle the error
+                            }
+                        }
+                    }
+                    
+                    if (objMap.containsKey('Price') && String.isNotBlank(String.valueOf(objMap.get('Price')))) {
+                        Decimal price = Decimal.valueOf(String.valueOf(objMap.get('Price')));
+                        cp.Expected_Price__c = price > 0 ? price : null;
+                    }
+                    
+                    pIList.add(cp);
                 }
             }
-        }
-        
-        if (objMap.containsKey('Price') && String.isNotBlank(String.valueOf(objMap.get('Price')))) {
-            Decimal price = Decimal.valueOf(String.valueOf(objMap.get('Price')));
-            cp.Expected_Price__c = price > 0 ? price : null;
-        }
-        
-        pIList.add(cp);
-    }
-}
-
-if(!pIList.isEmpty()) insert pIList;
-
             
+            if(!pIList.isEmpty()) insert pIList;
+            
+                
             // PROCESS ACTION POINTS
             string cnTypeId = [SELECT Id FROM CustomNotificationType WHERE DeveloperName = 'Action_Point_Alert' LIMIT 1].Id;
             List<Action_Point__c> apList = new List<Action_Point__c>();
@@ -293,9 +299,6 @@ if(!pIList.isEmpty()) insert pIList;
                 if(String.isNotBlank(String.valueOf(objMap.get('Name')))) {
                     Action_Point__c cp = new Action_Point__c();
                     cp.Visit_Report__c = vrc.Id;
-                //    cp.CurrencyIsoCode = currencyCode;
-              
-                    //vrc = new Visit_Report__c();
                     
                     // Determine currency from Customer_Name__c (Account)
                     if (visitMap.containsKey('Customer_Name') && String.isNotBlank(String.valueOf(visitMap.get('Customer_Name')))) {
@@ -369,6 +372,49 @@ if(!pIList.isEmpty()) insert pIList;
             System.debug('Error: ' + ex.getMessage() + ' at line ' + ex.getLineNumber());
         }
         return result;
+    }
+
+    private static void linkFilesToRecord(Id recordId, List<String> contentDocumentIds) {
+        System.debug('contentDocumentIds ==>' + contentDocumentIds);
+        List<ContentDocumentLink> cdLinks = new List<ContentDocumentLink>();
+        
+        for (String docId : contentDocumentIds) {
+            ContentDocumentLink cdl = new ContentDocumentLink();
+            cdl.ContentDocumentId = docId;
+            cdl.LinkedEntityId = recordId;
+            cdl.ShareType = 'V'; // Viewer permission
+            cdl.Visibility = 'AllUsers';
+            cdLinks.add(cdl);
+        }
+        
+        if (!cdLinks.isEmpty()) {
+            insert cdLinks;
+        }
+    }
+
+    @AuraEnabled(cacheable=true)
+    public static List<ContentVersion> getExistingFiles(Id recordId) {
+        Set<Id> contentDocumentIds = new Set<Id>();
+        for (ContentDocumentLink cdl : [
+            SELECT ContentDocumentId 
+            FROM ContentDocumentLink 
+            WHERE LinkedEntityId = :recordId
+        ]) {
+            contentDocumentIds.add(cdl.ContentDocumentId);
+        }
+        
+        // Get ContentVersions
+        if (!contentDocumentIds.isEmpty()) {
+            return [
+                SELECT Id, Title, FileExtension, ContentDocumentId, ContentDocument.Title, ContentDocument.FileExtension
+                FROM ContentVersion 
+                WHERE ContentDocumentId IN :contentDocumentIds 
+                AND IsLatest = true
+                ORDER BY CreatedDate DESC
+            ];
+        }
+        
+        return new List<ContentVersion>();
     }
     
     @AuraEnabled(cacheable=true)

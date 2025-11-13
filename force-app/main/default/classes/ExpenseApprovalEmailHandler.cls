@@ -2,7 +2,7 @@ public class ExpenseApprovalEmailHandler {
     
     public static void sendSubmissionEmail(Expense__c exp, String comments) {
         List<Expense_Line_Item__c> lineItems = [
-            SELECT Id, Name, Type_of_Expense__r.Name, Amount_Claimed__c
+            SELECT Id, Name, Type_of_Expense__r.Name, Amount_Claimed__c, Amount_Passed__c
             FROM Expense_Line_Item__c
             WHERE Expense__c = :exp.Id
         ];
@@ -46,7 +46,7 @@ public class ExpenseApprovalEmailHandler {
     // When approval/rejection is done
     public static void sendDecisionEmail(Expense__c exp, String action, String toAddress, String ccAddress, String comments) {
         List<Expense_Line_Item__c> lineItems = [
-            SELECT Id, Name, Type_of_Expense__r.Name, Amount_Claimed__c
+            SELECT Id, Name, Type_of_Expense__r.Name, Amount_Claimed__c, Amount_Passed__c
             FROM Expense_Line_Item__c
             WHERE Expense__c = :exp.Id
         ];
@@ -78,7 +78,7 @@ public class ExpenseApprovalEmailHandler {
     public static void sendEscalationToHOD(Expense__c exp) {
         if (String.isNotBlank(exp.Business_HOD__r?.Email)) {
             List<Expense_Line_Item__c> lineItems = [
-                SELECT Id, Name, Type_of_Expense__r.Name, Amount_Claimed__c
+                SELECT Id, Name, Type_of_Expense__r.Name, Amount_Claimed__c, Amount_Passed__c
                 FROM Expense_Line_Item__c
                 WHERE Expense__c = :exp.Id
             ];
@@ -129,7 +129,7 @@ public class ExpenseApprovalEmailHandler {
     public static void sendEscalationFromCSIToHOD(Expense__c exp) {
         if (String.isNotBlank(exp.Business_HOD__r?.Email) && String.isNotBlank(exp.Customer_Success_Incharge__r?.Email)) {
             List<Expense_Line_Item__c> lineItems = [
-                SELECT Id, Name, Type_of_Expense__r.Name, Amount_Claimed__c
+                SELECT Id, Name, Type_of_Expense__r.Name, Amount_Claimed__c, Amount_Passed__c
                 FROM Expense_Line_Item__c
                 WHERE Expense__c = :exp.Id
             ];
@@ -197,6 +197,7 @@ public class ExpenseApprovalEmailHandler {
                 '<td>' + li.Name + '</td>' +
                 '<td>' + (li.Type_of_Expense__r != null ? li.Type_of_Expense__r.Name : '') + '</td>' +
                 '<td>' + (li.Amount_Claimed__c != null ? String.valueOf(li.Amount_Claimed__c) : '') + '</td>' +
+                '<td>' + (li.Amount_Passed__c != null ? String.valueOf(li.Amount_Passed__c) : '') + '</td>' +
                 '</tr>';
         }
         lineItemTable += '</table>';
@@ -206,7 +207,7 @@ public class ExpenseApprovalEmailHandler {
     // New method to send notification to Customer Success Incharge
     public static void sendSubmissionToCSI(Expense__c exp, String comments) {
         List<Expense_Line_Item__c> lineItems = [
-            SELECT Id, Name, Type_of_Expense__r.Name, Amount_Claimed__c
+            SELECT Id, Name, Type_of_Expense__r.Name, Amount_Claimed__c, Amount_Passed__c
             FROM Expense_Line_Item__c
             WHERE Expense__c = :exp.Id
         ];

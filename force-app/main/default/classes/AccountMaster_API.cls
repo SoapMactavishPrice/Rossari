@@ -42,7 +42,9 @@ global class AccountMaster_API {
             // Deserialize the JSON into a list of AccountMasterRequest objects
             accountRequests = (List<AccountMasterRequest>) JSON.deserialize(requestBody, List<AccountMasterRequest>.class);
             
-            apiLog.Request__c = requestBody;
+            // apiLog.Request__c = requestBody;
+            Integer maxLength = 2000; // Safe default for most text fields
+            apiLog.Request__c = requestBody.length() > maxLength ? requestBody.substring(0, maxLength - 10) + '...' : requestBody;
 
             // Process all accounts first
             List<Account> accountsToUpsert = new List<Account>();
@@ -366,26 +368,58 @@ global class AccountMaster_API {
             response.data.put('processedAccounts', successAccounts.size());
             response.data.put('totalAccounts', accountRequests.size());
 
+            // Truncate response before logging
+            String responseJson = JSON.serialize(response);
             apiLog.Status__c = 'Success';
-            apiLog.Response__c = JSON.serialize(response);
-            res.responseBody = Blob.valueOf(JSON.serialize(response));
+            apiLog.Response__c = truncateString(responseJson, 32768); // Standard text area limit
+            res.responseBody = Blob.valueOf(responseJson);
             
         } catch (Exception e) {
             Database.rollback(sp);
-            apiLog.Exception_Description__c = e.getMessage() + ' : ' + e.getCause() + ' : ' + e.getStackTraceString() + ' at ' + e.getLineNumber();
+            
+            // Prepare error message with truncation
+            String errorMessage = e.getMessage() + ' : ' + e.getCause() + ' : ' + e.getStackTraceString() + ' at ' + e.getLineNumber();
+            
+            apiLog.Exception_Description__c = truncateString(errorMessage, 32768); // Standard text area limit
             apiLog.Status__c = 'Failed';
+            
+            // Prepare response
             response.status = 'error';
             response.message = 'Error processing request';
-            // response.errors.add(e.getMessage() + ' at ' + e.getLineNumber());
-            response.errors.add(apiLog.Exception_Description__c);
+            response.errors.add(truncateString(e.getMessage() + ' at ' + e.getLineNumber(), 1000));
+            
+            // Set response with truncated error details
+            String errorResponse = JSON.serialize(response);
             res.statusCode = 400;
-            res.responseBody = Blob.valueOf(JSON.serialize(response));
+            res.responseBody = Blob.valueOf(errorResponse);
+            
+            // Update response in log (truncated)
+            apiLog.Response__c = truncateString(errorResponse, 32768);
         } finally {
-
-            insert apiLog;
+            try {
+                // Truncate request body if it's too long
+                apiLog.Request__c = truncateString(requestBody, 32768);
+                // Insert the log record with all truncated fields
+                insert apiLog;
+            } catch (Exception logEx) {
+                // If logging fails, we don't want to fail the original request
+                System.debug('Failed to insert API log: ' + logEx.getMessage());
+            }
         }
         
         // return response;
+    }
+
+    /**
+     * Helper method to safely truncate a string to a maximum length
+     * @param input The input string to truncate
+     * @param maxLength Maximum length of the resulting string
+     * @return Truncated string with '...' if it was truncated
+     */
+    private static String truncateString(String input, Integer maxLength) {
+        if (input == null) return '';
+        if (input.length() <= maxLength) return input;
+        return input.substring(0, maxLength - 3) + '...';
     }
     
     // Prepare contacts for bulk processing

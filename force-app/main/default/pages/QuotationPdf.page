@@ -103,7 +103,7 @@
         </tr>
         <tr>
             <td style="width: 36%;" class="leftBorder">Quote No.: {!quotation.QuoteNumber}</td>
-            <td style="width: 36%;" class="borderlessClean">Payment Terms: {!quotation.Payment_Terms__c}</td>
+            <td style="width: 36%;" class="borderlessClean">Payment Terms: {!quotation.Payment_Term__r.Name}</td>
             <td style="width: 27%;" class="doubleBorder" colspan="2">Name: {!quotation.BillingName}</td>
         </tr>
         <tr>

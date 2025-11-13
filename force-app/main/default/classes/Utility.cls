@@ -556,7 +556,7 @@ public with sharing class Utility {
                 FROM Sales_Area__c
                 WHERE Sales_Organisation__r.Name IN :salesOrgs
                   AND Item_Master__r.Division__c IN :allowedDivisions
-                  AND Item_Master__r.Item_Group__c IN :allowedProductGroups
+                //   AND Item_Master__r.Item_Group__c IN :allowedProductGroups
             ];
         } else {
             salesAreas = [

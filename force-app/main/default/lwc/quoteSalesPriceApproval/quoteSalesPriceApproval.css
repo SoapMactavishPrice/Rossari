@@ -1,0 +1,51 @@
+/*.page-title {
+    text-align: center;
+    font-size: 22px;
+    font-weight: bold;
+    padding-bottom: 1rem;
+}
+
+.quote-container {
+    border: 1px solid #d8dde6;
+    border-radius: 0.5rem;
+    padding: 1rem;
+    margin-bottom: 1.5rem;
+    background-color: #fafafc;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+}
+
+.quote-header {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    font-size: 0.9rem;
+    font-weight: 500;
+    padding-bottom: 0.75rem;
+}
+
+.quote-header > div {
+    flex: 1 1 22%;
+    padding: 0.25rem 0;
+}
+
+.quote-table th {
+    background-color: #f3f3f3;
+    font-weight: 600;
+    text-align: center;
+    white-space: nowrap;
+}
+
+.quote-table td {
+    vertical-align: middle;
+    font-size: 0.85rem;
+    padding: 0.5rem;
+}
+
+.center {
+    text-align: center;
+}
+
+.action-buttons {
+    text-align: center;
+    padding-top: 1.5rem;
+}*/

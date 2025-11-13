@@ -21,7 +21,7 @@ public without sharing class SampleRequestApprovalController {
             WHERE Approval_Status__c = 'Pending'
         ];
     
-        if (quoteLineItems.isEmpty()) {throw new AuraHandledException('No Quotation Line Items found with their status as "Pending"');}
+        if (quoteLineItems.isEmpty()) {throw new AuraHandledException('No Sample Line Items found with their status as "Pending"');}
     
         // collect Sample_Request__c Ids
         Set<Id> quoteIds = new Set<Id>();

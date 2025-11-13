@@ -30,6 +30,10 @@ export default class LookUpComponent extends LightningElement {
     @api searchWithMiddle = false;
     @api leadRecordType;
     @track displayFieldsList = [];
+    @api isdisabled = false;
+    @api divisionId = '';
+
+
 
     @api
     getFilter(ispigment) {
@@ -46,6 +50,9 @@ export default class LookUpComponent extends LightningElement {
     connectedCallback() {
         console.log('connectedCallback');
         console.log('this.defaultRecordId=-=>', this.defaultRecordId);
+        console.log('divisionId=>', this.divisionId);
+
+
 
         if (this.displayFields != null && this.displayFields != '') {
             this.displayFieldsList = this.displayFields.split(',');
@@ -145,7 +152,8 @@ export default class LookUpComponent extends LightningElement {
             searchWithMiddle: (this.searchWithMiddle == 'true'),
             family: this.family,
             currencyCode: this.currencyCode,
-            leadRecordType: this.leadRecordType
+            leadRecordType: this.leadRecordType,
+            divisionId: this.divisionId
         })
             .then(result => {
                 let vData = JSON.parse(result);

@@ -129,6 +129,15 @@ public class AddProductPageQuoteTest {
 
     @isTest
     static void testAllCoreFunctionality() {
+        Division__c div1 = new Division__c(Name = 'Test Division1', Division_Code__c = '111');
+        insert div1;
+        string division = div1.Division_Code__c;
+        Sales_Organisation__c so1 = new Sales_Organisation__c(Name = 'SO11');
+        insert so1;
+        string salesOrg = so1.name;
+        Distribution_Channel__c dc1 = new Distribution_Channel__c(Name = 'DC11', Distribution_Code__c = 'DC011');
+        insert dc1;
+        string distributionChannel = dc1.Distribution_Code__c;
         User testUser = [SELECT Id FROM User WHERE Username LIKE 'testuser%@example.com' LIMIT 1];
         System.runAs(testUser) {
             Quote q = [SELECT Id FROM Quote LIMIT 1];
@@ -137,7 +146,7 @@ public class AddProductPageQuoteTest {
 
             Test.startTest();
 
-            Object searchResults = AddProductPageQuote.findProduct(q.Id, families);
+            Object searchResults = AddProductPageQuote.findProduct(q.Id, families,salesOrg,distributionChannel,division);
 
             Object familyResults = AddProductPageQuote.getproductfamily();
 
@@ -162,6 +171,15 @@ public class AddProductPageQuoteTest {
 
     @isTest
     static void testEdgeCasesAndErrorScenarios() {
+        Division__c div1 = new Division__c(Name = 'Test Division1', Division_Code__c = '111');
+        insert div1;
+        string division = div1.Division_Code__c;
+        Sales_Organisation__c so1 = new Sales_Organisation__c(Name = 'SO11');
+        insert so1;
+        string salesOrg = so1.name;
+        Distribution_Channel__c dc1 = new Distribution_Channel__c(Name = 'DC11', Distribution_Code__c = 'DC011');
+        insert dc1;
+        string distributionChannel = dc1.Distribution_Code__c;
         User testUser = [SELECT Id FROM User WHERE Username LIKE 'testuser%@example.com' LIMIT 1];
         System.runAs(testUser) {
             Quote q = [SELECT Id FROM Quote LIMIT 1];
@@ -170,12 +188,12 @@ public class AddProductPageQuoteTest {
             Test.startTest();
 
             try {
-                Object emptyFamilyResults = AddProductPageQuote.findProduct(q.Id, new List<String>());
+                Object emptyFamilyResults = AddProductPageQuote.findProduct(q.Id, new List<String>(),salesOrg,distributionChannel,division);
             } catch (Exception e) {
             }
 
             try {
-                Object nullFamilyResults = AddProductPageQuote.findProduct(q.Id, null);
+                Object nullFamilyResults = AddProductPageQuote.findProduct(q.Id, null,salesOrg,distributionChannel,division);
             } catch (Exception e) {
             }
 
@@ -258,12 +276,22 @@ public class AddProductPageQuoteTest {
 
     @isTest
     static void testFindProduct() {
+        Division__c div1 = new Division__c(Name = 'Test Division1', Division_Code__c = '111');
+        insert div1;
+        string division = div1.Division_Code__c;
+        Sales_Organisation__c so1 = new Sales_Organisation__c(Name = 'SO11');
+        insert so1;
+        string salesOrg = so1.name;
+        Distribution_Channel__c dc1 = new Distribution_Channel__c(Name = 'DC11', Distribution_Code__c = 'DC011');
+        insert dc1;
+        string distributionChannel = dc1.Distribution_Code__c;
         User testUser = [SELECT Id FROM User WHERE Username LIKE 'testuser%@example.com' LIMIT 1];
         System.runAs(testUser) {
             Quote q = [SELECT Id FROM Quote LIMIT 1];
             List<String> families = new List<String>{'Category1', 'Category2'};
             Test.startTest();
-            Object result = AddProductPageQuote.findProduct(q.Id, families);
+            Object result = AddProductPageQuote.findProduct(q.Id, families,salesOrg,distributionChannel,division);
+            Object result1 = AddProductPageQuote.getQuotationDetails(q.Id);
             Test.stopTest();
         }
     }

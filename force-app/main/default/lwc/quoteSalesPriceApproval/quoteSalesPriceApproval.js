@@ -5,7 +5,7 @@ import updateQuoteLineItem from '@salesforce/apex/SalesPriceApprovalForQuotation
 import USER_ID from '@salesforce/user/Id';
 import { NavigationMixin } from 'lightning/navigation';
 
-export default class quoteSalesPriceApproval extends NavigationMixin(LightningElement) {
+export default class QuoteSalesPriceApproval extends NavigationMixin(LightningElement) {
     @track quotes;
     @track updatedLineItems = new Map();
     @track isSaveDisabled = false;
@@ -27,21 +27,42 @@ export default class quoteSalesPriceApproval extends NavigationMixin(LightningEl
         getAllQuotations()
             .then(result => {
                 this.quotes = result.map(q => {
-                    const isHodUser = (q.hodUserId === this.userId);
                     return {
                         ...q,
-                        isHodUser: isHodUser,
-                        disableFields: !isHodUser // 👈 add this
+                        disableFields: q.disableFields
                     };
+                });
+                
+                this.quotes.forEach(quote => {
+                    quote.quoteLineItems.forEach(item => {
+                        item.approvalLevelClass = this.getApprovalLevelClass(item.approvalLevel);
+                        if (item.disableFields === undefined) {
+                            item.disableFields = quote.disableFields;
+                        }
+                    });
                 });
             })
             .catch(error => {
                 this.showToast('Error', error.body.message, 'error');
                 this.redirectToHome();
-                setTimeout(()=>{ window.location.reload(); }, 2500);
+                setTimeout(() => { window.location.reload(); }, 2500);
             });
     }
 
+    getApprovalLevelClass(level) {
+        switch(level) {
+            case 'L2':
+                return 'slds-theme_warning';
+            case 'L3':
+                return 'slds-theme_error';
+            default:
+                return 'slds-theme_default';
+        }
+    }
+
+    getIsDisabled(quote, item) {
+        return quote.disableFields || item.disableFields;
+    }
 
     handleLineItemChanges(event) {
         const field = event.target.dataset.field;
@@ -50,10 +71,15 @@ export default class quoteSalesPriceApproval extends NavigationMixin(LightningEl
         const value = event.target.value;
 
         let specificQuote = this.quotes.find(quote => quote.quoteId == parentId);
-
         let specificQuoteLineItem = specificQuote.quoteLineItems.find(quoteLineItem => quoteLineItem.quoteLineItemId == lineItemId);
 
-        specificQuoteLineItem[field] = value;
+        const fieldMap = {
+            'approvalstatus': 'approvalStatus',
+            'approvalcomments': 'approvalComments'
+        };
+        
+        const actualField = fieldMap[field] || field;
+        specificQuoteLineItem[actualField] = value;
         specificQuoteLineItem['updated'] = true;
         specificQuote['updated'] = true;
     }
@@ -66,9 +92,7 @@ export default class quoteSalesPriceApproval extends NavigationMixin(LightningEl
         updateQuoteLineItem({quotationListStringObject: JSON.stringify(this.quotes)}).then((result) => {
             if (result == 'Success') {
                 this.showToast('Success', 'Quotation Line Items updated successfully', 'success');
-
                 this.redirectToHome();
-
                 setTimeout(()=>{
                     window.location.reload();
                 }, 1500)

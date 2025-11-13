@@ -16,7 +16,7 @@ public with sharing class QuotationPdfController {
             this.quotationId = '0Q0C1000000MEYzKAO';
         }
 
-        this.quotation = [SELECT Id, QuoteNumber, CreatedDate, ExpirationDate, CurrencyIsoCode, Payment_Terms__c, BillingName, Account.Rossari_Company__r.Name,
+        this.quotation = [SELECT Id, QuoteNumber, CreatedDate, ExpirationDate, CurrencyIsoCode, Payment_Terms__c, Payment_Term__r.Name, BillingName, Account.Rossari_Company__r.Name,
                             BillingAddress, Inco_Terms__c, Pre_Carriage_Mode__c, Country_of_Origin__c, Country_of_Destination__c, Net_weight__c,
                             Destination__c, Loading_Port__c, Destination_Port__c, Place_of_Supplier__c, Partial_Shipment__c, ShippingName,
                             BillingStreet, BillingCity, BillingState, BillingPostalCode, BillingCountry, Business_Type__c, Vessel_Flight_No__c, Pre_Carriage_Destination__c,
@@ -48,7 +48,7 @@ public with sharing class QuotationPdfController {
 
         this.quotationId = quoteId;
 
-        this.quotation = [SELECT Id, QuoteNumber, CreatedDate, ExpirationDate, CurrencyIsoCode, Payment_Terms__c, BillingName, Account.Rossari_Company__r.Name,
+        this.quotation = [SELECT Id, QuoteNumber, CreatedDate, ExpirationDate, CurrencyIsoCode, Payment_Terms__c, Payment_Term__r.Name, BillingName, Account.Rossari_Company__r.Name,
                             BillingAddress, Inco_Terms__c, Pre_Carriage_Mode__c, Country_of_Origin__c, Country_of_Destination__c, Net_weight__c,
                             Destination__c, Loading_Port__c, Destination_Port__c, Place_of_Supplier__c, Partial_Shipment__c, ShippingName,
                             BillingStreet, BillingCity, BillingState, BillingPostalCode, BillingCountry, Business_Type__c, Vessel_Flight_No__c, Pre_Carriage_Destination__c,
@@ -161,7 +161,7 @@ public with sharing class QuotationPdfController {
 
         html += '<tr>';
         html += '<td style="' + leftBorder + 'width:36%;">' + docLabel + ' No.: ' + ns(quotation.QuoteNumber) + '</td>';
-        html += '<td style="' + borderless + 'width:36%;">Payment Terms: ' + ns(quotation.Payment_Terms__c) + '</td>';
+        html += '<td style="' + borderless + 'width:36%;">Payment Terms: ' + ns(quotation.Payment_Term__r.Name) + '</td>';
         html += '<td style="' + doubleBorder + 'width:27%;" colspan="2">Name: ' + ns(quotation.BillingName) + '</td>';
         html += '</tr>';
 

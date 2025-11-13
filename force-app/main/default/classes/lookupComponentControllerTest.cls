@@ -83,6 +83,7 @@ public class lookupComponentControllerTest {
         String family = '';
         String currencyCode = 'USD';
         String leadRecordType = 'RBL';
+        String divisionId = null; // Add divisionId parameter
 
         String result = lookupComponentController.findRecords(
             searchKey, 
@@ -94,8 +95,10 @@ public class lookupComponentControllerTest {
             maxResults, 
             family,
             currencyCode,
-            leadRecordType
+            leadRecordType,
+            divisionId // Add this parameter
         );
+
     }
 
     @isTest
@@ -109,6 +112,7 @@ public class lookupComponentControllerTest {
         String family = '';
         String currencyCode = 'USD';
         String leadRecordType = 'Unitop/Tristar';
+        String divisionId = null; // Add divisionId parameter
 
         String result = lookupComponentController.findRecords(
             searchKey, 
@@ -120,12 +124,16 @@ public class lookupComponentControllerTest {
             maxResults, 
             family,
             currencyCode,
-            leadRecordType
+            leadRecordType,
+            divisionId // Add this parameter
         );
+
     }
 
     @isTest
     static void testFindRecords_FamilyFilter() {
+        String divisionId = null; // Add divisionId parameter
+        
         String result = lookupComponentController.findRecords(
             'Prod', 
             'PricebookEntry',
@@ -136,12 +144,38 @@ public class lookupComponentControllerTest {
             '10', 
             'FamilyA', // Should filter only FamilyA
             'USD',
-            'RBL'
+            'RBL',
+            divisionId // Add this parameter
         );
+
+    }
+
+    @isTest
+    static void testFindRecords_WithDivisionId() {
+        // Get a division ID for testing
+        Division__c division = [SELECT Id FROM Division__c LIMIT 1];
+        String divisionId = division.Id;
+        
+        String result = lookupComponentController.findRecords(
+            'Prod', 
+            'PricebookEntry',
+            '', 
+            new List<String>{'Name', 'ProductCode'}, 
+            '', 
+            '', 
+            '10', 
+            '', 
+            'USD',
+            'RBL',
+            divisionId // Test with actual division ID
+        );
+
     }
 
     @isTest
     static void testFindRecords_UnsupportedObject() {
+        String divisionId = null; // Add divisionId parameter
+        
         try {
             lookupComponentController.findRecords(
                 'Prod', 
@@ -153,21 +187,44 @@ public class lookupComponentControllerTest {
                 '10', 
                 '', 
                 '',
-                'RBL'
+                'RBL',
+                divisionId // Add this parameter
             );
         } catch (AuraHandledException e) {
-            // Catch for coverage, no asserts
+           
         }
+    }
+
+    @isTest
+    static void testFindRecords_EmptySearch() {
+        String divisionId = null; // Add divisionId parameter
+        
+        String result = lookupComponentController.findRecords(
+            '', // Empty search key
+            'PricebookEntry',
+            '', 
+            new List<String>{'Name', 'ProductCode'}, 
+            '', 
+            '', 
+            '10', 
+            '', 
+            'USD',
+            'RBL',
+            divisionId // Add this parameter
+        );
+
     }
 
     @isTest
     static void testFetchDefaultRecord_Valid() {
         PricebookEntry entry = [SELECT Id FROM PricebookEntry LIMIT 1];
         String result = lookupComponentController.fetchDefaultRecord(entry.Id);
+
     }
 
     @isTest
     static void testFetchDefaultRecord_InvalidId() {
         String result = lookupComponentController.fetchDefaultRecord('001000000000001AAA');
+  
     }
 }

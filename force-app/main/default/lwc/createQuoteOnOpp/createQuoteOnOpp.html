@@ -55,14 +55,14 @@
 
             <div class="slds-col slds-size_1-of-4 slds-p-around_x-small" style="margin-left: -21px;margin-right: 22px;">
                 <lightning-combobox label="Inco Terms" value={quoteFields.incoTerms} options={incoTermsOptions}
-                    data-field="incoTerms" onchange={handleIncoTermsChange}>
+                    data-field="incoTerms" onchange={handleIncoTermsChange} >
                 </lightning-combobox>
             </div>
-            <!-- <template if:true={paymetTermField}> -->
+
             <div class="slds-col slds-size_1-of-4 slds-p-around_x-small" style="margin-left: -21px;margin-right: 22px;">
                 <lightning-record-picker label="Payment Term" placeholder="Search Payment Terms..."
                     object-api-name="Payment_Term__c" value={quoteFields.paymentTermId} filters={paymentTermFilters}
-                    onchange={handlePaymentTermSelected} variant="label-stacked" required="false">
+                    onchange={handlePaymentTermSelected} variant="label-stacked" required="false" >
                 </lightning-record-picker>
             </div>
 
@@ -76,7 +76,7 @@
             <template if:true={showContainerType}>
                 <div class="slds-col slds-size_1-of-4 slds-p-around_x-small" style="margin-right: -34px;">
                     <lightning-input type="text" label="Container Type" value={quoteFields.containerType}
-                        onchange={handleContainerTypeChange} maxlength="255"
+                        onchange={handleContainerTypeChange} oninput={handleContainerTypeInput} maxlength="255"
                         style="margin-left: -22px;margin-right: -14px;">
                     </lightning-input>
                 </div>
@@ -107,7 +107,7 @@
                         </th>
                         <th
                             style="text-align: center; font-size: 13px; background-color: #9d0b0f; font-weight: bold; padding: 4px 6px; color: white;">
-                            Customer HS Code
+                            Customer HSN Code
                         </th>
                         <th
                             style="text-align: center; font-size: 13px; background-color: #9d0b0f; font-weight: bold; padding: 4px 6px; color: white;">
@@ -155,7 +155,8 @@
                                         data-label="prodId" index={item.index} selected-icon-name="standard:product"
                                         object-label="Product" object-api-name="PricebookEntry"
                                         other-field-api-name="Product2Id,Product2.Name,Product2.ProductCode,Product2.Description"
-                                        onvalueselected={handleValueSelectedOnAccount} lead-record-type={leadRecordType}>
+                                        onvalueselected={handleValueSelectedOnAccount}
+                                        lead-record-type={leadRecordType}>
                                     </c-reusable-lookup>
                                 </div>
                             </td>
@@ -197,8 +198,8 @@
                             </td>
                             <td class="slds-text-align_center" data-label="Discount (%)">
                                 <lightning-input type="number" variant="label-hidden" value={item.Discount}
-                                    data-index={item.index} min="0" max="100" step="Any"
-                                    onchange={handleDiscountChange}>
+                                    data-index={item.index} min="0" max="100" step="Any" onchange={handleDiscountChange}
+                                    disabled="true">
                                 </lightning-input>
                             </td>
                             <!-- <td class="slds-text-align_center" data-label="Container Type" style="width: 12%;">

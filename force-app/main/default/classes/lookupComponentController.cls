@@ -11,7 +11,8 @@ public without sharing class lookupComponentController {
         String maxResults,
         String family,
         String currencyCode,
-        String leadRecordType
+        String leadRecordType,
+        String divisionId
     ) {
         String searchText = '\'%' + String.escapeSingleQuotes(searchKey) + '%\'';
         String vQuery = '';
@@ -26,7 +27,7 @@ public without sharing class lookupComponentController {
         System.debug('Allowed Product IDs: ' + productIds);
 
         if (objectName == 'PricebookEntry') {
-            vQuery = 'SELECT Id, Product2Id, UnitPrice, Product2.Name, Product2.Family, ProductCode '
+            vQuery = 'SELECT Id, Product2Id, UnitPrice, Product2.Name, Product2.Family, ProductCode,Product2.Division__c '
                    + 'FROM PricebookEntry WHERE IsActive = true';
 
             if (!productIds.isEmpty()) {
@@ -48,16 +49,20 @@ public without sharing class lookupComponentController {
             if (String.isNotBlank(filter)) {
                 vQuery += ' AND (' + filter + ')';
             }
+            if (String.isNotBlank(divisionId)) {
+                vQuery += ' AND Product2.Division__c = \'' + String.escapeSingleQuotes(divisionId) + '\'';
+            }
+
             
             vQuery += ' ORDER BY Product2.Name ASC';
             
         /*    if (String.isNotBlank(sortColumn)) {
                 vQuery += ' ORDER BY ' + sortColumn;
             }	*/
-            if (String.isBlank(maxResults)) {
-                maxResults = '15';
-            }
-            vQuery += ' LIMIT ' + maxResults;
+            // if (String.isBlank(maxResults)) {
+            //     maxResults = '15';
+            // }
+            // vQuery += ' LIMIT ' + maxResults;
         } else {
             throw new AuraHandledException('Unsupported object: ' + objectName);
         }

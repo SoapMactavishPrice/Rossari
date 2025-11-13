@@ -15,8 +15,11 @@ public with sharing class QuoteController {
     public static Map<String, Object> getQuoteInitialData(String opportunityId) {
         Map<String, Object> result = new Map<String, Object>();
         
-        // Get opportunity details
-        Opportunity opp = [SELECT Id, AccountId, Name, CurrencyIsoCode, Pricebook2Id, Contact__c, Contact__r.Name, Contact__r.Id 
+        // Get opportunity details including Inco Terms and Payment Terms
+        Opportunity opp = [SELECT Id, AccountId, Name, CurrencyIsoCode, Pricebook2Id, 
+                           Contact__c, Contact__r.Name, Contact__r.Id,
+                           Inco_Terms__c, Payment_Term__c, Payment_Term__r.Name,
+                           Sales_Organisations__c, Division__c, Distribution_Channel__c
                            FROM Opportunity 
                            WHERE Id = :opportunityId LIMIT 1];
         
@@ -27,8 +30,8 @@ public with sharing class QuoteController {
             if (pe.isActive()) {
                 statusOptions.add(new Map<String, String>{
                     'label' => pe.getLabel(),
-                    'value' => pe.getValue()
-                });
+                        'value' => pe.getValue()
+                        });
             }
         }
         
@@ -39,8 +42,8 @@ public with sharing class QuoteController {
             if (pe.isActive()) {
                 currencyOptions.add(new Map<String, String>{
                     'label' => pe.getValue(),
-                    'value' => pe.getValue()
-                });
+                        'value' => pe.getValue()
+                        });
             }
         }
         
@@ -51,8 +54,8 @@ public with sharing class QuoteController {
             if (pe.isActive()) {
                 incoTermsOptions.add(new Map<String, String>{
                     'label' => pe.getLabel(),
-                    'value' => pe.getValue()
-                });
+                        'value' => pe.getValue()
+                        });
             }
         }
         
@@ -74,8 +77,8 @@ public with sharing class QuoteController {
         for (Payment_Term__c pt : paymentTerms) {
             paymentTermOptions.add(new Map<String, String>{
                 'label' => pt.Name,
-                'value' => pt.Id
-            });
+                    'value' => pt.Id
+                    });
         }
         
         result.put('opportunityName', opp.Name);
@@ -87,20 +90,24 @@ public with sharing class QuoteController {
         result.put('paymentTerms', paymentTermOptions);
         result.put('contacts', contacts);
         
+        // Add Opportunity's Inco Terms and Payment Terms
+        result.put('opportunityIncoTerms', opp.Inco_Terms__c);
+        result.put('opportunityPaymentTermId', opp.Payment_Term__c);
+        result.put('opportunityPaymentTermName', opp.Payment_Term__r?.Name);
+        
         if (opp.Contact__c != null && opp.Contact__r != null) {
             result.put('defaultContact', new Map<String, String>{
                 'label' => opp.Contact__r.Name,
-                'value' => opp.Contact__r.Id
-            });
+                    'value' => opp.Contact__r.Id
+                    });
         }
         
         return result;
     }
-    
     @AuraEnabled
     public static Id createQuoteFromOpportunity(
         String opportunityId, 
-        List<QuoteLineItemWrapper> lineItems, // Changed to wrapper class
+        List<QuoteLineItemWrapper> lineItems,
         String quoteName,
         String status,
         Date expirationDate,
@@ -110,50 +117,50 @@ public with sharing class QuoteController {
         String incoTerms,
         String paymentTermId,
         Decimal transportationCost,
-         String containerType
+        String containerType
     ) {
         // Validate required parameters
         if (String.isBlank(opportunityId)) {
             throw new AuraHandledException('Opportunity ID is required');
         }
         
-        // Get opportunity
-        Opportunity opp = [SELECT Id, Pricebook2Id, CurrencyIsoCode, AccountId, Name FROM Opportunity WHERE Id = :opportunityId];
+        // Get opportunity with all required fields including current Payment Term and Inco Terms
+        Opportunity opp = [
+            SELECT Id, Pricebook2Id, CurrencyIsoCode, AccountId, Sales_Organisations__c, 
+            Division__c, Distribution_Channel__c, Name, Distribution_Channel__r.Distribution_Code__c,
+            Payment_Term__c, Payment_Term__r.Name, Inco_Terms__c
+            FROM Opportunity 
+            WHERE Id = :opportunityId
+        ];
         
-        // Get current user
-        User currentUser = [SELECT Id, Entity_Code_1__c, Entity_Code_2__c, Entity_Code_3__c FROM User WHERE Id = :UserInfo.getUserId()];
+        // Get current user with User Type
+        User currentUser = [
+            SELECT Id, User_Type__c 
+            FROM User 
+            WHERE Id = :UserInfo.getUserId()
+        ];
         
-        // Collect all non-null entity codes
-        Set<String> entityCodes = new Set<String>();
-        if (currentUser.Entity_Code_1__c != null) entityCodes.add(currentUser.Entity_Code_1__c);
-        if (currentUser.Entity_Code_2__c != null) entityCodes.add(currentUser.Entity_Code_2__c);
-        if (currentUser.Entity_Code_3__c != null) entityCodes.add(currentUser.Entity_Code_3__c);
+        // Get HOD User based on Distribution Channel and User Type from Custom Metadata
+        User hodUser = getHODUserFromMetadata(opp.Distribution_Channel__r.Distribution_Code__c, currentUser.User_Type__c);
         
-        // Find matching Sales HOD user
-        User hodUser = null;
-        if (!entityCodes.isEmpty()) {
-            List<User> hodUsers = [
-                SELECT Id FROM User 
-                WHERE Is_Sales_HOD__c = true AND (
-                    Entity_Code_1__c IN :entityCodes OR 
-                    Entity_Code_2__c IN :entityCodes OR 
-                    Entity_Code_3__c IN :entityCodes
-                )
-                LIMIT 1
-            ];
-            if (!hodUsers.isEmpty()) {
-                hodUser = hodUsers[0];
-            }
+        // Determine if Payment Term or Inco Terms were changed from opportunity values
+        Boolean isPaymentTermChanged = opp.Payment_Term__c != paymentTermId;
+        Boolean isIncoTermsChanged = opp.Inco_Terms__c != incoTerms;
+        
+        // Determine final status - if terms changed, set to 'Credit Approval', otherwise use the provided status
+        String finalStatus = status;
+        if (isPaymentTermChanged || isIncoTermsChanged) {
+            finalStatus = 'Payment/Incoterms Approval';
         }
         
         // Query the Company__c record for 'Rossari Biotech Limited'
         Company__c rossariCompany = [SELECT Id FROM Company__c WHERE Name = 'Rossari Biotech Limited' LIMIT 1];
         
-        // Create the quote with all fields
+        // Create the quote with all fields including previous terms logic
         Quote quote = new Quote(
             Name = quoteName,
             OpportunityId = opp.Id,
-            Status = status,
+            Status = finalStatus, // Use the determined status
             Letter_Company_Name__c = rossariCompany.Id,
             ExpirationDate = expirationDate,
             Quote_Valid_From__c = Date.today(),
@@ -161,10 +168,20 @@ public with sharing class QuoteController {
             CurrencyIsoCode = String.isNotBlank(currencyCode) ? currencyCode : opp.CurrencyIsoCode,
             ContactId = String.isNotBlank(contactId) ? contactId : null,
             HOD_of_Sales_Department__c = hodUser != null ? hodUser.Id : null,
+            
+            // Current terms (can be same as opportunity or changed by user)
             Inco_Terms__c = incoTerms,
-            Payment_Term__c = paymentTermId,
+            Payment_Term__c = String.isBlank(paymentTermId) ? null : paymentTermId,
+            
+            // Previous terms (store original opportunity values ONLY if changed)
+            Previous_Inco_Terms__c = isIncoTermsChanged ? opp.Inco_Terms__c : null,
+            Previous_Payment_Terms__c = isPaymentTermChanged ? opp.Payment_Term__c : null,
+            
             Transportation_Cost__c = transportationCost != null ? transportationCost : 0.0, 
             Container_Type__c = containerType,
+            Sales_Organisations__c = opp.Sales_Organisations__c,
+            Division__c = opp.Division__c,
+            Distribution_Channel__c = opp.Distribution_Channel__c,
             Terms_and_Conditions__c =
             'All bank charges outside India will be borne by the customer and such charges should not be deducted from our payment.\n' +
             'We should receive full invoice amount in our bank account and you are liable to pay the bank charges which are applicable in India only.\n' +
@@ -173,14 +190,13 @@ public with sharing class QuoteController {
         );
         insert quote;
         
-        // Create quote line items with discount and total price calculations
+        // Create quote line items
         List<QuoteLineItem> qliList = new List<QuoteLineItem>();
         for (QuoteLineItemWrapper itemWrapper : lineItems) {
             if (itemWrapper.Product2Id == null || itemWrapper.PricebookEntryId == null) {
-                continue; // Skip invalid line items
+                continue;
             }
             
-            // Calculate total price with discount
             Decimal unitPrice = itemWrapper.UnitPrice != null ? itemWrapper.UnitPrice : 0;
             Decimal quantity = itemWrapper.Quantity != null ? itemWrapper.Quantity : 1;
             Decimal discountPercent = itemWrapper.Discount != null ? itemWrapper.Discount : 0;
@@ -194,10 +210,8 @@ public with sharing class QuoteController {
                 Discount = discountPercent,
                 Description = itemWrapper.Description,
                 Customer_Target_Price__c = itemWrapper.CustomerTargetPrice != null ? itemWrapper.CustomerTargetPrice : 0,
-           //     Container_Type__c = itemWrapper.ContainerType != null ? itemWrapper.ContainerType : '',
                 Customer_Product_Name__c = itemWrapper.CustomerProductName != null ? itemWrapper.CustomerProductName : '',
                 Customer_HS_Code__c = itemWrapper.CustomerHsCode != null ? itemWrapper.CustomerHsCode : ''
-           //    Transportation_Cost__c = itemWrapper.TransportationCost != null ? Decimal.valueOf(itemWrapper.TransportationCost) : 0.0
             ));
         }
         
@@ -209,6 +223,60 @@ public with sharing class QuoteController {
         update opp;
         
         return quote.Id;
+    }
+    
+    // Method to get HOD User from Custom Metadata
+    private static User getHODUserFromMetadata(String distributionChannelCode, String userType) {
+        if (String.isBlank(distributionChannelCode) || String.isBlank(userType)) {
+            return null;
+        }
+        
+        try {
+            // Query Custom Metadata for HOD mapping
+            List<HOD_Mapping__mdt> hodMappings = [
+                SELECT Id, DeveloperName, Distribution_Channel_Code__c, User_Type__c, HOD_User_Email__c
+                FROM HOD_Mapping__mdt
+                WHERE Distribution_Channel_Code__c = :distributionChannelCode
+                AND User_Type__c = :userType
+                LIMIT 1
+            ];
+            
+            if (!hodMappings.isEmpty()) {
+                String hodUserEmail = hodMappings[0].HOD_User_Email__c;
+                
+                if (String.isNotBlank(hodUserEmail)) {
+                    // Query the active user by email
+                    List<User> hodUsers = [
+                        SELECT Id, Name, Email, User_Type__c
+                        FROM User 
+                        WHERE Email = :hodUserEmail 
+                        AND IsActive = true 
+                        LIMIT 1
+                    ];
+                    
+                    if (!hodUsers.isEmpty()) {
+                        return hodUsers[0];
+                    } else {
+                        System.debug('HOD User not found or inactive for email: ' + hodUserEmail);
+                    }
+                }
+            } else {
+                System.debug('No HOD Mapping found for Distribution Channel: ' + distributionChannelCode + ' and User Type: ' + userType);
+            }
+        } catch (Exception e) {
+            System.debug('Error retrieving HOD User from Custom Metadata: ' + e.getMessage());
+        }
+        
+        return null;
+    }
+    
+    @AuraEnabled(cacheable=true)
+    public static List<HOD_Mapping__mdt> getHODMappings() {
+        return [
+            SELECT Id, DeveloperName, Distribution_Channel_Code__c, User_Type__c, HOD_User_Email__c
+            FROM HOD_Mapping__mdt
+            ORDER BY Distribution_Channel_Code__c, User_Type__c
+        ];
     }
     
     @AuraEnabled
@@ -280,38 +348,38 @@ public with sharing class QuoteController {
             }
         }
     }
-
+    
     @AuraEnabled
     public static string getSalesOrg(String oppId){
         try {
             String retData = '';
-
+            
             Opportunity opp = [
                 SELECT Id, AccountId, Name, CurrencyIsoCode, Pricebook2Id, Contact__c, Contact__r.Name, Contact__r.Id 
                 FROM Opportunity 
                 WHERE Id = :oppId LIMIT 1
             ];
-
+            
             List<Customer_Sales_Area__c> csaList = [
                 SELECT Id, Comapany_Code__c, Sales_Organisation__c, Sales_Organisation__r.Name 
                 FROM Customer_Sales_Area__c 
                 WHERE Comapany_Code__c = :opp.AccountId
             ];
-
+            
             List<Map<String, String>> salesOrgMapList = new List<Map<String, String>>();
             Set<String> uniqueSalesOrgSet = new Set<String>();
-
+            
             for (Customer_Sales_Area__c csa : csaList) {
                 if (!uniqueSalesOrgSet.contains(csa.Sales_Organisation__c)) {
                     uniqueSalesOrgSet.add(csa.Sales_Organisation__c);
-
+                    
                     Map<String, String> salesOrgMap = new Map<String, String>();
                     salesOrgMap.put('label', csa.Sales_Organisation__r.Name);
                     salesOrgMap.put('value', csa.Sales_Organisation__c);
                     salesOrgMapList.add(salesOrgMap);
                 }
             }
-
+            
             if (!salesOrgMapList.isEmpty()) {
                 retData = JSON.serialize(salesOrgMapList);
             }
@@ -321,18 +389,18 @@ public with sharing class QuoteController {
             throw new AuraHandledException(e.getMessage());
         }
     }
-
+    
     @AuraEnabled
     public static string getDistributionChannel(String oppId, String soId){
         try {
             String retData = '';
-
+            
             Opportunity opp = [
                 SELECT Id, AccountId, Name, CurrencyIsoCode, Pricebook2Id, Contact__c, Contact__r.Name, Contact__r.Id 
                 FROM Opportunity 
                 WHERE Id = :oppId LIMIT 1
             ];
-
+            
             List<Customer_Sales_Area__c> csaList = [
                 SELECT Id, Comapany_Code__c, Sales_Organisation__c, Sales_Organisation__r.Name, Distribution_Channel__c,
                 Distribution_Channel__r.Distribution_Code__c
@@ -340,21 +408,21 @@ public with sharing class QuoteController {
                 WHERE Comapany_Code__c = :opp.AccountId
                 AND Sales_Organisation__c = :soId
             ];
-
+            
             List<Map<String, String>> distChMapList = new List<Map<String, String>>();
             Set<String> uniquedistChSet = new Set<String>();
-
+            
             for (Customer_Sales_Area__c csa : csaList) {
                 if (!uniquedistChSet.contains(csa.Distribution_Channel__c)) {
                     uniquedistChSet.add(csa.Distribution_Channel__c);
-
+                    
                     Map<String, String> distChMap = new Map<String, String>();
                     distChMap.put('value', csa.Distribution_Channel__c);
                     distChMap.put('label', csa.Distribution_Channel__r.Distribution_Code__c);
                     distChMapList.add(distChMap);
                 }
             }
-
+            
             if (!distChMapList.isEmpty()) {
                 retData = JSON.serialize(distChMapList);
             }
@@ -364,18 +432,18 @@ public with sharing class QuoteController {
             throw new AuraHandledException(e.getMessage());
         }
     }
-
+    
     @AuraEnabled
     public static string getDivision(String oppId, String soId, String dcId){
         try {
             String retData = '';
-
+            
             Opportunity opp = [
                 SELECT Id, AccountId, Name, CurrencyIsoCode, Pricebook2Id, Contact__c, Contact__r.Name, Contact__r.Id 
                 FROM Opportunity 
                 WHERE Id = :oppId LIMIT 1
             ];
-
+            
             List<Customer_Sales_Area__c> csaList = [
                 SELECT Id, Comapany_Code__c, Sales_Organisation__c, Sales_Organisation__r.Name, Distribution_Channel__c,
                 Distribution_Channel__r.Distribution_Code__c, Division__c, Division__r.Division_Code__c
@@ -384,21 +452,21 @@ public with sharing class QuoteController {
                 AND Sales_Organisation__c = :soId
                 AND Distribution_Channel__c = :dcId
             ];
-
+            
             List<Map<String, String>> divisionMapList = new List<Map<String, String>>();
             Set<String> uniquedivisionSet = new Set<String>();
-
+            
             for (Customer_Sales_Area__c csa : csaList) {
                 if (!uniquedivisionSet.contains(csa.Division__c)) {
                     uniquedivisionSet.add(csa.Division__c);
-
+                    
                     Map<String, String> divisionMap = new Map<String, String>();
                     divisionMap.put('value', csa.Division__c);
                     divisionMap.put('label', csa.Division__r.Division_Code__c);
                     divisionMapList.add(divisionMap);
                 }
             }
-
+            
             if (!divisionMapList.isEmpty()) {
                 retData = JSON.serialize(divisionMapList);
             }
@@ -408,18 +476,18 @@ public with sharing class QuoteController {
             throw new AuraHandledException(e.getMessage());
         }
     }
-
+    
     @AuraEnabled
     public static string getSalesArea(String oppId, String soId, String dcId, String divId){
         try {
             String retData = '';
-
+            
             Opportunity opp = [
                 SELECT Id, AccountId, Name, CurrencyIsoCode, Pricebook2Id, Contact__c, Contact__r.Name, Contact__r.Id 
                 FROM Opportunity 
                 WHERE Id = :oppId LIMIT 1
             ];
-
+            
             List<Customer_Sales_Area__c> csaList = [
                 SELECT Id, Comapany_Code__c, Sales_Organisation__c, Sales_Organisation__r.Name, Distribution_Channel__c,
                 Distribution_Channel__r.Distribution_Code__c, Division__c, Division__r.Division_Code__c, Payment_Term__c,
@@ -431,7 +499,7 @@ public with sharing class QuoteController {
                 AND Division__c = :divId
                 LIMIT 1
             ];
-
+            
             if (!csaList.isEmpty()) {
                 retData = JSON.serialize(csaList);
             }
@@ -442,7 +510,7 @@ public with sharing class QuoteController {
         }
     }
     
-     // Wrapper class for quote line items
+    // Wrapper class for quote line items
     public class QuoteLineItemWrapper {
         @AuraEnabled
         public String Id { get; set; }
@@ -468,7 +536,7 @@ public with sharing class QuoteController {
         public String CustomerProductName { get; set; }
         @AuraEnabled
         public String CustomerHsCode { get; set; }
-         @AuraEnabled
+        @AuraEnabled
         public String TransportationCost { get; set; }
     }
 }
