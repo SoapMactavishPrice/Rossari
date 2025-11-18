@@ -231,13 +231,20 @@
                                         <td>
                                             <lightning-input type="text" value={product.Price} placeholder="0"
                                                 data-target-id={product.Id} variant="label-hidden"
-                                                onchange={handleSalesPriceChange}></lightning-input>
+                                                onchange={handleSalesPriceChange} step="any"></lightning-input>
                                         </td>
-                                        <td>
+                                        <!-- <td>
                                             <lightning-input type="number" value={product.Discount}
                                                 data-target-id={product.Id} variant="label-hidden"
                                                 onchange={handleDateChange}></lightning-input>
+                                        </td> -->
+
+                                        <td>
+                                            <lightning-input type="number" value={product.Discount}
+                                                data-target-id={product.Id} variant="label-hidden" disabled step="any">
+                                            </lightning-input>
                                         </td>
+
                                         <!-- <td>
                                             <lightning-input type="text" value={product.LineDescription}
                                                 variant="label-hidden" data-target-id={product.Id}

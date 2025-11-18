@@ -3,6 +3,9 @@ public class AddressInformationTriggerTest {
 
     @isTest
     static void testInsertAndUpdateTrigger() {
+        
+        Account acc = new Account(Name = 'Test Account');
+        insert acc;
 
         City__c testCity = new City__c(
             Name = 'Mumbai'
@@ -11,6 +14,7 @@ public class AddressInformationTriggerTest {
 
         Address_Information__c addressRecord = new Address_Information__c(
             Name = 'Test Address',
+            Account__c = acc.id,
             City__c = testCity.Id 
         );
 

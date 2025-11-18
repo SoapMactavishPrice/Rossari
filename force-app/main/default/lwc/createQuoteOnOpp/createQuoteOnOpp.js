@@ -11,6 +11,8 @@ import getDistributionChannel from '@salesforce/apex/QuoteController.getDistribu
 import getDivision from '@salesforce/apex/QuoteController.getDivision';
 import getSalesArea from '@salesforce/apex/QuoteController.getSalesArea';
 import getRecordTypeFromOpportunity from '@salesforce/apex/Utility.getRecordTypeFromOpportunity';
+import hasExistingQuote from '@salesforce/apex/QuoteController.hasExistingQuote';
+
 
 export default class CreateQuoteFromOpportunity extends NavigationMixin(LightningElement) {
     @api recordId;
@@ -39,6 +41,7 @@ export default class CreateQuoteFromOpportunity extends NavigationMixin(Lightnin
     @track isLoading = false;
     @track leadRecordType;
     @track hasProducts = false;
+    @track domesticDeliveryTermsOptions = [];
 
     // Add method to calculate discount
     calculateDiscount(listPrice, salesPrice) {
@@ -514,7 +517,8 @@ export default class CreateQuoteFromOpportunity extends NavigationMixin(Lightnin
             incoTerms: this.quoteFields.incoTerms,
             paymentTermId: this.quoteFields.paymentTermId,
             transportationCost: this.quoteFields.transportationCost,
-            containerType: this.quoteFields.containerType
+            containerType: this.quoteFields.containerType,
+            domesticDeliveryTerms: this.quoteFields.domesticDeliveryTerms
         })
             .then(quoteId => {
                 this.showToast('Success', 'Quote created successfully', 'success');
@@ -610,7 +614,51 @@ export default class CreateQuoteFromOpportunity extends NavigationMixin(Lightnin
         this.loadInitialData();
         this.handleGetSalesOrg();
         this.getRecordType();
+        this.checkExistingQuote();
+
     }
+
+    checkExistingQuote() {
+        this.isLoading = true;
+        hasExistingQuote({ opportunityId: this.recordId })
+            .then((exists) => {
+                if (exists) {
+                    // Show error toast
+                    this.showToast(
+                        'Error',
+                        'A quote already exists for this Opportunity. You cannot create another.',
+                        'error'
+                    );
+
+                    // Redirect to Opportunity record page
+                    this[NavigationMixin.Navigate]({
+                        type: 'standard__recordPage',
+                        attributes: {
+                            recordId: this.recordId,
+                            objectApiName: 'Opportunity',
+                            actionName: 'view'
+                        }
+                    });
+
+                    // Prevent further execution
+                    throw new Error('Quote already exists');
+                } else {
+                    // Proceed normally if no quote exists
+                    this.loadInitialData();
+                    this.handleGetSalesOrg();
+                    this.getRecordType();
+                }
+            })
+            .catch((error) => {
+                if (error.message !== 'Quote already exists') {
+                    this.showToast('Error', error.body?.message || error.message, 'error');
+                }
+            })
+            .finally(() => {
+                this.isLoading = false;
+            });
+    }
+
 
     getRecordType() {
         getRecordTypeFromOpportunity({ opportunityId: this.recordId }).then(result => {
@@ -630,7 +678,8 @@ export default class CreateQuoteFromOpportunity extends NavigationMixin(Lightnin
                     currencyCode: result.defaultCurrency,
                     pricebookId: result.pricebookId,
                     incoTerms: result.opportunityIncoTerms || '',
-                    paymentTermId: result.opportunityPaymentTermId || ''
+                    paymentTermId: result.opportunityPaymentTermId || '',
+                    domesticDeliveryTerms: result.opportunityDomesticDeliveryTerms || ''
                 };
 
                 this.statusOptions = result.statusOptions;
@@ -641,6 +690,7 @@ export default class CreateQuoteFromOpportunity extends NavigationMixin(Lightnin
                 }));
                 this.paymentTerms = result.paymentTerms;
                 this.incoTermsOptions = result.incoTermsOptions;
+                this.domesticDeliveryTermsOptions = result.domesticDeliveryTermsOptions;
 
                 if (result.defaultContact) {
                     this.quoteFields.contactId = result.defaultContact.value;

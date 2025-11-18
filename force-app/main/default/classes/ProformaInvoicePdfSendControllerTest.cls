@@ -7,8 +7,53 @@ public class ProformaInvoicePdfSendControllerTest {
 
         Contact con = new Contact(FirstName = 'Test', LastName = 'Contact', Email = 'test@example.com', AccountId = acc.Id);
         insert con;
+        
+        Product2 prod = new Product2(Name='Test Product', IsActive=true, Net_Wt__c=10);
+    insert prod;
+        
+        Id stdPbId = Test.getStandardPricebookId();
+    // Get the Standard PricebookEntry created automatically
+     PricebookEntry pbe = new PricebookEntry(
+            Pricebook2Id = stdPbId,
+            Product2Id = prod.Id,
+            UnitPrice = 100,
+            IsActive = true
+        );
+        insert pbe;
 
-        Proforma_Invoice__c invoice = new Proforma_Invoice__c(Name = 'Test Invoice', Account_Name__c = acc.Id);
+    
+    // Create a custom Pricebook and PBE
+    Pricebook2 customPb = new Pricebook2(Name='Custom PB', IsActive=true);
+    insert customPb;
+    PricebookEntry customPbe = new PricebookEntry(
+        Pricebook2Id = customPb.Id,
+        Product2Id = prod.Id,
+        UnitPrice = 100,
+        IsActive = true
+    );
+    insert customPbe;
+    
+    
+    Opportunity opp = new Opportunity(
+        Name='Test Opp',
+        AccountId=acc.Id,
+        StageName='Prospecting',
+        CloseDate=Date.today(),
+        Pricebook2Id=customPb.Id
+    );
+    insert opp;
+    
+    Quote qt = new Quote(
+        Name='Test Quote',
+        OpportunityId=opp.Id,
+        Status='Draft',
+        Pricebook2Id=customPb.Id
+    );
+    try{
+    insert qt;
+    }Catch(Exception e){}
+
+        Proforma_Invoice__c invoice = new Proforma_Invoice__c(Name = 'Test Invoice', Account_Name__c = acc.Id, Quote__c = qt.Id);
         insert invoice;
 
         Proforma_Invoice_Line_Item__c lineItem = new Proforma_Invoice_Line_Item__c(
@@ -32,7 +77,7 @@ public class ProformaInvoicePdfSendControllerTest {
 
         Account acc2 = new Account(Name = 'Empty Account');
         insert acc2;
-        Proforma_Invoice__c emptyInvoice = new Proforma_Invoice__c(Account_Name__c = acc2.Id);
+        Proforma_Invoice__c emptyInvoice = new Proforma_Invoice__c(Account_Name__c = acc2.Id, Quote__c = qt.Id);
         insert emptyInvoice;
         try {
             ProformaInvoicePdfSendController.getCustomerContactEmails(emptyInvoice.Id);

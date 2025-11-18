@@ -199,6 +199,9 @@ export default class LwcProductIntrestedPage extends NavigationMixin(LightningEl
             if (data.leadDivision) {
                 this.divisionId = data.leadDivision;
                 this.isDivision = !!this.divisionId;
+                this.isDivisionData = !!this.divisionId;
+                console.log('isDivisionData', this.isDivisionData);
+
                 console.log('isDivision', this.isDivision);
             }
 

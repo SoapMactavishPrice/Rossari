@@ -15,80 +15,54 @@
         <div class="slds-card__body slds-card__body_inner filter-section">
             <div class="slds-grid slds-wrap slds-gutters">
                 <!-- User Filter -->
-                <div class="slds-col slds-size_1-of-3">
+                <div class="slds-col slds-size_1-of-4">
                     <div class="slds-form-element">
                         <label class="slds-form-element__label" for="user-filter">User</label>
                         <div class="slds-form-element__control">
                             <lightning-combobox id="user-filter" name="user-filter" value={selectedUser}
-                                placeholder="Select User" options={userOptions} onchange={handleUserChange}>
+                                placeholder="Select User" options={userOptions} onchange={handleUserChange}
+                                variant="label-hidden">
                             </lightning-combobox>
                         </div>
                     </div>
                 </div>
 
                 <!-- Type of Voucher Filter -->
-                <div class="slds-col slds-size_1-of-3">
+                <div class="slds-col slds-size_1-of-4">
                     <div class="slds-form-element">
                         <label class="slds-form-element__label" for="voucher-filter">Type of Voucher</label>
                         <div class="slds-form-element__control">
                             <lightning-combobox id="voucher-filter" name="voucher-filter" value={selectedVoucherType}
                                 placeholder="Select Voucher Type" options={voucherTypeOptions}
-                                onchange={handleVoucherTypeChange}>
+                                onchange={handleVoucherTypeChange} variant="label-hidden">
                             </lightning-combobox>
                         </div>
                     </div>
                 </div>
 
                 <!-- Month Filter -->
-                <div class="slds-col slds-size_1-of-3">
+                <div class="slds-col slds-size_1-of-4">
                     <div class="slds-form-element">
                         <label class="slds-form-element__label" for="month-filter">Month</label>
                         <div class="slds-form-element__control">
                             <lightning-combobox id="month-filter" name="month-filter" value={selectedMonth}
-                                placeholder="Select Month" options={monthOptions} onchange={handleMonthChange}>
+                                placeholder="Select Month" options={monthOptions} onchange={handleMonthChange}
+                                variant="label-hidden">
                             </lightning-combobox>
                         </div>
                     </div>
                 </div>
-            </div>
-
-            <!-- Bulk Approval Toggle -->
-            <div class="slds-grid slds-m-top_medium">
-                <div class="slds-col slds-size_1-of-2">
+                <div class="slds-col slds-size_1-of-4">
                     <div class="slds-form-element">
-                        <div class="slds-form-element__control">
-                            <div class="slds-checkbox_toggle slds-grid">
-                                <span class="slds-form-element__label slds-m-bottom_none">Approve All Visible
-                                    Records</span>
-                                <label class="slds-checkbox_toggle__label" for="bulk-approval-toggle">
-                                    <span class="slds-checkbox_faux_container" aria-live="assertive">
-                                        <span class="slds-checkbox_faux"></span>
-                                        <span class="slds-checkbox_on">Enabled</span>
-                                        <span class="slds-checkbox_off">Disabled</span>
-                                    </span>
-                                </label>
-                                <input type="checkbox" name="bulk-approval-toggle" id="bulk-approval-toggle"
-                                    class="slds-checkbox_toggle__input" checked={bulkApprovalEnabled}
-                                    onchange={handleBulkApprovalToggle} />
-                            </div>
-                            <div class="slds-form-element__help">
-                                When enabled, all filtered records will be approved automatically
-                            </div>
-                        </div>
+                        <lightning-button label="Apply Filters" variant="brand" onclick={handleApplyFilters}
+                            class="slds-float_left slds-m-right_small" disabled={isLoading}>
+                        </lightning-button>
+                        <lightning-button label="Clear Filters" variant="neutral" onclick={handleClearFilters}
+                            class="slds-float_left" disabled={isLoading}>
+                        </lightning-button>
                     </div>
                 </div>
-            </div>
 
-            <!-- Filter Actions -->
-            <div class="slds-grid slds-m-top_medium">
-                <div class="slds-col">
-                    <lightning-button label="Apply Filters" variant="brand" onclick={handleApplyFilters}
-                        class="slds-float_right slds-m-left_small" disabled={isLoading}>
-                    </lightning-button>
-                    <lightning-button label="Clear Filters" variant="neutral" onclick={handleClearFilters}
-                        class="slds-float_right" disabled={isLoading}>
-                    </lightning-button>
-                </div>
             </div>
         </div>
 
@@ -106,14 +80,6 @@
 
             <template if:false={isLoading}>
                 <template if:true={hasGroupedExpenses}>
-                    <div class="slds-text-heading_small slds-m-bottom_medium">
-                        Showing {totalExpenses} expense(s) across {totalUsers} user(s)
-                        <template if:true={bulkApprovalEnabled}>
-                            <span class="slds-text-color_success slds-m-left_small">
-                                ✓ Bulk approval enabled - All records will be approved
-                            </span>
-                        </template>
-                    </div>
 
                     <!-- Loop through each user -->
                     <template for:each={userExpenseGroups} for:item="userGroup">
@@ -127,15 +93,6 @@
                                             class="slds-m-right_x-small"></lightning-icon>
                                         {userGroup.userName}
                                     </h3>
-                                    <p class="slds-text-body_small slds-text-color_weak">
-                                        {userGroup.expenseCount} expense(s) -
-                                        <template if:true={userGroup.hasPendingWithCurrentUser}>
-                                            <span class="slds-text-color_success">Some pending your approval</span>
-                                        </template>
-                                        <template if:false={userGroup.hasPendingWithCurrentUser}>
-                                            <span class="slds-text-color_weak">All pending with other approvers</span>
-                                        </template>
-                                    </p>
                                 </div>
                             </div>
 
@@ -146,18 +103,44 @@
                                         <tr class="slds-text-title_caps">
                                             <th scope="col" style="width: 10%" class="table-header">VOUCHER NO</th>
                                             <th scope="col" style="width: 8%" class="table-header">EXPENSE DATE</th>
-                                            <th scope="col" style="width: 8%" class="table-header">VOUCHER TYPE</th>
-                                            <th scope="col" style="width: 8%" class="table-header">APPROVAL LEVEL</th>
-                                            <th scope="col" style="width: 15%" class="table-header">TYPE OF EXPENSE</th>
-                                            <th scope="col" style="width: 10%" class="table-header text-center">MODE OF
-                                                TRANSPORT</th>
-                                            <th scope="col" style="width: 10%" class="table-header text-center">DAILY
+                                            <th scope="col" style="width: 5%" class="table-header">VOUCHER TYPE</th>
+                                            <th scope="col" style="width: 5%" class="table-header">TYPE OF EXPENSE</th>
+                                            <th scope="col" style="width: 15%" class="table-header text-center">
+                                                DESCRIPTION</th>
+                                            <th scope="col" style="width: 5%" class="table-header text-center">DAILY
                                                 ALLOWANCE</th>
-                                            <th scope="col" style="width: 10%" class="table-header text-center">AMOUNT
+                                            <th scope="col" style="width: 5%" class="table-header text-center">AMOUNT
                                                 CLAIMED</th>
-                                            <th scope="col" style="width: 10%" class="table-header text-center">AMOUNT
+                                            <th scope="col" style="width: 5%" class="table-header text-center">AMOUNT
                                                 PASSED</th>
-                                            <th scope="col" style="width: 6%" class="table-header text-center">ACTIONS
+                                            <th scope="col" style="width: 8%" class="table-header">APPROVAL LEVEL</th>
+
+                                            <th scope="col" style="width: 8%" class="table-header text-center">
+                                                <!-- Bulk Approval Toggle in Header -->
+                                                <template if:true={userGroup.hasPendingWithCurrentUser}>
+                                                    <div class="slds-form-element">
+                                                        <div class="slds-form-element__control">
+                                                            <div class="slds-checkbox_toggle slds-grid">
+                                                                <label class="slds-checkbox_toggle__label">
+                                                                    <span class="slds-checkbox_faux_container"
+                                                                        aria-live="assertive">
+                                                                        <span class="slds-checkbox_faux"></span>
+                                                                        <span class="slds-checkbox_on">Approved
+                                                                            All</span>
+                                                                    </span>
+                                                                    <input type="checkbox"
+                                                                        class="slds-checkbox_toggle__input"
+                                                                        checked={userGroup.isAllApproved}
+                                                                        data-user-name={userGroup.userName}
+                                                                        onchange={handleBulkToggleApproval} />
+                                                                </label>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </template>
+                                                <template if:false={userGroup.hasPendingWithCurrentUser}>
+                                                    <span class="slds-text-color_success">Action</span>
+                                                </template>
                                             </th>
                                             <th scope="col" style="width: 5%; text-align:center;" class="table-header">
                                                 FILES</th>
@@ -170,30 +153,35 @@
                                             <template for:each={expense.lineItems} for:item="lineItem">
                                                 <tr key={lineItem.lineItemId} class="table-row">
                                                     <!-- Expense-level data (show only for first line item of each expense) -->
-                                                    <td class="table-cell" if:true={lineItem.isFirstLineItem}>
+                                                    <td class="table-cell text-center"
+                                                        if:true={lineItem.isFirstLineItem}>
                                                         <div class="field-value">{expense.expenseName}</div>
                                                     </td>
-                                                    <td class="table-cell" if:true={lineItem.isFirstLineItem}>
+                                                    <td class="table-cell text-center"
+                                                        if:true={lineItem.isFirstLineItem}>
                                                         <div class="field-value">{expense.formattedExpenseDate}</div>
                                                     </td>
-                                                    <td class="table-cell" if:true={lineItem.isFirstLineItem}>
+                                                    <td class="table-cell text-center"
+                                                        if:true={lineItem.isFirstLineItem}>
                                                         <div class="field-value">{expense.typeOfVoucher}</div>
                                                     </td>
-                                                    <td class="table-cell" if:true={lineItem.isFirstLineItem}>
+                                                    <!-- APPROVAL LEVEL CELL - MOVED BEFORE ACTION -->
+                                                    <!-- <td class="table-cell text-center"
+                                                        if:true={lineItem.isFirstLineItem}>
                                                         <span class={expense.badgeClass}>
-                                                            {expense.currentApprovalLevel} - {expense.currentApprover}
+                                                            {expense.currentApprover}
                                                         </span>
-                                                    </td>
+                                                    </td> -->
 
                                                     <!-- Empty cells for subsequent line items -->
-                                                    <td class="table-cell" if:false={lineItem.isFirstLineItem}></td>
+                                                    <!-- <td class="table-cell" if:false={lineItem.isFirstLineItem}></td> -->
                                                     <td class="table-cell" if:false={lineItem.isFirstLineItem}></td>
                                                     <td class="table-cell" if:false={lineItem.isFirstLineItem}></td>
                                                     <td class="table-cell" if:false={lineItem.isFirstLineItem}></td>
 
                                                     <!-- Line item data -->
                                                     <td class="table-cell">{lineItem.typeOfExpense}</td>
-                                                    <td class="table-cell text-center">{lineItem.modeOfTransport}</td>
+                                                    <td class="table-cell text-center">{lineItem.description}</td>
                                                     <td class="table-cell text-center">
                                                         <lightning-formatted-number value={lineItem.dailyAllowance}
                                                             currency-code="USD"></lightning-formatted-number>
@@ -217,26 +205,23 @@
                                                                 currency-code="USD"></lightning-formatted-number>
                                                         </template>
                                                     </td>
+                                                    <td class="table-cell text-center"
+                                                        if:true={lineItem.isFirstLineItem}>
+                                                        <span class={expense.badgeClass}>
+                                                            {expense.currentApprover}
+                                                        </span>
+                                                    </td>
+                                                    <!-- ACTION CELL - MOVED AFTER APPROVAL LEVEL -->
                                                     <td class="table-cell text-center">
-                                                        <!-- Show action buttons only for first line item of each expense -->
+                                                        <!-- Status column - shows proper status -->
                                                         <template if:true={lineItem.isFirstLineItem}>
-                                                            <template if:true={expense.isPendingWithCurrentUser}>
-                                                                <lightning-button label="Approve" variant="success"
-                                                                    data-id={expense.expenseId} onclick={handleApprove}
-                                                                    class="slds-m-right_x-small approve-btn"
-                                                                    title="Approve Expense">
-                                                                </lightning-button>
-                                                                <lightning-button label="Reject" variant="destructive"
-                                                                    data-id={expense.expenseId} onclick={handleReject}
-                                                                    class="reject-btn" title="Reject Expense">
-                                                                </lightning-button>
-                                                            </template>
-                                                            <template if:false={expense.isPendingWithCurrentUser}>
-                                                                <span class="slds-text-color_weak">Pending with
-                                                                    {expense.currentApprover}</span>
-                                                            </template>
+                                                            <span class={expense.statusBadgeClass}>
+                                                                {expense.statusDisplay}
+                                                            </span>
                                                         </template>
                                                     </td>
+                                                    <td class="table-cell" if:false={lineItem.isFirstLineItem}></td>
+
                                                     <td class="table-cell" style="text-align: center;">
                                                         <template if:true={lineItem.hasFiles}>
                                                             <lightning-button-icon icon-name="utility:preview"
@@ -268,46 +253,6 @@
                 </template>
             </template>
         </div>
-
-        <!-- Initial State - Show when no filters applied -->
-        <div class="slds-card__body slds-card__body_inner" if:false={showDataSection}>
-            <div class="slds-align_absolute-center slds-p-vertical_xx-large">
-                <div class="slds-box slds-box_small slds-align_absolute-center">
-                    <lightning-icon icon-name="utility:filter" size="large"
-                        class="slds-m-bottom_small"></lightning-icon>
-                    <h3 class="slds-text-heading_medium slds-m-bottom_x-small">Apply Filters to View Expenses</h3>
-                    <p class="slds-text-body_regular slds-text-color_weak">Select filter criteria and click "Apply
-                        Filters" to see all pending expense approvals.</p>
-                </div>
-            </div>
-        </div>
-
-        <!-- Approval Modal -->
-        <template if:true={showModal}>
-            <section role="dialog" tabindex="-1" class="slds-modal slds-fade-in-open">
-                <div class="slds-modal__container" style="max-width: 600px;">
-                    <header class="slds-modal__header">
-                        <h2 class="slds-text-heading_medium">{modalHeader}</h2>
-                        <button class="slds-button slds-button_icon slds-modal__close" onclick={closeModal}>
-                            <lightning-icon icon-name="utility:close" alternative-text="Close"></lightning-icon>
-                        </button>
-                    </header>
-                    <div class="slds-modal__content slds-p-around_medium">
-                        <lightning-textarea label="Approval Comments" value={approvalComments}
-                            onchange={handleCommentChange} maxlength="255"
-                            message-when-bad-input="Please enter comments">
-                        </lightning-textarea>
-                    </div>
-                    <footer class="slds-modal__footer">
-                        <lightning-button label="Cancel" onclick={closeModal} variant="neutral"></lightning-button>
-                        <lightning-button label={modalButtonLabel} onclick={submitApproval} variant={modalButtonVariant}
-                            disabled={isLoading}>
-                        </lightning-button>
-                    </footer>
-                </div>
-            </section>
-            <div class="slds-backdrop slds-backdrop_open"></div>
-        </template>
 
         <!-- Files Modal -->
         <template if:true={showFilesModal}>

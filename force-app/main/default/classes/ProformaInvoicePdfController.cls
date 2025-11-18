@@ -235,47 +235,43 @@ public with sharing class ProformaInvoicePdfController {
         // Line Items
         html += '<table style="' + tableStyle + '">';
         html += '<tr>';
-        html += '<th style="' + borderStyle + '">Sr. No.</th>';
-        html += '<th style="' + borderStyle + '">Material Code</th>';
-        html += '<th style="' + borderStyle + '">HSN/SAC</th>';
-        html += '<th style="' + borderStyle + '">Item Description</th>';
-    //    html += '<th style="' + borderStyle + '">Pack Size</th>';
-        html += '<th style="' + borderStyle + '">UOM</th>';
-        html += '<th style="' + borderStyle + '">Quantity</th>';
-        html += '<th style="' + borderStyle + '">Unit</th>';
-        html += '<th style="' + borderStyle + '">Price</th>';
-        html += '<th style="' + borderStyle + '">Amount</th>';
+        html += '<th style="' + borderStyle + 'text-align:center; width:5%;">Sr. No.</th>';
+        html += '<th style="' + borderStyle + 'text-align:center; width:12%;">Material Code</th>';
+        html += '<th style="' + borderStyle + 'text-align:center; width:10%;">HSN/SAC</th>';
+        html += '<th style="' + borderStyle + 'text-align:center; width:23%;">Item Description</th>';
+        html += '<th style="' + borderStyle + 'text-align:center; width:8%;">UOM</th>';
+        html += '<th style="' + borderStyle + 'text-align:center; width:10%;">Quantity</th>';
+        html += '<th style="' + borderStyle + 'text-align:center; width:10%;">List Price</th>';
+        html += '<th style="' + borderStyle + 'text-align:center; width:10%;">Sales Price</th>';
+        html += '<th style="' + borderStyle + 'text-align:center; width:12%;">Amount</th>';
         html += '</tr>';
 
         Integer srNo = 1;
         for (Proforma_Invoice_Line_Item__c item : proformaInvoiceLineItems) {
             html += '<tr>';
-            html += '<td style="' + borderStyle + '">' + srNo + '</td>';
-            html += '<td style="' + borderStyle + '">' + ns(item.Product__r.ProductCode) + '</td>';
-            html += '<td style="' + borderStyle + '">' + ns(item.Product__r.HSN__c) + '</td>';
-            html += '<td style="' + borderStyle + '">' + ns(item.Product__c) + '</td>';
-       //     html += '<td style="' + borderStyle + '">' + ns(item.Product__r.Pack_Size__c) + '</td>';
-            html += '<td style="' + borderStyle + '">' + ns(item.Product__r.Base_UOM__r.Name) + '</td>';
-            html += '<td style="' + borderStyle + '">' + ns(item.Quantity__c) + '</td>';
-            html += '<td style="' + borderStyle + '">' + ns(item.List_Price__c) + '</td>';
-            html += '<td style="' + borderStyle + '">' + ns(item.Sales_Price__c) + '</td>';
-            html += '<td style="' + borderStyle + '">' + ns(item.Total_Price__c) + '</td>';
+            html += '<td style="' + borderStyle + 'text-align:center;">' + srNo + '</td>';
+            html += '<td style="' + borderStyle + 'text-align:left;">' + ns(item.Product__r.ProductCode) + '</td>';
+            html += '<td style="' + borderStyle + 'text-align:center;">' + ns(item.Product__r.HSN__c) + '</td>';
+            html += '<td style="' + borderStyle + 'text-align:left;">' + ns(item.Product__c) + '</td>';
+            html += '<td style="' + borderStyle + 'text-align:center;">' + ns(item.Product__r.Base_UOM__r.Name) + '</td>';
+            html += '<td style="' + borderStyle + 'text-align:right;">' + ns(item.Quantity__c) + '</td>';
+            html += '<td style="' + borderStyle + 'text-align:right;">' + ns(item.List_Price__c) + '</td>';
+            html += '<td style="' + borderStyle + 'text-align:right;">' + ns(item.Sales_Price__c) + '</td>';
+            html += '<td style="' + borderStyle + 'text-align:right;">' + ns(item.Total_Price__c) + '</td>';
             html += '</tr>';
             srNo++;
         }
 
         // Terms & Totals
         html += '<tr>';
-        html += '<td colspan="10" style="' + borderStyle + 'white-space: pre-wrap; padding: 0px; margin: 0px;' + '"><b>Terms and Conditions:</b><br/>' + ns(proformaInvoice.Terms_and_Conditions__c) + '</td>';
-        // html += '<td colspan="3" style="' + boldStyle + borderStyle + '">Amount Before Tax</td><td style="' + borderStyle + '">' + proformaInvoice.Subtotal__c + '</td>';
+        html += '<td colspan="9" style="' + borderStyle + 'text-align:left; white-space:pre-wrap;"><b>Terms and Conditions:</b><br/>' + ns(proformaInvoice.Terms_and_Conditions__c) + '</td>';
         html += '</tr>';
 
-        // html += '<tr><td colspan="2" style="' + boldStyle + borderStyle + '">CGST</td><td style="' + borderStyle + '">(HC)</td><td style="' + borderStyle + '">(HC)</td></tr>';
-        // html += '<tr><td colspan="2" style="' + boldStyle + borderStyle + '">SGST</td><td style="' + borderStyle + '">(HC)</td><td style="' + borderStyle + '">(HC)</td></tr>';
-        // html += '<tr><td colspan="2" style="' + boldStyle + borderStyle + '">IGST</td><td style="' + borderStyle + '">(HC)</td><td style="' + borderStyle + '">(HC)</td></tr>';
-        // html += '<tr><td colspan="2" style="' + boldStyle + borderStyle + '">Round Off</td><td style="' + borderStyle + '">(HC)</td><td style="' + borderStyle + '">(HC)</td></tr>';
-
-        html += '<tr><td colspan="6" style="' + borderStyle + '"><b>Net Weight</b>: ' + ns(proformaInvoice.Net_weight__c) + '</td><td colspan="3" style="' + boldStyle + borderStyle + '">Grand Total</td><td style="' + borderStyle + '">' + ns(proformaInvoice.Grand_Total__c) + '</td></tr>';
+        html += '<tr>';
+        html += '<td colspan="5" style="' + borderStyle + 'text-align:left;"><b>Net Weight</b>: ' + ns(proformaInvoice.Net_weight__c) + '</td>';
+        html += '<td colspan="3" style="' + boldStyle + borderStyle + 'text-align:right;">Grand Total</td>';
+        html += '<td style="' + borderStyle + 'text-align:right;">' + ns(proformaInvoice.Grand_Total__c) + '</td>';
+        html += '</tr>';
         html += '</table>';
 
         // Amount in Words & Declaration

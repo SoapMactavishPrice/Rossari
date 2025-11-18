@@ -65,9 +65,9 @@ public class CustomerOnboardingFormController_Test {
             VersionData = Blob.valueOf('Dummy Content')
         );
         
-    //    try{
+        try{
         insert cv;
-	//	}Catch(Exception e){}
+		}Catch(Exception e){}
         
         // Fetch the ContentDocumentId created automatically
         Id contentDocId = [

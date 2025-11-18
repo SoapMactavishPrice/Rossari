@@ -2,7 +2,7 @@
     <lightning-card>
         <div class="slds-m-around_medium">
 
-            <template if:false={recordTypeSelected}>
+            <!-- <template if:false={recordTypeSelected}>
                 <div class="slds-grid slds-grid_align-center slds-p-top_large slds-p-around_medium"
                     style="margin-top: 60px;">
                     <div class="slds-text-align_center">
@@ -23,6 +23,23 @@
                         </lightning-button>
                     </div>
                 </div>
+            </template> -->
+
+            <template if:false={recordTypeSelected}>
+                <div class="slds-grid slds-grid_align-center slds-p-top_large slds-p-around_medium"
+                    style="margin-top: 60px;">
+                    <div class="slds-grid slds-grid_vertical-align-center slds-grid_align-center">
+
+                        <lightning-input type="radio" name="recordTypeGroup" label="Application" value="Application"
+                            checked={isApplicationSelected} onchange={handleRecordTypeChange}>
+                        </lightning-input>
+
+                        <lightning-input type="radio" name="recordTypeGroup" label="Synthesis" value="Synthesis"
+                            checked={isSyntheticSelected} onchange={handleRecordTypeChange} class="slds-m-left_large">
+                        </lightning-input>
+
+                    </div>
+                </div>
             </template>
 
 
@@ -33,7 +50,7 @@
                     <!-- Header -->
                     <div class="slds-p-around_xx-small slds-text-align_center slds-border_bottom slds-theme_shade"
                         style="margin-left: -4px;background-color: #9d0b0f; color: #ffffff;">
-                        <h3 class="slds-text-heading_small" style="margin: 0;">Synthetic Costing</h3>
+                        <h3 class="slds-text-heading_small" style="margin: 0;">Synthesis Costing</h3>
                     </div>
 
                     <!-- Reference Table for Customer Calculations -->
@@ -187,17 +204,17 @@
                         <table class="slds-table slds-table_bordered slds-table_cell-buffer">
                             <thead>
                                 <tr class="slds-text-title_caps">
-                                    <th scope="col">Name</th>
+                                    <th scope="col">Product Name</th>
                                     <th scope="col">Mol Weight</th>
-                                    <th scope="col">Used in Batch (Kgs)</th>
+                                    <th scope="col">Used Batch(Kgs)</th>
                                     <th scope="col">Recovered</th>
                                     <th scope="col">Consumed (Kgs)</th>
                                     <th scope="col">Kg RM / Kg Product</th>
-                                    <th scope="col">Unit Cost Per Kg</th>
-                                    <th scope="col">Cost in Batch</th>
-                                    <th scope="col">Cost Per Kg</th>
+                                    <th scope="col">Unit Cost-Kg</th>
+                                    <th scope="col">Cost Batch</th>
+                                    <th scope="col">Cost-Kg</th>
                                     <th scope="col">Gmoles</th>
-                                    <th scope="col">Use for Yield Calc</th>
+                                    <th scope="col">Yield Calc</th>
                                     <th scope="col">Actions</th>
                                 </tr>
                             </thead>
@@ -465,7 +482,7 @@
                     <table class="slds-table slds-table_bordered slds-table_cell-buffer slds-m-top_medium">
                         <thead>
                             <tr class="slds-text-title_caps">
-                                <th>Name</th>
+                                <th>Product Name</th>
                                 <th>SG</th>
                                 <th>Component %</th>
                                 <th>Cost/Kg</th>

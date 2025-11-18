@@ -1,0 +1,196 @@
+<!-- <template>
+    <lightning-card>
+        <template if:true={filterFlag}>
+            <div class="slds-p-around_medium">
+                <div class="slds-grid slds-gutters slds-m-bottom_medium">
+                    <div class="slds-col slds-size_1-of-4">
+                        <lightning-combobox name="year" label="Year" value={selectedYear} options={yearOptions}
+                            onchange={handleYearChange} class="slds-m-right_small">
+                        </lightning-combobox>
+                    </div>
+                    <div class="slds-col slds-size_1-of-4">
+                        <lightning-combobox name="month" label="Month" value={selectedMonth} options={monthOptions}
+                            onchange={handleMonthChange}>
+                        </lightning-combobox>
+                    </div>
+                </div>
+            </div>
+        </template>
+        <template if:true={buttonsFlag}>
+            <div class="slds-card__header slds-grid slds-grid_align-spread">
+                <h2 class="slds-card__header-title slds-truncate">
+                    <span class="slds-text-heading_small">Forecast Report - {selectedMonthName} {selectedYear}</span>
+                </h2>
+                <div class="slds-grid slds-grid_align-end slds-grow slds-shrink-none">
+                    <div class="slds-grid slds-grid_align-end">
+                        <input type="file" class="slds-hidden" accept=".xlsx, .xls, .csv" onchange={handleFileUpload} />
+                        <lightning-button label="Download Template" icon-name="utility:download" variant="neutral"
+                            class="slds-m-left_x-small" onclick={handleDownload}></lightning-button>
+                        <lightning-button label="Upload Report" icon-name="utility:upload" variant="brand"
+                            class="slds-m-left_x-small" onclick={handleUpload}></lightning-button>
+                    </div>
+                </div>
+            </div>
+        </template>
+
+        <div class="slds-p-around_medium">
+            <div class="slds-scrollable" style="padding: 1px 5px;">
+                <table class="slds-table slds-table_bordered slds-table_cell-buffer">
+                    <thead>
+                        <tr class="slds-line-height_reset">
+                            <template for:each={tableHeaders} for:item="header">
+                                <th key={header} class="slds-text-title_caps">{header}</th>
+                            </template>
+                        </tr>
+                    </thead>
+
+                    <tbody>
+                        <template for:each={tableData} for:item="row">
+                            <tr key={row.id}>
+                                <td>{row.CustomerCode}</td>
+                                <td>{row.Customername}</td>
+                                <td>{row.Material}</td>
+                                <td>{row.Materialdescription}</td>
+                                <td>{row.Zone}</td>
+                                <td>{row.Salespersoncode}</td>
+                                <td>{row.Salesperson}</td>
+                                <td>{row.Production}</td>
+                                <td>{row.Apr25}</td>
+                                <td>{row.Remark}</td>
+                            </tr>
+                        </template>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+    </lightning-card>
+</template> -->
+
+
+<template>
+    <lightning-card>
+        <template if:true={filterFlag}>
+            <div class="slds-p-around_medium">
+                <div class="slds-grid slds-gutters slds-m-bottom_medium">
+                    <div class="slds-col slds-size_1-of-4">
+                        <lightning-combobox name="year" label="Year" value={selectedYear} options={yearOptions}
+                            onchange={handleYearChange} class="slds-m-right_small">
+                        </lightning-combobox>
+                    </div>
+                    <div class="slds-col slds-size_1-of-4">
+                        <lightning-combobox name="month" label="Month" value={selectedMonth} options={monthOptions}
+                            onchange={handleMonthChange}>
+                        </lightning-combobox>
+                    </div>
+                </div>
+            </div>
+        </template>
+
+        <template if:true={buttonsFlag}>
+            <div class="slds-card__header slds-grid slds-grid_align-spread">
+                <h2 class="slds-card__header-title slds-truncate">
+                    <span class="slds-text-heading_small">Forecast Report - {selectedMonthName} {selectedYear}</span>
+                </h2>
+                <div class="slds-grid slds-grid_align-end slds-grow slds-shrink-none">
+                    <div class="slds-grid slds-grid_align-end">
+                        <input type="file" class="slds-hidden" accept=".xlsx, .xls, .csv" onchange={handleFileUpload} />
+                        <lightning-button label="Download Template" icon-name="utility:download" variant="neutral"
+                            class="slds-m-left_x-small" onclick={handleDownload}></lightning-button>
+                        <lightning-button label="Upload Report" icon-name="utility:upload" variant="brand"
+                            class="slds-m-left_x-small" onclick={handleUpload}></lightning-button>
+                    </div>
+                </div>
+            </div>
+        </template>
+
+        <!-- Uploaded File Info -->
+        <template if:true={uploadedFileName}>
+            <div class="slds-p-around_medium slds-theme_success">
+                <div class="slds-grid slds-grid_align-spread">
+                    <div class="slds-col">
+                        <span class="slds-text-heading_small">Uploaded File: {uploadedFileName}</span>
+                        <span class="slds-text-body_regular slds-m-left_small">({tableData.length} records found)</span>
+                    </div>
+                    <div class="slds-col slds-grid slds-grid_align-end">
+                        <lightning-button label="Save Records" variant="brand" class="slds-m-left_x-small"
+                            onclick={saveRecords} disabled={isSaving}></lightning-button>
+                        <lightning-button label="Cancel" variant="neutral" class="slds-m-left_x-small"
+                            onclick={cancelUpload} disabled={isSaving}></lightning-button>
+                    </div>
+                </div>
+            </div>
+        </template>
+
+        <!-- Data Table (only shown after upload) -->
+        <!-- <template if:true={showTable}> -->
+        <div class="slds-p-around_medium">
+            <div class="slds-scrollable" style="padding: 1px 5px;">
+                <table class="slds-table slds-table_bordered slds-table_cell-buffer">
+                    <thead>
+                        <tr class="slds-line-height_reset">
+                            <th></th>
+                            <th class="slds-text-title_caps">Customer Code</th>
+                            <th class="slds-text-title_caps">Customer Name</th>
+                            <!-- <th class="slds-text-title_caps">Material Code</th>
+                            <th class="slds-text-title_caps">Material Description</th>
+                            <th class="slds-text-title_caps">Salesperson Code</th>
+                            <th class="slds-text-title_caps">Salesperson</th>
+                            <th class="slds-text-title_caps">Sales Quantity</th> -->
+                        </tr>
+                    </thead>
+
+                    <tbody>
+                        <template for:each={existingForecastData} for:item="row">
+                            <tr key={row.customerId}>
+                                <td>
+                                    <lightning-button-icon icon-name={row.iconName} data-key={row.customerId}
+                                        onclick={toggleRow} alternative-text="Toggle Details" variant="bare"
+                                        size="small">
+                                    </lightning-button-icon>
+                                </td>
+                                <td>{row.customerCode}</td>
+                                <td>{row.customerName}</td>
+                                <!-- <td>{row.materialCode}</td>
+                                <td>{row.materialDescription}</td>
+                                <td>{row.salespersonCode}</td>
+                                <td>{row.salesperson}</td>
+                                <td>{row.salesQuantity}</td> -->
+                            </tr>
+                            <template if:true={row.isExpanded}>
+                                <tr key={row.customerCode}>
+                                    <td colspan="3">
+                                        <table class="slds-table slds-table_bordered ">
+                                            <thead>
+                                                <tr class="slds-line-height_reset">
+                                                    <th class="slds-text-title_caps">Material Code</th>
+                                                    <th class="slds-text-title_caps">Material Description</th>
+                                                    <th class="slds-text-title_caps">Salesperson Code</th>
+                                                    <th class="slds-text-title_caps">Salesperson</th>
+                                                    <th class="slds-text-title_caps">Sales Quantity</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                <template for:each={row.products} for:item="material">
+                                                    <tr key={material.rowId}>
+                                                        <td>{material.materialCode}</td>
+                                                        <td>{material.materialDescription}</td>
+                                                        <td>{material.salespersonCode}</td>
+                                                        <td>{material.salesperson}</td>
+                                                        <td>{material.salesQuantity}</td>
+                                                    </tr>
+                                                </template>
+                                            </tbody>
+                                        </table>
+                                    </td>
+                                </tr>
+                            </template>
+                        </template>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        <!-- </template> -->
+
+    </lightning-card>
+</template>

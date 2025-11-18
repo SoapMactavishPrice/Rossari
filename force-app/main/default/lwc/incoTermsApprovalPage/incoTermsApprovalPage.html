@@ -1,7 +1,7 @@
 <template>
     <lightning-card>
         <h4 class="slds-text-align_center" style="font-size: 24px; font-weight: bold; padding-bottom: 10px;">
-            Payment Terms Approval Dashboard
+            Inco Terms Approval Dashboard
         </h4>
 
         <template if:true={quotes}>
@@ -20,11 +20,11 @@
                             <thead>
                                 <tr class="slds-line-height_reset">
                                     <th scope="col" style="width: 16.6%;">Customer Name</th>
-                                    <th scope="col" style="width: 16.6%;">Payment Term</th>
-                                    <th scope="col" style="width: 16.6%;">Previous Payment Term</th>
+                                    <th scope="col" style="width: 16.6%;">Inco Term</th>
+                                    <th scope="col" style="width: 16.6%;">Previous Inco Term</th>
                                     <th scope="col" style="width: 12.6%;">Quote Owner</th>
-                                    <th scope="col" style="width: 16.6%;">Credit Approval Status</th>
-                                    <th scope="col" style="width: 20.6%;">Payment Remarks</th>
+                                    <th scope="col" style="width: 16.6%;">Inco Terms Approval Status</th>
+                                    <th scope="col" style="width: 20.6%;">Inco Remarks</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -32,21 +32,21 @@
                                     <!-- Customer Name -->
                                     <td>{quote.Account.Name}</td>
 
-                                    <!-- Payment Term -->
-                                    <td>{quote.Payment_Term__r.Name}</td>
+                                    <!-- Inco Term -->
+                                    <td>{quote.Inco_Terms__c}</td>
 
-                                    <!-- Previous Payment Term -->
-                                    <td>{quote.Previous_Payment_Terms__r.Name}</td>
+                                    <!-- Previous Inco Term -->
+                                    <td>{quote.Previous_Inco_Terms__c}</td>
 
                                     <!-- Quote Owner -->
                                     <td>{quote.Owner.Name}</td>
 
-                                    <!-- Credit Approval Status -->
+                                    <!-- Inco Approval Status -->
                                     <td>
                                         <lightning-combobox
-                                            value={quote.Credit_Approval_Status__c}
+                                            value={quote.Inco_Terms_Approval_Status__c}
                                             data-id={quote.Id}
-                                            data-field="Credit_Approval_Status__c"
+                                            data-field="Inco_Terms_Approval_Status__c"
                                             options={statusOptions}
                                             onchange={handleChange}
                                             disabled={quote.isDisabled}
@@ -54,12 +54,12 @@
                                         </lightning-combobox>
                                     </td>
 
-                                    <!-- Payment Remarks -->
+                                    <!-- Inco Remarks -->
                                     <td>
                                         <lightning-input 
-                                            value={quote.Payment_Remark__c} 
+                                            value={quote.Inco_Remark__c} 
                                             data-id={quote.Id} 
-                                            data-field="Payment_Remark__c" 
+                                            data-field="Inco_Remark__c" 
                                             onchange={handleChange}
                                             disabled={quote.isDisabled}
                                             style="margin-top: -8px;">
@@ -74,7 +74,7 @@
 
             <template if:false={hasQuotes}>
                 <div class="slds-text-align_center slds-m-around_medium">
-                    <p>No quotes available for Payment Terms approval.</p>
+                    <p>No quotes available for inco terms approval.</p>
                 </div>
             </template>
 

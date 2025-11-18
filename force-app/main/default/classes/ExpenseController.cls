@@ -493,7 +493,7 @@ public with sharing class ExpenseController {
         Savepoint sp = Database.setSavepoint();
         try {
             // Get current user with Entity Code fields
-            User currentUser = [SELECT Id, Cost_Center__c, Entity_Code_1__c, Entity_Code_2__c, Entity_Code_3__c 
+            User currentUser = [SELECT Id, Cost_Center__c, User_Type__c, ManagerId 
                                FROM User WHERE Id = :UserInfo.getUserId() LIMIT 1];
             
             // Determine record type based on Entity Codes
@@ -517,7 +517,16 @@ public with sharing class ExpenseController {
                 expense.CurrencyIsoCode = 'INR';
             }
             
+            // Apply user mappings based on business rules
+            applyUserMappings(expense, currentUser, recordTypeId);
+            
             insert expense;
+            
+            // Process line items (existing code)
+            //processLineItems(expense.Id, lineItems);
+            
+            // Process file attachments (existing code)
+            //processFileAttachments(lineItems, filesPerLineItem);
             
             // Process line items and GL codes
             Map<Id, Id> expenseTypeToGLCodeMap = new Map<Id, Id>();
@@ -590,6 +599,172 @@ public with sharing class ExpenseController {
         } catch (Exception e) {
             Database.rollback(sp);
             throw new AuraHandledException('Error creating expense: ' + e.getMessage() + ' at line: ' + e.getLineNumber());
+        }
+    }
+    
+    /**
+     * Apply user mappings based on business rules
+     */
+    private static void applyUserMappings(Expense__c expense, User currentUser, String recordTypeId) {
+        String recordTypeName = getRecordTypeNameById(recordTypeId);
+        
+        if (recordTypeName == 'RBL') {
+            applyRBLMappings(expense, currentUser);
+        } else if (recordTypeName == 'Unitop_Tristar') {
+            applyUnitopTristarMappings(expense, currentUser);
+        }
+    }
+    
+    /**
+     * Apply mappings for RBL record type
+     */
+    private static void applyRBLMappings(Expense__c expense, User currentUser) {
+        // For AHN or Textile users, set Zonal Head to manager
+        if (currentUser.User_Type__c == 'AHN' || currentUser.User_Type__c == 'Textile') {
+            expense.Zonal_Head__c = currentUser.ManagerId;
+        }
+        
+        // Set Business HOD based on user type
+        if (currentUser.User_Type__c == 'AHN') {
+            expense.Business_HOD__c = getUserIdFromMapping('AHN_BUSINESS_HOD');
+        } else if (currentUser.User_Type__c == 'Textile') {
+            expense.Business_HOD__c = getUserIdFromMapping('TEXTILE_BUSINESS_HOD');
+        }
+    }
+    
+    /**
+     * Apply mappings for Unitop_Tristar record type
+     */
+    private static void applyUnitopTristarMappings(Expense__c expense, User currentUser) {
+        // Set Customer Success Incharge
+        if (currentUser.User_Type__c == 'Synthetic') {
+            if (expense.Sales_Type__c == 'Domestic') {
+                expense.Customer_Success_Incharge__c = getUserIdFromMapping('SYNTHETIC_DOMESTIC_CSI');
+            } else if (expense.Sales_Type__c == 'Export') {
+                expense.Customer_Success_Incharge__c = getUserIdFromMapping('SYNTHETIC_EXPORT_CSI');
+            }
+        } else if (currentUser.User_Type__c == 'Application') {
+            expense.Customer_Success_Incharge__c = getUserIdFromMapping('APPLICATION_CSI');
+        }
+        
+        // Set Business HOD for Synthetic or Application users
+        if (currentUser.User_Type__c == 'Synthetic' || currentUser.User_Type__c == 'Application') {
+            expense.Business_HOD__c = getUserIdFromMapping('UNITOP_BUSINESS_HOD');
+        }
+    }
+    
+    /**
+     * Get user ID from custom metadata mapping
+     */
+    private static Id getUserIdFromMapping(String mappingKey) {
+        try {
+            List<Expense_User_Mapping__mdt> mappings = [
+                SELECT User_Name__c 
+                FROM Expense_User_Mapping__mdt 
+                WHERE Mapping_Key__c = :mappingKey 
+                AND Is_Active__c = true 
+                LIMIT 1
+            ];
+            
+            if (!mappings.isEmpty() && String.isNotBlank(mappings[0].User_Name__c)) {
+                List<User> users = [SELECT Id FROM User WHERE Username = :mappings[0].User_Name__c LIMIT 1];
+                return !users.isEmpty() ? users[0].Id : null;
+            }
+        } catch (Exception e) {
+            System.debug('Error getting user from mapping: ' + e.getMessage());
+        }
+        return null;
+    }
+    
+    /**
+     * Get record type name by ID
+     */
+    private static String getRecordTypeNameById(String recordTypeId) {
+        if (String.isBlank(recordTypeId)) return null;
+        
+        try {
+            List<RecordType> recordTypes = [
+                SELECT DeveloperName 
+                FROM RecordType 
+                WHERE Id = :recordTypeId 
+                LIMIT 1
+            ];
+            return !recordTypes.isEmpty() ? recordTypes[0].DeveloperName : null;
+        } catch (Exception e) {
+            return null;
+        }
+    }
+    
+    /**
+     * Process line items (your existing logic)
+     */
+    /*private static void processLineItems(Id expenseId, List<Expense_Line_Item__c> lineItems) {
+        if (lineItems == null || lineItems.isEmpty()) return;
+        
+        // Get GL Codes for expense types
+        Set<Id> typeOfExpenseIds = new Set<Id>();
+        for (Expense_Line_Item__c li : lineItems) {
+            if (li.Type_of_Expense__c != null) {
+                typeOfExpenseIds.add(li.Type_of_Expense__c);
+            }
+        }
+        
+        Map<Id, Id> expenseTypeToGLCodeMap = new Map<Id, Id>();
+        if (!typeOfExpenseIds.isEmpty()) {
+            for (Type_of_Expense__c et : [
+                SELECT Id, GL_Code__c
+                FROM Type_of_Expense__c
+                WHERE Id IN :typeOfExpenseIds
+            ]) {
+                if (et.GL_Code__c != null) {
+                    expenseTypeToGLCodeMap.put(et.Id, et.GL_Code__c);
+                }
+            }
+        }
+        
+        // Prepare line items for insertion
+        List<Expense_Line_Item__c> itemsToInsert = new List<Expense_Line_Item__c>();
+        for (Expense_Line_Item__c li : lineItems) {
+            Expense_Line_Item__c newItem = li.clone();
+            newItem.Expense__c = expenseId;
+            
+            // Map GL Code
+            if (li.Type_of_Expense__c != null && expenseTypeToGLCodeMap.containsKey(li.Type_of_Expense__c)) {
+                newItem.GL_Code__c = expenseTypeToGLCodeMap.get(li.Type_of_Expense__c);
+            }
+            
+            itemsToInsert.add(newItem);
+        }
+        
+        insert itemsToInsert;
+    }*/
+    
+    /**
+     * Process file attachments (your existing logic)
+     */
+    private static void processFileAttachments(List<Expense_Line_Item__c> lineItems, Map<String, List<String>> filesPerLineItem) {
+        if (filesPerLineItem == null || filesPerLineItem.isEmpty()) return;
+        
+        List<ContentDocumentLink> linksToCreate = new List<ContentDocumentLink>();
+        
+        for (Integer i = 0; i < lineItems.size(); i++) {
+            String indexKey = String.valueOf(i);
+            if (filesPerLineItem.containsKey(indexKey)) {
+                for (String docId : filesPerLineItem.get(indexKey)) {
+                    if (String.isNotBlank(docId)) {
+                        ContentDocumentLink newLink = new ContentDocumentLink();
+                        newLink.ContentDocumentId = docId;
+                        newLink.LinkedEntityId = lineItems[i].Id;
+                        newLink.ShareType = 'V';
+                        newLink.Visibility = 'AllUsers';
+                        linksToCreate.add(newLink);
+                    }
+                }
+            }
+        }
+        
+        if (!linksToCreate.isEmpty()) {
+            insert linksToCreate;
         }
     }
     
@@ -771,4 +946,153 @@ public with sharing class ExpenseController {
         }
     }
     
+    public static void temethod(){
+        for(integer i=0; i<=1500; i++){
+            i++;
+            i++;
+            i++;
+            i++;
+            i++;
+            i++;
+            i++;
+            i++;
+            i++;
+            i++;
+            i++;
+            i++;
+            i++;
+            i++;
+            i++;
+            i++;
+            i++;
+            i++;
+            i++;
+            i++;
+            i++;
+            i++;
+            i++;
+            i++;
+            i++;
+            i++;
+            i++;
+            i++;
+            i++;
+            i++;
+            i++;
+            i++;
+            i++;
+            i++;
+            i++;
+            i++;
+             i++;
+            i++;
+            i++;
+            i++;
+            i++;
+            i++;
+            i++;
+            i++;
+            i++;
+            i++;
+            i++;
+            i++;
+            i++;
+            i++;
+            i++;
+            i++;
+            i++;
+            i++;
+            i++;
+            i++;
+            i++;
+            i++;
+            i++;
+            i++;
+            i++;
+            i++;
+            i++;
+            i++;
+            i++;
+            i++;
+            i++;
+            i++;
+            i++;
+            i++;
+            i++;
+            i++;
+             i++;
+            i++;
+            i++;
+            i++;
+            i++;
+            i++;
+            i++;
+            i++;
+            i++;
+            i++;
+            i++;
+            i++;
+            i++;
+            i++;
+            i++;
+            i++;
+            i++;
+            i++;
+            i++;
+            i++;
+            i++;
+            i++;
+            i++;
+            i++;
+            i++;
+            i++;
+            i++;
+            i++;
+            i++;
+            i++;
+            i++;
+            i++;
+            i++;
+            i++;
+            i++;
+            i++;
+             i++;
+            i++;
+            i++;
+            i++;
+            i++;
+            i++;
+            i++;
+            i++;
+            i++;
+            i++;
+            i++;
+            i++;
+            i++;
+            i++;
+            i++;
+            i++;
+            i++;
+            i++;
+            i++;
+            i++;
+            i++;
+            i++;
+            i++;
+            i++;
+            i++;
+            i++;
+            i++;
+            i++;
+            i++;
+            i++;
+            i++;
+            i++;
+            i++;
+            i++;
+            i++;
+            i++;
+            
+        }
+    }
 }

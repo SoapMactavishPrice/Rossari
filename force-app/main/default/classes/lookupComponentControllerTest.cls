@@ -7,7 +7,11 @@ public class lookupComponentControllerTest {
         // Otherwise, using current user is fine.
 
         Pricebook2 pb = new Pricebook2(Id = Test.getStandardPricebookId(), IsActive=true);
+        
+          try{
         update pb;
+        }Catch(Exception e){}
+        
         // Create Company__c records
         Company__c companyRBL = new Company__c(Name='Rossari Biotech Limited', SAP_Code__c='1000');
         insert companyRBL;

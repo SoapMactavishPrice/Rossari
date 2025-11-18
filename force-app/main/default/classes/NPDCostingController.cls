@@ -53,7 +53,7 @@ public with sharing class NPDCostingController {
                        Cost_in_Batch__c, Cost_Per_Kg__c, Gmoles__c, Use_for_Yield_Calc__c
                 FROM NPD_Costing__c
                 WHERE New_Product_Development__c = :recordId
-                AND RecordType.DeveloperName = 'Agro_Non_Agro'
+                AND RecordType.DeveloperName = 'Synthesis'
                 ORDER BY CreatedDate
             ];
             result.put('costingItems', costingItems);
@@ -88,7 +88,7 @@ public with sharing class NPDCostingController {
                        For_Total_Drum__c, Loss__c, Total_KG__c, Total_Price_1__c
                 FROM NPD_Costing__c
                 WHERE New_Product_Development__c = :recordId
-                AND RecordType.DeveloperName = 'Oil_Gas'
+                AND RecordType.DeveloperName = 'Application'
                 ORDER BY CreatedDate
             ];
             result.put('costingItems', costingItems);
@@ -118,7 +118,7 @@ public with sharing class NPDCostingController {
 
         // Upsert costing items (Agro_Non_Agro record type)
         Id agroRt = Schema.SObjectType.NPD_Costing__c.getRecordTypeInfosByDeveloperName()
-            .get('Agro_Non_Agro').getRecordTypeId();
+            .get('Synthesis').getRecordTypeId();
 
         List<NPD_Costing__c> itemsToUpsert = new List<NPD_Costing__c>();
         List<Object> costingItemsData = (List<Object>) JSON.deserializeUntyped(costingItems);
@@ -160,7 +160,7 @@ public with sharing class NPDCostingController {
         );
         
         Id oilRt = Schema.SObjectType.NPD_Costing__c.getRecordTypeInfosByDeveloperName()
-            .get('Oil_Gas').getRecordTypeId();
+            .get('Application').getRecordTypeId();
         
         List<NPD_Costing__c> toUpsert = new List<NPD_Costing__c>();
         List<Object> oilGasList = (List<Object>) JSON.deserializeUntyped(oilGasItems);

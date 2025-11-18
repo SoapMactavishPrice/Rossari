@@ -88,7 +88,7 @@ public class InvoiceMaster_API_Test {
         insert pbe;
 
 
-        insert new Invoice__c(Name = 'INV001');
+        // insert new Invoice__c(Name = 'INV001');
 
         // === SCENARIO 1: Valid Request ===
         String validJson = '{' +

@@ -22,6 +22,9 @@ export default class NpdCostingLineItems extends NavigationMixin(LightningElemen
     @track isAgroNonAgro = false;
     @track isOilGas = false;
 
+    @track isApplicationSelected = false;
+    @track isSyntheticSelected = false;
+
     // ===== ORIGINAL state =====
     @track lineItems = [];
     @track isLoading = false;
@@ -80,14 +83,47 @@ export default class NpdCostingLineItems extends NavigationMixin(LightningElemen
             });
     }
 
-    handleRecordTypeChange(event) {
-        this.selectedRecordType = event.target.value;
+    // handleRecordTypeChange(event) {
+    //     this.selectedRecordType = event.target.value;
 
-        // Refresh checked flags
-        this.recordTypeOptions = this.recordTypeOptions.map(rt => ({
-            ...rt,
-            isSelected: rt.value === this.selectedRecordType
-        }));
+    //     // Refresh checked flags
+    //     this.recordTypeOptions = this.recordTypeOptions.map(rt => ({
+    //         ...rt,
+    //         isSelected: rt.value === this.selectedRecordType
+    //     }));
+    // }
+
+    handleRecordTypeChange(event) {
+        const selectedValue = event.target.value;
+        console.log('Selected record type:', selectedValue);
+
+        this.selectedRecordType = selectedValue;
+        this.recordTypeSelected = true;
+
+        if (selectedValue === 'Application') {
+            this.isOilGas = true;
+            this.isAgroNonAgro = false;
+            this.isApplicationSelected = true;
+            this.isSyntheticSelected = false;
+            this.loadOilGasData(); // ADDED THIS
+        } else if (selectedValue === 'Synthesis') {
+            this.isAgroNonAgro = true;
+            this.isOilGas = false;
+            this.isSyntheticSelected = true;
+            this.isApplicationSelected = false;
+            this.loadData(); // ADDED THIS
+            this.addEmptyReferenceRow(); // ADDED THIS
+        }
+    }
+
+    handleApplicationClick() {
+        this.selectedRecordType = 'Application';
+        this.navigateToRecordType();
+    }
+
+    handleSyntheticClick() {
+        this.selectedRecordType = 'Synthesis';
+        this.navigateToRecordType();
     }
 
     handleProceed() {
@@ -96,8 +132,8 @@ export default class NpdCostingLineItems extends NavigationMixin(LightningElemen
             return;
         }
         this.recordTypeSelected = true;
-        this.isAgroNonAgro = this.selectedRecordType === 'Agro_Non_Agro';
-        this.isOilGas = this.selectedRecordType === 'Oil_Gas';
+        this.isAgroNonAgro = this.selectedRecordType === 'Synthesis';
+        this.isOilGas = this.selectedRecordType === 'Application';
 
         if (this.isAgroNonAgro) {
             this.loadData();
@@ -484,57 +520,142 @@ export default class NpdCostingLineItems extends NavigationMixin(LightningElemen
         }
     }
 
-    saveData(shouldNavigateAway) {
-        if (this.validateForm()) {
-            this.isLoading = true;
 
-            const itemsToSave = this.lineItems.map(item => ({
-                id: item.id || null,
-                name: item.name,
-                molWeight: item.molWeight,
-                usedInBatch: item.usedInBatch,
-                recovered: item.recovered,
-                consumed: item.consumed,
-                unitCostPerKg: item.unitCostPerKg,
-                costInBatch: item.costInBatch,
-                costPerKg: item.costPerKg,
-                gmoles: item.gmoles,
-                useForYieldCalc: item.useForYieldCalc
-            }));
+    // ===== Validation Methods for Required Fields Only =====
+    validateOilGasForm() {
+        let isValid = true;
+        let errorMessage = '';
 
-            saveCostingItems({
-                recordId: this.recordId,
-                costingItems: JSON.stringify(itemsToSave),
-                molecularWeight: this.parentMolecularWeight,
-                yieldAndRMCChange: this.yieldAndRMCChange,
-                profitExpectedPerKg: this.profitExpectedPerKg,
-                lossInBatch: this.lossInBatch,
-                overheadsUtilityPackaging: this.overheadsUtilityPackaging
-            })
-                .then(() => {
-                    if (this.deletedItemIds.length > 0) {
-                        return Promise.all(
-                            this.deletedItemIds.map(id => deleteCostingItem({ costingItemId: id }))
-                        );
-                    }
-                })
-                .then(() => {
-                    this.showSuccess('Success', 'Records Saved successfully');
-                    this.deletedItemIds = [];
-                    if (shouldNavigateAway) this.navigateToNPDRecord();
-                    else this.refreshCurrentPage();
-                })
-                .catch(error => {
-                    this.showError('Save Failed', error.body?.message || error.message);
-                })
-                .finally(() => {
-                    this.isLoading = false;
-                });
+        // Validate Unit Size Ltr - required and must be greater than 0
+        if (!this.oilGasExtra.unitSizeLtr || this.oilGasExtra.unitSizeLtr <= 0) {
+            errorMessage = 'Unit Size Ltr is required and must be greater than 0';
+            isValid = false;
         }
+
+        // Validate Total Drums - required and must be greater than 0
+        if (!this.oilGasExtra.totalDrums || this.oilGasExtra.totalDrums <= 0) {
+            errorMessage = 'Total Drums is required and must be greater than 0';
+            isValid = false;
+        }
+
+        // Validate Name in each row - required
+        this.oilGasItems.forEach((item, index) => {
+            if (!isValid) return; // Skip if already invalid
+
+            if (!item.name || item.name.trim() === '') {
+                errorMessage = `Product Name is required for row ${index + 1}`;
+                isValid = false;
+                return;
+            }
+        });
+
+        if (!isValid) {
+            this.showError('Validation Error', errorMessage);
+        }
+
+        return isValid;
     }
 
-    // ===== Oil & Gas save =====
+    // ===== Validation Methods for Agro & Non-Agro Section =====
+    validateAgroForm() {
+        let isValid = true;
+        let errorMessage = '';
+
+        // Validate Mol Weight of the Product - required
+        if (!this.parentMolecularWeight || this.parentMolecularWeight <= 0) {
+            errorMessage = 'Mol Weight of the Product is required and must be greater than 0';
+            isValid = false;
+        }
+
+        // Validate Yield and RMC Change - required
+        if (!this.yieldAndRMCChange || this.yieldAndRMCChange <= 0) {
+            errorMessage = 'Yield and RMC Change is required and must be greater than 0';
+            isValid = false;
+        }
+
+        // Validate Overheads Utility Packaging % - required
+        if (this.overheadsUtilityPackaging === null || this.overheadsUtilityPackaging === undefined || this.overheadsUtilityPackaging < 0) {
+            errorMessage = 'Overheads Utility Packaging % is required and must be 0 or greater';
+            isValid = false;
+        }
+
+        // Validate Name in each row - required (USE lineItems FOR AGRO)
+        this.lineItems.forEach((item, index) => {
+            if (!isValid) return; // Skip if already invalid
+
+            if (!item.name || item.name.trim() === '') {
+                errorMessage = `Product Name is required for row ${index + 1}`;
+                isValid = false;
+                return;
+            }
+        });
+
+        if (!isValid) {
+            this.showError('Validation Error', errorMessage);
+        }
+
+        return isValid;
+    }
+
+    saveData(shouldNavigateAway) {
+        // Validate Agro form before saving
+        if (!this.validateAgroForm()) {
+            return;
+        }
+
+        this.isLoading = true;
+
+        const itemsToSave = this.lineItems.map(item => ({
+            id: item.id || null,
+            name: item.name,
+            molWeight: item.molWeight,
+            usedInBatch: item.usedInBatch,
+            recovered: item.recovered,
+            consumed: item.consumed,
+            unitCostPerKg: item.unitCostPerKg,
+            costInBatch: item.costInBatch,
+            costPerKg: item.costPerKg,
+            gmoles: item.gmoles,
+            useForYieldCalc: item.useForYieldCalc
+        }));
+
+        saveCostingItems({
+            recordId: this.recordId,
+            costingItems: JSON.stringify(itemsToSave),
+            molecularWeight: this.parentMolecularWeight,
+            yieldAndRMCChange: this.yieldAndRMCChange,
+            profitExpectedPerKg: this.profitExpectedPerKg,
+            lossInBatch: this.lossInBatch,
+            overheadsUtilityPackaging: this.overheadsUtilityPackaging
+        })
+            .then(() => {
+                if (this.deletedItemIds.length > 0) {
+                    return Promise.all(
+                        this.deletedItemIds.map(id => deleteCostingItem({ costingItemId: id }))
+                    );
+                }
+            })
+            .then(() => {
+                this.showSuccess('Success', 'Records Saved successfully');
+                this.deletedItemIds = [];
+                if (shouldNavigateAway) this.navigateToNPDRecord();
+                else this.refreshCurrentPage();
+            })
+            .catch(error => {
+                this.showError('Save Failed', error.body?.message || error.message);
+            })
+            .finally(() => {
+                this.isLoading = false;
+            });
+    }
+
+    // ===== UPDATED: Oil & Gas save with validation =====
     saveOilGas(exitAfter) {
+        // Validate form before saving
+        if (!this.validateOilGasForm()) {
+            return;
+        }
+
         console.log('Current oilGasItems:', JSON.parse(JSON.stringify(this.oilGasItems)));
 
         const payload = JSON.stringify(this.oilGasItems.map(i => {

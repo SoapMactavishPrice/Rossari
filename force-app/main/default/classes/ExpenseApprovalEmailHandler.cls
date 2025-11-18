@@ -190,7 +190,7 @@ public class ExpenseApprovalEmailHandler {
     private static String getLineItemTable(List<Expense_Line_Item__c> lineItems) {
         String lineItemTable = '<p><b>Expense Line Items:</b></p>' +
             '<table border="1" cellpadding="5" cellspacing="0" style="border-collapse:collapse;">' +
-            '<tr><th>Name</th><th>Type of Expense</th><th>Amount Claimed</th></tr>';
+            '<tr><th>Name</th><th>Type of Expense</th><th>Amount Claimed</th><th>Amount Passed</th></tr>';
         
         for (Expense_Line_Item__c li : lineItems) {
             lineItemTable += '<tr>' +

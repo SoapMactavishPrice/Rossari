@@ -164,7 +164,7 @@ public class VisitReportControllerTest {
         
         Map<String, String> result10 = VisitReportController.saveVisitReport(
             visitJson, attendeesJson, productInterestsJson, actionPointsJson,
-            'Test Location', 'USD', 'Customer Visit', null
+            'Test Location', 'USD', 'Customer Visit', null, null
         );
         
         Test.stopTest();
@@ -208,11 +208,11 @@ public class VisitReportControllerTest {
         
         Map<String, String> result1 = VisitReportController.saveVisitReport(
             visitJson, attendeesJson, productInterestsJson, actionPointsJson,
-            'Updated Location', 'USD', 'Customer Visit', existingReport.Id
+            'Updated Location', 'USD', 'Customer Visit', existingReport.Id, null
         );
         
         Map<String, String> result2 = VisitReportController.saveVisitReport(
-            'invalid json', '[]', '[]', '[]', 'Test Location', 'USD', 'Customer Visit', null
+            'invalid json', '[]', '[]', '[]', 'Test Location', 'USD', 'Customer Visit', null, null
         );
         
         Visit_Report__c result3 = VisitReportController.getVisitReportDetails(existingReport.Id);
@@ -263,7 +263,7 @@ public class VisitReportControllerTest {
         String leadVisitJson = JSON.serialize(leadVisitData);
         
         Map<String, String> result6 = VisitReportController.saveVisitReport(
-            leadVisitJson, '[]', '[]', '[]', 'Test Location', 'USD', 'Lead Visit', null
+            leadVisitJson, '[]', '[]', '[]', 'Test Location', 'USD', 'Lead Visit', null, null
         );
         
         Map<String, Object> productInterestData = new Map<String, Object>{
@@ -287,7 +287,7 @@ public class VisitReportControllerTest {
         
         Map<String, String> result7 = VisitReportController.saveVisitReport(
             productVisitJson, '[]', invalidProductInterestsJson, '[]',
-            'Test Location', 'USD', 'Customer Visit', null
+            'Test Location', 'USD', 'Customer Visit', null, null
         );
         
         Test.stopTest();
@@ -320,7 +320,7 @@ public class VisitReportControllerTest {
         
         Map<String, String> result = VisitReportController.saveVisitReport(
             visitJson, attendeesJson, '[]', '[]',
-            'Test Location', 'USD', 'Customer Visit', null
+            'Test Location', 'USD', 'Customer Visit', null, null
         );
         
         Test.stopTest();
@@ -352,7 +352,7 @@ public class VisitReportControllerTest {
         
         Map<String, String> result = VisitReportController.saveVisitReport(
             visitJson, attendeesJson, '[]', '[]',
-            'Test Location', 'USD', 'Customer Visit', null
+            'Test Location', 'USD', 'Customer Visit', null, null
         );
         
         Test.stopTest();
@@ -392,7 +392,7 @@ public class VisitReportControllerTest {
         
         Map<String, String> result = VisitReportController.saveVisitReport(
             visitJson, '[]', '[]', actionPointsJson,
-            'Test Location', 'USD', 'Customer Visit', null
+            'Test Location', 'USD', 'Customer Visit', null, null
         );
         
         Test.stopTest();
@@ -429,7 +429,7 @@ public class VisitReportControllerTest {
         
         Map<String, String> result = VisitReportController.saveVisitReport(
             visitJson, '[]', '[]', actionPointsJson,
-            'Test Location', 'USD', 'Customer Visit', null
+            'Test Location', 'USD', 'Customer Visit', null, null
         );
         
         Test.stopTest();
@@ -478,7 +478,7 @@ public class VisitReportControllerTest {
         
         Map<String, String> result = VisitReportController.saveVisitReport(
             visitJson, attendeesJson, '[]', '[]',
-            'Updated Location', 'USD', 'Customer Visit', existingReport.Id
+            'Updated Location', 'USD', 'Customer Visit', existingReport.Id, null
         );
         
         Test.stopTest();

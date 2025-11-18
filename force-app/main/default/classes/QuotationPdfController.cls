@@ -22,11 +22,11 @@ public with sharing class QuotationPdfController {
                             BillingStreet, BillingCity, BillingState, BillingPostalCode, BillingCountry, Business_Type__c, Vessel_Flight_No__c, Pre_Carriage_Destination__c,
                             ShippingStreet, ShippingCity, ShippingCountry, ShippingPostalCode, ShippingState, Terms_and_Conditions__c, Declaration__c,
                             Bank__r.Bank_Account_No__c, Bank__r.Name, Bank__r.Branch__c, Bank__r.SWIFT_Code__c, Subtotal, PO_No__c, PO_Date__c, Account.GST_No__c, Letter_Company_Name__c, Letter_Company_Name__r.Name,
-                            ShippingAddress, GrandTotal FROM Quote WHERE Id = :quotationId];
+                            ShippingAddress, Grand_Total__c FROM Quote WHERE Id = :quotationId];
 
         this.isExport = quotation.Business_Type__c == 'Export';
 
-        Integer grandTotal = quotation.GrandTotal.intValue();
+        Integer grandTotal = quotation.Grand_Total__c.intValue();
 
         String grandTotalInWords = ConvertCurrencytowords.convert(grandTotal);
         if (quotation.CurrencyIsoCode == 'INR') {
@@ -40,7 +40,7 @@ public with sharing class QuotationPdfController {
         this.billingAddress = this.getFormattedBillingAddress(quotation);
         this.shippingAddress = this.getFormattedShippingAddress(quotation);
 
-        this.quoteLineItems = [SELECT Description, Quantity, UnitPrice, TotalPrice, ListPrice, Product2.ProductCode, Product2.HSN__c, Product2.Pack_Size__c, Product2.Base_UOM__r.Name FROM QuoteLineItem WHERE QuoteId = :quotationId AND (Status__c = 'Won' OR Status__c = null)];
+        this.quoteLineItems = [SELECT Description, Quantity, UnitPrice, TotalPrice,Total_Price__c, ListPrice, Product2.ProductCode, Product2.HSN__c, Product2.Pack_Size__c, Product2.Base_UOM__r.Name FROM QuoteLineItem WHERE QuoteId = :quotationId AND (Status__c = 'Won' OR Status__c = null)];
     }
 
     public QuotationPdfController(String quoteId, String type) {
@@ -54,11 +54,11 @@ public with sharing class QuotationPdfController {
                             BillingStreet, BillingCity, BillingState, BillingPostalCode, BillingCountry, Business_Type__c, Vessel_Flight_No__c, Pre_Carriage_Destination__c,
                             ShippingStreet, ShippingCity, ShippingCountry, ShippingPostalCode, ShippingState, Terms_and_Conditions__c, Declaration__c,
                             Bank__r.Bank_Account_No__c, Bank__r.Name, Bank__r.Branch__c, Bank__r.SWIFT_Code__c, Subtotal, PO_No__c, PO_Date__c, Account.GST_No__c, Letter_Company_Name__c, Letter_Company_Name__r.Name,
-                            ShippingAddress, GrandTotal FROM Quote WHERE Id = :quotationId];
+                            ShippingAddress, GrandTotal,Grand_Total__c FROM Quote WHERE Id = :quotationId];
 
         this.isExport = quotation.Business_Type__c == 'Export';
 
-        Integer grandTotal = quotation.GrandTotal.intValue();
+        Integer grandTotal = quotation.Grand_Total__c.intValue();
 
         String grandTotalInWords = ConvertCurrencytowords.convert(grandTotal);
         if (quotation.CurrencyIsoCode == 'INR') {
@@ -72,7 +72,7 @@ public with sharing class QuotationPdfController {
         this.billingAddress = this.getFormattedBillingAddress(quotation);
         this.shippingAddress = this.getFormattedShippingAddress(quotation);
 
-        this.quoteLineItems = [SELECT Description, Quantity, UnitPrice, TotalPrice, ListPrice, Product2.ProductCode, Product2.HSN__c, Product2.Pack_Size__c, Product2.Base_UOM__r.Name FROM QuoteLineItem WHERE QuoteId = :quotationId AND (Status__c = 'Won' OR Status__c = null)];
+        this.quoteLineItems = [SELECT Description, Quantity, UnitPrice, TotalPrice,Total_Price__c, ListPrice, Product2.ProductCode, Product2.HSN__c, Product2.Pack_Size__c, Product2.Base_UOM__r.Name FROM QuoteLineItem WHERE QuoteId = :quotationId AND (Status__c = 'Won' OR Status__c = null)];
     }
 
     public String getFormattedBillingAddress(Quote quote) {
@@ -237,47 +237,43 @@ public with sharing class QuotationPdfController {
         // Line Items
         html += '<table style="' + tableStyle + '">';
         html += '<tr>';
-        html += '<th style="' + borderStyle + '">Sr. No.</th>';
-        html += '<th style="' + borderStyle + '">Material Code</th>';
-        html += '<th style="' + borderStyle + '">HSN/SAC</th>';
-        html += '<th style="' + borderStyle + '">Item Description</th>';
-  //      html += '<th style="' + borderStyle + '">Pack Size</th>';
-        html += '<th style="' + borderStyle + '">UOM</th>';
-        html += '<th style="' + borderStyle + '">Quantity</th>';
-        html += '<th style="' + borderStyle + '">Unit</th>';
-        html += '<th style="' + borderStyle + '">Price</th>';
-        html += '<th style="' + borderStyle + '">Amount</th>';
+        html += '<th style="' + borderStyle + 'text-align:center; width:5%;">Sr. No.</th>';
+        html += '<th style="' + borderStyle + 'text-align:center; width:12%;">Material Code</th>';
+        html += '<th style="' + borderStyle + 'text-align:center; width:10%;">HSN/SAC</th>';
+        html += '<th style="' + borderStyle + 'text-align:center; width:23%;">Item Description</th>';
+        html += '<th style="' + borderStyle + 'text-align:center; width:8%;">UOM</th>';
+        html += '<th style="' + borderStyle + 'text-align:center; width:10%;">Quantity</th>';
+        html += '<th style="' + borderStyle + 'text-align:center; width:10%;">List Price</th>';
+        html += '<th style="' + borderStyle + 'text-align:center; width:10%;">Unit Price</th>';
+        html += '<th style="' + borderStyle + 'text-align:center; width:12%;">Amount</th>';
         html += '</tr>';
 
         Integer srNo = 1;
         for (QuoteLineItem item : quoteLineItems) {
             html += '<tr>';
-            html += '<td style="' + borderStyle + '">' + srNo + '</td>';
-            html += '<td style="' + borderStyle + '">' + ns(item.Product2.ProductCode) + '</td>';
-            html += '<td style="' + borderStyle + '">' + ns(item.Product2.HSN__c) + '</td>';
-            html += '<td style="' + borderStyle + '">' + ns(item.Description) + '</td>';
-     //       html += '<td style="' + borderStyle + '">' + ns(item.Product2.Pack_Size__c) + '</td>';
-            html += '<td style="' + borderStyle + '">' + ns(item.Product2.Base_UOM__r.Name) + '</td>';
-            html += '<td style="' + borderStyle + '">' + ns(item.Quantity) + '</td>';
-            html += '<td style="' + borderStyle + '">' + ns(item.ListPrice) + '</td>';
-            html += '<td style="' + borderStyle + '">' + ns(item.UnitPrice) + '</td>';
-            html += '<td style="' + borderStyle + '">' + ns(item.TotalPrice) + '</td>';
+            html += '<td style="' + borderStyle + 'text-align:center;">' + srNo + '</td>';
+            html += '<td style="' + borderStyle + 'text-align:left;">' + ns(item.Product2.ProductCode) + '</td>';
+            html += '<td style="' + borderStyle + 'text-align:center;">' + ns(item.Product2.HSN__c) + '</td>';
+            html += '<td style="' + borderStyle + 'text-align:left;">' + ns(item.Description) + '</td>';
+            html += '<td style="' + borderStyle + 'text-align:center;">' + ns(item.Product2.Base_UOM__r.Name) + '</td>';
+            html += '<td style="' + borderStyle + 'text-align:right;">' + ns(item.Quantity) + '</td>';
+            html += '<td style="' + borderStyle + 'text-align:right;">' + ns(item.ListPrice) + '</td>';
+            html += '<td style="' + borderStyle + 'text-align:right;">' + ns(item.UnitPrice) + '</td>';
+            html += '<td style="' + borderStyle + 'text-align:right;">' + ns(item.Total_Price__c) + '</td>';
             html += '</tr>';
             srNo++;
         }
 
         // Terms & Totals
         html += '<tr>';
-        html += '<td colspan="10" style="' + borderStyle + 'white-space: pre-wrap; padding: 0px; margin: 0px;' + '"><b>Terms and Conditions:</b><br/>' + ns(quotation.Terms_and_Conditions__c) + '</td>';
-        // html += '<td colspan="3" style="' + boldStyle + borderStyle + '">Amount Before Tax</td><td style="' + borderStyle + '">' + quotation.Subtotal + '</td>';
+        html += '<td colspan="9" style="' + borderStyle + 'text-align:left; white-space:pre-wrap;"><b>Terms and Conditions:</b><br/>' + ns(quotation.Terms_and_Conditions__c) + '</td>';
         html += '</tr>';
 
-        // html += '<tr><td colspan="2" style="' + boldStyle + borderStyle + '">CGST</td><td style="' + borderStyle + '">(HC)</td><td style="' + borderStyle + '">(HC)</td></tr>';
-        // html += '<tr><td colspan="2" style="' + boldStyle + borderStyle + '">SGST</td><td style="' + borderStyle + '">(HC)</td><td style="' + borderStyle + '">(HC)</td></tr>';
-        // html += '<tr><td colspan="2" style="' + boldStyle + borderStyle + '">IGST</td><td style="' + borderStyle + '">(HC)</td><td style="' + borderStyle + '">(HC)</td></tr>';
-        // html += '<tr><td colspan="2" style="' + boldStyle + borderStyle + '">Round Off</td><td style="' + borderStyle + '">(HC)</td><td style="' + borderStyle + '">(HC)</td></tr>';
-
-        html += '<tr><td colspan="6" style="' + borderStyle + '"><b>Net Weight</b>: ' + quotation.Net_weight__c + '</td><td colspan="3" style="' + boldStyle + borderStyle + '">Grand Total</td><td style="' + borderStyle + '">' + ns(quotation.GrandTotal) + '</td></tr>';
+        html += '<tr>';
+        html += '<td colspan="5" style="' + borderStyle + 'text-align:left;"><b>Net Weight</b>: ' + quotation.Net_weight__c + '</td>';
+        html += '<td colspan="3" style="' + boldStyle + borderStyle + 'text-align:right;">Grand Total</td>';
+        html += '<td style="' + borderStyle + 'text-align:right;">' + ns(quotation.Grand_Total__c) + '</td>';
+        html += '</tr>';
         html += '</table>';
 
         // Amount in Words & Declaration

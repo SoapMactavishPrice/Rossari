@@ -533,9 +533,9 @@ export default class AddProductPage extends NavigationMixin(LightningElement) {
             }
         });
         console.log('SelectedProductData + selectedProductIds = ', this.SelectedProductData.length + '  --- ' + selectedProductIds);
-        
+
         this.handlerPackSize(selectedProductIds);
-        
+
         clearTimeout(this.timeoutId); // no-op if invalid id
         this.timeoutId = setTimeout(this.updateIndex.bind(this), 1000);
         //}, 600);
@@ -778,12 +778,51 @@ export default class AddProductPage extends NavigationMixin(LightningElement) {
         this.mapIdQuantity.set(key, event.target.value);
     }
 
-    handleSalesPriceChange(event) {
+    // handleSalesPriceChange(event) {
 
-        var selectedRow = event.currentTarget;
-        var key = selectedRow.dataset.targetId;
-        this.mapIdSalesPrice.set(key, event.target.value);
+    //     var selectedRow = event.currentTarget;
+    //     var key = selectedRow.dataset.targetId;
+    //     this.mapIdSalesPrice.set(key, event.target.value);
+    // }
+
+    handleSalesPriceChange(event) {
+        const selectedRow = event.currentTarget;
+        const key = selectedRow.dataset.targetId;
+        const newSalesPrice = parseFloat(event.target.value) || 0;
+
+        // Find the matching product
+        let product = this.SelectedProductData.find(p => p.Id === key);
+        if (!product) return;
+
+        const listPrice = parseFloat(product.ListPrice || product.Price || 0);
+
+        // Calculate discount
+        let discount = 0;
+        if (listPrice > 0 && newSalesPrice > 0 && newSalesPrice <= listPrice) {
+            discount = ((listPrice - newSalesPrice) / listPrice) * 100;
+            discount = Math.round(discount * 100) / 100;
+        }
+
+        // Update maps
+        this.mapIdSalesPrice.set(key, newSalesPrice);
+        this.mapIdDiscount.set(key, discount);
+
+        // Reflect the changes in the UI arrays
+        this.SelectedProductData = this.SelectedProductData.map(prod => {
+            if (prod.Id === key) {
+                return { ...prod, Price: newSalesPrice, Discount: discount };
+            }
+            return prod;
+        });
+
+        this.AllProductData = this.AllProductData.map(prod => {
+            if (prod.Id === key) {
+                return { ...prod, Price: newSalesPrice, Discount: discount };
+            }
+            return prod;
+        });
     }
+
 
     handleDateChange(event) {
         var selectedRow = event.currentTarget;

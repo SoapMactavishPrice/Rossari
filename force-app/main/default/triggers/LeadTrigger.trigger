@@ -74,11 +74,17 @@ trigger LeadTrigger on Lead (before insert, before update, after insert, after u
     
     // === AFTER UPDATE ===
     if (Trigger.isAfter && Trigger.isUpdate) {
+        
+        LeadTriggerHandler.updateSampleRequestsAfterConversion(Trigger.new, Trigger.oldMap);
+        
         LeadTriggerHandler.handleAfterLeadConvert(Trigger.new, Trigger.oldMap);
         OpportunityTriggerHandler.convertHandler(Trigger.new, Trigger.oldMap);
         LeadTriggerHandler.handleAfterUpdate(Trigger.new, Trigger.oldMap);
         LeadTriggerHandler.createAddressInfoFromConvertedLead(Trigger.new, Trigger.oldMap);
         LeadTriggerHandler.setRossariCompanyOnAccount(Trigger.new, Trigger.oldMap);
+        
+        LeadTriggerHandler.mapLeadFieldsToOpportunity(Trigger.new, Trigger.oldMap);
+
         
         // Create Quotes for Converted Leads
         List<Id> convertedLeadIds = new List<Id>();

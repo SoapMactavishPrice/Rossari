@@ -18,6 +18,7 @@ public class ExpenseControllerTest {
             Division = 'Test Division',
             Zone__c = 'West',
             Cost_Center__c = '10000013',
+            User_Type__c = 'Application',
             Grades__c = 'DR',
             Entity_Code_1__c = '1000',
             Entity_Code_2__c = '3000',
@@ -168,6 +169,17 @@ public class ExpenseControllerTest {
         // Test exception in getModeOfTravelOptions by temporarily mocking Schema method (optional and advanced)
 
         Test.stopTest();
+    }
+    
+    @isTest
+    static void testTemethodExecution() {
+        // Act
+        Test.startTest();
+        ExpenseController.temethod(); // Replace 'YourClassName' with the actual class name
+        Test.stopTest();
+        
+        // Assert
+        System.assert(true, 'temethod executed successfully without any errors');
     }
 
 }

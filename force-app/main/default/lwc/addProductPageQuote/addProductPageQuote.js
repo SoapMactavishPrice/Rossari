@@ -444,6 +444,20 @@ export default class AddProductPage extends NavigationMixin(LightningElement) {
         //     }
         //console.log('selectedProductCode = ', JSON.stringify(this.selectedProductCode));
         this.SelectedProductData = [...new Set(this.SelectedProductData)];
+
+        // Pre-calculate discount for selected products when moving to next page
+        this.SelectedProductData = this.SelectedProductData.map(prod => {
+            const listPrice = parseFloat(prod.ListPrice || prod.Price || 0);
+            const salesPrice = parseFloat(prod.Price || 0);
+            let discount = 0;
+            if (listPrice > 0 && salesPrice <= listPrice) {
+                discount = ((listPrice - salesPrice) / listPrice) * 100;
+                discount = Math.round(discount * 100) / 100;
+            }
+            return { ...prod, Discount: discount };
+        });
+
+
         clearTimeout(this.timeoutId); // no-op if invalid id
         this.timeoutId = setTimeout(this.updateIndex.bind(this), 1000);
         //}, 600);
@@ -681,12 +695,52 @@ export default class AddProductPage extends NavigationMixin(LightningElement) {
         this.mapIdQuantity.set(key, event.target.value);
     }
 
-    handleSalesPriceChange(event) {
+    // handleSalesPriceChange(event) {
 
-        var selectedRow = event.currentTarget;
-        var key = selectedRow.dataset.targetId;
-        this.mapIdSalesPrice.set(key, event.target.value);
+    //     var selectedRow = event.currentTarget;
+    //     var key = selectedRow.dataset.targetId;
+    //     this.mapIdSalesPrice.set(key, event.target.value);
+    // }
+
+    handleSalesPriceChange(event) {
+        const selectedRow = event.currentTarget;
+        const key = selectedRow.dataset.targetId;
+        const newSalesPrice = parseFloat(event.target.value) || 0;
+
+        // Find the matching product in SelectedProductData
+        let product = this.SelectedProductData.find(p => p.Id === key);
+        if (!product) return;
+
+        // Get list price (prefer ListPrice, fallback to Price)
+        const listPrice = parseFloat(product.ListPrice || product.Price || 0);
+
+        // Calculate discount
+        let discount = 0;
+        if (listPrice > 0 && newSalesPrice > 0 && newSalesPrice <= listPrice) {
+            discount = ((listPrice - newSalesPrice) / listPrice) * 100;
+            discount = Math.round(discount * 100) / 100; // round to 2 decimals
+        }
+
+        // Update local maps for saving later
+        this.mapIdSalesPrice.set(key, newSalesPrice);
+        this.mapIdDiscount.set(key, discount);
+
+        // Update arrays so UI reflects immediately
+        this.SelectedProductData = this.SelectedProductData.map(prod => {
+            if (prod.Id === key) {
+                return { ...prod, Price: newSalesPrice, Discount: discount };
+            }
+            return prod;
+        });
+
+        this.AllProductData = this.AllProductData.map(prod => {
+            if (prod.Id === key) {
+                return { ...prod, Price: newSalesPrice, Discount: discount };
+            }
+            return prod;
+        });
     }
+
 
     handleDateChange(event) {
         var selectedRow = event.currentTarget;

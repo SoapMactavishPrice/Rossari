@@ -26,9 +26,9 @@ public class NPDCostingControllerTest {
 
         // Get record types
         Id agroRt = Schema.SObjectType.NPD_Costing__c.getRecordTypeInfosByDeveloperName()
-            .get('Agro_Non_Agro').getRecordTypeId();
+            .get('Synthetic').getRecordTypeId();
         Id oilRt = Schema.SObjectType.NPD_Costing__c.getRecordTypeInfosByDeveloperName()
-            .get('Oil_Gas').getRecordTypeId();
+            .get('Application').getRecordTypeId();
 
         // Create test costing items
         NPD_Costing__c agroCosting = new NPD_Costing__c(

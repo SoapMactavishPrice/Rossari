@@ -23,14 +23,14 @@ public class ProformaInvoiceController {
                 Country_of_Destination__c, Place_of_Supplier__c, Pre_Carriage_Mode__c,
                 Quote_Valid_From__c,Bank__c,Destination__c,BillingCity,BillingState,
                 BillingCountry,ShippingStreet,ShippingPostalCode,ShippingCity,
-                ShippingName,ShippingState,ShippingCountry,Vessel_Flight_No__c,
+                ShippingName,ShippingState,ShippingCountry,Vessel_Flight_No__c,Grand_Total__c,
                 Loading_Port__c, Destination_Port__c,Terms_and_Conditions__c,Declaration__c,
-                BillingName,BillingStreet,BillingPostalCode,Pre_Carriage_Destination__c,                
+                BillingName,BillingStreet,BillingPostalCode,Pre_Carriage_Destination__c,Payment_Term__c,                
                 (SELECT Id, Product2Id,Product2.Name, ListPrice, UnitPrice, Quantity, Quality__c, 
                  Previous_Quantity__c, Previous_Sales_Price__c, Reject_Reason__c, 
                  Approver__c, Approval_Status__c, Approval_Comments__c, Subtotal, 
                  Discount, TotalPrice, Description,Status__c,Container_Type__c,
-                 Customer_Product_Name__c,Customer_Target_Price__c
+                 Customer_Product_Name__c,Customer_Target_Price__c,Total_Price__c
                  FROM QuoteLineItems)
                 FROM Quote
                 WHERE Id = :quoteId 
@@ -68,7 +68,7 @@ public class ProformaInvoiceController {
                 Opportunity_Name__c = quote.OpportunityId,
                 Account_Name__c = quote.AccountId,
                 Inco_Terms__c = quote.Inco_Terms__c,
-                Payment_Terms__c = quote.Payment_Terms__c,
+                Payment_Term__c = quote.Payment_Term__c,
                 Quote_Document_No__c = quote.Quote_Document_No__c,
                 Shipping_and_Handling__c = quote.ShippingHandling,
                 Contact_Name__c = quote.ContactId,
@@ -89,7 +89,7 @@ public class ProformaInvoiceController {
                 Pre_Carriage_Mode__c = quote.Pre_Carriage_Mode__c,
                 Loading_Port__c = quote.Loading_Port__c,
                 Destination_Port__c = quote.Destination_Port__c,
-                Grand_Total__c = quote.GrandTotal,
+                Grand_Total__c = quote.Grand_Total__c,
                 Terms_and_Conditions__c = quote.Terms_and_Conditions__c,
                 Declaration__c = quote.Declaration__c,
                 Bill_To_Name__c = quote.BillingName,
@@ -128,7 +128,7 @@ public class ProformaInvoiceController {
                     Approval_Comments__c = qli.Approval_Comments__c,
                     Subtotal__c = qli.Subtotal,
                     Discount_Percentage__c = qli.Discount,
-                    Total_Price__c = qli.TotalPrice,
+                    Total_Price__c = qli.Total_Price__c,
                     Line_Item_Description__c = qli.Product2.Name,
                     Container_Type__c = qli.Container_Type__c,
                     Customer_Product_Name__c = qli.Customer_Product_Name__c,

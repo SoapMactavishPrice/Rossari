@@ -412,7 +412,7 @@ l.Status = 'Working';
         if (!tasksToUpdate.isEmpty()) update tasksToUpdate;
     }
     
-    public static void createAddressInfoFromConvertedLead(List<Lead> convertedLeads, Map<Id, Lead> oldLeadsMap) {
+/*    public static void createAddressInfoFromConvertedLead(List<Lead> convertedLeads, Map<Id, Lead> oldLeadsMap) {
         
         Id billToRecordTypeId = Schema.SObjectType.Address_Information__c.getRecordTypeInfosByDeveloperName()
             .get('Bill_To').getRecordTypeId();
@@ -477,6 +477,139 @@ l.Status = 'Working';
                 
             }
         }
+    }   */
+    
+    public static void createAddressInfoFromConvertedLead(List<Lead> convertedLeads, Map<Id, Lead> oldLeadsMap) {
+        
+        // Get both record type IDs
+        Id billToRecordTypeId = Schema.SObjectType.Address_Information__c.getRecordTypeInfosByDeveloperName()
+            .get('Bill_To').getRecordTypeId();
+        Id shipToRecordTypeId = Schema.SObjectType.Address_Information__c.getRecordTypeInfosByDeveloperName()
+            .get('Ship_To').getRecordTypeId();
+        
+        Set<Id> cityIds = new Set<Id>();
+        Set<Id> shippingCityIds = new Set<Id>();
+        
+        for (Lead lead : convertedLeads) {
+            if (lead.IsConverted && oldLeadsMap.get(lead.Id).IsConverted != lead.IsConverted) {
+                if (lead.City__c != null) {
+                    cityIds.add(lead.City__c);
+                }
+                if (lead.Shipping_City__c != null) {
+                    shippingCityIds.add(lead.Shipping_City__c);
+                }
+            }
+        }
+        
+        // Get all cities in one query
+        Set<Id> allCityIds = new Set<Id>();
+        allCityIds.addAll(cityIds);
+        allCityIds.addAll(shippingCityIds);
+        
+        Map<Id, City__c> citiesMap = new Map<Id, City__c>([
+            SELECT Id, Name FROM City__c WHERE Id IN :allCityIds
+        ]);
+        
+        List<Address_Information__c> addressesToInsert = new List<Address_Information__c>();
+        
+        for (Lead lead : convertedLeads) {
+            
+            if (lead.IsConverted && oldLeadsMap.get(lead.Id).IsConverted != lead.IsConverted) {
+                
+                // Create Bill To Address
+                if (hasBillToAddressData(lead)) {
+                    Address_Information__c billToAddress = new Address_Information__c();
+                    
+                    billToAddress.Account__c = lead.ConvertedAccountId;
+                    billToAddress.RecordTypeId = billToRecordTypeId;
+                    
+                    // Map Bill To fields
+                    billToAddress.Street_1__c = lead.Street_1__c;
+                    billToAddress.Street_2__c = lead.Street_2__c;
+                    billToAddress.Street_3__c = lead.Street_3__c;
+                    billToAddress.Pin_Code__c = lead.Pin_Code__c;
+                    billToAddress.City__c = lead.City__c;
+                    billToAddress.State__c = lead.State__c;
+                    billToAddress.Country__c = lead.Country__c;
+                    billToAddress.Region__c = lead.Region__c;
+                    billToAddress.Zone__c = lead.Zone__c;
+                    
+                    String billToCityName = (lead.City__c != null && citiesMap.containsKey(lead.City__c)) 
+                        ? citiesMap.get(lead.City__c).Name : '';
+                    
+                    String billToAddressName = 'Bill To - ' + 
+                        (String.isNotBlank(billToCityName) ? billToCityName : '');
+                    
+                    billToAddress.Name = billToAddressName.abbreviate(80).trim();
+                    
+                    addressesToInsert.add(billToAddress);
+                }
+                
+                // Create Ship To Address
+                if (hasShipToAddressData(lead)) {
+                    Address_Information__c shipToAddress = new Address_Information__c();
+                    
+                    shipToAddress.Account__c = lead.ConvertedAccountId;
+                    shipToAddress.RecordTypeId = shipToRecordTypeId;
+                    
+                    // Map Ship To fields
+                    shipToAddress.Street_1__c = lead.Shipping_Street_1__c;
+                    shipToAddress.Street_2__c = lead.Shipping_Street_2__c;
+                    shipToAddress.Street_3__c = lead.Shipping_Street_3__c;
+                    shipToAddress.Pin_Code__c = lead.Shipping_Pin_Code__c;
+                    shipToAddress.City__c = lead.Shipping_City__c;
+                    shipToAddress.State__c = lead.Shipping_State__c;
+                    shipToAddress.Country__c = lead.Shipping_Country__c;
+                    shipToAddress.Region__c = lead.Shipping_Region__c;
+                    shipToAddress.Zone__c = lead.Shipping_Zone__c;
+                    
+                    String shipToCityName = (lead.Shipping_City__c != null && citiesMap.containsKey(lead.Shipping_City__c)) 
+                        ? citiesMap.get(lead.Shipping_City__c).Name : '';
+                    
+                    String shipToAddressName = 'Ship To - ' + 
+                        (String.isNotBlank(shipToCityName) ? shipToCityName : '');
+                    
+                    shipToAddress.Name = shipToAddressName.abbreviate(80).trim();
+                    
+                    addressesToInsert.add(shipToAddress);
+                }
+            }
+        }
+        
+        if (!addressesToInsert.isEmpty()) {
+            try {
+                insert addressesToInsert;
+            } catch (Exception e) {
+                System.debug('Error creating Address Information records: ' + 
+                             e.getMessage() + '\n' + e.getStackTraceString());
+            }
+        }
+    }
+    
+    // Helper method to check if Bill To address has data
+    private static Boolean hasBillToAddressData(Lead lead) {
+        return String.isNotBlank(lead.Street_1__c) ||
+            String.isNotBlank(lead.Street_2__c) ||
+            String.isNotBlank(lead.Street_3__c) ||
+            String.isNotBlank(lead.Pin_Code__c) ||
+            lead.City__c != null ||
+            String.isNotBlank(lead.State__c) ||
+            String.isNotBlank(lead.Country__c) ||
+            String.isNotBlank(lead.Region__c) ||
+            String.isNotBlank(lead.Zone__c);
+    }
+    
+    // Helper method to check if Ship To address has data
+    private static Boolean hasShipToAddressData(Lead lead) {
+        return String.isNotBlank(lead.Shipping_Street_1__c) ||
+            String.isNotBlank(lead.Shipping_Street_2__c) ||
+            String.isNotBlank(lead.Shipping_Street_3__c) ||
+            String.isNotBlank(lead.Shipping_Pin_Code__c) ||
+            lead.Shipping_City__c != null ||
+            String.isNotBlank(lead.Shipping_State__c) ||
+            String.isNotBlank(lead.Shipping_Country__c) ||
+            String.isNotBlank(lead.Shipping_Region__c) ||
+            String.isNotBlank(lead.Shipping_Zone__c);
     }
     
     public static void handleAfterUpdate(List<Lead> newLeads, Map<Id, Lead> oldLeadMap) {
@@ -536,12 +669,35 @@ l.Status = 'Working';
             State__r.Name,Region__c,Country__c,Country__r.Name,
             Shipping_Street_1__c,Shipping_Street_2__c,Shipping_Street_3__c,Shipping_Pin_Code__c,Shipping_Pin_Code__r.Name,
             Shipping_City__c,Shipping_City__r.Name,Shipping_State__r.Name,Shipping_Country__r.Name,
-            Shipping_Zone__c,Shipping_State__c,Shipping_Region__c,Shipping_Country__c,Company,Email,MobilePhone
+            Shipping_Zone__c,Shipping_State__c,Shipping_Region__c,Shipping_Country__c,Company,Email,MobilePhone,
+            Division__c, Business_Type__c  // ADDED THESE FIELDS
             FROM Lead 
             WHERE Id IN :convertedLeadIds 
             AND ConvertedOpportunityId != NULL
         ];
         
+        // Get mapping values for Quote creation
+        List<Sales_Organisation__c> salesOrg1000 = [
+            SELECT Id FROM Sales_Organisation__c 
+            WHERE Name = '1000'
+            LIMIT 1
+        ];
+        
+        List<Distribution_Channel__c> distChannel10 = [
+            SELECT Id FROM Distribution_Channel__c 
+            WHERE Name = '10' 
+            LIMIT 1
+        ];
+        
+        List<Distribution_Channel__c> distChannel20 = [
+            SELECT Id FROM Distribution_Channel__c 
+            WHERE Name = '20' 
+            LIMIT 1
+        ];
+        
+        Id salesOrg1000Id = salesOrg1000.isEmpty() ? null : salesOrg1000[0].Id;
+        Id distChannel10Id = distChannel10.isEmpty() ? null : distChannel10[0].Id;
+        Id distChannel20Id = distChannel20.isEmpty() ? null : distChannel20[0].Id;
         
         List<Opportunity> opportunities = [
             SELECT Id, Name, Pricebook2Id, StageName,
@@ -550,12 +706,10 @@ l.Status = 'Working';
             WHERE Id IN (SELECT ConvertedOpportunityId FROM Lead WHERE Id IN :convertedLeadIds)
         ];
         
-        
         Map<Id, Opportunity> oppMap = new Map<Id, Opportunity>();
         for (Opportunity opp : opportunities) {
             oppMap.put(opp.Id, opp);
         }
-        
         
         List<Quote> quotesToInsert = new List<Quote>();
         Map<Id, Id> quoteToOpportunityMap = new Map<Id, Id>(); // For later use
@@ -596,6 +750,16 @@ l.Status = 'Working';
                         }
                     }
                     
+                    // Determine Distribution Channel based on Business_Type__c
+                    Id distributionChannelId = null;
+                    if (lead.Business_Type__c == 'Domestic' || 
+                        lead.Business_Type__c == 'Deemed Export' || 
+                        lead.Business_Type__c == 'SEZ') {
+                            distributionChannelId = distChannel10Id;  // Use '10' for Domestic, Deemed Export, and SEZ
+                        } else if (lead.Business_Type__c == 'Export') {
+                            distributionChannelId = distChannel20Id;  // Use '20' only for Export
+                        }
+                    
                     Quote quote = new Quote(
                         Name = opp.Name,
                         OpportunityId = opp.Id,
@@ -603,10 +767,14 @@ l.Status = 'Working';
                         ContactId = lead.ConvertedContactId,
                         Letter_Company_Name__c = rossariCompany.Id,
                         
+                        // MAP DIRECTLY FROM LEAD TO QUOTE USING UPDATED LOGIC
+                        Sales_Organisations__c = salesOrg1000Id,  // Always '1000'
+                        Division__c = lead.Division__c,           // Direct from Lead
+                        Distribution_Channel__c = distributionChannelId, // Based on updated Business_Type__c logic
+                        
                         // Mapped fields from Lead to Quote
                         Inco_Terms__c = lead.Inco_Terms__c,
-                      //  Payment_Terms__c = lead.Payment_Term__c,
-                      Payment_Term__c = lead.Payment_Terms__c,
+                        Payment_Term__c = lead.Payment_Terms__c,
                         Loading_Port__c = lead.Loading_Port__c,
                         Destination_Port__c = lead.Destination_Port__c,
                         Quote_Valid_From__c = lead.Quote_Valid_From__c,
@@ -653,7 +821,6 @@ l.Status = 'Working';
                         
                         Declaration__c = 'We declare that this quotation shows the actual price of goods and that all particulars are true and correct'
                     );
-                    
                     
                     quotesToInsert.add(quote);
                     quoteToOpportunityMap.put(opp.Id, opp.Id);
@@ -844,6 +1011,157 @@ l.Status = 'Working';
                     && accountRecordTypeDevName == 'Secondary') {
                     ld.addError('Leads with Record Type "' + leadRecordTypeDevName + '" must be converted to an Account with Record Type = "Primary", not "Secondary".');
                 }
+            }
+        }
+    }
+    
+    public static void mapLeadFieldsToOpportunity(List<Lead> newLeads, Map<Id, Lead> oldLeadMap) {
+        Set<Id> convertedLeadIds = new Set<Id>();
+        List<Opportunity> opportunitiesToUpdate = new List<Opportunity>();
+        
+        // Identify converted leads
+        for (Lead lead : newLeads) {
+            Lead oldLead = oldLeadMap.get(lead.Id);
+            if (lead.IsConverted && !oldLead.IsConverted && lead.ConvertedOpportunityId != null) {
+                convertedLeadIds.add(lead.Id);
+            }
+        }
+        
+        if (convertedLeadIds.isEmpty()) return;
+        
+        // Query converted leads with required fields
+        List<Lead> convertedLeads = [
+            SELECT Id, ConvertedOpportunityId, Division__c, Business_Type__c
+            FROM Lead 
+            WHERE Id IN :convertedLeadIds
+        ];
+        
+        // Get Sales Organisation with value 1000 - using Name field
+        List<Sales_Organisation__c> salesOrg1000 = [
+            SELECT Id FROM Sales_Organisation__c 
+            WHERE Name = '1000'
+            LIMIT 1
+        ];
+        
+        // Get Distribution Channels based on Name field
+        List<Distribution_Channel__c> distChannel10 = [
+            SELECT Id FROM Distribution_Channel__c 
+            WHERE Name = '10' 
+            LIMIT 1
+        ];
+        
+        List<Distribution_Channel__c> distChannel20 = [
+            SELECT Id FROM Distribution_Channel__c 
+            WHERE Name = '20' 
+            LIMIT 1
+        ];
+        
+        Id salesOrg1000Id = salesOrg1000.isEmpty() ? null : salesOrg1000[0].Id;
+        Id distChannel10Id = distChannel10.isEmpty() ? null : distChannel10[0].Id;
+        Id distChannel20Id = distChannel20.isEmpty() ? null : distChannel20[0].Id;
+        
+        // Prepare opportunities for update
+        for (Lead lead : convertedLeads) {
+            Opportunity opp = new Opportunity(Id = lead.ConvertedOpportunityId);
+            
+            // Always set Sales_Organisation__c to 1000 on Opportunity
+            if (salesOrg1000Id != null) {
+                opp.Sales_Organisations__c = salesOrg1000Id;
+            }
+            
+            // Map Division__c from Lead to Opportunity
+            if (lead.Division__c != null) {
+                opp.Division__c = lead.Division__c;
+            }
+            
+            // Map Distribution_Channel__c on Opportunity based on Lead's Business_Type__c - UPDATED LOGIC
+            if ((lead.Business_Type__c == 'Domestic' || 
+                 lead.Business_Type__c == 'Deemed Export' || 
+                 lead.Business_Type__c == 'SEZ') && distChannel10Id != null) {
+                     opp.Distribution_Channel__c = distChannel10Id;  // Use '10' for Domestic, Deemed Export, and SEZ
+                 } else if (lead.Business_Type__c == 'Export' && distChannel20Id != null) {
+                     opp.Distribution_Channel__c = distChannel20Id;  // Use '20' only for Export
+                 }
+            
+            opportunitiesToUpdate.add(opp);
+        }
+        
+        // Update opportunities
+        if (!opportunitiesToUpdate.isEmpty()) {
+            try {
+                update opportunitiesToUpdate;
+                System.debug('Successfully updated ' + opportunitiesToUpdate.size() + ' opportunities with lead field mappings');
+            } catch (Exception e) {
+                System.debug('Error updating opportunities: ' + e.getMessage());
+            }
+        }
+    }
+    
+    public static void updateSampleRequestsAfterConversion(List<Lead> newLeads, Map<Id, Lead> oldLeadMap) {
+        // Step 1: Identify converted leads
+        Set<Id> convertedLeadIds = new Set<Id>();
+        Map<Id, Id> leadToAccountMap = new Map<Id, Id>();
+        Map<Id, Id> leadToOpportunityMap = new Map<Id, Id>();
+        
+        for (Lead lead : newLeads) {
+            Lead oldLead = oldLeadMap.get(lead.Id);
+            // Check if lead was just converted
+            if (!oldLead.IsConverted && lead.IsConverted) {
+                convertedLeadIds.add(lead.Id);
+                
+                // Store the mapping from Lead to converted Account and Opportunity
+                if (lead.ConvertedAccountId != null) {
+                    leadToAccountMap.put(lead.Id, lead.ConvertedAccountId);
+                }
+                if (lead.ConvertedOpportunityId != null) {
+                    leadToOpportunityMap.put(lead.Id, lead.ConvertedOpportunityId);
+                }
+            }
+        }
+        
+        if (convertedLeadIds.isEmpty()) {
+            return;
+        }
+        
+        // Step 2: Query all Sample Request records related to these leads
+        List<Sample_Request__c> sampleRequestsToUpdate = new List<Sample_Request__c>();
+        
+        List<Sample_Request__c> relatedSampleRequests = [
+            SELECT Id, Lead__c, Customer_Name__c, Opportunity__c 
+            FROM Sample_Request__c 
+            WHERE Lead__c IN :convertedLeadIds
+            AND (Customer_Name__c = null OR Opportunity__c = null) // Only update if not already set
+        ];
+        
+        if (relatedSampleRequests.isEmpty()) {
+            return;
+        }
+        
+        // Step 3: Update Sample Requests with Account and Opportunity IDs
+        for (Sample_Request__c sampleRequest : relatedSampleRequests) {
+            Id leadId = sampleRequest.Lead__c;
+            
+            // Update Account if not already set and available from conversion
+            if (sampleRequest.Customer_Name__c == null && leadToAccountMap.containsKey(leadId)) {
+                sampleRequest.Customer_Name__c = leadToAccountMap.get(leadId);
+            }
+            
+            // Update Opportunity if not already set and available from conversion
+            if (sampleRequest.Opportunity__c == null && leadToOpportunityMap.containsKey(leadId)) {
+                sampleRequest.Opportunity__c = leadToOpportunityMap.get(leadId);
+            }
+            
+            sampleRequestsToUpdate.add(sampleRequest);
+        }
+        
+        // Step 4: Perform the update
+        if (!sampleRequestsToUpdate.isEmpty()) {
+            try {
+                update sampleRequestsToUpdate;
+                System.debug('Successfully updated ' + sampleRequestsToUpdate.size() + ' Sample Request records after lead conversion');
+            } catch (Exception e) {
+                System.debug('Error updating Sample Request records: ' + e.getMessage());
+                // You might want to handle this error differently based on your business requirements
             }
         }
     }

@@ -55,14 +55,14 @@
 
             <div class="slds-col slds-size_1-of-4 slds-p-around_x-small" style="margin-left: -21px;margin-right: 22px;">
                 <lightning-combobox label="Inco Terms" value={quoteFields.incoTerms} options={incoTermsOptions}
-                    data-field="incoTerms" onchange={handleIncoTermsChange} >
+                    data-field="incoTerms" onchange={handleIncoTermsChange}>
                 </lightning-combobox>
             </div>
 
             <div class="slds-col slds-size_1-of-4 slds-p-around_x-small" style="margin-left: -21px;margin-right: 22px;">
                 <lightning-record-picker label="Payment Term" placeholder="Search Payment Terms..."
                     object-api-name="Payment_Term__c" value={quoteFields.paymentTermId} filters={paymentTermFilters}
-                    onchange={handlePaymentTermSelected} variant="label-stacked" required="false" >
+                    onchange={handlePaymentTermSelected} variant="label-stacked" required="false">
                 </lightning-record-picker>
             </div>
 
@@ -82,6 +82,13 @@
                 </div>
             </template>
             <!-- </template> -->
+
+            <div class="slds-col slds-size_1-of-4 slds-p-around_x-small" style="margin-left: -21px;margin-right: 22px;">
+                <lightning-combobox label="Domestic Delivery Terms" value={quoteFields.domesticDeliveryTerms}
+                    options={domesticDeliveryTermsOptions} data-field="domesticDeliveryTerms"
+                    onchange={handleFieldChange}>
+                </lightning-combobox>
+            </div>
         </div>
 
         <!-- Quote Line Items Table -->

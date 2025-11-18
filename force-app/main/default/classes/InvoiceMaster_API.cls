@@ -35,6 +35,13 @@ global class InvoiceMaster_API {
                 paymentCodeMap.put(so.Payment_Term_Code__c, so.Id);
             }
 
+            map < string, string > payerMap = new map < string, string > ();
+            List<Account> accList = [SELECT Id, SAP_Customer_Code__c FROM Account WHERE SAP_Customer_Code__c =: inv.payer LIMIT 1];
+            if (accList.size() > 0) {
+                Account acc = accList[0];
+                payerMap.put(acc.SAP_Customer_Code__c, acc.Id);
+            }
+
             map < string, string > orderCodeMap = new map < string, string > ();
             for (order so: [SELECT Id, SAP_Order_Number__c FROM order WHERE SAP_Order_Number__c =: inv.salesOrderNo]) {
                 orderCodeMap.put(so.SAP_Order_Number__c, so.Id);
@@ -121,6 +128,7 @@ global class InvoiceMaster_API {
             invRec.Sold_To_Party__c = String.isNotBlank(inv.soldToParty) ? inv.soldToParty : null;
             invRec.Bill_To_Party_Code__c = String.isNotBlank(inv.billToPartyCode) ? inv.billToPartyCode : null;
             invRec.Payer__c = String.isNotBlank(inv.payer) ? inv.payer : null;
+            invRec.Customer_Name__c = String.isNotBlank(inv.payer) ? payerMap.get(inv.payer) : null;
             invRec.Ship_To_Party__c = String.isNotBlank(inv.shipToParty) ? inv.shipToParty : null;
             invRec.Payment_Term__c = String.isNotBlank(inv.paymentTerm) ? paymentCodeMap.get(inv.paymentTerm) : null;
             if (String.isNotBlank(inv.salesOrderNo) && orderCodeMap.containsKey(inv.salesOrderNo)) {
@@ -144,7 +152,9 @@ global class InvoiceMaster_API {
             invRec.Total_Gross_Value__c = inv.totalGrossValue != null ? inv.totalGrossValue : 0;
 
             invRec.InvoiceStatus__c = String.isNotBlank(inv.invoiceStatus) ? inv.invoiceStatus : '';
+            invRec.OwnerId = String.isNotBlank(inv.salesPerson) ? (Id) userCodeMap.get(inv.salesPerson) : null;
             invRec.Sales_Person__c = String.isNotBlank(inv.salesPerson) ? (Id) userCodeMap.get(inv.salesPerson) : null;
+            invRec.Sales_Person_Code__c = String.isNotBlank(inv.salesPerson) ? inv.salesPerson : null;
             invRec.Commision_agent__c = String.isNotBlank(inv.Commision_agent) ? inv.Commision_agent : '';
             invRec.LR_Name__c = String.isNotBlank(inv.LR_Name) ? inv.LR_Name : '';
             invRec.LR_Number__c = String.isNotBlank(inv.LR_Number) ? inv.LR_Number : '';

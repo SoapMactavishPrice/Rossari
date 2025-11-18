@@ -63,13 +63,15 @@ public class QuoteTriggerHandlerTest {
             HOD_of_Sales_Department__c = hodUser.Id,
             Payment_Term__c = newTerm.Id,
             Previous_Payment_Terms__c = previousTerm.Id,
+            Inco_Terms__c = 'EXW',
+            Previous_Inco_Terms__c = 'FOB',
             Credit_Approval_Status__c = 'Approved',
             Payment_Remark__c = 'Customer requested extension'
         );
         insert q;
 
-        List<Quote> quotes = [SELECT Id, Name, AccountId, OwnerId, HOD_of_Sales_Department__c, 
-                              Payment_Term__c, Previous_Payment_Terms__c, Credit_Approval_Status__c, 
+        List<Quote> quotes = [SELECT Id, Name, AccountId, OwnerId, HOD_of_Sales_Department__c, OpportunityId,
+                              Payment_Term__c, Previous_Payment_Terms__c, Credit_Approval_Status__c, Inco_Terms__c, Previous_Inco_Terms__c,
                               QuoteNumber, Payment_Remark__c 
                               FROM Quote WHERE Id = :q.Id];
 

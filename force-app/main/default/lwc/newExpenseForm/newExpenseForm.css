@@ -1,0 +1,42 @@
+.user-expense-container.approving {
+    opacity: 0.6;
+    pointer-events: none;
+}
+
+.slds-checkbox_toggle__input:disabled {
+    cursor: not-allowed;
+}
+
+.slds-wrap {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+}
+
+.slds-table thead th {
+    background-color: #9d0b0f;
+    color: white;
+    z-index: 1;
+    white-space: pre-wrap;
+}
+
+.slds-table thead th span {
+    color: white;
+}
+
+.slds-table td {
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    text-wrap: balance;
+}
+
+.table-cell span {
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    text-wrap: balance;
+}
+
+.table-container {
+    overflow-y: unset;
+    height: auto;
+}

@@ -251,7 +251,7 @@ export default class Lwc_SampleIn extends NavigationMixin(LightningElement) {
             sampleLine: JSON.stringify(this.SampleLine)
         })
             .then(result => {
-                if (result && typeof result === 'string' && result.startsWith('a0')) { // Check if it's a valid record ID
+                if (result && typeof result === 'string') { // Check if it's a valid record ID
                     this.showSuccess('Success', 'Sample In is Created Successfully', 'success');
                     // Navigate to the new Sample In record
                     this.navigateToRecordView(result);

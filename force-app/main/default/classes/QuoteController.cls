@@ -19,9 +19,47 @@ public with sharing class QuoteController {
         Opportunity opp = [SELECT Id, AccountId, Name, CurrencyIsoCode, Pricebook2Id, 
                            Contact__c, Contact__r.Name, Contact__r.Id,
                            Inco_Terms__c, Payment_Term__c, Payment_Term__r.Name,
-                           Sales_Organisations__c, Division__c, Distribution_Channel__c
+                           Sales_Organisations__c, Division__c, Distribution_Channel__c,
+                           Account.Name
                            FROM Opportunity 
                            WHERE Id = :opportunityId LIMIT 1];
+        
+        // Get Bill To and Ship To addresses for the Account
+        List<Address_Information__c> accountAddresses = [
+            SELECT Id, Name, RecordType.DeveloperName, Street_1__c, Street_2__c, Street_3__c,
+            Pin_Code__c, City__c, City__r.Name, State__c, Country__c, Region__c, Zone__c
+            FROM Address_Information__c 
+            WHERE Account__c = :opp.AccountId
+            AND RecordType.DeveloperName IN ('Bill_To', 'Ship_To')
+            ORDER BY CreatedDate DESC
+        ];
+        
+        // Separate Bill To and Ship To addresses
+        List<Map<String, Object>> billToAddresses = new List<Map<String, Object>>();
+        List<Map<String, Object>> shipToAddresses = new List<Map<String, Object>>();
+        
+        for (Address_Information__c addr : accountAddresses) {
+            Map<String, Object> addressMap = new Map<String, Object>{
+                'id' => addr.Id,
+                'name' => addr.Name,
+                'street1' => addr.Street_1__c,
+                'street2' => addr.Street_2__c,
+                'street3' => addr.Street_3__c,
+                'pinCode' => addr.Pin_Code__c,
+                'city' => addr.City__c,
+                'cityName' => addr.City__r?.Name,
+                'state' => addr.State__c,
+                'country' => addr.Country__c,
+                'region' => addr.Region__c,
+                'zone' => addr.Zone__c
+            };
+            
+            if (addr.RecordType.DeveloperName == 'Bill_To') {
+                billToAddresses.add(addressMap);
+            } else if (addr.RecordType.DeveloperName == 'Ship_To') {
+                shipToAddresses.add(addressMap);
+            }
+        }
         
         // Get status picklist values
         Schema.DescribeFieldResult statusField = Quote.Status.getDescribe();
@@ -59,6 +97,17 @@ public with sharing class QuoteController {
             }
         }
         
+         Schema.DescribeFieldResult domesticDeliveryTermsField = Quote.Domestic_Delivery_Terms__c.getDescribe();
+    List<Map<String, String>> domesticDeliveryTermsOptions = new List<Map<String, String>>();
+    for (Schema.PicklistEntry pe : domesticDeliveryTermsField.getPicklistValues()) {
+        if (pe.isActive()) {
+            domesticDeliveryTermsOptions.add(new Map<String, String>{
+                'label' => pe.getLabel(),
+                    'value' => pe.getValue()
+                    });
+        }
+    }
+        
         // Get related contacts
         List<Contact> contacts = [
             SELECT Id, Name 
@@ -87,13 +136,20 @@ public with sharing class QuoteController {
         result.put('statusOptions', statusOptions);
         result.put('currencyOptions', currencyOptions);
         result.put('incoTermsOptions', incoTermsOptions);
+        result.put('domesticDeliveryTermsOptions', domesticDeliveryTermsOptions);
         result.put('paymentTerms', paymentTermOptions);
         result.put('contacts', contacts);
+        
+        // Add address information
+        result.put('billToAddresses', billToAddresses);
+        result.put('shipToAddresses', shipToAddresses);
+        result.put('accountName', opp.Account.Name);
         
         // Add Opportunity's Inco Terms and Payment Terms
         result.put('opportunityIncoTerms', opp.Inco_Terms__c);
         result.put('opportunityPaymentTermId', opp.Payment_Term__c);
         result.put('opportunityPaymentTermName', opp.Payment_Term__r?.Name);
+        result.put('opportunityDomesticDeliveryTerms', '');
         
         if (opp.Contact__c != null && opp.Contact__r != null) {
             result.put('defaultContact', new Map<String, String>{
@@ -104,6 +160,7 @@ public with sharing class QuoteController {
         
         return result;
     }
+    
     @AuraEnabled
     public static Id createQuoteFromOpportunity(
         String opportunityId, 
@@ -117,20 +174,46 @@ public with sharing class QuoteController {
         String incoTerms,
         String paymentTermId,
         Decimal transportationCost,
-        String containerType
+        String containerType,
+        String domesticDeliveryTerms,
+        String selectedBillToAddressId,
+        String selectedShipToAddressId
     ) {
         // Validate required parameters
         if (String.isBlank(opportunityId)) {
             throw new AuraHandledException('Opportunity ID is required');
         }
         
+        // Check if quote already exists for this opportunity
+        List<Quote> existingQuotes = [
+            SELECT Id, Name, Status 
+            FROM Quote 
+            WHERE OpportunityId = :opportunityId 
+            LIMIT 1
+        ];
+        
+        if (!existingQuotes.isEmpty()) {
+            throw new AuraHandledException('Quote already exists for this Opportunity.');
+        }
+        
         // Get opportunity with all required fields including current Payment Term and Inco Terms
         Opportunity opp = [
             SELECT Id, Pricebook2Id, CurrencyIsoCode, AccountId, Sales_Organisations__c, 
             Division__c, Distribution_Channel__c, Name, Distribution_Channel__r.Distribution_Code__c,
-            Payment_Term__c, Payment_Term__r.Name, Inco_Terms__c
+            Payment_Term__c, Payment_Term__r.Name, Inco_Terms__c, Account.Name
             FROM Opportunity 
             WHERE Id = :opportunityId
+        ];
+        
+        // Get Bill To and Ship To addresses for the Account
+        List<Address_Information__c> accountAddresses = [
+            SELECT Id, RecordType.DeveloperName, Street_1__c, Street_2__c, Street_3__c,
+            Pin_Code__c, City__c, City__r.Name, State__c,State__r.Name, Country__c,Country__r.Name,
+            Pin_Code__r.Name
+            FROM Address_Information__c 
+            WHERE Account__c = :opp.AccountId
+            AND RecordType.DeveloperName IN ('Bill_To', 'Ship_To')
+            ORDER BY CreatedDate DESC
         ];
         
         // Get current user with User Type
@@ -172,6 +255,7 @@ public with sharing class QuoteController {
             // Current terms (can be same as opportunity or changed by user)
             Inco_Terms__c = incoTerms,
             Payment_Term__c = String.isBlank(paymentTermId) ? null : paymentTermId,
+             Domestic_Delivery_Terms__c = domesticDeliveryTerms,
             
             // Previous terms (store original opportunity values ONLY if changed)
             Previous_Inco_Terms__c = isIncoTermsChanged ? opp.Inco_Terms__c : null,
@@ -188,6 +272,54 @@ public with sharing class QuoteController {
             'After finalization of order if there is any change in Statutory Govt. levies than it will be in your scope.',
             Declaration__c = 'We declare that this quotation shows the actual price of goods and that all particulars are true and correct'
         );
+        
+        // Auto-map Bill To address (first Bill_To record found)
+        Address_Information__c billToAddress = getAddressByRecordType(accountAddresses, 'Bill_To');
+        if (billToAddress != null) {
+            quote.BillingName = opp.Account.Name;
+            quote.BillingStreet = formatAddressLines(billToAddress.Street_1__c, billToAddress.Street_2__c, billToAddress.Street_3__c);
+            quote.BillingCity = billToAddress.City__r?.Name;
+            quote.BillingState = billToAddress.State__r?.Name;
+            quote.BillingCountry = billToAddress.Country__r?.Name;
+            quote.BillingPostalCode = billToAddress.Pin_Code__r?.Name;
+        }
+        
+        // Auto-map Ship To address (first Ship_To record found)
+        Address_Information__c shipToAddress = getAddressByRecordType(accountAddresses, 'Ship_To');
+        if (shipToAddress != null) {
+            quote.ShippingName = opp.Account.Name;
+            quote.ShippingStreet = formatAddressLines(shipToAddress.Street_1__c, shipToAddress.Street_2__c, shipToAddress.Street_3__c);
+            quote.ShippingCity = shipToAddress.City__r?.Name;
+            quote.ShippingState = shipToAddress.State__r?.Name;
+            quote.ShippingCountry = shipToAddress.Country__r?.Name;
+            quote.ShippingPostalCode = shipToAddress.Pin_Code__r?.Name;
+        }
+        
+        // If specific addresses are selected, use them instead
+        if (String.isNotBlank(selectedBillToAddressId)) {
+            Address_Information__c selectedBillToAddr = getAddressById(accountAddresses, selectedBillToAddressId);
+            if (selectedBillToAddr != null && selectedBillToAddr.RecordType.DeveloperName == 'Bill_To') {
+                quote.BillingName = opp.Account.Name;
+                quote.BillingStreet = formatAddressLines(selectedBillToAddr.Street_1__c, selectedBillToAddr.Street_2__c, selectedBillToAddr.Street_3__c);
+                quote.BillingCity = selectedBillToAddr.City__r?.Name;
+                quote.BillingState = selectedBillToAddr.State__c;
+                quote.BillingCountry = selectedBillToAddr.Country__c;
+                quote.BillingPostalCode = selectedBillToAddr.Pin_Code__c;
+            }
+        }
+        
+        if (String.isNotBlank(selectedShipToAddressId)) {
+            Address_Information__c selectedShipToAddr = getAddressById(accountAddresses, selectedShipToAddressId);
+            if (selectedShipToAddr != null && selectedShipToAddr.RecordType.DeveloperName == 'Ship_To') {
+                quote.ShippingName = opp.Account.Name;
+                quote.ShippingStreet = formatAddressLines(selectedShipToAddr.Street_1__c, selectedShipToAddr.Street_2__c, selectedShipToAddr.Street_3__c);
+                quote.ShippingCity = selectedShipToAddr.City__r?.Name;
+                quote.ShippingState = selectedShipToAddr.State__c;
+                quote.ShippingCountry = selectedShipToAddr.Country__c;
+                quote.ShippingPostalCode = selectedShipToAddr.Pin_Code__c;
+            }
+        }
+        
         insert quote;
         
         // Create quote line items
@@ -223,6 +355,37 @@ public with sharing class QuoteController {
         update opp;
         
         return quote.Id;
+    }
+    
+    // Helper method to get address by record type
+    private static Address_Information__c getAddressByRecordType(List<Address_Information__c> addresses, String recordTypeName) {
+        for (Address_Information__c addr : addresses) {
+            if (addr.RecordType.DeveloperName == recordTypeName) {
+                return addr;
+            }
+        }
+        return null;
+    }
+    
+    // Helper method to get address by ID
+    private static Address_Information__c getAddressById(List<Address_Information__c> addresses, String addressId) {
+        for (Address_Information__c addr : addresses) {
+            if (addr.Id == addressId) {
+                return addr;
+            }
+        }
+        return null;
+    }
+    
+    // Helper method to format address lines
+    private static String formatAddressLines(String street1, String street2, String street3) {
+        List<String> addressLines = new List<String>();
+        
+        if (String.isNotBlank(street1)) addressLines.add(street1.trim());
+        if (String.isNotBlank(street2)) addressLines.add(street2.trim());
+        if (String.isNotBlank(street3)) addressLines.add(street3.trim());
+        
+        return String.join(addressLines, '\n');
     }
     
     // Method to get HOD User from Custom Metadata
@@ -509,6 +672,13 @@ public with sharing class QuoteController {
             throw new AuraHandledException(e.getMessage());
         }
     }
+    
+    @AuraEnabled(cacheable=true)
+public static Boolean hasExistingQuote(Id opportunityId) {
+    if (String.isBlank(opportunityId)) return false;
+    return [SELECT COUNT() FROM Quote WHERE OpportunityId = :opportunityId] > 0;
+}
+
     
     // Wrapper class for quote line items
     public class QuoteLineItemWrapper {

@@ -2,7 +2,7 @@ trigger QuoteTrigger on Quote (before insert, before update, after insert, after
 
     // BEFORE INSERT: Let the Apex class handle previous terms logic during creation
     if (Trigger.isBefore && Trigger.isInsert) {
-        
+        // No additional logic needed here
     }
 
     // BEFORE UPDATE: Validate approval status and track previous payment term
@@ -28,7 +28,7 @@ trigger QuoteTrigger on Quote (before insert, before update, after insert, after
         }
     }
 
-    // AFTER INSERT & AFTER UPDATE: Send email if payment term or inco terms changed or credit status changed
+    // AFTER INSERT & AFTER UPDATE: Send emails for term changes and approvals
     if (Trigger.isAfter && (Trigger.isInsert || Trigger.isUpdate)) {
         List<Quote> quotesToNotify = new List<Quote>();
 
@@ -36,7 +36,7 @@ trigger QuoteTrigger on Quote (before insert, before update, after insert, after
             Quote oldQ = Trigger.oldMap != null ? Trigger.oldMap.get(q.Id) : null;
             
             if (Trigger.isInsert) {
-                // For new quotes, check if terms differ from opportunity (using previous terms fields)
+                // For new quotes, check if terms differ from opportunity
                 Boolean paymentTermChanged = q.Previous_Payment_Terms__c != null;
                 Boolean incoTermsChanged = q.Previous_Inco_Terms__c != null;
                 
@@ -47,15 +47,31 @@ trigger QuoteTrigger on Quote (before insert, before update, after insert, after
                 // For updates, check changes from previous values
                 Boolean paymentTermChanged = q.Payment_Term__c != oldQ.Payment_Term__c;
                 Boolean incoTermsChanged = q.Inco_Terms__c != oldQ.Inco_Terms__c;
-                Boolean creditStatusChanged = q.Credit_Approval_Status__c != oldQ.Credit_Approval_Status__c &&
-                                              (q.Credit_Approval_Status__c == 'Approved' || q.Credit_Approval_Status__c == 'Rejected');
-
-                if (paymentTermChanged || incoTermsChanged || creditStatusChanged) {
+                
+                if (paymentTermChanged || incoTermsChanged) {
                     quotesToNotify.add(q);
+                }
+                
+                // Check for Payment Terms approval status changes
+                Boolean paymentApprovalChanged = q.Credit_Approval_Status__c != oldQ.Credit_Approval_Status__c &&
+                                               (q.Credit_Approval_Status__c == 'Approved' || q.Credit_Approval_Status__c == 'Rejected');
+                
+                // Check for Inco Terms approval status changes  
+                Boolean incoApprovalChanged = q.Inco_Terms_Approval_Status__c != oldQ.Inco_Terms_Approval_Status__c &&
+                                            (q.Inco_Terms_Approval_Status__c == 'Approved' || q.Inco_Terms_Approval_Status__c == 'Rejected');
+                
+                // Send approval emails
+                if (paymentApprovalChanged) {
+                    QuoteTriggerHandler.sendPaymentTermsApprovalEmails(new List<Quote>{q}, Trigger.oldMap);
+                }
+                
+                if (incoApprovalChanged) {
+                    QuoteTriggerHandler.sendIncoTermsApprovalEmails(new List<Quote>{q}, Trigger.oldMap);
                 }
             }
         }
 
+        // Send term change notifications
         if (!quotesToNotify.isEmpty()) {
             if (!Test.isRunningTest()) {
                 QuoteTriggerHandler.sendPaymentTermChangeEmails(quotesToNotify);
