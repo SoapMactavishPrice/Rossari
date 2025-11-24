@@ -260,10 +260,12 @@ import { LightningElement, track } from 'lwc';
 import { ShowToastEvent } from 'lightning/platformShowToastEvent';
 import saveForecastRecords from '@salesforce/apex/ForecastController.saveForecastRecords';
 import getExistingForecastData from '@salesforce/apex/ForecastController.getExistingForecastData';
+import saveUpdatedForecastRecords from '@salesforce/apex/ForecastController.saveUpdatedForecastRecords';
 
 export default class UploadForcastReport extends LightningElement {
     @track tableData = [];
     @track existingForecastData = [];
+    @track forecastDataUpdate = [];
     @track filterFlag = true;
     @track buttonsFlag = false;
     @track csvMonthHeaderValue = '';
@@ -272,7 +274,7 @@ export default class UploadForcastReport extends LightningElement {
     @track isSaving = false;
 
     // Filter properties
-    @track selectedYear = '';
+    @track selectedYear = '2025';
     @track selectedMonth = '';
     @track selectedMonthName = '';
     @track yearOptions = [
@@ -320,6 +322,78 @@ export default class UploadForcastReport extends LightningElement {
             console.error('Error fetching existing forecast data:', error);
             this.showToast('Error', 'Failed to fetch existing forecast data', 'error');
         });
+    }
+
+    handleMonthValueChange(event) {
+        const materialId = event.target.dataset.materialid;
+        const customerId = event.target.dataset.customerid;
+        const month = event.target.dataset.month;
+        const monthValue = event.target.value;
+        // console.log('Month value changed for materialId:', materialId);
+        // console.log('Month value changed for customerId:', customerId);
+        // console.log('Month value changed for month:', month);
+
+        let forecastObj = {
+            materialId: materialId,
+            customerId: customerId,
+            month: month,
+            monthValue: monthValue
+        }
+
+        // Find index of existing entry with same materialId, customerId, and month
+        const existingIndex = this.forecastDataUpdate.findIndex(item =>
+            item.materialId === materialId &&
+            item.customerId === customerId &&
+            item.month === month
+        );
+
+        if (existingIndex !== -1) {
+            // Update existing entry
+            this.forecastDataUpdate[existingIndex] = forecastObj;
+        } else {
+            // Add new entry
+            this.forecastDataUpdate.push(forecastObj);
+        }
+        console.log('Updated forecast data:', this.forecastDataUpdate);
+
+        const existingDataCustomerIndex = this.existingForecastData.findIndex(item =>
+            item.customerId === customerId
+        );
+        // console.log('Existing Customer index:', existingDataCustomerIndex);
+
+        const existingCustomerData = this.existingForecastData[existingDataCustomerIndex];
+        console.log('existingCustomerData:', existingCustomerData);
+
+        const existingProductsData = existingCustomerData.products;
+        console.log('existingProductsData:', existingProductsData);
+
+        const existingDataMaterialIndex = existingProductsData.findIndex(item =>
+            item.materialId === materialId
+        );
+        // console.log('Existing material index:', existingDataMaterialIndex);
+        const existingMaterialData = existingProductsData[existingDataMaterialIndex];
+        console.log('existingMaterialData:', existingMaterialData);
+
+        this.existingForecastData[existingDataCustomerIndex].products[existingDataMaterialIndex].monthValues[month] = monthValue;
+        console.log('Updated existing forecast data:', this.existingForecastData);
+    }
+
+    handlerSaveUpdatedForecast() {
+        if (this.forecastDataUpdate.length > 0) {
+            saveUpdatedForecastRecords({
+                forecastData: this.forecastDataUpdate
+            }).then(result => {
+                console.log(result);
+                this.showToast('Success', 'Forecast records updated successfully', 'success');
+                this.forecastDataUpdate = [];
+                this.getExistingForecastData();
+            }).catch(error => {
+                console.error('Error updating forecast records:', error);
+                this.showToast('Error', 'Failed to update forecast records', 'error');
+            });
+        } else {
+            this.showToast('Please update at least one record', '', 'info');
+        }
     }
 
     // ----------------- Filter selection -----------------
@@ -370,10 +444,10 @@ export default class UploadForcastReport extends LightningElement {
             let csvContent = headers.join(',') + '\r\n';
 
             // Add empty rows
-            for (let i = 0; i < 5; i++) {
-                const row = new Array(headers.length).fill('');
-                csvContent += row.join(',') + '\r\n';
-            }
+            // for (let i = 0; i < 5; i++) {
+            //     const row = new Array(headers.length).fill('');
+            //     csvContent += row.join(',') + '\r\n';
+            // }
 
             const csvData = 'data:text/csv;charset=utf-8,' + encodeURIComponent(csvContent);
             const link = document.createElement('a');

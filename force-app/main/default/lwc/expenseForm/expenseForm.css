@@ -45,15 +45,23 @@
 }
 
 .actions {
-    width: 8%;
-    min-width: 90px;
+    width: 10%; /* Increased width to accommodate 3 buttons */
+    min-width: 120px;
 }
 
-/* Ensure consistent spacing between all columns */
-/* .line-items-table th:not(:last-child),
-.line-items-table td:not(:last-child) {
-    border-right: 1px solid #dddbda;
-} */
+/* Actions column specific styling */
+.actions-column {
+    text-align: center;
+    vertical-align: middle;
+}
+
+.action-buttons-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 4px; /* Consistent spacing between buttons */
+    min-height: 32px;
+}
 
 /* File upload styling */
 .file-cell {
@@ -66,6 +74,22 @@
     display: block;
     margin: 0 auto;
 }
+
+.file-count-section {
+    text-align: center;
+    margin-top: 4px;
+}
+
+/* Button styling */
+.view-files-btn {
+    color: #0176d3; /* Salesforce blue for view action */
+}
+
+/* Ensure consistent spacing between all columns */
+/* .line-items-table th:not(:last-child),
+.line-items-table td:not(:last-child) {
+    border-right: 1px solid #dddbda;
+} */
 
 /* Responsive adjustments */
 @media (max-width: 1600px) {
@@ -98,6 +122,11 @@
         width: 15%;
         min-width: 130px;
     }
+    
+    .actions {
+        width: 12%; /* Adjusted for smaller screens */
+        min-width: 110px;
+    }
 }
 
 @media (max-width: 1400px) {
@@ -111,6 +140,26 @@
     .line-items-table td {
         padding: 6px 4px;
         font-size: 12px;
+    }
+    
+    .action-buttons-container {
+        gap: 2px; /* Tighter spacing on small screens */
+    }
+}
+
+@media (max-width: 1200px) {
+    .actions {
+        width: 14%;
+        min-width: 100px;
+    }
+    
+    .action-buttons-container {
+        flex-direction: column;
+        gap: 2px;
+    }
+    
+    .action-buttons-container lightning-button-icon {
+        margin: 1px 0;
     }
 }
 
@@ -183,11 +232,6 @@
     min-width: 120px;
 }
 
-.actions {
-    width: 7%;
-    min-width: 80px;
-}
-
 .description-cash {
     width: 10%;
     min-width: 100px;
@@ -202,4 +246,103 @@
 .grade-display {
     font-weight: bold;
     color: #2e844a;
+}
+
+/* Hover effects for buttons */
+.action-buttons-container lightning-button-icon:hover {
+    transform: scale(1.05);
+    transition: transform 0.2s ease;
+}
+
+/* Tooltip-like styling for better UX */
+.action-buttons-container lightning-button-icon {
+    cursor: pointer;
+}
+
+/* Modal styling */
+.slds-modal__container {
+    max-width: 500px;
+    width: 90%;
+}
+
+.file-preview-item {
+    border: 1px solid #dddbda;
+    border-radius: 4px;
+    padding: 12px;
+    background-color: #fafaf9;
+    transition: background-color 0.2s ease;
+}
+
+.file-preview-item:hover {
+    background-color: #f3f3f3;
+}
+
+/* Ensure modal backdrop covers the entire screen */
+.slds-backdrop_open {
+    z-index: 9000;
+}
+
+.slds-modal {
+    z-index: 9001;
+}
+
+/* Responsive modal adjustments */
+@media (max-width: 480px) {
+    .slds-modal__container {
+        width: 95%;
+        margin: 0 auto;
+    }
+    
+    .file-preview-item {
+        padding: 8px;
+    }
+}
+
+/* Enhanced button styling for modal */
+.view-files-btn[disabled] {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* Modal header styling */
+.slds-modal__header {
+    background-color: #9d0b0f;
+    color: white;
+    border-bottom: 2px solid #7a090c;
+}
+
+.slds-modal__header h2 {
+    color: white;
+}
+
+/* Modal footer styling */
+.slds-modal__footer {
+    border-top: 1px solid #dddbda;
+    padding: 12px 24px;
+}
+.file-preview-item {
+    border: 1px solid #dddbda;
+    border-radius: 4px;
+    padding: 12px;
+    background-color: #fafaf9;
+    transition: background-color 0.2s ease;
+}
+
+.file-preview-item:hover {
+    background-color: #f3f3f3;
+}
+
+.slds-modal__header {
+    background-color: #9d0b0f;
+    color: white;
+    border-bottom: 2px solid #7a090c;
+}
+
+.slds-modal__header h2 {
+    color: white;
+}
+
+.slds-modal__footer {
+    border-top: 1px solid #dddbda;
+    padding: 12px 24px;
 }

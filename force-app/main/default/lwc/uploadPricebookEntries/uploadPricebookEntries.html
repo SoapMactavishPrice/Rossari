@@ -1,0 +1,55 @@
+<template>
+
+    <template if:true={showSpinner}>
+        <lightning-spinner variant="brand" size="medium" alternative-text="Loading"></lightning-spinner>
+    </template>
+
+    <lightning-card hide-header label="Upload Price" variant="narrow">
+
+        <div class="slds-p-around_small">
+            <!-- All buttons in one row -->
+            <div class="slds-grid slds-grid_align-spread slds-m-bottom_small">
+                <lightning-button label="Download .XLSX" title="Download .xlsx template" onclick={downloadXlsx}
+                    variant="neutral"></lightning-button>
+                <lightning-button label="Download .CSV" title="Download .csv template" onclick={downloadCsv}
+                    variant="neutral"></lightning-button>
+                <lightning-input type="file" variant="label-hidden" accept=".xlsx,.csv"
+                    onchange={handleFile}></lightning-input>
+                <lightning-button variant="brand" label="Start Upload" onclick={startUpload}
+                    disabled={isUploading}></lightning-button>
+            </div>
+
+            <div class="slds-m-top_small">
+                <!-- <p class="slds-text-color_weak slds-text-body_small">Select an .xlsx or .csv file. Large files may take
+                    a few seconds to parse.</p> -->
+                <template if:true={isParsing}>
+                    <div class="slds-m-top_small slds-align_absolute-center">
+                        <lightning-spinner alternative-text="Parsing file" size="medium"></lightning-spinner>
+                        <p class="slds-m-top_x-small">Parsing file... please wait</p>
+                    </div>
+                </template>
+            </div>
+
+            <template if:true={fullRows.length}>
+                <!-- <h3 class="slds-m-top_medium">Preview ({fullRows.length})</h3> -->
+                <div style="height: 51vh">
+                    <lightning-datatable key-field="__rowIndex" data={displayedRows} columns={columns}
+                        hide-checkbox-column show-row-number-column row-number-offset="0" enable-infinite-loading
+                        onloadmore={handleLoadMore}></lightning-datatable>
+                </div>
+
+                <!-- Progress bar for upload -->
+                <template if:true={isUploading}>
+                    <div class="slds-m-top_small">
+                        <p>Uploading: {progressPercent}%</p>
+                        <lightning-progress-bar value={progressPercent}></lightning-progress-bar>
+                        <p class="slds-m-top_x-small">{statusMessage}</p>
+                    </div>
+                </template>
+
+            </template>
+        </div>
+
+    </lightning-card>
+
+</template>

@@ -152,7 +152,9 @@ global class InvoiceMaster_API {
             invRec.Total_Gross_Value__c = inv.totalGrossValue != null ? inv.totalGrossValue : 0;
 
             invRec.InvoiceStatus__c = String.isNotBlank(inv.invoiceStatus) ? inv.invoiceStatus : '';
-            invRec.OwnerId = String.isNotBlank(inv.salesPerson) ? (Id) userCodeMap.get(inv.salesPerson) : null;
+            if (String.isNotBlank(inv.salesPerson) && userCodeMap.containsKey(inv.salesPerson)) {
+                invRec.OwnerId = (Id) userCodeMap.get(inv.salesPerson);
+            }
             invRec.Sales_Person__c = String.isNotBlank(inv.salesPerson) ? (Id) userCodeMap.get(inv.salesPerson) : null;
             invRec.Sales_Person_Code__c = String.isNotBlank(inv.salesPerson) ? inv.salesPerson : null;
             invRec.Commision_agent__c = String.isNotBlank(inv.Commision_agent) ? inv.Commision_agent : '';
@@ -213,6 +215,7 @@ global class InvoiceMaster_API {
                 lineRec.Sales_UOM__c = String.isNotBlank(line.salesUOM) ? (Id) baseCodeMap.get(line.salesUOM) : null;
                 lineRec.SGST_Rate__c = line.sgstRate != null ? line.sgstRate : null;
                 lineRec.SGST_Value__c = line.sgstValue != null ? line.sgstValue : null;
+                lineRec.HSN_Code__c = line.hsnCode != null ? line.hsnCode : '';
 
                 lineRec.Plant__c = String.isNotBlank(line.plant) ? (Id) plantCodeMap.get(line.plant) : null;
                 lineRec.Plant_GSTIN_No__c = String.isNotBlank(line.plantGstinNo) ? line.plantGstinNo : null;
@@ -313,6 +316,7 @@ global class InvoiceMaster_API {
         public string productCode;
         public String salesItemNo;
         public String salesUOM;
+        public String hsnCode;
         public Decimal sgstRate;
         public Decimal sgstValue;
     }

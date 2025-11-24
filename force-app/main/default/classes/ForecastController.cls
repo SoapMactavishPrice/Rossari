@@ -40,6 +40,8 @@ public with sharing class ForecastController {
         @AuraEnabled public String customerId { get; set; }
         @AuraEnabled public String customerCode { get; set; }
         @AuraEnabled public String customerName { get; set; }
+        @AuraEnabled public String salespersonCode { get; set; }
+        @AuraEnabled public String salesperson { get; set; }
         @AuraEnabled public String id { get; set; }
         @AuraEnabled public String iconName { get; set; }
         @AuraEnabled public List<ProductForecast> products { get; set; }
@@ -50,17 +52,34 @@ public with sharing class ForecastController {
         @AuraEnabled public String materialCode { get; set; }
         @AuraEnabled public String materialDescription { get; set; }
         @AuraEnabled public String salesQuantity { get; set; }
-        @AuraEnabled public String salespersonCode { get; set; }
-        @AuraEnabled public String salesperson { get; set; }
+        // @AuraEnabled public String salespersonCode { get; set; }
+        // @AuraEnabled public String salesperson { get; set; }
         @AuraEnabled public String rowId { get; set; }
+        @AuraEnabled public Map<String, String> monthValues { get; set; }
     }
 
+    public class UpdateForecastInput {
+        @AuraEnabled public String materialId { get; set; }
+        @AuraEnabled public String customerId { get; set; }
+        @AuraEnabled public String month { get; set; }
+        @AuraEnabled public String monthValue { get; set; }
+    }
 
     @AuraEnabled
     public static List<CustomerForecast> getExistingForecastData() {
 
+        // Map: Customer → CustomerForecast
         Map<String, CustomerForecast> customerMap = new Map<String, CustomerForecast>();
 
+        // Map: Customer → (Product → ProductForecast)
+        Map<String, Map<String, ProductForecast>> custProductMap = new Map<String, Map<String, ProductForecast>>();
+
+        // Define static month list
+        List<String> months = new List<String>{
+            'January','February','March','April','May','June','July','August','September','October','November','December'
+        };
+
+        // Query Forecast Records
         for (Forecast__c f : [
             SELECT Id, Customer_Code__c, Customer_Name__c, Customer_Name__r.Name,
                 Product_Code__c, Product__c, Product__r.Name,
@@ -69,38 +88,162 @@ public with sharing class ForecastController {
             FROM Forecast__c
         ]) {
 
-            // 1️⃣ Create parent key
             String custKey = f.Customer_Name__c;
 
-            // 2️⃣ Add customer if not already added
+            // Create Customer record if not already created
             if (!customerMap.containsKey(custKey)) {
+
                 CustomerForecast cf = new CustomerForecast();
                 cf.customerId = f.Customer_Name__c;
                 cf.customerCode = f.Customer_Code__c;
                 cf.customerName = f.Customer_Name__r.Name;
+                cf.salespersonCode = f.SAP_ID_Salesperson__c != null ? f.SAP_ID_Salesperson__c : '';
+                cf.salesperson = f.Salesperson__c != null ? f.Salesperson__r.Name : '';
                 cf.id = f.Id;
                 cf.iconName = 'utility:chevronright';
                 cf.products = new List<ProductForecast>();
+
                 customerMap.put(custKey, cf);
+                custProductMap.put(custKey, new Map<String, ProductForecast>());
             }
 
-            // 3️⃣ Add product under this customer
-            ProductForecast pf = new ProductForecast();
-            pf.materialId = f.Product__c;
-            pf.materialCode = f.Product_Code__c;
-            pf.materialDescription = f.Product__r != null ? f.Product__r.Name : '';
-            pf.salesQuantity = String.valueOf(f.Sales_Quantity__c);
-            pf.salespersonCode = f.SAP_ID_Salesperson__c != null ? f.SAP_ID_Salesperson__c : '';
-            pf.salesperson = f.Salesperson__c != null ? f.Salesperson__r.Name : '';
-            pf.rowId = f.Customer_Name__c + f.Product_Code__c;
+            // Product key by code
+            String pKey = f.Product_Code__c;
 
-            customerMap.get(custKey).products.add(pf);
+            // Create unique Product entry if not present
+            if (!custProductMap.get(custKey).containsKey(pKey)) {
+
+                ProductForecast pf = new ProductForecast();
+                pf.materialId = f.Product__c;
+                pf.materialCode = f.Product_Code__c;
+                pf.materialDescription = f.Product__r != null ? f.Product__r.Name : '';
+                pf.rowId = f.Customer_Name__c + f.Product_Code__c;
+
+                // Initialize all months with "0"
+                pf.monthValues = new Map<String, String>();
+                for (String m : months) {
+                    // pf.monthValues.put(m, '0');
+                }
+
+                custProductMap.get(custKey).put(pKey, pf);
+            }
+
+            // Update month value
+            ProductForecast existing = custProductMap.get(custKey).get(pKey);
+            String monthName = f.Month__c;  // Example: "Jan", "Feb"
+
+            existing.monthValues.put(monthName, String.valueOf(f.Sales_Quantity__c));
         }
 
-        // 4️⃣ Return grouped result
+        // Convert product maps to lists
+        for (String custKey : customerMap.keySet()) {
+            customerMap.get(custKey).products =
+                new List<ProductForecast>(custProductMap.get(custKey).values());
+        }
+
         return customerMap.values();
     }
 
+    @AuraEnabled
+    public static String saveUpdatedForecastRecords(List<UpdateForecastInput> forecastData) {
+        try {
+
+            Set<String> materialIds = new Set<String>();
+            Set<String> customerIds = new Set<String>();
+            List<Forecast__c> updateForecastList = new List<Forecast__c>();
+
+            for (UpdateForecastInput ufi : forecastData) {
+                materialIds.add(ufi.materialId);
+                customerIds.add(ufi.customerId);
+            }
+
+            System.debug('materialIds: ' + materialIds);
+            System.debug('customerIds: ' + customerIds);
+
+            List<Forecast__c> forecastList = [
+                SELECT Id, Product__c, Customer_Name__c, Month__c, Year__c, 
+                Sales_Quantity__c
+                FROM Forecast__c
+                WHERE Product__c IN :materialIds
+                AND Customer_Name__c IN :customerIds
+            ];
+
+            System.debug('forecastList: ' + forecastList);
+
+            Map<String, Forecast__c> mapForecast = new Map<String, Forecast__c>();
+
+            for (Forecast__c f : forecastList) {
+                mapForecast.put(f.Product__c + '/' + f.Customer_Name__c + '/' + f.Month__c, f);
+            }
+
+            System.debug('mapForecast: ' + mapForecast);
+
+            for (UpdateForecastInput ufi : forecastData) {
+                Forecast__c f = mapForecast.get(ufi.materialId + '/' + ufi.customerId + '/' + ufi.month);
+                if (f != null) {
+                    f.Sales_Quantity__c = Decimal.valueOf(ufi.monthValue);
+                    updateForecastList.add(f);
+                }
+            }
+
+            System.debug('updateForecastList: ' + updateForecastList);
+
+            if (updateForecastList.size() > 0) {
+                update updateForecastList;
+            }
+
+            return 'Success';
+        } catch (Exception e) {
+            return 'Error: ' + e.getMessage();
+        }
+    }
+
+    // @AuraEnabled
+    // public static List<CustomerForecast> getExistingForecastData() {
+
+    //     Map<String, CustomerForecast> customerMap = new Map<String, CustomerForecast>();
+
+    //     for (Forecast__c f : [
+    //         SELECT Id, Customer_Code__c, Customer_Name__c, Customer_Name__r.Name,
+    //             Product_Code__c, Product__c, Product__r.Name,
+    //             SAP_ID_Salesperson__c, Salesperson__c, Salesperson__r.Name,
+    //             Sales_Quantity__c, Month__c, Year__c
+    //         FROM Forecast__c
+    //     ]) {
+
+    //         // 1️⃣ Create parent key
+    //         String custKey = f.Customer_Name__c;
+
+    //         // 2️⃣ Add customer if not already added
+    //         if (!customerMap.containsKey(custKey)) {
+    //             CustomerForecast cf = new CustomerForecast();
+    //             cf.customerId = f.Customer_Name__c;
+    //             cf.customerCode = f.Customer_Code__c;
+    //             cf.customerName = f.Customer_Name__r.Name;
+    //             cf.salespersonCode = f.SAP_ID_Salesperson__c != null ? f.SAP_ID_Salesperson__c : '';
+    //             cf.salesperson = f.Salesperson__c != null ? f.Salesperson__r.Name : '';
+    //             cf.id = f.Id;
+    //             cf.iconName = 'utility:chevronright';
+    //             cf.products = new List<ProductForecast>();
+    //             customerMap.put(custKey, cf);
+    //         }
+
+    //         // 3️⃣ Add product under this customer
+    //         ProductForecast pf = new ProductForecast();
+    //         pf.materialId = f.Product__c;
+    //         pf.materialCode = f.Product_Code__c;
+    //         pf.materialDescription = f.Product__r != null ? f.Product__r.Name : '';
+    //         pf.salesQuantity = String.valueOf(f.Sales_Quantity__c);
+    //         // pf.salespersonCode = f.SAP_ID_Salesperson__c != null ? f.SAP_ID_Salesperson__c : '';
+    //         // pf.salesperson = f.Salesperson__c != null ? f.Salesperson__r.Name : '';
+    //         pf.rowId = f.Customer_Name__c + f.Product_Code__c;
+
+    //         customerMap.get(custKey).products.add(pf);
+    //     }
+
+    //     // 4️⃣ Return grouped result
+    //     return customerMap.values();
+    // }
 
     @AuraEnabled
     public static String saveForecastRecords(List<ForecastInput> forecastData, String month, String year) {

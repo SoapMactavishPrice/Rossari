@@ -52,7 +52,7 @@
                     <div class="slds-col slds-size_1-of-2 slds-medium-size_1-of-4">
                         <lightning-combobox label="Employee Name" value={selectedEmployeeId}
                             placeholder="Select Employee" options={employeeOptions} onchange={handleEmployeeChange}
-                            variant="label-stacked" required>
+                            disabled variant="label-stacked" required>
                         </lightning-combobox>
                     </div>
 
@@ -166,10 +166,10 @@
                                     style="text-align: center; font-size: 13px; background-color: #9d0b0f; font-weight: bold; padding: 4px 6px; color: white;">
                                     Toll/Parking
                                 </th>
-                                <th class="company-ticket" if:true={showOutstationFields}
+                                <!-- <th class="company-ticket" if:true={showOutstationFields}
                                     style="text-align: center; font-size: 13px; background-color: #9d0b0f; font-weight: bold; padding: 4px 6px; color: white;">
                                     Company Ticket?
-                                </th>
+                                </th> -->
                                 <th class="description" if:true={showOutstationFields}
                                     style="text-align: center; font-size: 13px; background-color: #9d0b0f; font-weight: bold; padding: 4px 6px; color: white;">
                                     Description
@@ -308,7 +308,7 @@
                                             </span>
                                             <lightning-input type="number" value={item.kmRate} data-index={index}
                                                 onchange={handleKMRateChange} variant="label-hidden" step="0.01"
-                                                required={showKMFields}>
+                                                required={showKMFields} disabled>
                                             </lightning-input>
                                         </div>
                                     </td>
@@ -323,12 +323,12 @@
                                             </lightning-input>
                                         </div>
                                     </td>
-                                    <td if:true={showOutstationFields} class="slds-text-align_center">
+                                    <!-- <td if:true={showOutstationFields} class="slds-text-align_center">
                                         <lightning-input type="checkbox" checked={item.ticketBookedByCompany}
                                             data-index={index} onchange={handleTicketBookedChange}
                                             variant="label-hidden">
                                         </lightning-input>
-                                    </td>
+                                    </td> -->
                                     <td if:true={showOutstationFields}>
                                         <lightning-textarea value={item.outstationDescription}
                                             placeholder="Enter description" data-index={index}
@@ -414,13 +414,84 @@
                                         </lightning-file-upload>
 
                                         <template if:true={item.fileCount}>
-                                            <div class="slds-text-color_weak slds-m-top_xx-small">
-                                                {item.fileCount} file(s) attached
+                                            <div class="slds-m-top_xx-small file-count-section">
+                                                <div class="slds-text-color_weak slds-text-align_center">
+                                                    {item.fileCount} file(s) attached
+                                                </div>
                                             </div>
                                         </template>
                                     </td>
 
+                                    <!-- File Preview Modal -->
+                                    <template if:true={isFilePreviewModalOpen}>
+                                        <section role="dialog" tabindex="-1" aria-labelledby="modal-heading-01" aria-modal="true" class="slds-modal slds-fade-in-open">
+                                            <div class="slds-modal__container">
+                                                <header class="slds-modal__header">
+                                                    <h2 class="slds-text-heading_medium">Uploaded Files</h2>
+                                                    <button
+                                                        class="slds-button slds-button_icon slds-modal__close slds-button_icon-inverse"
+                                                        title="Close" 
+                                                        onclick={closeFilePreviewModal}>
+                                                        <lightning-icon icon-name="utility:close" alternative-text="close"
+                                                            size="small"></lightning-icon>
+                                                        <span class="slds-assistive-text">Close</span>
+                                                    </button>
+                                                </header>
+                                                <div class="slds-modal__content slds-p-around_medium">
+                                                    <template if:true={currentPreviewFiles.length}>
+                                                        <div class="slds-text-align_center slds-m-bottom_medium">
+                                                            <lightning-icon icon-name="utility:attachment" size="small"></lightning-icon>
+                                                            <span class="slds-m-left_x-small slds-text-body_regular">
+                                                                {currentPreviewFiles.length} file(s) uploaded for this line item
+                                                            </span>
+                                                        </div>
+                                                        <template for:each={currentPreviewFiles} for:item="file">
+                                                            <div key={file.documentId} class="slds-grid slds-gutters slds-m-bottom_small file-preview-item">
+                                                                <div class="slds-col slds-size_8-of-12 slds-align-middle">
+                                                                    <lightning-icon icon-name="doctype:unknown" size="small" class="slds-m-right_x-small"></lightning-icon>
+                                                                    <span class="slds-text-body_regular">{file.name}</span>
+                                                                </div>
+                                                                <div class="slds-col slds-size_4-of-12 slds-text-align_right">
+                                                                    <lightning-button-icon
+                                                                        icon-name="utility:preview"
+                                                                        alternative-text="Preview"
+                                                                        title="Preview File"
+                                                                        data-file-id={file.documentId}
+                                                                        onclick={handleModalFilePreview}
+                                                                        variant="border-filled"
+                                                                        class="slds-m-right_x-small">
+                                                                    </lightning-button-icon>
+                                                                   
+                                                                </div>
+                                                            </div>
+                                                        </template>
+                                                    </template>
+                                                    <template if:false={currentPreviewFiles.length}>
+                                                        <p class="slds-text-align_center slds-text-body_regular">No files uploaded for this line item</p>
+                                                    </template>
+                                                </div>
+                                                <footer class="slds-modal__footer">
+                                                    <lightning-button variant="neutral" label="Close" onclick={closeFilePreviewModal}></lightning-button>
+                                                </footer>
+                                            </div>
+                                        </section>
+                                        <div class="slds-backdrop slds-backdrop_open"></div>
+                                    </template>
+
                                     <td class="slds-text-align_center">
+                                        <!-- Eye icon for viewing files - Only show if files are uploaded -->
+                                        <template if:true={item.fileCount}>
+                                            <lightning-button-icon 
+                                                icon-name="utility:preview" 
+                                                alternative-text="View Files"
+                                                title="View Uploaded Files"
+                                                onclick={openFilePreviewModal}
+                                                data-index={index}
+                                                class="slds-m-right_x-small view-files-btn"
+                                                variant="border-filled">
+                                            </lightning-button-icon>
+                                        </template>
+
                                         <lightning-button-icon icon-name="utility:add" alternative-text="Add"
                                             onclick={addLineItem} class="slds-m-right_x-small" variant="border-filled">
                                         </lightning-button-icon>

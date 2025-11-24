@@ -132,11 +132,11 @@
                             <th></th>
                             <th class="slds-text-title_caps">Customer Code</th>
                             <th class="slds-text-title_caps">Customer Name</th>
-                            <!-- <th class="slds-text-title_caps">Material Code</th>
-                            <th class="slds-text-title_caps">Material Description</th>
+                            <!-- <th class="slds-text-title_caps">Material Code</th> -->
+                            <!-- <th class="slds-text-title_caps">Material Description</th> -->
                             <th class="slds-text-title_caps">Salesperson Code</th>
                             <th class="slds-text-title_caps">Salesperson</th>
-                            <th class="slds-text-title_caps">Sales Quantity</th> -->
+                            <!-- <th class="slds-text-title_caps">Sales Quantity</th> -->
                         </tr>
                     </thead>
 
@@ -151,23 +151,34 @@
                                 </td>
                                 <td>{row.customerCode}</td>
                                 <td>{row.customerName}</td>
-                                <!-- <td>{row.materialCode}</td>
-                                <td>{row.materialDescription}</td>
+                                <!-- <td>{row.materialCode}</td> -->
+                                <!-- <td>{row.materialDescription}</td> -->
                                 <td>{row.salespersonCode}</td>
                                 <td>{row.salesperson}</td>
-                                <td>{row.salesQuantity}</td> -->
+                                <!-- <td>{row.salesQuantity}</td> -->
                             </tr>
                             <template if:true={row.isExpanded}>
                                 <tr key={row.customerCode}>
-                                    <td colspan="3">
+                                    <td colspan="5">
                                         <table class="slds-table slds-table_bordered ">
                                             <thead>
                                                 <tr class="slds-line-height_reset">
                                                     <th class="slds-text-title_caps">Material Code</th>
                                                     <th class="slds-text-title_caps">Material Description</th>
-                                                    <th class="slds-text-title_caps">Salesperson Code</th>
-                                                    <th class="slds-text-title_caps">Salesperson</th>
-                                                    <th class="slds-text-title_caps">Sales Quantity</th>
+                                                    <!-- <th class="slds-text-title_caps">Salesperson Code</th>
+                                                    <th class="slds-text-title_caps">Salesperson</th> -->
+                                                    <th class="slds-text-title_caps">April</th>
+                                                    <th class="slds-text-title_caps">May</th>
+                                                    <th class="slds-text-title_caps">June</th>
+                                                    <th class="slds-text-title_caps">July</th>
+                                                    <th class="slds-text-title_caps">August</th>
+                                                    <th class="slds-text-title_caps">September</th>
+                                                    <th class="slds-text-title_caps">October</th>
+                                                    <th class="slds-text-title_caps">November</th>
+                                                    <th class="slds-text-title_caps">December</th>
+                                                    <th class="slds-text-title_caps">January</th>
+                                                    <th class="slds-text-title_caps">February</th>
+                                                    <th class="slds-text-title_caps">March</th>
                                                 </tr>
                                             </thead>
                                             <tbody>
@@ -175,9 +186,229 @@
                                                     <tr key={material.rowId}>
                                                         <td>{material.materialCode}</td>
                                                         <td>{material.materialDescription}</td>
-                                                        <td>{material.salespersonCode}</td>
-                                                        <td>{material.salesperson}</td>
-                                                        <td>{material.salesQuantity}</td>
+                                                        <!-- <td>{material.salespersonCode}</td>
+                                                        <td>{material.salesperson}</td> -->
+                                                        <template if:true={material.monthValues.April}>
+                                                            <td>
+                                                                <lightning-input type="text" class="month-input"
+                                                                    data-materialid={material.materialId}
+                                                                    data-customerid={row.customerId} data-month='April'
+                                                                    onchange={handleMonthValueChange}
+                                                                    value={material.monthValues.April}>
+                                                                </lightning-input>
+                                                            </td>
+                                                        </template>
+                                                        <template if:false={material.monthValues.April}>
+                                                            <td>
+                                                                <lightning-input type="text" class="month-input"
+                                                                    value="" disabled>
+                                                                </lightning-input>
+                                                            </td>
+                                                        </template>
+
+                                                        <template if:true={material.monthValues.May}>
+                                                            <td>
+                                                                <lightning-input type="text" class="month-input"
+                                                                    data-materialid={material.materialId}
+                                                                    data-customerid={row.customerId} data-month='May'
+                                                                    onchange={handleMonthValueChange}
+                                                                    value={material.monthValues.May}>
+                                                                </lightning-input>
+                                                            </td>
+                                                        </template>
+                                                        <template if:false={material.monthValues.May}>
+                                                            <td>
+                                                                <lightning-input type="text" class="month-input"
+                                                                    value="" disabled>
+                                                                </lightning-input>
+                                                            </td>
+                                                        </template>
+
+                                                        <template if:true={material.monthValues.June}>
+                                                            <td>
+                                                                <lightning-input type="text" class="month-input"
+                                                                    data-materialid={material.materialId}
+                                                                    data-customerid={row.customerId} data-month='June'
+                                                                    onchange={handleMonthValueChange}
+                                                                    value={material.monthValues.June}>
+                                                                </lightning-input>
+                                                            </td>
+                                                        </template>
+                                                        <template if:false={material.monthValues.June}>
+                                                            <td>
+                                                                <lightning-input type="text" class="month-input"
+                                                                    value="" disabled>
+                                                                </lightning-input>
+                                                            </td>
+                                                        </template>
+
+                                                        <template if:true={material.monthValues.July}>
+                                                            <td>
+                                                                <lightning-input type="text" class="month-input"
+                                                                    data-materialid={material.materialId}
+                                                                    data-customerid={row.customerId} data-month='July'
+                                                                    onchange={handleMonthValueChange}
+                                                                    value={material.monthValues.July}>
+                                                                </lightning-input>
+                                                            </td>
+                                                        </template>
+                                                        <template if:false={material.monthValues.July}>
+                                                            <td>
+                                                                <lightning-input type="text" class="month-input"
+                                                                    value="" disabled>
+                                                                </lightning-input>
+                                                            </td>
+                                                        </template>
+
+                                                        <template if:true={material.monthValues.August}>
+                                                            <td>
+                                                                <lightning-input type="text" class="month-input"
+                                                                    data-materialid={material.materialId}
+                                                                    data-customerid={row.customerId} data-month='August'
+                                                                    onchange={handleMonthValueChange}
+                                                                    value={material.monthValues.August}>
+                                                                </lightning-input>
+                                                            </td>
+                                                        </template>
+                                                        <template if:false={material.monthValues.August}>
+                                                            <td>
+                                                                <lightning-input type="text" class="month-input"
+                                                                    value="" disabled>
+                                                                </lightning-input>
+                                                            </td>
+                                                        </template>
+
+                                                        <template if:true={material.monthValues.September}>
+                                                            <td>
+                                                                <lightning-input type="text" class="month-input"
+                                                                    data-materialid={material.materialId}
+                                                                    data-customerid={row.customerId}
+                                                                    data-month='September'
+                                                                    onchange={handleMonthValueChange}
+                                                                    value={material.monthValues.September}>
+                                                                </lightning-input>
+                                                            </td>
+                                                        </template>
+                                                        <template if:false={material.monthValues.September}>
+                                                            <td>
+                                                                <lightning-input type="text" class="month-input"
+                                                                    value="" disabled>
+                                                                </lightning-input>
+                                                            </td>
+                                                        </template>
+
+                                                        <template if:true={material.monthValues.October}>
+                                                            <td>
+                                                                <lightning-input type="text" class="month-input"
+                                                                    data-materialid={material.materialId}
+                                                                    data-customerid={row.customerId}
+                                                                    data-month='October'
+                                                                    onchange={handleMonthValueChange}
+                                                                    value={material.monthValues.October}>
+                                                                </lightning-input>
+                                                            </td>
+                                                        </template>
+                                                        <template if:false={material.monthValues.October}>
+                                                            <td>
+                                                                <lightning-input type="text" class="month-input"
+                                                                    value="" disabled>
+                                                                </lightning-input>
+                                                            </td>
+                                                        </template>
+
+                                                        <template if:true={material.monthValues.November}>
+                                                            <td>
+                                                                <lightning-input type="text" class="month-input"
+                                                                    data-materialid={material.materialId}
+                                                                    data-customerid={row.customerId}
+                                                                    data-month='November'
+                                                                    onchange={handleMonthValueChange}
+                                                                    value={material.monthValues.November}>
+                                                                </lightning-input>
+                                                            </td>
+                                                        </template>
+                                                        <template if:false={material.monthValues.November}>
+                                                            <td>
+                                                                <lightning-input type="text" class="month-input"
+                                                                    value="" disabled>
+                                                                </lightning-input>
+                                                            </td>
+                                                        </template>
+
+                                                        <template if:true={material.monthValues.December}>
+                                                            <td>
+                                                                <lightning-input type="text" class="month-input"
+                                                                    data-materialid={material.materialId}
+                                                                    data-customerid={row.customerId}
+                                                                    data-month='December'
+                                                                    onchange={handleMonthValueChange}
+                                                                    value={material.monthValues.December}>
+                                                                </lightning-input>
+                                                            </td>
+                                                        </template>
+                                                        <template if:false={material.monthValues.December}>
+                                                            <td>
+                                                                <lightning-input type="text" class="month-input"
+                                                                    value="" disabled>
+                                                                </lightning-input>
+                                                            </td>
+                                                        </template>
+
+                                                        <template if:true={material.monthValues.January}>
+                                                            <td>
+                                                                <lightning-input type="text" class="month-input"
+                                                                    data-materialid={material.materialId}
+                                                                    data-customerid={row.customerId}
+                                                                    data-month='January'
+                                                                    onchange={handleMonthValueChange}
+                                                                    value={material.monthValues.January}>
+                                                                </lightning-input>
+                                                            </td>
+                                                        </template>
+                                                        <template if:false={material.monthValues.January}>
+                                                            <td>
+                                                                <lightning-input type="text" class="month-input"
+                                                                    value="" disabled>
+                                                                </lightning-input>
+                                                            </td>
+                                                        </template>
+
+                                                        <template if:true={material.monthValues.February}>
+                                                            <td>
+                                                                <lightning-input type="text" class="month-input"
+                                                                    data-materialid={material.materialId}
+                                                                    data-customerid={row.customerId}
+                                                                    data-month='February'
+                                                                    onchange={handleMonthValueChange}
+                                                                    value={material.monthValues.February}>
+                                                                </lightning-input>
+                                                            </td>
+                                                        </template>
+                                                        <template if:false={material.monthValues.February}>
+                                                            <td>
+                                                                <lightning-input type="text" class="month-input"
+                                                                    value="" disabled>
+                                                                </lightning-input>
+                                                            </td>
+                                                        </template>
+
+                                                        <template if:true={material.monthValues.March}>
+                                                            <td>
+                                                                <lightning-input type="text" class="month-input"
+                                                                    data-materialid={material.materialId}
+                                                                    data-customerid={row.customerId} data-month='March'
+                                                                    onchange={handleMonthValueChange}
+                                                                    value={material.monthValues.March}>
+                                                                </lightning-input>
+                                                            </td>
+                                                        </template>
+                                                        <template if:false={material.monthValues.March}>
+                                                            <td>
+                                                                <lightning-input type="text" class="month-input"
+                                                                    value="" disabled>
+                                                                </lightning-input>
+                                                            </td>
+                                                        </template>
                                                     </tr>
                                                 </template>
                                             </tbody>
@@ -189,6 +420,17 @@
                     </tbody>
                 </table>
             </div>
+
+            <div class="slds-docked-form-footer">
+                <div class="slds-grid slds-grid_align-end">
+                    <lightning-button variant="neutral" label="Cancel" onclick={handleCancel}>
+                    </lightning-button>
+                    <lightning-button class="slds-m-left_small" variant="brand" label="Save" disabled={saveDisabled}
+                        onclick={handlerSaveUpdatedForecast}>
+                    </lightning-button>
+                </div>
+            </div>
+
         </div>
         <!-- </template> -->
 

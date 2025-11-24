@@ -35,4 +35,27 @@ public class ProductInterestedHelper {
             update leadsToUpdate;
         }
     }
+    
+    public static void createNewProductDevelopment(List<Product_Interested__c> newList) {
+        List<New_Product_Development__c> npdList = new List<New_Product_Development__c>();
+
+        for (Product_Interested__c pi : newList) {
+            // Only create if the field is NOT blank
+            if (String.isNotBlank(pi.New_Product_Name__c)) {
+
+                New_Product_Development__c npd = new New_Product_Development__c();
+                
+                npd.Name = pi.New_Product_Name__c;
+             //   npd.Product_Interested__c = pi.Id;   // If lookup exists
+             //   npd.Lead__c = pi.Lead__c;            // To associate with lead
+                npd.Product_Name__c = pi.New_Product_Name__c; // If field exists
+                
+                npdList.add(npd);
+            }
+        }
+
+        if (!npdList.isEmpty()) {
+            insert npdList;
+        }
+    }
 }

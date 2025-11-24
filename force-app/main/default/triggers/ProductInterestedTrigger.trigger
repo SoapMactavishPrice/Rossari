@@ -37,4 +37,27 @@ trigger ProductInterestedTrigger on Product_Interested__c (
         }
     }
     
+     // Create New Product Development only when appropriate
+    if (Trigger.isInsert) {
+        // True inserts
+        ProductInterestedHelper.createNewProductDevelopment(Trigger.new);
+    }
+    else if (Trigger.isUpdate) {
+        // Fire only when New_Product_Name__c changed from blank to value
+        List<Product_Interested__c> newOnUpdate = new List<Product_Interested__c>();
+
+        for (Product_Interested__c pi : Trigger.new) {
+            Product_Interested__c oldPi = Trigger.oldMap.get(pi.Id);
+
+            if (String.isBlank(oldPi.New_Product_Name__c) &&
+                String.isNotBlank(pi.New_Product_Name__c)) {
+                newOnUpdate.add(pi);
+            }
+        }
+
+        if (!newOnUpdate.isEmpty()) {
+            ProductInterestedHelper.createNewProductDevelopment(newOnUpdate);
+        }
+    }
+    
 }

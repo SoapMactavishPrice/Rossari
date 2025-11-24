@@ -32,7 +32,8 @@ public with sharing class NPDCostingController {
                        Yield__c,                    
                        Manufacturing_Cost__c,       
                        Profit_Expected_Per_Kg__c,   
-                       Selling_Price__c             
+                       Selling_Price__c,
+                		OH1__c, Packing1__c, Palletizing1__c
                 FROM New_Product_Development__c 
                 WHERE Id = :recordId 
                 LIMIT 1
@@ -75,7 +76,7 @@ public with sharing class NPDCostingController {
                 SELECT Id, Name, Average_SG__c, Total_Price__c, // Added rollup fields
                        Unit_Size_Ltr__c, Total_Drums__c, Unit_Size_Kg__c,
                        RM_Cost__c, OH__c, Packing__c, Palletizing__c, Margins__c,
-                       FG_Per_KG__c, Cost_per_Unit__c, Price_Per_Unit__c
+                       FG_Per_KG__c, Cost_per_Unit__c, Price_Per_Unit__c,OH1__c, Packing1__c, Palletizing1__c
                 FROM New_Product_Development__c 
                 WHERE Id = :recordId 
                 LIMIT 1
@@ -140,15 +141,35 @@ public with sharing class NPDCostingController {
         if (!itemsToUpsert.isEmpty()) upsert itemsToUpsert;
     }
 
-    // === Save Oil & Gas costing items ===
-    @AuraEnabled
-    public static void saveOilGasCostingItems(String recordId, String oilGasItems,
-                                            Decimal unitSizeLtr, Decimal totalDrums,
-                                            Decimal oh, Decimal packing,
-                                            Decimal palletizing, Decimal margins) {
-        System.debug('=== Starting saveOilGasCostingItems ===');
-        
-        // First update the parent NPD record with additional costing fields
+ @AuraEnabled
+public static void saveOilGasCostingItems(String recordId, String oilGasItems,
+                                        String deletedItemIds,
+                                        Decimal unitSizeLtr, Decimal totalDrums,
+                                        Decimal oh, Decimal packing,
+                                        Decimal palletizing, Decimal margins, Decimal perKg1,  Boolean isOHChecked,Boolean isPackingChecked,Boolean isPalletizingChecked) {
+    System.debug('=== Starting saveOilGasCostingItems ===');
+    
+    // Handle deletions first
+    if (deletedItemIds != null && deletedItemIds != '' && deletedItemIds != '[]') {
+        try {
+            List<String> deletedIds = (List<String>) JSON.deserialize(deletedItemIds, List<String>.class);
+            if (!deletedIds.isEmpty()) {
+                System.debug('Deleting items: ' + deletedIds);
+                List<NPD_Costing__c> itemsToDelete = [SELECT Id FROM NPD_Costing__c 
+                                                     WHERE Id IN :deletedIds AND New_Product_Development__c = :recordId];
+                if (!itemsToDelete.isEmpty()) {
+                    delete itemsToDelete;
+                    System.debug('Successfully deleted ' + itemsToDelete.size() + ' items');
+                }
+            }
+        } catch (Exception e) {
+            System.debug('Error deleting items: ' + e.getMessage());
+            // Continue with save even if deletion fails
+        }
+    }
+    
+    // First update the parent NPD record with additional costing fields
+    try {
         update new New_Product_Development__c(
             Id = recordId,
             Unit_Size_Ltr__c = unitSizeLtr,
@@ -156,47 +177,90 @@ public with sharing class NPDCostingController {
             OH__c = oh,
             Packing__c = packing,
             Palletizing__c = palletizing,
-            Margins__c = margins
+            Margins__c = margins,
+            Per_Kg1__c = perKg1,
+            OH1__c = (isOHChecked == true),
+            Packing1__c = (isPackingChecked == true),
+            Palletizing1__c = (isPalletizingChecked == true)
         );
-        
-        Id oilRt = Schema.SObjectType.NPD_Costing__c.getRecordTypeInfosByDeveloperName()
-            .get('Application').getRecordTypeId();
-        
-        List<NPD_Costing__c> toUpsert = new List<NPD_Costing__c>();
+        System.debug('Parent NPD record updated successfully');
+    } catch (Exception e) {
+        System.debug('Error updating parent record: ' + e.getMessage());
+        throw new AuraHandledException('Failed to update parent record: ' + e.getMessage());
+    }
+    
+    Id oilRt = Schema.SObjectType.NPD_Costing__c.getRecordTypeInfosByDeveloperName()
+        .get('Application').getRecordTypeId();
+    
+    List<NPD_Costing__c> toUpsert = new List<NPD_Costing__c>();
+    
+    // Check if oilGasItems is empty or contains only empty rows
+    if (oilGasItems != null && oilGasItems != '' && oilGasItems != '[]') {
         List<Object> oilGasList = (List<Object>) JSON.deserializeUntyped(oilGasItems);
         
-        System.debug('Number of items: ' + oilGasList.size());
+        System.debug('Number of items to process: ' + oilGasList.size());
+        Integer validItemCount = 0;
         
         for (Object o : oilGasList) {
             Map<String, Object> i = (Map<String, Object>) o;
             
+            // Skip if this is a blank new row (no name or empty name)
+            String productName = (String)i.get('Name');
+            if (productName == null || productName.trim() == '') {
+                System.debug('Skipping empty row - no product name');
+                continue;
+            }
+            
+            // Also skip if all key fields are empty/zero (except name)
+            Decimal sg = parseDecimal(i.get('SG__c'));
+            Decimal component = parseDecimal(i.get('Component__c'));
+            Decimal costKg = parseDecimal(i.get('Cost_Kg__c'));
+            
+            if ((sg == null || sg == 0) && (component == null || component == 0) && (costKg == null || costKg == 0)) {
+                System.debug('Skipping row with no data: ' + productName);
+                continue;
+            }
+            
+            // Only include writable fields (remove formula/calculated fields)
             NPD_Costing__c rec = new NPD_Costing__c(
                 New_Product_Development__c = recordId,
                 RecordTypeId = oilRt,
-                Name = (String)i.get('Name'),
-                SG__c = parseDecimal(i.get('SG__c')),
-                Component__c = parseDecimal(i.get('Component__c')),
-                Cost_Kg__c = parseDecimal(i.get('Cost_Kg__c')),
+                Name = productName.trim(),
+                SG__c = sg,
+                Component__c = component,
+                Cost_Kg__c = costKg,
                 Loss__c = parseDecimal(i.get('Loss__c')),
                 Total_Price_1__c = parseDecimal(i.get('Total_Price_1__c'))
             );
             
-            if (i.get('Id') != null) rec.Id = (String) i.get('Id');
+            // Only set Id if it exists and is not empty
+            String recordIdValue = (String)i.get('Id');
+            if (recordIdValue != null && recordIdValue.trim() != '') {
+                rec.Id = recordIdValue;
+            }
+            
             toUpsert.add(rec);
+            validItemCount++;
         }
         
-        System.debug('Records to upsert: ' + toUpsert.size());
+        System.debug('Valid records to upsert: ' + validItemCount);
         
         if (!toUpsert.isEmpty()) {
             try {
                 upsert toUpsert;
-                System.debug('=== Upsert completed successfully ===');
+                System.debug('=== Upsert completed successfully for ' + toUpsert.size() + ' records ===');
             } catch (Exception e) {
                 System.debug('Upsert error: ' + e.getMessage());
+                System.debug('Records causing error: ' + JSON.serialize(toUpsert));
                 throw new AuraHandledException('Save failed: ' + e.getMessage());
             }
+        } else {
+            System.debug('No valid records to upsert after filtering empty rows');
         }
+    } else {
+        System.debug('No oilGasItems provided or empty array');
     }
+}
 
     // === Delete (your original) ===
     @AuraEnabled
@@ -213,4 +277,6 @@ public with sharing class NPDCostingController {
             throw new AuraHandledException('Invalid decimal value: ' + val);
         }
     }
+    
+    
 }

@@ -10,38 +10,28 @@
                 <template for:each={quotes} for:item="quote">
                     <div key={quote.Id} class="slds-box slds-m-around_medium slds-p-around_medium">
 
-                        <!-- Quote Header -->
                         <h3 class="slds-text-heading_small slds-m-bottom_small">
                             <b>Quote No.: {quote.QuoteNumber}</b> - {quote.Name}
                         </h3>
 
-                        <!-- Table Layout -->
                         <table class="slds-table slds-table_cell-buffer slds-table_bordered">
                             <thead>
-                                <tr class="slds-line-height_reset">
-                                    <th scope="col" style="width: 16.6%;">Customer Name</th>
-                                    <th scope="col" style="width: 16.6%;">Payment Term</th>
-                                    <th scope="col" style="width: 16.6%;">Previous Payment Term</th>
-                                    <th scope="col" style="width: 12.6%;">Quote Owner</th>
-                                    <th scope="col" style="width: 16.6%;">Credit Approval Status</th>
-                                    <th scope="col" style="width: 20.6%;">Payment Remarks</th>
+                                <tr>
+                                    <th width="16%" style="background-color: #9d0b0f; font-weight: bold; color: white;">Customer Name</th>
+                                    <th width="16%" style="background-color: #9d0b0f; font-weight: bold; color: white;">Payment Term</th>
+                                    <th width="16%" style="background-color: #9d0b0f; font-weight: bold; color: white;">Previous Payment Term</th>
+                                    <th width="12%" style="background-color: #9d0b0f; font-weight: bold; color: white;">Quote Owner</th>
+                                    <th width="16%" style="background-color: #9d0b0f; font-weight: bold; color: white;">Credit Approval Status</th>
+                                    <th width="20%" style="background-color: #9d0b0f; font-weight: bold; color: white;">Payment Remarks</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 <tr>
-                                    <!-- Customer Name -->
                                     <td>{quote.Account.Name}</td>
-
-                                    <!-- Payment Term -->
                                     <td>{quote.Payment_Term__r.Name}</td>
-
-                                    <!-- Previous Payment Term -->
                                     <td>{quote.Previous_Payment_Terms__r.Name}</td>
-
-                                    <!-- Quote Owner -->
                                     <td>{quote.Owner.Name}</td>
 
-                                    <!-- Credit Approval Status -->
                                     <td>
                                         <lightning-combobox
                                             value={quote.Credit_Approval_Status__c}
@@ -49,23 +39,44 @@
                                             data-field="Credit_Approval_Status__c"
                                             options={statusOptions}
                                             onchange={handleChange}
-                                            disabled={quote.isDisabled}
-                                            style="margin-top: -8px;">
+                                            disabled={quote.isDisabled}>
                                         </lightning-combobox>
                                     </td>
 
-                                    <!-- Payment Remarks -->
                                     <td>
-                                        <lightning-input 
-                                            value={quote.Payment_Remark__c} 
-                                            data-id={quote.Id} 
-                                            data-field="Payment_Remark__c" 
+                                        <lightning-input
+                                            value={quote.Payment_Remark__c}
+                                            data-id={quote.Id}
+                                            data-field="Payment_Remark__c"
                                             onchange={handleChange}
-                                            disabled={quote.isDisabled}
-                                            style="margin-top: -8px;">
+                                            disabled={quote.isDisabled}>
                                         </lightning-input>
                                     </td>
                                 </tr>
+                            </tbody>
+                        </table>
+
+                        <table class="slds-table slds-table_bordered slds-table_cell-buffer slds-m-top_small">
+                            <thead class="slds-theme_shade">
+                                <tr>
+                                    <th style="width: 30%; background-color: #F8D7DA; font-weight: bold; color: #555555;">Product</th>
+                                    <th style="width: 15%; background-color: #F8D7DA; font-weight: bold; color: #555555;">Quantity</th>
+                                    <th style="width: 18%; background-color: #F8D7DA; font-weight: bold; color: #555555;">List Price</th>
+                                    <th style="width: 18%; background-color: #F8D7DA; font-weight: bold; color: #555555;">Unit Price</th>
+                                    <th style="width: 19%; background-color: #F8D7DA; font-weight: bold; color: #555555;">Discount (%)</th>
+                                </tr>
+                            </thead>
+
+                            <tbody>
+                                <template for:each={quote.QuoteLineItems} for:item="item">
+                                    <tr key={item.Id}>
+                                        <td>{item.Product2.Name}</td>
+                                        <td>{item.Quantity}</td>
+                                        <td>{item.ListPrice}</td>
+                                        <td>{item.UnitPrice}</td>
+                                        <td>{item.Discount}</td>
+                                    </tr>
+                                </template>
                             </tbody>
                         </table>
                     </div>
@@ -78,10 +89,9 @@
                 </div>
             </template>
 
-            <!-- Submit button -->
             <div class="slds-m-top_medium slds-text-align_center">
                 <lightning-button 
-                    label="Submit Approval" 
+                    label="Submit Approval"
                     onclick={submitApproval} 
                     variant="destructive">
                 </lightning-button>

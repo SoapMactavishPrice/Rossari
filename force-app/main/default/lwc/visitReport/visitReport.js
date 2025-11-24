@@ -17,6 +17,7 @@ import ENTITY_CODE_FIELD from '@salesforce/schema/User.Entity_Code_1__c';
 import ENTITY_CODE_2_FIELD from '@salesforce/schema/User.Entity_Code_2__c';
 import ENTITY_CODE_3_FIELD from '@salesforce/schema/User.Entity_Code_3__c';
 import DIVISION_CODE_FIELD from '@salesforce/schema/User.Division_Code__c';
+import USER_TYPE_FIELD from '@salesforce/schema/User.User_Type__c';
 
 import { NavigationMixin } from 'lightning/navigation';
 import getExistingFiles from '@salesforce/apex/VisitReportController.getExistingFiles';
@@ -27,7 +28,8 @@ const USER_FIELDS = [
     ENTITY_CODE_FIELD,
     ENTITY_CODE_2_FIELD,
     ENTITY_CODE_3_FIELD,
-    DIVISION_CODE_FIELD
+    DIVISION_CODE_FIELD,
+    USER_TYPE_FIELD
 ];
 
 export default class VisitReport extends NavigationMixin(LightningElement) {
@@ -52,7 +54,7 @@ export default class VisitReport extends NavigationMixin(LightningElement) {
             this.uploadedFileIds.push(file.documentId);
             this.uploadedFileIds2.push(file.documentId);
         });
-        
+
         this.dispatchEvent(
             new ShowToastEvent({
                 title: 'Success',
@@ -95,6 +97,7 @@ export default class VisitReport extends NavigationMixin(LightningElement) {
     };
 
     // User fields
+    userType;
     userEntityCode1;
     userEntityCode2;
     userEntityCode3;
@@ -166,23 +169,19 @@ export default class VisitReport extends NavigationMixin(LightningElement) {
     ];
 
 
-    // ✅ Single wire for all user data
+    // ✅ UPDATED wire for user data with User_Type__c
     @wire(getRecord, { recordId: USER_ID, fields: USER_FIELDS })
     wiredUser({ error, data }) {
         if (data) {
             console.log('User record data:', JSON.stringify(data));
 
-            // Extract all user fields
+            // Extract user fields
             this.currentUserName = data.fields.Name.value;
-            this.userEntityCode1 = data.fields.Entity_Code_1__c.value;
-            this.userEntityCode2 = data.fields.Entity_Code_2__c.value;
-            this.userEntityCode3 = data.fields.Entity_Code_3__c.value;
-            this.userDivisionCode = data.fields.Division_Code__c.value;
+            this.userType = data.fields.User_Type__c?.value; // Get User_Type__c
+            this.userDivisionCode = data.fields.Division_Code__c?.value;
 
             console.log('User Details - Name:', this.currentUserName,
-                'Entity Code 1:', this.userEntityCode1,
-                'Entity Code 2:', this.userEntityCode2,
-                'Entity Code 3:', this.userEntityCode3,
+                'User Type:', this.userType,
                 'Division Code:', this.userDivisionCode);
 
             // If category is already selected, filter nature options
@@ -192,88 +191,58 @@ export default class VisitReport extends NavigationMixin(LightningElement) {
 
         } else if (error) {
             console.error('Error fetching user data:', error);
-            this.userEntityCode1 = undefined;
-            this.userEntityCode2 = undefined;
-            this.userEntityCode3 = undefined;
+            this.userType = undefined;
             this.userDivisionCode = undefined;
         }
     }
 
-    // ✅ UPDATED mapping 
+
+    // ✅ UPDATED mapping based on User_Type__c
     visitNatureMapping = {
         'Customer Visit': {
-            // Entity_Code_1__c (1000) & Division_Code__c (10, 11)
-            '1000_10_11': ['Distributor Visit', 'B2B Visit', 'B2C Visit', 'Industry Visit', 'Technician'],
+            // Textile user type
+            'TEXTILE': ['Distributor Visit', 'B2B Visit', 'B2C Visit', 'Industry Visit', 'Technician'],
 
-            // Entity_Code_1__c (1000) & Division_Code__c (22)
-            '1000_22': ['Distributor Visit', 'B2B Customer Visit', 'Farm Visit', 'Consultant', 'Farmer Meeting'],
+            // AHN user type  
+            'AHN': ['Distributor Visit', 'B2B Customer Visit', 'Farm Visit', 'Consultant', 'Farmer Meeting'],
 
-            // Entity_Code_1__c (1000) & Division_Code__c (10, 11, 22) - Combined
-            '1000_10_11_22': ['Distributor Visit', 'B2B Visit', 'B2C Visit', 'Industry Visit', 'Technician', 'B2B Customer Visit', 'Farm Visit', 'Consultant', 'Farmer Meeting'],
+            // Synthetic user type
+            'SYNTHETIC': ['Distributor Visit', 'B2B Visit', 'B2C Visit'],
 
-            // Entity_Code_2__c (3000) or Entity_Code_3__c (4000)
-            '3000_4000': ['Distributor Visit', 'B2B Visit', 'B2C Visit'],
-
-            // Default/Other Entity Codes
+            // Default for other user types
             'DEFAULT': ['Distributor Visit', 'B2B Customer Visit']
         },
         'Competitor Tracking': {
-
-            '1000_10_11': ['Competitor Distributor', 'Competition Visit'],
-
-            '1000_22': ['Competitor Distributor', 'Competition Visit'],
-
-            '1000_10_11_22': ['Competitor Distributor', 'Competition Visit'],
-
-            '3000_4000': ['Competitor Distributor', 'Competition Visit'
-            ],
+            'TEXTILE': ['Competitor Distributor', 'Competition Visit'],
+            'AHN': ['Competitor Distributor', 'Competition Visit'],
+            'SYNTHETIC': ['Competitor Distributor', 'Competition Visit'],
             'DEFAULT': ['Competitor Distributor', 'Competition Visit']
         },
         'Internal Meeting': {
-
-            '1000_10_11': ['HO Meeting', 'Zonal Meeting'],
-
-            '1000_22': ['HO Meeting', 'Zonal Meeting'],
-
-            '1000_10_11_22': ['HO Meeting', 'Zonal Meeting'],
-
-            '3000_4000': ['HO Meeting'],
-
+            'TEXTILE': ['HO Meeting', 'Zonal Meeting'],
+            'AHN': ['HO Meeting', 'Zonal Meeting'],
+            'SYNTHETIC': ['HO Meeting'],
             'DEFAULT': ['HO Meeting']
         },
-        'RND related Visit': {
-
-            '1000_10_11': ['External Lab Visit', 'University Visit', 'Lab Trial'],
-
-            '1000_22': ['External Lab Testing', 'University Trial', 'Field Trial – Existing Product'],
-
-            '1000_10_11_22': ['External Lab Visit', 'University Visit', 'Lab Trial', 'External Lab Testing', 'University Trial', 'Field Trial – Existing Product'],
-
-            '3000_4000': ['External Lab Visit', 'University Visit', 'Lab Trial'],
-
+        'R&D related Visit': {
+            'TEXTILE': ['External Lab Visit', 'University Visit', 'Lab Trial'],
+            'AHN': ['External Lab Testing', 'University Trial', 'Field Trial – Existing Product'],
+            'SYNTHETIC': ['External Lab Visit', 'University Visit', 'Lab Trial'],
             'DEFAULT': ['External Lab Visit', 'University Visit', 'Lab Trial']
         },
         'Seminar/ Conferences': {
-
-            '1000_10_11': ['Conferences'],
-
-            '1000_22': ['Conferences', 'Technical Seminar'],
-
-            '1000_10_11_22': ['Conferences', 'Technical Seminar'],
-
-            '3000_4000': ['Conferences'],
-
+            'TEXTILE': ['Conferences'],
+            'AHN': ['Conferences', 'Technical Seminar'],
+            'SYNTHETIC': ['Conferences'],
             'DEFAULT': ['Conferences']
         }
     };
 
+
     filterNatureOptions() {
         console.log('➡️ filterNatureOptions called');
         console.log('visitCategory:', this.visitCategory);
-        console.log('User Codes - Entity1:', this.userEntityCode1,
-            'Entity2:', this.userEntityCode2,
-            'Entity3:', this.userEntityCode3,
-            'Division:', this.userDivisionCode);
+        console.log('User Type:', this.userType, 'Division:', this.userDivisionCode);
 
         // Reset if no category selected
         if (!this.visitCategory) {
@@ -283,7 +252,7 @@ export default class VisitReport extends NavigationMixin(LightningElement) {
         }
 
         // Wait for user data to load
-        if (this.userEntityCode1 === undefined || this.userDivisionCode === undefined) {
+        if (this.userType === undefined || this.userDivisionCode === undefined) {
             console.log('Waiting for user data to load...');
             return;
         }
@@ -296,9 +265,8 @@ export default class VisitReport extends NavigationMixin(LightningElement) {
         }
 
         let values = [];
-        const divisionCode = String(this.userDivisionCode);
 
-        // Determine the mapping key based on entity codes and division code
+        // Determine the mapping key based on User_Type__c
         let mappingKey = this.determineMappingKey();
         console.log('Determined mapping key:', mappingKey);
 
@@ -307,46 +275,28 @@ export default class VisitReport extends NavigationMixin(LightningElement) {
         // Convert to options format
         this.natureOptions = values.map(v => ({ label: v, value: v }));
         console.log('Available natureOptions:', JSON.stringify(this.natureOptions));
-
-        // Clear selected nature if it's no longer in options
-        // if (this.dataMap.Nature && !values.includes(this.dataMap.Nature)) {
-        //     this.dataMap.Nature = '';
-        //     console.log('Cleared Nature selection as it is not available in filtered options');
-        // }
     }
 
-    // ✅ NEW METHOD: Determine the correct mapping key based on user's codes
+
+    // ✅ UPDATED METHOD: Include APPLICATION user type with same options as SYNTHETIC
     determineMappingKey() {
-        const divisions = this.userDivisionCode
-            ? String(this.userDivisionCode).split(';').map(d => d.trim())
-            : [];
-
-        // Priority 1: Entity_Code_2__c (3000) or Entity_Code_3__c (4000)
-        if (this.userEntityCode2 === '3000' || this.userEntityCode3 === '4000') {
-            return '3000_4000';
+        if (!this.userType) {
+            return 'DEFAULT';
         }
 
-        // Priority 2: Entity_Code_1__c (1000) with various Division_Code__c combinations
-        if (this.userEntityCode1 === '1000') {
-            const has10 = divisions.includes('10');
-            const has11 = divisions.includes('11');
-            const has22 = divisions.includes('22');
+        // Convert user type to uppercase for consistent matching
+        const userTypeUpper = this.userType.toUpperCase();
 
-            // 10 or 11 only
-            if ((has10 || has11) && !has22) {
-                return '1000_10_11';
-            }
-            // 22 only
-            else if (has22 && !has10 && !has11) {
-                return '1000_22';
-            }
-            // Any combination of 10, 11, 22 together
-            else if ((has10 || has11) && has22) {
-                return '1000_10_11_22';
-            }
+        // Map user types to keys
+        if (userTypeUpper === 'TEXTILE') {
+            return 'TEXTILE';
+        } else if (userTypeUpper === 'AHN') {
+            return 'AHN';
+        } else if (userTypeUpper === 'SYNTHETIC' || userTypeUpper === 'APPLICATION') {
+            return 'SYNTHETIC'; // Both SYNTHETIC and APPLICATION use the same options
         }
 
-        // Default case
+        // Default case for other user types
         return 'DEFAULT';
     }
 
@@ -400,27 +350,25 @@ export default class VisitReport extends NavigationMixin(LightningElement) {
                 this.continentName = '';
             }
         }
-
     }
 
-    //    handleTourChange(event) {
-    //         this.tourId = event.detail.recordId;   
-    //         this.dataMap['tourId'] = this.tourId;  // ✅ push into dataMap
-    //     }
 
-    //     handleNewTour() {
-    //     // Option A: Open new record page
-    //     this[NavigationMixin.Navigate]({
-    //         type: 'standard__objectPage',
-    //         attributes: {
-    //             objectApiName: 'Tour__c',
-    //             actionName: 'new'
-    //         }
-    //     });
+    handleLeadSelectedForBillTo(event) {
+        const fieldName = event.target.dataset.label;
+        const fieldValue = event.detail.recordId;
+        const fieldlocation = event.detail.recordName;
+        this.location = event.detail.address;
+        this.location += ' ' + fieldlocation.split('-')[1]?.trim();
 
-    //     // Option B: Open custom modal with lightning-record-edit-form
-    // }
+        this.dataMap[fieldName] = fieldValue;
+        console.log('OUTPUT : fieldName', fieldlocation, fieldValue);
+        if (fieldName == 'lead_Name') {
+            if (fieldValue == '') {
+                this.continentName = '';
+            }
+        }
 
+    }
 
     //Load existing Tours
     @wire(getTours)
@@ -553,6 +501,7 @@ export default class VisitReport extends NavigationMixin(LightningElement) {
             this.showNewCustomerField = false;
             // Clear new customer field when switching to existing
             this.dataMap.New_Customer = '';
+            this.dataMap.Location = '';
         } else if (customerType === 'New') {
             this.showExistingCustomerFields = false;
             this.showNewCustomerField = true;
@@ -615,7 +564,7 @@ export default class VisitReport extends NavigationMixin(LightningElement) {
 
         // ✅ Handle Type_of_Visit__c logic
         if (fieldName === 'Mode') {
-            if (fieldValue === 'Tour') {
+            if (fieldValue === 'Export') {
                 this.isTourDisabled = false;
             } else {
                 this.isTourDisabled = true;
@@ -677,7 +626,7 @@ export default class VisitReport extends NavigationMixin(LightningElement) {
         return this.visitCategory === 'Internal Meeting';
     }
     get isRND() {
-        return this.visitCategory === 'RND related Visit';
+        return this.visitCategory === 'R&D related Visit';
     }
     get isSeminar() {
         return this.visitCategory === 'Seminar/ Conferences';
@@ -732,39 +681,6 @@ export default class VisitReport extends NavigationMixin(LightningElement) {
         };
         this.Attendees.push(temCon2);
     }
-
-    // @wire(getRecord, { recordId: USER_ID, fields: [NAME_FIELD] })
-    // wiredUser({ error, data }) {
-    //     if (data) {
-    //         this.currentUserName = data.fields.Name.value;
-    //     } else if (error) {
-    //         console.error('Error fetching user data', error);
-    //     }
-    // }
-
-    // handleAttendeeChange(event) {
-    //     const recordIndex = parseInt(event.target.dataset.index, 10); // unique 4-digit code
-    //     const field = event.target.dataset.label;
-    //     const value = event.detail.value;
-
-    //     let updated = [...this.Attendees];
-    //     const idx = updated.findIndex(a => a.index === recordIndex);
-
-    //     if (idx !== -1) {
-    //         updated[idx][field] = value;
-
-    //         // compute flags for conditional rendering
-    //         const type = updated[idx].Attendee_Type__c;
-    //         const userType = updated[idx].User_Type__c;
-
-    //         updated[idx].isInternalNew = type === 'Internal Attendee' && userType === 'New';
-    //         updated[idx].isInternalExisting = type === 'Internal Attendee' && userType === 'Existing';
-    //         updated[idx].isExternalNew = type === 'External Attendee' && userType === 'New';
-    //         updated[idx].isExternalExisting = type === 'External Attendee' && userType === 'Existing';
-    //     }
-
-    //     this.Attendees = updated;
-    // }
 
 
     handleAttendeeChange(event) {
@@ -1130,16 +1046,16 @@ export default class VisitReport extends NavigationMixin(LightningElement) {
     async loadExistingFiles() {
         try {
             const files = await getExistingFiles({ recordId: this.selectedExistingVisitReportId });
-            
+
             this.uploadedFiles = files.map(file => ({
                 documentId: file.ContentDocumentId,
                 name: file.ContentDocument.Title + '.' + file.ContentDocument.FileExtension,
                 contentVersionId: file.Id
             }));
-            
+
             this.uploadedFileIds = files.map(file => file.ContentDocumentId);
             this.uploadedFileIds2 = files.map(file => file.ContentDocumentId + ' - dummy');
-            
+
             console.log('Loaded existing files:', this.uploadedFiles);
         } catch (error) {
             console.error('Error loading existing files:', error);
@@ -1251,6 +1167,7 @@ export default class VisitReport extends NavigationMixin(LightningElement) {
 
             Customer_Type: visitReport.Customer_Type__c || '',
             New_Customer: visitReport.New_Customer_Name__c || '',
+            Location: visitReport.Location__c || '',
             //  New_Customer: visitReport.New_Customer__c || '',
             // For lookups store both Id + Name
             Customer_Name: visitReport.Customer_Name__c || '',
@@ -1330,15 +1247,17 @@ export default class VisitReport extends NavigationMixin(LightningElement) {
         }, 100);
     }
 
-    // ✅ NEW METHOD: Wait for user data to load before filtering nature options
+
+
+    // ✅ UPDATED: Wait for user data to load before filtering nature options
     waitForUserDataAndFilterNature(existingNatureValue) {
         const maxWaitTime = 5000; // 5 seconds max
         const interval = 100; // Check every 100ms
         let elapsed = 0;
 
         const waitForData = setInterval(() => {
-            // Check if user data is loaded (entity codes and division code are available)
-            if (this.userEntityCode1 !== undefined && this.userDivisionCode !== undefined) {
+            // Check if user data is loaded (user type and division code are available)
+            if (this.userType !== undefined && this.userDivisionCode !== undefined) {
                 clearInterval(waitForData);
                 console.log('User data loaded, filtering nature options...');
 
@@ -1363,6 +1282,8 @@ export default class VisitReport extends NavigationMixin(LightningElement) {
         }, interval);
     }
 
+
+
     setDefaultNatureOptions(existingNatureValue) {
         const mapping = this.visitNatureMapping[this.visitCategory];
         if (mapping && mapping['DEFAULT']) {
@@ -1386,6 +1307,8 @@ export default class VisitReport extends NavigationMixin(LightningElement) {
             Nature: '',
             Customer_Type: '',
             New_Customer: '',
+            Location: '',
+            //  New_Customer: '',
             Customer_Name: '',
             Competition_Name: '',
             tourId: '',

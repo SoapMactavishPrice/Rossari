@@ -348,6 +348,63 @@
                         <h3 class="slds-text-heading_small" style="margin: 0;">Application Costing</h3>
                     </div>
 
+
+
+                    <table class="slds-table slds-table_bordered slds-table_cell-buffer slds-m-top_medium">
+                        <thead>
+                            <tr class="slds-text-title_caps">
+                                <th>Product Name</th>
+                                <th>SG</th>
+                                <th>Component %</th>
+                                <th>Cost/Kg</th>
+                                <th>Kg/Drum</th>
+                                <th>Liter/Drum</th>
+                                <th>For total drum</th>
+                                <th>Loss %</th>
+                                <th>Total KG</th>
+                                <th>Total Price</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <template for:each={oilGasItems} for:item="row" for:index="index">
+                                <tr key={row.key}>
+                                    <td><lightning-input value={row.name} data-index={index}
+                                            onchange={handleOilGasNameChange} variant="label-hidden"></lightning-input>
+                                    </td>
+                                    <td><lightning-input type="number" value={row.sg} data-index={index}
+                                            onchange={handleOilGasSGChange} variant="label-hidden"
+                                            step="0.01"></lightning-input></td>
+                                    <td><lightning-input type="number" value={row.component} data-index={index}
+                                            onchange={handleOilGasComponentChange} variant="label-hidden"
+                                            step="0.01"></lightning-input></td>
+                                    <td><lightning-input type="number" value={row.costKg} data-index={index}
+                                            onchange={handleOilGasCostChange} variant="label-hidden"
+                                            step="0.01"></lightning-input></td>
+                                    <td><lightning-input type="number" value={row.kgDrum} disabled
+                                            variant="label-hidden"></lightning-input></td>
+                                    <td><lightning-input type="number" value={row.litreDrum} disabled
+                                            variant="label-hidden"></lightning-input></td>
+                                    <td><lightning-input type="number" value={row.forTotalDrum} disabled
+                                            variant="label-hidden"></lightning-input></td>
+                                    <td><lightning-input type="number" value={row.loss} data-index={index}
+                                            onchange={handleOilGasLossChange} variant="label-hidden"
+                                            step="0.01"></lightning-input></td>
+                                    <td><lightning-input type="number" value={row.totalKg} disabled
+                                            variant="label-hidden"></lightning-input></td>
+                                    <td><lightning-input type="number" value={row.totalPrice} disabled
+                                            variant="label-hidden"></lightning-input></td>
+                                    <td>
+                                        <lightning-button-icon icon-name="utility:add" onclick={handleAddOilGasItem}
+                                            data-index={index}></lightning-button-icon>
+                                        <lightning-button-icon icon-name="utility:delete"
+                                            onclick={handleDeleteOilGasItem} data-index={index}></lightning-button-icon>
+                                    </td>
+                                </tr>
+                            </template>
+                        </tbody>
+                    </table>
+
                     <div class="slds-p-top_large">
                         <table class="slds-table slds-table_bordered slds-table_cell-buffer slds-m-top_medium">
                             <thead>
@@ -374,19 +431,44 @@
                                     </th>
                                     <th scope="col"
                                         style="background-color: #0da2d4; color: #ffffff; border: 1px solid #56565a;">
-                                        OH
+                                        <div class="slds-grid slds-grid_vertical-align-center slds-grid_align-spread">
+                                            <span>OH</span>
+                                            <lightning-input type="checkbox" checked={isOHChecked}
+                                                onchange={handleOHCheckboxChange} variant="label-hidden"
+                                                class="slds-m-left_x-small">
+                                            </lightning-input>
+                                        </div>
                                     </th>
+
                                     <th scope="col"
                                         style="background-color: #0da2d4; color: #ffffff; border: 1px solid #56565a;">
-                                        Packing
+                                        <div class="slds-grid slds-grid_vertical-align-center slds-grid_align-spread">
+                                            <span>Packing</span>
+                                            <lightning-input type="checkbox" checked={isPackingChecked}
+                                                onchange={handlePackingCheckboxChange} variant="label-hidden"
+                                                class="slds-m-left_x-small">
+                                            </lightning-input>
+                                        </div>
                                     </th>
+
                                     <th scope="col"
                                         style="background-color: #0da2d4; color: #ffffff; border: 1px solid #56565a;">
-                                        Palletizing
+                                        <div class="slds-grid slds-grid_vertical-align-center slds-grid_align-spread">
+                                            <span>Palletizing</span>
+                                            <lightning-input type="checkbox" checked={isPalletizingChecked}
+                                                onchange={handlePalletizingCheckboxChange} variant="label-hidden"
+                                                class="slds-m-left_x-small">
+                                            </lightning-input>
+                                        </div>
                                     </th>
+
                                     <th scope="col"
                                         style="background-color: #0da2d4; color: #ffffff; border: 1px solid #56565a;">
                                         Margins %
+                                    </th>
+                                    <th scope="col"
+                                        style="background-color: #0da2d4; color: #ffffff; border: 1px solid #56565a;">
+                                        Per Kg
                                     </th>
                                     <th scope="col"
                                         style="background-color: #0da2d4; color: #ffffff; border: 1px solid #56565a;">
@@ -455,6 +537,11 @@
                                         </lightning-input>
                                     </td>
                                     <td style="border: 1px solid #56565a;">
+                                        <lightning-input type="number" value={oilGasExtra.perKg1} disabled
+                                            variant="label-hidden">
+                                        </lightning-input>
+                                    </td>
+                                    <td style="border: 1px solid #56565a;">
                                         <lightning-input type="number" value={oilGasExtra.fgPerKg} disabled
                                             variant="label-hidden">
                                         </lightning-input>
@@ -478,61 +565,6 @@
                             </tbody>
                         </table>
                     </div>
-
-                    <table class="slds-table slds-table_bordered slds-table_cell-buffer slds-m-top_medium">
-                        <thead>
-                            <tr class="slds-text-title_caps">
-                                <th>Product Name</th>
-                                <th>SG</th>
-                                <th>Component %</th>
-                                <th>Cost/Kg</th>
-                                <th>Kg/Drum</th>
-                                <th>Liter/Drum</th>
-                                <th>For total drum</th>
-                                <th>Loss %</th>
-                                <th>Total KG</th>
-                                <th>Total Price</th>
-                                <th>Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <template for:each={oilGasItems} for:item="row" for:index="index">
-                                <tr key={row.key}>
-                                    <td><lightning-input value={row.name} data-index={index}
-                                            onchange={handleOilGasNameChange} variant="label-hidden"></lightning-input>
-                                    </td>
-                                    <td><lightning-input type="number" value={row.sg} data-index={index}
-                                            onchange={handleOilGasSGChange} variant="label-hidden"
-                                            step="0.01"></lightning-input></td>
-                                    <td><lightning-input type="number" value={row.component} data-index={index}
-                                            onchange={handleOilGasComponentChange} variant="label-hidden"
-                                            step="0.01"></lightning-input></td>
-                                    <td><lightning-input type="number" value={row.costKg} data-index={index}
-                                            onchange={handleOilGasCostChange} variant="label-hidden"
-                                            step="0.01"></lightning-input></td>
-                                    <td><lightning-input type="number" value={row.kgDrum} disabled
-                                            variant="label-hidden"></lightning-input></td>
-                                    <td><lightning-input type="number" value={row.litreDrum} disabled
-                                            variant="label-hidden"></lightning-input></td>
-                                    <td><lightning-input type="number" value={row.forTotalDrum} disabled
-                                            variant="label-hidden"></lightning-input></td>
-                                    <td><lightning-input type="number" value={row.loss} data-index={index}
-                                            onchange={handleOilGasLossChange} variant="label-hidden"
-                                            step="0.01"></lightning-input></td>
-                                    <td><lightning-input type="number" value={row.totalKg} disabled
-                                            variant="label-hidden"></lightning-input></td>
-                                    <td><lightning-input type="number" value={row.totalPrice} disabled
-                                            variant="label-hidden"></lightning-input></td>
-                                    <td>
-                                        <lightning-button-icon icon-name="utility:add" onclick={handleAddOilGasItem}
-                                            data-index={index}></lightning-button-icon>
-                                        <lightning-button-icon icon-name="utility:delete"
-                                            onclick={handleDeleteOilGasItem} data-index={index}></lightning-button-icon>
-                                    </td>
-                                </tr>
-                            </template>
-                        </tbody>
-                    </table>
 
                     <div class="slds-align_absolute-center slds-m-top_medium">
                         <lightning-button label="Save and Refresh" variant="brand"

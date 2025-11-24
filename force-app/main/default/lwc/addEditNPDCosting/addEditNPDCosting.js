@@ -47,14 +47,19 @@ export default class NpdCostingLineItems extends NavigationMixin(LightningElemen
 
     // ===== Oil & Gas table state =====
     @track oilGasItems = [];
+    @track deletedOilGasItemIds = [];
+    @track isOHChecked = false;
+    @track isPackingChecked = false;
+    @track isPalletizingChecked = false;
+
 
     // ===== NEW: Oil & Gas Additional Costing Fields (from parent object) =====
     @track oilGasExtra = {
         unitSizeLtr: 0,
         totalDrums: 0,
         unitSizeKg: 0,
-        averageSG: 0, // Added Average SG rollup field
-        rmCost: 0, // This will be calculated from Per_Kg__c
+        averageSG: 0,
+        rmCost: 0,
         oh: 0,
         packing: 0,
         palletizing: 0,
@@ -62,7 +67,7 @@ export default class NpdCostingLineItems extends NavigationMixin(LightningElemen
         fgPerKg: 0,
         costPerUnit: 0,
         pricePerUnit: 0,
-        totalPrice: 0 // Added Total Price rollup field
+        totalPrice: 0,
     };
 
     // Constants
@@ -70,7 +75,6 @@ export default class NpdCostingLineItems extends NavigationMixin(LightningElemen
 
     // ---------- lifecycle ----------
     connectedCallback() {
-        // get RT options first
         getRecordTypeOptions()
             .then(data => {
                 this.recordTypeOptions = data.map(rt => ({
@@ -83,15 +87,7 @@ export default class NpdCostingLineItems extends NavigationMixin(LightningElemen
             });
     }
 
-    // handleRecordTypeChange(event) {
-    //     this.selectedRecordType = event.target.value;
 
-    //     // Refresh checked flags
-    //     this.recordTypeOptions = this.recordTypeOptions.map(rt => ({
-    //         ...rt,
-    //         isSelected: rt.value === this.selectedRecordType
-    //     }));
-    // }
 
     handleRecordTypeChange(event) {
         const selectedValue = event.target.value;
@@ -105,14 +101,14 @@ export default class NpdCostingLineItems extends NavigationMixin(LightningElemen
             this.isAgroNonAgro = false;
             this.isApplicationSelected = true;
             this.isSyntheticSelected = false;
-            this.loadOilGasData(); // ADDED THIS
+            this.loadOilGasData();
         } else if (selectedValue === 'Synthesis') {
             this.isAgroNonAgro = true;
             this.isOilGas = false;
             this.isSyntheticSelected = true;
             this.isApplicationSelected = false;
-            this.loadData(); // ADDED THIS
-            this.addEmptyReferenceRow(); // ADDED THIS
+            this.loadData();
+            this.addEmptyReferenceRow();
         }
     }
 
@@ -153,15 +149,10 @@ export default class NpdCostingLineItems extends NavigationMixin(LightningElemen
         if (this.recordId) {
             getExistingCostingItems({ recordId: this.recordId })
                 .then(result => {
-                    // Set parent fields from the result
                     this.parentMolecularWeight = result.parentMolecularWeight || 0;
                     this.yieldAndRMCChange = result.yieldAndRMCChange || 0;
-
-                    // NEW fields only
                     this.lossInBatch = result.lossInBatch || 0;
                     this.overheadsUtilityPackaging = result.overheadsUtilityPackaging || 0;
-
-                    // Additional parent fields
                     this.yieldField = result.yieldField || 0;
                     this.manufacturingCost = result.manufacturingCost || 0;
                     this.profitExpectedPerKg = result.profitExpectedPerKg || 0;
@@ -494,13 +485,15 @@ export default class NpdCostingLineItems extends NavigationMixin(LightningElemen
     handleDeleteItem(event) {
         const index = event.target.dataset.index;
         const item = this.lineItems[index];
-        if (this.lineItems.length <= 1) {
-            this.showError('Cannot delete', 'At least one item is required');
-            return;
-        }
+
         if (item.id) this.deletedItemIds.push(item.id);
         this.lineItems.splice(index, 1);
         this.lineItems = [...this.lineItems];
+
+        if (this.lineItems.length === 0) {
+            this.addEmptyRow();
+        }
+
         this.calculateManufacturingCost();
     }
 
@@ -520,27 +513,23 @@ export default class NpdCostingLineItems extends NavigationMixin(LightningElemen
         }
     }
 
-
     // ===== Validation Methods for Required Fields Only =====
     validateOilGasForm() {
         let isValid = true;
         let errorMessage = '';
 
-        // Validate Unit Size Ltr - required and must be greater than 0
         if (!this.oilGasExtra.unitSizeLtr || this.oilGasExtra.unitSizeLtr <= 0) {
             errorMessage = 'Unit Size Ltr is required and must be greater than 0';
             isValid = false;
         }
 
-        // Validate Total Drums - required and must be greater than 0
         if (!this.oilGasExtra.totalDrums || this.oilGasExtra.totalDrums <= 0) {
             errorMessage = 'Total Drums is required and must be greater than 0';
             isValid = false;
         }
 
-        // Validate Name in each row - required
         this.oilGasItems.forEach((item, index) => {
-            if (!isValid) return; // Skip if already invalid
+            if (!isValid) return;
 
             if (!item.name || item.name.trim() === '') {
                 errorMessage = `Product Name is required for row ${index + 1}`;
@@ -561,27 +550,23 @@ export default class NpdCostingLineItems extends NavigationMixin(LightningElemen
         let isValid = true;
         let errorMessage = '';
 
-        // Validate Mol Weight of the Product - required
         if (!this.parentMolecularWeight || this.parentMolecularWeight <= 0) {
             errorMessage = 'Mol Weight of the Product is required and must be greater than 0';
             isValid = false;
         }
 
-        // Validate Yield and RMC Change - required
         if (!this.yieldAndRMCChange || this.yieldAndRMCChange <= 0) {
             errorMessage = 'Yield and RMC Change is required and must be greater than 0';
             isValid = false;
         }
 
-        // Validate Overheads Utility Packaging % - required
         if (this.overheadsUtilityPackaging === null || this.overheadsUtilityPackaging === undefined || this.overheadsUtilityPackaging < 0) {
             errorMessage = 'Overheads Utility Packaging % is required and must be 0 or greater';
             isValid = false;
         }
 
-        // Validate Name in each row - required (USE lineItems FOR AGRO)
         this.lineItems.forEach((item, index) => {
-            if (!isValid) return; // Skip if already invalid
+            if (!isValid) return;
 
             if (!item.name || item.name.trim() === '') {
                 errorMessage = `Product Name is required for row ${index + 1}`;
@@ -598,7 +583,6 @@ export default class NpdCostingLineItems extends NavigationMixin(LightningElemen
     }
 
     saveData(shouldNavigateAway) {
-        // Validate Agro form before saving
         if (!this.validateAgroForm()) {
             return;
         }
@@ -649,32 +633,34 @@ export default class NpdCostingLineItems extends NavigationMixin(LightningElemen
             });
     }
 
-    // ===== UPDATED: Oil & Gas save with validation =====
+    // ===== UPDATED: Oil & Gas save with deletion handling =====
     saveOilGas(exitAfter) {
-        // Validate form before saving
         if (!this.validateOilGasForm()) {
             return;
         }
 
         console.log('Current oilGasItems:', JSON.parse(JSON.stringify(this.oilGasItems)));
+        console.log('Items to delete:', this.deletedOilGasItemIds);
 
         const payload = JSON.stringify(this.oilGasItems.map(i => {
-            const calculatedTotalPrice = i.totalKg * i.costKg || 0;
+            // Use the calculated totalPrice from the row, not recalculating it
+            const totalPriceToSave = i.totalPrice || 0;
 
-            console.log(`Item ${i.name}: totalKg=${i.totalKg}, costKg=${i.costKg}, totalPrice=${i.totalPrice}, calculated=${calculatedTotalPrice}`);
+            console.log(`Item ${i.name}: totalKg=${i.totalKg}, costKg=${i.costKg}, totalPrice=${i.totalPrice}, saving=${totalPriceToSave}`);
 
             return {
                 Id: i.id,
                 Name: i.name,
                 SG__c: i.sg,
                 Component__c: i.component,
+                SG_Component__c: i.sgComponent,
                 Cost_Kg__c: i.costKg,
                 Kg_Drum__c: i.kgDrum,
                 Liter_Drum__c: i.litreDrum,
                 For_Total_Drum__c: i.forTotalDrum,
                 Loss__c: i.loss,
                 Total_KG__c: i.totalKg,
-                Total_Price_1__c: calculatedTotalPrice
+                Total_Price_1__c: totalPriceToSave
             };
         }));
 
@@ -685,16 +671,23 @@ export default class NpdCostingLineItems extends NavigationMixin(LightningElemen
         saveOilGasCostingItems({
             recordId: this.recordId,
             oilGasItems: payload,
+            deletedItemIds: JSON.stringify(this.deletedOilGasItemIds),
             unitSizeLtr: this.oilGasExtra.unitSizeLtr,
             totalDrums: this.oilGasExtra.totalDrums,
             oh: this.oilGasExtra.oh,
             packing: this.oilGasExtra.packing,
             palletizing: this.oilGasExtra.palletizing,
-            margins: this.oilGasExtra.margins
+            margins: this.oilGasExtra.margins,
+            perKg1: this.oilGasExtra.perKg1,
+            isOHChecked: this.isOHChecked,
+            isPackingChecked: this.isPackingChecked,
+            isPalletizingChecked: this.isPalletizingChecked
+
         })
             .then(() => {
                 this.showSuccess('Success', 'Oil & Gas records saved');
                 this.deletedItemIds = [];
+                this.deletedOilGasItemIds = [];
 
                 if (exitAfter) {
                     this.navigateToNPDRecord();
@@ -803,10 +796,8 @@ export default class NpdCostingLineItems extends NavigationMixin(LightningElemen
             .then(result => {
                 console.log('Oil & Gas data loaded:', result);
                 if (result) {
-                    // Reset oilGasItems first
                     this.oilGasItems = [];
 
-                    // Load parent NPD data
                     if (result.npdRecord) {
                         this.oilGasExtra = {
                             ...this.oilGasExtra,
@@ -824,6 +815,11 @@ export default class NpdCostingLineItems extends NavigationMixin(LightningElemen
                             pricePerUnit: result.npdRecord.Price_Per_Unit__c || 0,
                             totalPrice: result.npdRecord.Total_Price__c || 0
                         };
+
+
+                        this.isOHChecked = result.npdRecord.OH1__c || false;
+                        this.isPackingChecked = result.npdRecord.Packing1__c || false;
+                        this.isPalletizingChecked = result.npdRecord.Palletizing1__c || false;
                     }
 
                     if (result.costingItems && result.costingItems.length) {
@@ -833,6 +829,7 @@ export default class NpdCostingLineItems extends NavigationMixin(LightningElemen
                             name: r.Name,
                             sg: r.SG__c || 0,
                             component: r.Component__c || 0,
+                            sgComponent: r.SG_Component__c || 0,
                             costKg: r.Cost_Kg__c || 0,
                             kgDrum: r.Kg_Drum__c || 0,
                             litreDrum: r.Liter_Drum__c || 0,
@@ -842,7 +839,6 @@ export default class NpdCostingLineItems extends NavigationMixin(LightningElemen
                             totalPrice: r.Total_Price_1__c || 0
                         }));
 
-                        // Recalculate all line items after loading
                         this.oilGasItems.forEach((row, index) => {
                             this.calcOilGasRow(index);
                         });
@@ -850,7 +846,6 @@ export default class NpdCostingLineItems extends NavigationMixin(LightningElemen
                         this.addOilGasRow();
                     }
 
-                    // Calculate all values after loading data
                     this.calculateAverageSG();
                     this.calculateAllOilGasValues();
                 }
@@ -871,6 +866,7 @@ export default class NpdCostingLineItems extends NavigationMixin(LightningElemen
             name: '',
             sg: 0,
             component: 0,
+            sgComponent: 0,
             costKg: 0,
             kgDrum: 0,
             litreDrum: 0,
@@ -881,28 +877,63 @@ export default class NpdCostingLineItems extends NavigationMixin(LightningElemen
         }];
     }
 
+    // ===== CORRECTED: Average SG Calculation =====
+    // ===== CORRECTED: Average SG Calculation =====
     calculateAverageSG() {
-        let totalWeightedSG = 0;
-        let totalComponent = 0;
+        let totalSGComponent = 0;
 
         this.oilGasItems.forEach(item => {
-            if (item.sg && !isNaN(item.sg) && item.sg > 0 && item.component && !isNaN(item.component)) {
-                totalWeightedSG += (parseFloat(item.sg) * parseFloat(item.component));
-                totalComponent += parseFloat(item.component);
+            if (item.sg && !isNaN(item.sg) && item.component && !isNaN(item.component)) {
+                const sg = parseFloat(item.sg);
+                const component = parseFloat(item.component);
+
+                // Calculate SG Component for this row: SG × (Component% / 100)
+                item.sgComponent = sg * (component / 100);
+                totalSGComponent += item.sgComponent;
+            } else {
+                item.sgComponent = 0;
             }
         });
 
-        if (totalComponent > 0) {
-            this.oilGasExtra.averageSG = totalWeightedSG / totalComponent;
-        } else {
-            this.oilGasExtra.averageSG = 0;
-        }
+        // Average SG is simply the sum of all (SG × Component%) values
+        // This gives exactly what you want: 1.19×40% + 1×60% = 0.476 + 0.6 = 1.076
+        this.oilGasExtra.averageSG = totalSGComponent;
 
-        console.log('Weighted Average SG calculated:', this.oilGasExtra.averageSG,
-            'from totalWeightedSG:', totalWeightedSG, 'totalComponent:', totalComponent);
+        console.log('Average SG calculated:', this.oilGasExtra.averageSG,
+            'from totalSGComponent:', totalSGComponent);
+
+        this.oilGasItems = [...this.oilGasItems];
+        this.oilGasExtra = { ...this.oilGasExtra };
+
+        // Recalculate Unit Size Kg when Average SG changes
+        this.calculateUnitSizeKg();
     }
 
-    // ===== UPDATED: Calculate Total Price from line items =====
+    // ===== CORRECTED: RM Cost Calculation =====
+    calculateRMCost() {
+        let totalRM = 0;
+
+        this.oilGasItems.forEach(item => {
+            if (item.totalPrice && !isNaN(item.totalPrice)) {
+                totalRM += parseFloat(item.totalPrice);
+            }
+        });
+
+        // RM Cost = Total Price / Unit Size Kg
+        if (this.oilGasExtra.unitSizeKg && this.oilGasExtra.unitSizeKg > 0) {
+            this.oilGasExtra.rmCost = totalRM / this.oilGasExtra.unitSizeKg;
+        } else {
+            this.oilGasExtra.rmCost = 0;
+        }
+
+        console.log('RM Cost calculated:', this.oilGasExtra.rmCost,
+            'from totalRM:', totalRM, 'unitSizeKg:', this.oilGasExtra.unitSizeKg);
+
+        this.oilGasExtra = { ...this.oilGasExtra };
+        this.calculateAllOilGasValues();
+    }
+
+    // ===== Calculate Total Price from line items =====
     calculateTotalPrice() {
         let totalPrice = 0;
 
@@ -915,21 +946,25 @@ export default class NpdCostingLineItems extends NavigationMixin(LightningElemen
         this.oilGasExtra.totalPrice = totalPrice;
         console.log('Total Price calculated:', this.oilGasExtra.totalPrice, 'from items:', this.oilGasItems.map(i => i.totalPrice));
 
-        // Force reactive update
+        this.calculateRMCost();
         this.oilGasExtra = { ...this.oilGasExtra };
     }
 
-    // ===== UPDATED: Oil & Gas field handlers to include real-time calculations =====
+    // ===== Oil & Gas field handlers =====
     handleOilGasSGChange(e) {
         this.updateOilGasField(e, 'sg', true);
         this.calculateAverageSG();
-        this.calculateAllOilGasValues();
+        this.oilGasItems.forEach((row, index) => {
+            this.calcOilGasRow(index);
+        });
     }
 
     handleOilGasComponentChange(e) {
         this.updateOilGasField(e, 'component', true);
         this.calculateAverageSG();
-        this.calculateAllOilGasValues();
+        this.oilGasItems.forEach((row, index) => {
+            this.calcOilGasRow(index);
+        });
     }
 
     handleOilGasCostChange(e) {
@@ -955,13 +990,13 @@ export default class NpdCostingLineItems extends NavigationMixin(LightningElemen
         this.oilGasItems = [...this.oilGasItems];
     }
 
+    // ===== Calculate All Oil & Gas Values =====
     calculateAllOilGasValues() {
         console.log('Calculating all Oil & Gas values...');
 
-        // First calculate Unit Size Kg if needed
-        if (this.oilGasExtra.unitSizeLtr && this.oilGasExtra.averageSG) {
-            this.oilGasExtra.unitSizeKg = this.oilGasExtra.unitSizeLtr * this.oilGasExtra.averageSG;
-        }
+        // Calculate Per Liter and Per Kg
+        const perLiter = this.oilGasExtra.rmCost * (this.oilGasExtra.averageSG || 1);
+        const perKg = this.oilGasExtra.rmCost;
 
         // FG Per KG = RM Cost + Packing + Palletizing + OH
         this.oilGasExtra.fgPerKg = (this.oilGasExtra.rmCost || 0) +
@@ -969,7 +1004,7 @@ export default class NpdCostingLineItems extends NavigationMixin(LightningElemen
             (this.oilGasExtra.palletizing || 0) +
             (this.oilGasExtra.oh || 0);
 
-        // Cost per Unit = FG Per KG * Unit Size (Kg)
+        // Cost per Unit = FG Per KG × Unit Size (Kg)
         this.oilGasExtra.costPerUnit = (this.oilGasExtra.fgPerKg || 0) * (this.oilGasExtra.unitSizeKg || 0);
 
         // Price Per Unit = Cost per Unit / (1 - Margins/100)
@@ -985,23 +1020,60 @@ export default class NpdCostingLineItems extends NavigationMixin(LightningElemen
             rmCost: this.oilGasExtra.rmCost,
             fgPerKg: this.oilGasExtra.fgPerKg,
             costPerUnit: this.oilGasExtra.costPerUnit,
-            pricePerUnit: this.oilGasExtra.pricePerUnit
+            pricePerUnit: this.oilGasExtra.pricePerUnit,
+            perLiter: perLiter,
+            perKg: perKg
         });
 
-        // Force reactive update
         this.oilGasExtra = { ...this.oilGasExtra };
+        this.calculatePerKg1();
     }
 
+    calculatePerKg1() {
+        const rmCost = this.oilGasExtra.rmCost || 0;
+        const oh = this.oilGasExtra.oh || 0;
+        const packing = this.oilGasExtra.packing || 0;
+        const palletizing = this.oilGasExtra.palletizing || 0;
+        const margin = this.oilGasExtra.margins || 0;
+
+        // Group checked and unchecked
+        let checkedSum = 0;
+        let uncheckedSum = 0;
+
+        if (this.isOHChecked) checkedSum += oh; else uncheckedSum += oh;
+        if (this.isPackingChecked) checkedSum += packing; else uncheckedSum += packing;
+        if (this.isPalletizingChecked) checkedSum += palletizing; else uncheckedSum += palletizing;
+
+        // Avoid divide by zero
+        let marginFactor = 1 - (margin / 100);
+        if (marginFactor <= 0) marginFactor = 1;
+
+        // Formula:
+        // (RM + checked) / (1 - Margin) + unchecked
+        const perKg1 = ((rmCost + checkedSum) / marginFactor) + uncheckedSum;
+
+        this.oilGasExtra.perKg1 = perKg1.toFixed(2);
+
+        console.log(
+            `Per_Kg1__c calculated: RM=${rmCost}, Checked=[${checkedSum}], Unchecked=[${uncheckedSum}], Margin=${margin}, Result=${this.oilGasExtra.perKg1}`
+        );
+    }
+
+
+    // ===== CORRECTED: Oil & Gas Row Calculation =====
     calcOilGasRow(i) {
         const row = this.oilGasItems[i];
 
-        // Calculate all values
+        // Calculate all values with proper percentage handling
+        // Component is percentage (10% = 10), so divide by 100
         row.kgDrum = (this.oilGasExtra.unitSizeKg || 0) * ((row.component || 0) / 100);
         row.litreDrum = (row.kgDrum || 0) / ((row.sg || 0) !== 0 ? row.sg : 1);
         row.forTotalDrum = (row.kgDrum || 0) * (this.oilGasExtra.totalDrums || 0);
+
+        // Total KG calculation with loss percentage
         row.totalKg = (row.forTotalDrum || 0) + ((row.forTotalDrum || 0) * ((row.loss || 0) / 100));
 
-        // Calculate totalPrice
+        // Calculate totalPrice - this should give 262.5 * 5 = 1312.5
         row.totalPrice = (row.totalKg || 0) * (row.costKg || 0);
 
         console.log(`Calculated row ${i}:`, {
@@ -1009,43 +1081,67 @@ export default class NpdCostingLineItems extends NavigationMixin(LightningElemen
             litreDrum: row.litreDrum,
             forTotalDrum: row.forTotalDrum,
             totalKg: row.totalKg,
-            totalPrice: row.totalPrice
+            totalPrice: row.totalPrice,
+            component: row.component,
+            componentDecimal: (row.component || 0) / 100
         });
 
         this.oilGasItems = [...this.oilGasItems];
-
-        // Calculate the header total price after row update
         this.calculateTotalPrice();
-
-        // Trigger additional costing calculations after row update
         this.calculateAllOilGasValues();
     }
 
     handleAddOilGasItem(e) {
         const idx = parseInt(e.target.dataset.index, 10);
-        const newRow = { ...this.oilGasItems[idx], key: this.generateId(), id: null, name: '' };
+        const newRow = {
+            ...this.oilGasItems[idx],
+            key: this.generateId(),
+            id: null,
+            name: '',
+            sgComponent: 0
+        };
         this.oilGasItems.splice(idx + 1, 0, newRow);
         this.oilGasItems = [...this.oilGasItems];
-
-        // Calculate total price after adding new row
         this.calculateTotalPrice();
     }
 
-    // ===== UPDATED: handleDeleteOilGasItem to include calculations =====
     handleDeleteOilGasItem(e) {
         const idx = parseInt(e.target.dataset.index, 10);
-        if (this.oilGasItems.length > 1) {
-            this.oilGasItems.splice(idx, 1);
-            this.oilGasItems = [...this.oilGasItems];
+        const item = this.oilGasItems[idx];
 
-            // Recalculate after deleting row
-            this.calculateAverageSG();
-            this.calculateTotalPrice();
-            this.calculateAllOilGasValues();
+        if (item.id) {
+            this.deletedOilGasItemIds.push(item.id);
         }
+
+        this.oilGasItems.splice(idx, 1);
+        this.oilGasItems = [...this.oilGasItems];
+
+        if (this.oilGasItems.length === 0) {
+            this.addOilGasRow();
+        }
+
+        this.calculateAverageSG();
+        this.calculateTotalPrice();
+        this.calculateAllOilGasValues();
     }
 
-    // ===== UPDATED: Additional Costing Fields Handlers =====
+    handleOHCheckboxChange(event) {
+        this.isOHChecked = event.target.checked;
+        this.calculatePerKg1();
+    }
+
+    handlePackingCheckboxChange(event) {
+        this.isPackingChecked = event.target.checked;
+        this.calculatePerKg1();
+    }
+
+    handlePalletizingCheckboxChange(event) {
+        this.isPalletizingChecked = event.target.checked;
+        this.calculatePerKg1();
+    }
+
+
+    // ===== Additional Costing Fields Handlers =====
     handleOHChange(event) {
         this.oilGasExtra.oh = event.detail.value ? parseFloat(event.detail.value) : 0;
         this.calculateAllOilGasValues();
@@ -1069,7 +1165,6 @@ export default class NpdCostingLineItems extends NavigationMixin(LightningElemen
     handleUnitSizeLtrChange(event) {
         this.oilGasExtra.unitSizeLtr = event.detail.value ? parseFloat(event.detail.value) : 0;
         this.calculateUnitSizeKg();
-        // Recalculate all line items when unit size changes
         this.oilGasItems.forEach((row, index) => {
             this.calcOilGasRow(index);
         });
@@ -1077,15 +1172,14 @@ export default class NpdCostingLineItems extends NavigationMixin(LightningElemen
     }
 
     calculateUnitSizeKg() {
-        // Unit Size Kg = Unit Size Ltr * Average SG
         this.oilGasExtra.unitSizeKg = (this.oilGasExtra.unitSizeLtr || 0) * (this.oilGasExtra.averageSG || 1);
         console.log('Unit Size Kg calculated:', this.oilGasExtra.unitSizeKg);
         this.oilGasExtra = { ...this.oilGasExtra };
+        this.calculateRMCost();
     }
 
     handleTotalDrumsChange(event) {
         this.oilGasExtra.totalDrums = event.detail.value ? parseFloat(event.detail.value) : 0;
-        // Recalculate all line items when total drums change
         this.oilGasItems.forEach((row, index) => {
             this.calcOilGasRow(index);
         });

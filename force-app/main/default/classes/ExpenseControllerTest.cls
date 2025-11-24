@@ -170,16 +170,4 @@ public class ExpenseControllerTest {
 
         Test.stopTest();
     }
-    
-    @isTest
-    static void testTemethodExecution() {
-        // Act
-        Test.startTest();
-        ExpenseController.temethod(); // Replace 'YourClassName' with the actual class name
-        Test.stopTest();
-        
-        // Assert
-        System.assert(true, 'temethod executed successfully without any errors');
-    }
-
 }

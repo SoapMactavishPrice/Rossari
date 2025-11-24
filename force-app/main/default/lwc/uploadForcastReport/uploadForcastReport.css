@@ -1,0 +1,9 @@
+lightning-input.month-input {
+    --sds-c-input-sizing-min-width: 80px;
+    --sds-c-input-spacing-inline-start: 0.5rem;
+    --sds-c-input-spacing-inline-end: 0.5rem;
+}
+
+lightning-input.month-input .slds-input {
+    text-align: center;
+}

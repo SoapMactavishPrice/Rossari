@@ -343,11 +343,13 @@ public with sharing class ExpenseController {
             }
             
             List<Grade__c> grades = [SELECT Id, Name, Daily_Allowance_A_class_cities__c, 
-                                    Daily_Allowance_B_class_cities__c, Four_Wheeler_per_km__c, 
-                                    Two_Wheeler_per_km__c, Mode_of_Travel__c
-                                    FROM Grade__c 
-                                    WHERE Name = :gradeName 
-                                    LIMIT 1];
+                                     Daily_Allowance_B_class_cities__c, Four_Wheeler_per_km__c, 
+                                     Two_Wheeler_per_km__c, Mode_of_Travel__c,
+                                     Special_Allowance__c, Out_of_Pocket__c,
+                                     Lodging_Hotel__c, Boarding_Food__c, Lodging_Hotel_B_Class__c, Boarding_Food_B_Class__c
+                                     FROM Grade__c 
+                                     WHERE Name = :gradeName 
+                                     LIMIT 1];
             
             System.debug('Found grades for ' + gradeName + ': ' + grades.size());
             
@@ -356,10 +358,18 @@ public with sharing class ExpenseController {
                 result.put('dailyAllowance', grade.Daily_Allowance_A_class_cities__c != null ? grade.Daily_Allowance_A_class_cities__c : 0);
                 result.put('fourWheelerPerKm', grade.Four_Wheeler_per_km__c != null ? grade.Four_Wheeler_per_km__c : 0);
                 result.put('twoWheelerPerKm', grade.Two_Wheeler_per_km__c != null ? grade.Two_Wheeler_per_km__c : 0);
+                result.put('specialAllowance', grade.Special_Allowance__c != null ? grade.Special_Allowance__c : 0);
+                result.put('outOfPocket', grade.Out_of_Pocket__c != null ? grade.Out_of_Pocket__c : 0);
+                result.put('lodgingHotel', grade.Lodging_Hotel__c != null ? grade.Lodging_Hotel__c : 0);
+                result.put('boardingFood', grade.Boarding_Food__c != null ? grade.Boarding_Food__c : 0);
+                result.put('lodgingHotelBClass', grade.Lodging_Hotel_B_Class__c != null ? grade.Lodging_Hotel_B_Class__c : 0);
+                result.put('boardingFoodBClass', grade.Boarding_Food_B_Class__c != null ? grade.Boarding_Food_B_Class__c : 0);
                 
                 System.debug('Grade details - DA: ' + result.get('dailyAllowance') + 
-                           ', 4W: ' + result.get('fourWheelerPerKm') + 
-                           ', 2W: ' + result.get('twoWheelerPerKm'));
+                             ', 4W: ' + result.get('fourWheelerPerKm') + 
+                             ', 2W: ' + result.get('twoWheelerPerKm') +
+                             ', Special Allowance: ' + result.get('specialAllowance') +
+                             ', Out of Pocket: ' + result.get('outOfPocket'));
                 
                 // Parse multi-picklist values
                 List<String> modeOfTravelOptions = new List<String>();
@@ -521,13 +531,7 @@ public with sharing class ExpenseController {
             applyUserMappings(expense, currentUser, recordTypeId);
             
             insert expense;
-            
-            // Process line items (existing code)
-            //processLineItems(expense.Id, lineItems);
-            
-            // Process file attachments (existing code)
-            //processFileAttachments(lineItems, filesPerLineItem);
-            
+                        
             // Process line items and GL codes
             Map<Id, Id> expenseTypeToGLCodeMap = new Map<Id, Id>();
             Set<Id> typeOfExpenseIds = new Set<Id>();
@@ -692,79 +696,6 @@ public with sharing class ExpenseController {
             return !recordTypes.isEmpty() ? recordTypes[0].DeveloperName : null;
         } catch (Exception e) {
             return null;
-        }
-    }
-    
-    /**
-     * Process line items (your existing logic)
-     */
-    /*private static void processLineItems(Id expenseId, List<Expense_Line_Item__c> lineItems) {
-        if (lineItems == null || lineItems.isEmpty()) return;
-        
-        // Get GL Codes for expense types
-        Set<Id> typeOfExpenseIds = new Set<Id>();
-        for (Expense_Line_Item__c li : lineItems) {
-            if (li.Type_of_Expense__c != null) {
-                typeOfExpenseIds.add(li.Type_of_Expense__c);
-            }
-        }
-        
-        Map<Id, Id> expenseTypeToGLCodeMap = new Map<Id, Id>();
-        if (!typeOfExpenseIds.isEmpty()) {
-            for (Type_of_Expense__c et : [
-                SELECT Id, GL_Code__c
-                FROM Type_of_Expense__c
-                WHERE Id IN :typeOfExpenseIds
-            ]) {
-                if (et.GL_Code__c != null) {
-                    expenseTypeToGLCodeMap.put(et.Id, et.GL_Code__c);
-                }
-            }
-        }
-        
-        // Prepare line items for insertion
-        List<Expense_Line_Item__c> itemsToInsert = new List<Expense_Line_Item__c>();
-        for (Expense_Line_Item__c li : lineItems) {
-            Expense_Line_Item__c newItem = li.clone();
-            newItem.Expense__c = expenseId;
-            
-            // Map GL Code
-            if (li.Type_of_Expense__c != null && expenseTypeToGLCodeMap.containsKey(li.Type_of_Expense__c)) {
-                newItem.GL_Code__c = expenseTypeToGLCodeMap.get(li.Type_of_Expense__c);
-            }
-            
-            itemsToInsert.add(newItem);
-        }
-        
-        insert itemsToInsert;
-    }*/
-    
-    /**
-     * Process file attachments (your existing logic)
-     */
-    private static void processFileAttachments(List<Expense_Line_Item__c> lineItems, Map<String, List<String>> filesPerLineItem) {
-        if (filesPerLineItem == null || filesPerLineItem.isEmpty()) return;
-        
-        List<ContentDocumentLink> linksToCreate = new List<ContentDocumentLink>();
-        
-        for (Integer i = 0; i < lineItems.size(); i++) {
-            String indexKey = String.valueOf(i);
-            if (filesPerLineItem.containsKey(indexKey)) {
-                for (String docId : filesPerLineItem.get(indexKey)) {
-                    if (String.isNotBlank(docId)) {
-                        ContentDocumentLink newLink = new ContentDocumentLink();
-                        newLink.ContentDocumentId = docId;
-                        newLink.LinkedEntityId = lineItems[i].Id;
-                        newLink.ShareType = 'V';
-                        newLink.Visibility = 'AllUsers';
-                        linksToCreate.add(newLink);
-                    }
-                }
-            }
-        }
-        
-        if (!linksToCreate.isEmpty()) {
-            insert linksToCreate;
         }
     }
     
@@ -946,153 +877,74 @@ public with sharing class ExpenseController {
         }
     }
     
-    public static void temethod(){
-        for(integer i=0; i<=1500; i++){
-            i++;
-            i++;
-            i++;
-            i++;
-            i++;
-            i++;
-            i++;
-            i++;
-            i++;
-            i++;
-            i++;
-            i++;
-            i++;
-            i++;
-            i++;
-            i++;
-            i++;
-            i++;
-            i++;
-            i++;
-            i++;
-            i++;
-            i++;
-            i++;
-            i++;
-            i++;
-            i++;
-            i++;
-            i++;
-            i++;
-            i++;
-            i++;
-            i++;
-            i++;
-            i++;
-            i++;
-             i++;
-            i++;
-            i++;
-            i++;
-            i++;
-            i++;
-            i++;
-            i++;
-            i++;
-            i++;
-            i++;
-            i++;
-            i++;
-            i++;
-            i++;
-            i++;
-            i++;
-            i++;
-            i++;
-            i++;
-            i++;
-            i++;
-            i++;
-            i++;
-            i++;
-            i++;
-            i++;
-            i++;
-            i++;
-            i++;
-            i++;
-            i++;
-            i++;
-            i++;
-            i++;
-            i++;
-             i++;
-            i++;
-            i++;
-            i++;
-            i++;
-            i++;
-            i++;
-            i++;
-            i++;
-            i++;
-            i++;
-            i++;
-            i++;
-            i++;
-            i++;
-            i++;
-            i++;
-            i++;
-            i++;
-            i++;
-            i++;
-            i++;
-            i++;
-            i++;
-            i++;
-            i++;
-            i++;
-            i++;
-            i++;
-            i++;
-            i++;
-            i++;
-            i++;
-            i++;
-            i++;
-            i++;
-             i++;
-            i++;
-            i++;
-            i++;
-            i++;
-            i++;
-            i++;
-            i++;
-            i++;
-            i++;
-            i++;
-            i++;
-            i++;
-            i++;
-            i++;
-            i++;
-            i++;
-            i++;
-            i++;
-            i++;
-            i++;
-            i++;
-            i++;
-            i++;
-            i++;
-            i++;
-            i++;
-            i++;
-            i++;
-            i++;
-            i++;
-            i++;
-            i++;
-            i++;
-            i++;
-            i++;
+    @AuraEnabled(cacheable=true)
+    public static Map<String, Object> checkAllowanceEligibility(String expenseDate, String userId) {
+        try {
+            Map<String, Object> result = new Map<String, Object>();
             
+            if (String.isBlank(expenseDate) || String.isBlank(userId)) {
+                result.put('isDailyAllowanceEligible', false);
+                result.put('isOutOfPocketEligible', false);
+                result.put('message', 'Date and User ID are required');
+                return result;
+            }
+            
+            // Convert string date to Date object
+            Date selectedDate = Date.valueOf(expenseDate);
+            
+            // Check if user already has ANY expense with Daily Allowance OR Out of Pocket on this date
+            List<Expense__c> existingAllowanceExpenses = [
+                SELECT Id, Date__c, Type_of_Voucher__c 
+                FROM Expense__c 
+                WHERE Employee_Name__c = :userId 
+                AND Date__c = :selectedDate
+                AND Id IN (
+                    SELECT Expense__c 
+                    FROM Expense_Line_Item__c 
+                    WHERE Daily_Allowance__c > 0
+                )
+            ];
+            
+            // Check if any existing expense has Daily Allowance (Local voucher)
+            Boolean hasDailyAllowanceClaimed = false;
+            Boolean hasOutOfPocketClaimed = false;
+            
+            for (Expense__c exp : existingAllowanceExpenses) {
+                if (exp.Type_of_Voucher__c == 'Local') {
+                    hasDailyAllowanceClaimed = true;
+                } else if (exp.Type_of_Voucher__c == 'Outstation') {
+                    hasOutOfPocketClaimed = true;
+                }
+            }
+            
+            // MUTUAL EXCLUSIVITY: Only one can be claimed per date
+            Boolean isDailyAllowanceEligible = !hasDailyAllowanceClaimed && !hasOutOfPocketClaimed;
+            Boolean isOutOfPocketEligible = !hasOutOfPocketClaimed && !hasDailyAllowanceClaimed;
+            
+            result.put('isDailyAllowanceEligible', isDailyAllowanceEligible);
+            result.put('isOutOfPocketEligible', isOutOfPocketEligible);
+            result.put('hasDailyAllowanceClaimed', hasDailyAllowanceClaimed);
+            result.put('hasOutOfPocketClaimed', hasOutOfPocketClaimed);
+            
+            String message = '';
+            if (hasDailyAllowanceClaimed && hasOutOfPocketClaimed) {
+                message = 'Both Daily Allowance and Out of Pocket already claimed for this date';
+            } else if (hasDailyAllowanceClaimed) {
+                message = 'Daily Allowance already claimed for this date - Out of Pocket not available';
+            } else if (hasOutOfPocketClaimed) {
+                message = 'Out of Pocket already claimed for this date - Daily Allowance not available';
+            } else {
+                message = 'Eligible for both Daily Allowance and Out of Pocket';
+            }
+            
+            result.put('message', message);
+            result.put('existingExpenseCount', existingAllowanceExpenses.size());
+            
+            return result;
+            
+        } catch (Exception e) {
+            System.debug('Error in checkAllowanceEligibility: ' + e.getMessage() + ' - ' + e.getStackTraceString());
+            throw new AuraHandledException('Error checking allowance eligibility: ' + e.getMessage());
         }
     }
 }

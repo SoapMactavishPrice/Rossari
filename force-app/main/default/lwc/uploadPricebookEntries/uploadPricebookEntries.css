@@ -1,0 +1,18 @@
+/* More specific targeting for lightning-datatable */
+.slds-scope lightning-datatable thead th {
+    background-color: #9d0b0f !important;
+    color: white !important;
+    font-weight: 600;
+    text-align: center;
+    font-size: 14px;
+    border: none !important;
+}
+
+.slds-scope lightning-datatable thead tr {
+    background-color: #9d0b0f !important;
+}
+
+.slds-scope lightning-datatable thead th .slds-truncate {
+    color: white !important;
+    font-weight: bold;
+}

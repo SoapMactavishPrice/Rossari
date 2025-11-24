@@ -211,6 +211,18 @@
                                 </lightning-record-edit-form>
                             </lightning-layout-item>
                         </template>
+
+                        <template if:true={showNewCustomerField}>
+                            <lightning-layout-item size="12" large-device-size="2" small-device-size="2"
+                                class="slds-m-around_small">
+                                Location <abbr class="slds-required" title="required">*</abbr>
+                                <br />
+                                <lightning-record-edit-form object-api-name="Visit_Report__c">
+                                    <lightning-input-field field-name="Location__c" variant="label-hidden"
+                                        data-label="Location" onchange={handleVisitChange}></lightning-input-field>
+                                </lightning-record-edit-form>
+                            </lightning-layout-item>
+                        </template>
                     </template>
 
                     <!-- Competitor Tracking Fields -->

@@ -10,38 +10,30 @@
                 <template for:each={quotes} for:item="quote">
                     <div key={quote.Id} class="slds-box slds-m-around_medium slds-p-around_medium">
 
-                        <!-- Quote Header -->
                         <h3 class="slds-text-heading_small slds-m-bottom_small">
-                            <b>Quote No.: {quote.QuoteNumber}</b> - {quote.Name}
+                            <b>Quote No.: {quote.QuoteNumber}</b> — {quote.Name}
                         </h3>
 
-                        <!-- Table Layout -->
                         <table class="slds-table slds-table_cell-buffer slds-table_bordered">
+
                             <thead>
                                 <tr class="slds-line-height_reset">
-                                    <th scope="col" style="width: 16.6%;">Customer Name</th>
-                                    <th scope="col" style="width: 16.6%;">Inco Term</th>
-                                    <th scope="col" style="width: 16.6%;">Previous Inco Term</th>
-                                    <th scope="col" style="width: 12.6%;">Quote Owner</th>
-                                    <th scope="col" style="width: 16.6%;">Inco Terms Approval Status</th>
-                                    <th scope="col" style="width: 20.6%;">Inco Remarks</th>
+                                    <th scope="col" style="width: 16.6%; background-color: #9d0b0f; font-weight: bold; color: white;">Customer Name</th>
+                                    <th scope="col" style="width: 16.6%; background-color: #9d0b0f; font-weight: bold; color: white;">Inco Term</th>
+                                    <th scope="col" style="width: 16.6%; background-color: #9d0b0f; font-weight: bold; color: white;">Previous Inco Term</th>
+                                    <th scope="col" style="width: 12.6%; background-color: #9d0b0f; font-weight: bold; color: white;">Quote Owner</th>
+                                    <th scope="col" style="width: 16.6%; background-color: #9d0b0f; font-weight: bold; color: white;">Inco Terms Approval Status</th>
+                                    <th scope="col" style="width: 20.6%; background-color: #9d0b0f; font-weight: bold; color: white;">Inco Remarks</th>
                                 </tr>
                             </thead>
+
                             <tbody>
                                 <tr>
-                                    <!-- Customer Name -->
                                     <td>{quote.Account.Name}</td>
-
-                                    <!-- Inco Term -->
                                     <td>{quote.Inco_Terms__c}</td>
-
-                                    <!-- Previous Inco Term -->
                                     <td>{quote.Previous_Inco_Terms__c}</td>
-
-                                    <!-- Quote Owner -->
                                     <td>{quote.Owner.Name}</td>
 
-                                    <!-- Inco Approval Status -->
                                     <td>
                                         <lightning-combobox
                                             value={quote.Inco_Terms_Approval_Status__c}
@@ -49,23 +41,53 @@
                                             data-field="Inco_Terms_Approval_Status__c"
                                             options={statusOptions}
                                             onchange={handleChange}
-                                            disabled={quote.isDisabled}
-                                            style="margin-top: -8px;">
+                                            disabled={quote.isDisabled}>
                                         </lightning-combobox>
                                     </td>
 
-                                    <!-- Inco Remarks -->
                                     <td>
-                                        <lightning-input 
-                                            value={quote.Inco_Remark__c} 
-                                            data-id={quote.Id} 
-                                            data-field="Inco_Remark__c" 
+                                        <lightning-input
+                                            value={quote.Inco_Remark__c}
+                                            data-id={quote.Id}
+                                            data-field="Inco_Remark__c"
                                             onchange={handleChange}
-                                            disabled={quote.isDisabled}
-                                            style="margin-top: -8px;">
+                                            disabled={quote.isDisabled}>
                                         </lightning-input>
                                     </td>
                                 </tr>
+                            </tbody>
+                        </table>
+
+                        <table class="slds-table slds-table_bordered slds-table_cell-buffer">
+
+                            <thead>
+                                <tr>
+                                    <th style="width: 30%; background-color: #F8D7DA; font-weight: bold; color: #555555;">Product</th>
+                                    <th style="width: 15%; background-color: #F8D7DA; font-weight: bold; color: #555555;">Quantity</th>
+                                    <th style="width: 18%; background-color: #F8D7DA; font-weight: bold; color: #555555;">List Price</th>
+                                    <th style="width: 18%; background-color: #F8D7DA; font-weight: bold; color: #555555;">Unit Price</th>
+                                    <th style="width: 19%; background-color: #F8D7DA; font-weight: bold; color: #555555;">Discount (%)</th>
+                                </tr>
+                            </thead>
+
+                            <tbody>
+                                <template if:true={quote.QuoteLineItems}>
+                                    <template for:each={quote.QuoteLineItems} for:item="item">
+                                        <tr key={item.Id}>
+                                            <td>{item.Product2.Name}</td>
+                                            <td>{item.Quantity}</td>
+                                            <td>{item.ListPrice}</td>
+                                            <td>{item.UnitPrice}</td>
+                                            <td>{item.Discount}</td>
+                                        </tr>
+                                    </template>
+                                </template>
+
+                                <template if:false={quote.QuoteLineItems}>
+                                    <tr>
+                                        <td colspan="5" class="slds-text-align_center">No line items</td>
+                                    </tr>
+                                </template>
                             </tbody>
                         </table>
                     </div>
@@ -78,7 +100,6 @@
                 </div>
             </template>
 
-            <!-- Submit button -->
             <div class="slds-m-top_medium slds-text-align_center">
                 <lightning-button 
                     label="Submit Approval" 

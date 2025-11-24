@@ -14,6 +14,7 @@ import getGradeDetailsWithSalesType from '@salesforce/apex/ExpenseController.get
 import getModeOfTravelOptions from '@salesforce/apex/ExpenseController.getModeOfTravelOptions';
 import getExportTransportModes from '@salesforce/apex/ExpenseController.getExportTransportModes';
 import getCityDetails from '@salesforce/apex/ExpenseController.getCityDetails';
+import checkAllowanceEligibility from '@salesforce/apex/ExpenseController.checkAllowanceEligibility';
 import { loadStyle } from 'lightning/platformResourceLoader';
 import LightningFileUploadHideLabelCss from '@salesforce/resourceUrl/LightningFileUploadHideLabelCss';
 
@@ -68,6 +69,15 @@ export default class ExpenseForm extends NavigationMixin(LightningElement) {
     @track selectedAccounts = []; // Track multiple selected accounts   
     @track visitReportId = '';
     @track visitReportName = '';
+    @track isDailyAllowanceEligible = false;
+    @track dailyAllowanceEligibilityChecked = false;
+    @track dailyAllowanceEligibilityMessage = '';
+    @track isOutOfPocketEligible = false;
+    @track outOfPocket = 0;
+    @track specialAllowance = 0;
+    @track isFilePreviewModalOpen = false;
+    @track currentPreviewFiles = [];
+    @track currentPreviewIndex = -1;
     @track selectedCurrency = 'INR';
     @track currencyOptions = [
         { label: 'Indian Rupee (INR)', value: 'INR' },
@@ -177,6 +187,34 @@ export default class ExpenseForm extends NavigationMixin(LightningElement) {
     get salesTypeDebug() {
         console.log('Sales Type Updated:', this.salesType, 'Show City Field:', this.showCityField);
         return this.salesType;
+    }
+
+    get dailyAllowanceStatus() {
+        if (!this.dailyAllowanceEligibilityChecked) {
+            return 'Checking eligibility...';
+        }
+        
+        if (this.isDailyAllowanceEligible && this.isOutOfPocketEligible) {
+            return 'Eligible for both Daily Allowance and Out of Pocket';
+        } else if (this.isDailyAllowanceEligible && !this.isOutOfPocketEligible) {
+            return 'Eligible for Daily Allowance only (Out of Pocket already claimed)';
+        } else if (!this.isDailyAllowanceEligible && this.isOutOfPocketEligible) {
+            return 'Eligible for Out of Pocket only (Daily Allowance already claimed)';
+        } else {
+            return 'Both Daily Allowance and Out of Pocket already claimed for this date';
+        }
+    }
+
+    get dailyAllowanceStatusVariant() {
+        if (!this.dailyAllowanceEligibilityChecked) return 'info';
+        
+        if (this.isDailyAllowanceEligible && this.isOutOfPocketEligible) {
+            return 'success';
+        } else if (this.isDailyAllowanceEligible || this.isOutOfPocketEligible) {
+            return 'warning';
+        } else {
+            return 'error';
+        }
     }
 
     // Add this getter to your main component
@@ -321,23 +359,32 @@ export default class ExpenseForm extends NavigationMixin(LightningElement) {
             console.log('Grade details with sales type received:', gradeDetails);
 
             if (gradeDetails.success) {
+                // Store the original Out of Pocket and Special Allowance values
+                const originalOutOfPocket = this.outOfPocket;
+                const originalSpecialAllowance = this.specialAllowance;
+                
                 // Store ALL rates (both A and B Class)
                 this.dailyAllowance = gradeDetails.dailyAllowance || 0;
-                this.dailyAllowanceBClass = gradeDetails.dailyAllowanceBClass || gradeDetails.dailyAllowance || 0; // Add this
+                this.dailyAllowanceBClass = gradeDetails.dailyAllowanceBClass || gradeDetails.dailyAllowance || 0;
                 this.fourWheelerPerKm = gradeDetails.fourWheelerPerKm || 0;
                 this.twoWheelerPerKm = gradeDetails.twoWheelerPerKm || 0;
-                this.specialAllowance = gradeDetails.specialAllowance || 0;
-                this.outOfPocket = gradeDetails.outOfPocket || 0;
                 this.lodgingHotel = gradeDetails.lodgingHotel || 0;
                 this.boardingFood = gradeDetails.boardingFood || 0;
-                this.lodgingHotelBClass = gradeDetails.lodgingHotelBClass || gradeDetails.lodgingHotel || 0; // Add this
-                this.boardingFoodBClass = gradeDetails.boardingFoodBClass || gradeDetails.boardingFood || 0; // Add this
+                this.lodgingHotelBClass = gradeDetails.lodgingHotelBClass || gradeDetails.lodgingHotel || 0;
+                this.boardingFoodBClass = gradeDetails.boardingFoodBClass || gradeDetails.boardingFood || 0;
                 this.canEditDailyAllowance = gradeDetails.canEditDailyAllowance || false;
 
-                console.log('All allowances loaded - A Class DA:', this.dailyAllowance, 'B Class DA:', this.dailyAllowanceBClass);
-                console.log('A Class Lodging:', this.lodgingHotel, 'B Class Lodging:', this.lodgingHotelBClass);
-                console.log('A Class Boarding:', this.boardingFood, 'B Class Boarding:', this.boardingFoodBClass);
+                // PRESERVE Out of Pocket and Special Allowance - only update if not already set
+                if (this.outOfPocket === 0 || originalOutOfPocket === 0) {
+                    this.outOfPocket = gradeDetails.outOfPocket || 0;
+                }
+                if (this.specialAllowance === 0 || originalSpecialAllowance === 0) {
+                    this.specialAllowance = gradeDetails.specialAllowance || 0;
+                }
 
+                console.log('All allowances loaded - Out of Pocket:', this.outOfPocket, 'Special Allowance:', this.specialAllowance);
+
+                // Rest of your existing method remains the same...
                 // For Domestic sales type, update allowances based on city if selected
                 if (salesType === 'Domestic' && this.selectedCityId) {
                     await this.updateAllowancesBasedOnCity();
@@ -365,16 +412,26 @@ export default class ExpenseForm extends NavigationMixin(LightningElement) {
                 }
 
                 // Update all line items with new transport options, rates, and limitation texts
-                this.lineItems = this.lineItems.map(item => {
+                this.lineItems = this.lineItems.map((item, index) => {
                     const transportOptions = this.getTransportOptionsForItem(item.typeOfExpenseId);
                     const limitationText = this.computeLimitationText(item);
 
                     console.log('Updating line item with new grade data from sales type');
 
+                    // Determine correct allowance based on voucher type and eligibility
+                    const isFirstItem = index === 0;
+                    let dailyAllowanceValue = 0;
+                    if (this.selectedVoucherType === 'Outstation' && isFirstItem && this.isOutOfPocketEligible) {
+                        dailyAllowanceValue = this.outOfPocket || 0;
+                    } else if (this.selectedVoucherType === 'Local' && isFirstItem && this.isDailyAllowanceEligible) {
+                        dailyAllowanceValue = this.dailyAllowance || 0;
+                    }
+
                     return {
                         ...item,
-                        dailyAllowance: this.dailyAllowance,
-                        disableDailyAllowance: !this.canEditDailyAllowance,
+                        dailyAllowance: dailyAllowanceValue,
+                        disableDailyAllowance: !isFirstItem || 
+                            (this.selectedVoucherType === 'Outstation' ? !this.isOutOfPocketEligible : !this.isDailyAllowanceEligible),
                         transportOptions: transportOptions,
                         limitationText: limitationText,
                         // Auto-update KM rate if transport mode is set
@@ -467,20 +524,27 @@ export default class ExpenseForm extends NavigationMixin(LightningElement) {
             });
 
             // Update line items with grade data and correct transport options
-            this.lineItems = this.lineItems.map(item => {
+            this.lineItems = this.lineItems.map((item, index) => {
                 const transportOptions = this.getTransportOptionsForItem('', this.selectedVoucherType);
                 console.log('Initializing line item with transport options:', transportOptions);
 
+                // FIXED: Respect daily allowance eligibility
+                const shouldHaveDailyAllowance = this.isDailyAllowanceEligible && index === 0;
+                const dailyAllowanceValue = shouldHaveDailyAllowance ? this.dailyAllowance : 0;
+
                 return {
                     ...item,
-                    dailyAllowance: this.dailyAllowance,
-                    disableDailyAllowance: !this.canEditDailyAllowance,
+                    dailyAllowance: dailyAllowanceValue,
+                    disableDailyAllowance: !shouldHaveDailyAllowance || !this.canEditDailyAllowance,
                     transportOptions: transportOptions,
                     modeOfTravel: '', // Initialize Mode_of_Travel
                     disableTransportFields: false // Initialize disable flag
                 };
             });
 
+            if (this.todayDate && this.selectedEmployeeId) {
+                await this.checkAllowanceEligibility();
+            }
         } catch (error) {
             console.error('Initialization error:', error);
             this.showToast('Error', error?.body?.message || error.message || 'Initialization failed', 'error');
@@ -489,69 +553,202 @@ export default class ExpenseForm extends NavigationMixin(LightningElement) {
         }
     }
 
-    // Get transport options based on expense type name and voucher type
-    getTransportOptionsForItem(typeOfExpenseId, voucherType = this.selectedVoucherType) {
+    // UPDATE the getTransportOptionsForItem method:
+    getTransportOptionsForItem(typeOfExpenseId, voucherType = this.selectedVoucherType, modeOfTravel = '') {
         console.log('=== getTransportOptionsForItem called ===');
         console.log('Voucher type:', voucherType);
         console.log('Sales Type:', this.salesType);
         console.log('Expense type ID:', typeOfExpenseId);
+        console.log('Mode of Travel:', modeOfTravel);
 
-        // For Outstation Export - use Mode_of_Travel__c from grade with Sales_Type__c = 'Export'
-        if (voucherType === 'Outstation' && this.salesType === 'Export') {
-            console.log('Processing Outstation Export voucher type');
+        let baseOptions = [];
 
-            if (this.gradeTransportModeOptions.length > 0) {
-                console.log('Using export-specific modes:', this.gradeTransportModeOptions);
-                return this.gradeTransportModeOptions;
-            } else {
-                console.log('No export-specific modes found, returning all modes');
-                return this.allTransportModeOptions;
-            }
-        }
-
-        // For Outstation Domestic - use Mode_of_Outstation_Travel__c from grade
+        // CRITICAL FIX: For Outstation Domestic - use Mode_of_Outstation_Travel__c from grade
         if (voucherType === 'Outstation' && this.salesType === 'Domestic') {
             console.log('Processing Outstation Domestic voucher type');
-
-            if (this.modeOfOutstationTravelOptions.length > 0) {
-                console.log('Using outstation-specific modes:', this.modeOfOutstationTravelOptions);
-                return this.modeOfOutstationTravelOptions;
+            
+            // Use Mode_of_Outstation_Travel__c options from grade
+            if (this.modeOfOutstationTravelOptions && this.modeOfOutstationTravelOptions.length > 0) {
+                baseOptions = this.modeOfOutstationTravelOptions;
+                console.log('Using Mode_of_Outstation_Travel__c options:', baseOptions);
             } else {
-                console.log('No outstation-specific modes found, returning all modes');
-                return this.allTransportModeOptions;
+                // Fallback to all transport modes if no grade-specific options
+                baseOptions = this.allTransportModeOptions;
+                console.log('Using fallback transport modes for Outstation Domestic');
+            }
+        }
+        // For Outstation Export - use Mode_of_Travel__c from grade with Sales_Type__c = 'Export'
+        else if (voucherType === 'Outstation' && this.salesType === 'Export') {
+            console.log('Processing Outstation Export voucher type');
+            baseOptions = this.gradeTransportModeOptions.length > 0 ? 
+                this.gradeTransportModeOptions : this.allTransportModeOptions;
+        }
+        // For other voucher types (Local, Special, Cash, Misc)
+        else {
+            baseOptions = this.gradeTransportModeOptions.length > 0 ?
+                this.gradeTransportModeOptions : this.allTransportModeOptions;
+        }
+
+        console.log('Base options before filtering:', baseOptions);
+
+        // Apply Mode of Travel filtering if specified (for Outstation Domestic)
+        if (modeOfTravel && voucherType === 'Outstation' && this.salesType === 'Domestic') {
+            if (modeOfTravel === 'Own Vehicle') {
+                baseOptions = baseOptions.filter(mode => 
+                    mode.value === 'Car' || mode.value === 'Bike' || mode.value === 'Own Vehicle'
+                );
+                console.log('Filtered for Own Vehicle:', baseOptions);
+            } else if (modeOfTravel === 'Public Transport') {
+                baseOptions = baseOptions.filter(mode => 
+                    mode.value !== 'Car' && mode.value !== 'Bike' && mode.value !== 'Own Vehicle'
+                );
+                console.log('Filtered for Public Transport:', baseOptions);
             }
         }
 
-        // For other voucher types - apply expense type filtering
-        console.log('Processing other voucher type:', voucherType);
-        const availableModes = this.gradeTransportModeOptions.length > 0 ?
-            this.gradeTransportModeOptions : this.allTransportModeOptions;
-
-        if (!typeOfExpenseId) {
-            console.log('No expense type ID, returning available modes');
-            return availableModes;
+        // Apply expense type filtering (only if no mode of travel filtering applied)
+        if (!typeOfExpenseId || modeOfTravel) {
+            console.log('No expense type ID or mode of travel applied, returning base options');
+            return baseOptions;
         }
 
         const expenseType = this.typeOfExpenseOptions.find(opt => opt.value === typeOfExpenseId);
         if (!expenseType) {
-            console.log('Expense type not found, returning available modes');
-            return availableModes;
+            console.log('Expense type not found, returning base options');
+            return baseOptions;
         }
 
         console.log('Expense type found:', expenseType.name);
 
-        if (expenseType.name === 'Public') {
-            const publicModes = availableModes.filter(mode => mode.value === 'Bus');
-            console.log('Filtered for Public expense:', publicModes);
-            return publicModes;
-        } else if (expenseType.name === 'Private') {
-            const privateModes = availableModes.filter(mode => mode.value === 'Car' || mode.value === 'Bike');
-            console.log('Filtered for Private expense:', privateModes);
-            return privateModes;
+        // Only apply expense type filtering for Local vouchers
+        if (voucherType === 'Local') {
+            if (expenseType.name === 'Public') {
+                const publicModes = baseOptions.filter(mode => mode.value === 'Bus');
+                console.log('Filtered for Public expense:', publicModes);
+                return publicModes;
+            } else if (expenseType.name === 'Private') {
+                const privateModes = baseOptions.filter(mode => mode.value === 'Car' || mode.value === 'Bike');
+                console.log('Filtered for Private expense:', privateModes);
+                return privateModes;
+            }
         }
 
-        console.log('No specific filtering, returning all available modes');
-        return availableModes;
+        console.log('No specific filtering, returning base options');
+        return baseOptions;
+    }
+
+    // NEW: Handle viewing uploaded files
+    handleViewFiles(event) {
+        const idx = parseInt(event.currentTarget.dataset.index, 10);
+        const item = this.lineItems[idx];
+        const key = item.key;
+        
+        if (this.filesMap.has(key)) {
+            const documentIds = this.filesMap.get(key);
+            console.log('Viewing files for line item', idx, 'Document IDs:', documentIds);
+            
+            if (documentIds && documentIds.length > 0) {
+                // Open each file in a new tab
+                documentIds.forEach(docId => {
+                    if (docId) {
+                        const fileUrl = `/sfc/servlet.shepherd/document/download/${docId}`;
+                        window.open(fileUrl, '_blank');
+                    }
+                });
+                
+                this.showToast('Success', `Opening ${documentIds.length} file(s) in new tabs`, 'success');
+            } else {
+                this.showToast('Info', 'No files to view', 'info');
+            }
+        } else {
+            this.showToast('Info', 'No files uploaded for this line item', 'info');
+        }
+    }
+
+    // ENHANCE the openFilePreviewModal method to use stored file names
+    openFilePreviewModal(event) {
+        const idx = parseInt(event.currentTarget.dataset.index, 10);
+        const item = this.lineItems[idx];
+        const key = item.key;
+        
+        if (this.filesMap.has(key)) {
+            const documentIds = this.filesMap.get(key);
+            console.log('Opening file preview for line item', idx, 'Document IDs:', documentIds);
+            
+            if (documentIds && documentIds.length > 0) {
+                // Use stored file details if available, otherwise create basic file objects
+                let fileDetails = [];
+                if (this.fileDetailsMap && this.fileDetailsMap.has(key)) {
+                    fileDetails = this.fileDetailsMap.get(key);
+                } else {
+                    // Fallback to basic file objects
+                    fileDetails = documentIds.map(docId => ({
+                        documentId: docId,
+                        name: `File_${docId.substring(0, 8)}`
+                    }));
+                }
+                
+                this.currentPreviewFiles = fileDetails;
+                this.currentPreviewIndex = idx;
+                this.isFilePreviewModalOpen = true;
+            } else {
+                this.showToast('Info', 'No files to preview', 'info');
+            }
+        } else {
+            this.showToast('Info', 'No files uploaded for this line item', 'info');
+        }
+    }
+
+    // ADD this method for direct preview from modal:
+    handleModalFilePreview(event) {
+        const fileId = event.currentTarget.dataset.fileId;
+        
+        if (fileId) {
+            // Use Salesforce file preview page
+            this[NavigationMixin.Navigate]({
+                type: 'standard__namedPage',
+                attributes: {
+                    pageName: 'filePreview'
+                },
+                state: {
+                    selectedRecordId: fileId
+                }
+            });
+            
+            // Close the modal after opening preview
+            this.closeFilePreviewModal();
+        }
+    }
+
+    // Method to close file preview modal
+    closeFilePreviewModal() {
+        this.isFilePreviewModalOpen = false;
+        this.currentPreviewFiles = [];
+        this.currentPreviewIndex = -1;
+    }
+
+    // Method to preview individual file
+    handleFilePreview(event) {
+        const fileId = event.currentTarget.dataset.fileId;
+        console.log('Previewing file:', fileId);
+        
+        if (fileId) {
+            // Use Salesforce file preview page instead of download URL
+            this[NavigationMixin.Navigate]({
+                type: 'standard__namedPage',
+                attributes: {
+                    pageName: 'filePreview'
+                },
+                state: {
+                    selectedRecordId: fileId
+                }
+            });
+        }
+    }
+
+    // Getter to check if line item has files
+    get hasNoFiles() {
+        return this.currentPreviewFiles.length === 0;
     }
 
     // Check if expense type is private
@@ -576,6 +773,7 @@ export default class ExpenseForm extends NavigationMixin(LightningElement) {
     async handleEmployeeChange(event) {
         const empId = event.detail.value;
         this.selectedEmployeeId = empId;
+        this.dailyAllowanceEligibilityChecked = false;
         const emp = this.employeeOptions.find(e => e.value === empId);
 
         if (emp) {
@@ -599,6 +797,8 @@ export default class ExpenseForm extends NavigationMixin(LightningElement) {
                         this.dailyAllowance = gradeDetails.dailyAllowance || 0;
                         this.fourWheelerPerKm = gradeDetails.fourWheelerPerKm || 0;
                         this.twoWheelerPerKm = gradeDetails.twoWheelerPerKm || 0;
+                        this.specialAllowance = gradeDetails.specialAllowance || 0;
+                        this.outOfPocket = gradeDetails.outOfPocket || 0;
                         this.canEditDailyAllowance = gradeDetails.canEditDailyAllowance || false;
 
                         // Update transport modes from grade
@@ -614,12 +814,17 @@ export default class ExpenseForm extends NavigationMixin(LightningElement) {
                         }
 
                         // Update all line items with new transport options and recalculate totals
-                        this.lineItems = this.lineItems.map(item => {
+                        this.lineItems = this.lineItems.map((item, index) => {
                             const transportOptions = this.getTransportOptionsForItem(item.typeOfExpenseId);
+                            
+                            // FIXED: Respect daily allowance eligibility
+                            const shouldHaveDailyAllowance = this.isDailyAllowanceEligible && index === 0;
+                            const dailyAllowanceValue = shouldHaveDailyAllowance ? this.dailyAllowance : 0;
+
                             const updatedItem = {
                                 ...item,
-                                dailyAllowance: this.dailyAllowance,
-                                disableDailyAllowance: !this.canEditDailyAllowance,
+                                dailyAllowance: dailyAllowanceValue,
+                                disableDailyAllowance: !shouldHaveDailyAllowance || !this.canEditDailyAllowance,
                                 transportOptions: transportOptions,
                                 // Auto-update KM rate if transport mode is set
                                 kmRate: this.getUpdatedKMRateForItem(item)
@@ -645,6 +850,10 @@ export default class ExpenseForm extends NavigationMixin(LightningElement) {
                 this.dailyAllowance = 0;
                 this.canEditDailyAllowance = false;
                 this.gradeTransportModeOptions = [];
+            }
+            // Check eligibility after employee is selected
+            if (this.todayDate) {
+                await this.checkDailyAllowanceEligibility();
             }
         }
     }
@@ -718,12 +927,14 @@ export default class ExpenseForm extends NavigationMixin(LightningElement) {
         const isPrivate = expenseType && expenseType.name === 'Private';
         const isPublic = expenseType && expenseType.name === 'Public';
         const isFoodOrHotel = this.isFoodOrHotelExpense(value);
+        const isOwnArrangement = expenseType && expenseType.label && expenseType.label.toLowerCase().includes('own arrangement');
 
         // Update line item
         this.updateLineItem(idx, 'typeOfExpenseId', value);
         this.updateLineItem(idx, 'isPrivate', isPrivate);
         this.updateLineItem(idx, 'isPublic', isPublic);
         this.updateLineItem(idx, 'isFoodOrHotel', isFoodOrHotel);
+        this.updateLineItem(idx, 'isOwnArrangement', isOwnArrangement);
 
         // Update disable flags
         this.updateLineItem(idx, 'disableTransportFields', isFoodOrHotel);
@@ -737,6 +948,18 @@ export default class ExpenseForm extends NavigationMixin(LightningElement) {
         if (expenseType) {
             this.updateLineItem(idx, 'glCodeId', expenseType.glCodeId || '');
             this.updateLineItem(idx, 'glCodeName', expenseType.glCodeName || '');
+        }
+
+        // NEW LOGIC: Auto-set Special Allowance for Own Arrangement expense types when Out of Pocket is eligible
+        if (isOwnArrangement) {
+            console.log('Own Arrangement expense detected, setting Special Allowance:', this.specialAllowance);
+            this.updateLineItem(idx, 'amountClaimed', this.specialAllowance);
+        } else if (!isOwnArrangement) {
+            // Reset amount claimed if not Own Arrangement (unless user manually entered)
+            const currentItem = this.lineItems[idx];
+            if (currentItem.amountClaimed === this.specialAllowance) {
+                this.updateLineItem(idx, 'amountClaimed', 0);
+            }
         }
 
         // Update limitation text
@@ -759,34 +982,6 @@ export default class ExpenseForm extends NavigationMixin(LightningElement) {
 
         // Force refresh to update the header text
         this.lineItems = [...this.lineItems];
-    }
-
-    handleModeOfTravelChange(event) {
-        const idx = parseInt(event.currentTarget.dataset.index, 10);
-        const value = event.detail.value;
-
-        console.log('Mode of Travel changed for index:', idx);
-        console.log('Selected Mode of Travel:', value);
-
-        this.selectedModeOfTravel = value;
-
-
-        // Update the field
-        this.updateLineItem(idx, 'modeOfTravel', value);
-
-        // Update Daily Allowance based on Mode_of_Travel selection
-        let newDailyAllowance = 0;
-        if (value === 'Own Vehicle') {
-            newDailyAllowance = this.specialAllowance || 0;
-        } else if (value === 'Public Transport') {
-            newDailyAllowance = this.outOfPocket || 0;
-        }
-
-        console.log('Setting daily allowance to:', newDailyAllowance);
-        this.updateLineItem(idx, 'dailyAllowance', newDailyAllowance);
-
-        // Recalculate total
-        this.updateLineItemTotal(idx);
     }
 
     updateLineItemTotal(index) {
@@ -1004,6 +1199,10 @@ export default class ExpenseForm extends NavigationMixin(LightningElement) {
                 });
 
                 if (gradeDetails.success) {
+
+                    const originalOutOfPocket = this.outOfPocket;
+                    const originalSpecialAllowance = this.specialAllowance;
+
                     // Update ALL allowances based on city type
                     if (this.isAClassCity) {
                         // Use A Class city rates
@@ -1017,16 +1216,29 @@ export default class ExpenseForm extends NavigationMixin(LightningElement) {
                         this.boardingFood = gradeDetails.boardingFoodBClass || gradeDetails.boardingFood || 0;
                     }
 
+                    this.outOfPocket = originalOutOfPocket;
+                    this.specialAllowance = originalSpecialAllowance;
+
                     console.log('Updated allowances based on city type - A Class:', this.isAClassCity);
                     console.log('Daily Allowance:', this.dailyAllowance);
                     console.log('Lodging Hotel:', this.lodgingHotel);
                     console.log('Boarding Food:', this.boardingFood);
 
-                    // Update all line items with new daily allowance
-                    this.lineItems = this.lineItems.map(item => {
+                    // FIXED: Update line items with RESPECT to eligibility
+                    this.lineItems = this.lineItems.map((item, index) => {
+                        const isFirstItem = index === 0;
+                    
+                        // Determine correct allowance based on voucher type and eligibility
+                        let dailyAllowanceValue = 0;
+                        if (this.selectedVoucherType === 'Outstation' && isFirstItem && this.isOutOfPocketEligible) {
+                            dailyAllowanceValue = this.outOfPocket || 0;
+                        } else if (this.selectedVoucherType === 'Local' && isFirstItem && this.isDailyAllowanceEligible) {
+                            dailyAllowanceValue = this.dailyAllowance || 0;
+                        }
+
                         const updatedItem = {
                             ...item,
-                            dailyAllowance: this.dailyAllowance
+                            dailyAllowance: dailyAllowanceValue
                         };
 
                         // Recalculate total
@@ -1233,9 +1445,19 @@ export default class ExpenseForm extends NavigationMixin(LightningElement) {
         const transportOptions = this.getTransportOptionsForItem('', this.selectedVoucherType);
         console.log('Adding new line item with transport options:', transportOptions);
 
+        // Determine if this line item should have allowances
+        const isFirstItem = this.lineItems.length === 0;
+        
+        // NEW LOGIC: Set allowances based on voucher type and eligibility
+        let dailyAllowanceValue = 0;
+        if (this.selectedVoucherType === 'Outstation' && isFirstItem && this.isOutOfPocketEligible) {
+            dailyAllowanceValue = this.outOfPocket || 0;
+        } else if (this.selectedVoucherType === 'Local' && isFirstItem && this.isDailyAllowanceEligible) {
+            dailyAllowanceValue = this.dailyAllowance || 0;
+        }
+
         const initialAmountClaimed = 0;
-        const initialDailyAllowance = this.dailyAllowance || 0;
-        const initialTotal = initialAmountClaimed + initialDailyAllowance;
+        const initialTotal = initialAmountClaimed + dailyAllowanceValue;
 
         // Pre-compute disabled states
         const computedTransportDisabled = false;
@@ -1246,7 +1468,7 @@ export default class ExpenseForm extends NavigationMixin(LightningElement) {
             key: this.nextKey++,
             typeOfExpenseId: '',
             amountClaimed: initialAmountClaimed,
-            dailyAllowance: initialDailyAllowance,
+            dailyAllowance: dailyAllowanceValue, // Use calculated allowance
             total: initialTotal,
             reason: '',
             fromLocation: '',
@@ -1275,16 +1497,18 @@ export default class ExpenseForm extends NavigationMixin(LightningElement) {
             glCodeId: '',
             glCodeName: '',
             remark: '',
-            disableDailyAllowance: !this.canEditDailyAllowance,
+            disableDailyAllowance: !isFirstItem || 
+                (this.selectedVoucherType === 'Outstation' ? !this.isOutOfPocketEligible : !this.isDailyAllowanceEligible),
             calculatedAmountDisplay: '0.00',
-            modeOfTravel: '',
+            modeOfTravel: '', // Initialize Mode_of_Travel
             disableTransportFields: false,
             disableTransportMode: false,
             // Pre-computed disabled states
             computedTransportDisabled: computedTransportDisabled,
             computedLocationDisabled: computedLocationDisabled,
             // Add limitation text
-            limitationText: limitationText
+            limitationText: limitationText,
+            isOwnArrangement: false // Initialize Own Arrangement flag
         };
         this.lineItems = [...this.lineItems, newItem];
     }
@@ -1295,20 +1519,97 @@ export default class ExpenseForm extends NavigationMixin(LightningElement) {
             const key = this.lineItems[idx].key;
             this.filesMap.delete(key);
             this.lineItems.splice(idx, 1);
+
+            // If first item was deleted, update daily allowance for new first item
+            if (idx === 0 && this.isDailyAllowanceEligible) {
+                this.updateAllowancesForLineItems();
+            }
             this.lineItems = [...this.lineItems];
         } else {
             this.showToast('Info', 'At least one line item is required', 'info');
         }
     }
 
+    async handleModeOfTravelChange(event) {
+        const idx = parseInt(event.currentTarget.dataset.index, 10);
+        const value = event.detail.value;
+
+        console.log('Mode of Travel changed for index:', idx, 'Value:', value);
+        this.updateLineItem(idx, 'modeOfTravel', value);
+        
+        // For Outstation Domestic, filter transport options based on Mode of Travel
+        if (this.selectedVoucherType === 'Outstation' && this.salesType === 'Domestic') {
+            await this.filterTransportOptionsByModeOfTravel(idx, value);
+        }
+    }
+
+    async filterTransportOptionsByModeOfTravel(index, modeOfTravel) {
+        let filteredTransportOptions = [];
+        
+        // Get base options for Outstation Domestic
+        const baseOptions = this.getTransportOptionsForItem('', 'Outstation', '');
+        
+        if (modeOfTravel === 'Own Vehicle') {
+            // Show only vehicle options for Own Vehicle
+            filteredTransportOptions = baseOptions.filter(mode => 
+                mode.value === 'Car' || mode.value === 'Bike' || mode.value === 'Own Vehicle'
+            );
+            console.log('Filtered transport options for Own Vehicle:', filteredTransportOptions);
+        } else if (modeOfTravel === 'Public Transport') {
+            // Exclude vehicle options for Public Transport
+            filteredTransportOptions = baseOptions.filter(mode => 
+                mode.value !== 'Car' && mode.value !== 'Bike' && mode.value !== 'Own Vehicle'
+            );
+            console.log('Filtered transport options for Public Transport:', filteredTransportOptions);
+        } else {
+            // Show all available options for the selected mode
+            filteredTransportOptions = baseOptions;
+            console.log('Showing all transport options for mode:', modeOfTravel, filteredTransportOptions);
+        }
+        
+        // Update the line item with filtered transport options
+        this.updateLineItem(index, 'transportOptions', filteredTransportOptions);
+        
+        // Clear transport mode if it's no longer valid in the filtered options
+        const currentTransportMode = this.lineItems[index].outstationTransportMode;
+        if (currentTransportMode && !filteredTransportOptions.some(opt => opt.value === currentTransportMode)) {
+            this.updateLineItem(index, 'outstationTransportMode', '');
+            console.log('Cleared invalid transport mode:', currentTransportMode);
+        }
+    }
+
+    // UPDATE the handleFileUpload method to store file names
     handleFileUpload(event) {
-        const key = this.lineItems[event.target.dataset.index].key;
+        const idx = event.target.dataset.index;
+        const key = this.lineItems[idx].key;
         const files = event.detail.files;
+        
         if (files && files.length > 0) {
+            // Store both document IDs and file details
+            const fileDetails = files.map(file => ({
+                documentId: file.documentId,
+                name: file.name,
+                contentType: file.contentType
+            }));
+            
             const documentIds = files.map(file => file.documentId);
+            
+            // Store file details in a separate map for better organization
+            if (!this.fileDetailsMap) {
+                this.fileDetailsMap = new Map();
+            }
+            this.fileDetailsMap.set(key, fileDetails);
+            
+            // Keep the original filesMap for backward compatibility
             this.filesMap.set(key, documentIds);
-            this.updateLineItem(event.target.dataset.index, 'fileCount', documentIds.length);
+            
+            // Update file count for the specific line item
+            this.updateLineItem(parseInt(idx), 'fileCount', documentIds.length);
+            
             this.showToast('Success', `${documentIds.length} file(s) uploaded successfully`, 'success');
+            
+            // Force re-render to show/hide the eye icon
+            this.lineItems = [...this.lineItems];
         }
     }
 
@@ -1376,10 +1677,29 @@ export default class ExpenseForm extends NavigationMixin(LightningElement) {
                 await this.updateExportTransportModes();
             }
 
-            // Force update all line items with correct transport options
-            this.lineItems = this.lineItems.map(item => {
+            // Force update all line items with correct transport options and allowances
+            this.lineItems = this.lineItems.map((item, index) => {
                 const transportOptions = this.getTransportOptionsForItem('', this.selectedVoucherType);
                 console.log('Setting transport options for item:', transportOptions);
+
+                const isFirstItem = index === 0;
+                
+                // NEW LOGIC: Determine allowances based on voucher type and eligibility
+                let dailyAllowanceValue = 0;
+                let amountClaimedValue = item.amountClaimed || 0;
+                
+                if (this.selectedVoucherType === 'Outstation' && isFirstItem && this.isOutOfPocketEligible) {
+                    // For Outstation, first item gets Out_of_Pocket in Daily_Allowance field
+                    dailyAllowanceValue = this.outOfPocket || 0;
+                } else if (this.selectedVoucherType === 'Local' && isFirstItem && this.isDailyAllowanceEligible) {
+                    // For Local, first item gets Daily_Allowance
+                    dailyAllowanceValue = this.dailyAllowance || 0;
+                }
+                
+                // Reset amount claimed unless it's Own Arrangement
+                if (!item.isOwnArrangement) {
+                    amountClaimedValue = 0;
+                }
 
                 return {
                     ...item,
@@ -1404,12 +1724,13 @@ export default class ExpenseForm extends NavigationMixin(LightningElement) {
                     glCodeId: '',
                     glCodeName: '',
                     remark: '',
-                    modeOfTravel: '',
+                    modeOfTravel: '', // Reset mode of travel as it's no longer used for allowance logic
                     disableTransportFields: false,
-                    // Preserve daily allowance for Local and Outstation vouchers
-                    dailyAllowance: (this.selectedVoucherType === 'Local' || this.selectedVoucherType === 'Outstation') ?
-                        (item.dailyAllowance || this.dailyAllowance) : 0,
-                    disableDailyAllowance: !this.canEditDailyAllowance
+                    dailyAllowance: dailyAllowanceValue,
+                    amountClaimed: amountClaimedValue,
+                    disableDailyAllowance: !isFirstItem || 
+                        (this.selectedVoucherType === 'Outstation' ? !this.isOutOfPocketEligible : !this.isDailyAllowanceEligible),
+                    isOwnArrangement: false 
                 };
             });
 
@@ -1425,8 +1746,118 @@ export default class ExpenseForm extends NavigationMixin(LightningElement) {
         this.expenseName = event.target.value;
     }
 
+    // Method to check daily allowance eligibility
+    async checkAllowanceEligibility() {
+        if (!this.todayDate || !this.selectedEmployeeId) {
+            return;
+        }
+
+        try {
+            this.isLoading = true;
+            const result = await checkAllowanceEligibility({
+                expenseDate: this.todayDate,
+                userId: this.selectedEmployeeId
+            });
+
+            this.isDailyAllowanceEligible = result.isDailyAllowanceEligible;
+            this.isOutOfPocketEligible = result.isOutOfPocketEligible;
+            this.dailyAllowanceEligibilityChecked = true;
+            this.dailyAllowanceEligibilityMessage = result.message;
+
+            console.log('Allowance Eligibility Result:', result);
+            console.log('Daily Allowance Eligible:', this.isDailyAllowanceEligible);
+            console.log('Out of Pocket Eligible:', this.isOutOfPocketEligible);
+
+            if (!this.isDailyAllowanceEligible && !this.isOutOfPocketEligible) {
+                this.showToast('Info', result.message, 'info');
+                
+                // Remove both allowances from all line items
+                this.lineItems = this.lineItems.map(item => ({
+                    ...item,
+                    dailyAllowance: 0,
+                    amountClaimed: 0,
+                    disableDailyAllowance: true
+                }));
+            } else {
+                // Update allowances based on eligibility and voucher type
+                this.updateAllowancesForLineItems();
+                
+                // Show appropriate message
+                if (this.isDailyAllowanceEligible && !this.isOutOfPocketEligible) {
+                    this.showToast('Warning', 'Daily Allowance eligible, but Out of Pocket already claimed for this date', 'warning');
+                } else if (!this.isDailyAllowanceEligible && this.isOutOfPocketEligible) {
+                    this.showToast('Warning', 'Out of Pocket eligible, but Daily Allowance already claimed for this date', 'warning');
+                }
+            }
+
+        } catch (error) {
+            console.error('Error checking allowance eligibility:', error);
+            this.isDailyAllowanceEligible = false;
+            this.isOutOfPocketEligible = false;
+            this.dailyAllowanceEligibilityChecked = true;
+            this.showToast('Error', 'Failed to check allowance eligibility', 'error');
+        } finally {
+            this.isLoading = false;
+        }
+    }
+
+    // Method to update allowances for line items based on eligibility
+    updateAllowancesForLineItems() {
+        console.log('Updating allowances - Daily Allowance Eligible:', this.isDailyAllowanceEligible, 'Out of Pocket Eligible:', this.isOutOfPocketEligible);
+        console.log('Voucher Type:', this.selectedVoucherType);
+        console.log('Out of Pocket value:', this.outOfPocket);
+        console.log('Special Allowance value:', this.specialAllowance);
+
+        this.lineItems = this.lineItems.map((item, index) => {
+            const isFirstItem = index === 0;
+            
+            // NEW LOGIC: For Outstation vouchers, use Out of Pocket on first line item if eligible
+            let dailyAllowanceValue = 0;
+            if (this.selectedVoucherType === 'Outstation' && isFirstItem && this.isOutOfPocketEligible) {
+                dailyAllowanceValue = this.outOfPocket || 0;
+                console.log('Setting Out of Pocket for Outstation voucher:', dailyAllowanceValue);
+            }
+            // For Local vouchers, use Daily Allowance on first line item if eligible
+            else if (this.selectedVoucherType === 'Local' && isFirstItem && this.isDailyAllowanceEligible) {
+                dailyAllowanceValue = this.dailyAllowance || 0;
+                console.log('Setting Daily Allowance for Local voucher:', dailyAllowanceValue);
+            }
+            
+            // NEW LOGIC: Auto-set Special Allowance for Own Arrangement expense types
+            let amountClaimedValue = item.amountClaimed || 0;
+            if (item.isOwnArrangement && this.isOutOfPocketEligible) {
+                amountClaimedValue = this.specialAllowance || 0;
+                console.log('Setting Special Allowance for Own Arrangement:', amountClaimedValue);
+            } else if (!item.isOwnArrangement && item.typeOfExpenseId === '') {
+                // Reset amount claimed if not Own Arrangement and no expense type selected
+                amountClaimedValue = 0;
+            }
+
+            const updatedItem = {
+                ...item,
+                dailyAllowance: dailyAllowanceValue,
+                amountClaimed: amountClaimedValue,
+                disableDailyAllowance: !isFirstItem || 
+                    (this.selectedVoucherType === 'Outstation' ? !this.isOutOfPocketEligible : !this.isDailyAllowanceEligible)
+            };
+
+            // Recalculate total
+            updatedItem.total = this.calculateLineItemTotal(updatedItem);
+
+            return updatedItem;
+        });
+        
+        console.log('Line items after allowance update:', JSON.parse(JSON.stringify(this.lineItems)));
+    }
+
     handleDateChange(event) {
         this.todayDate = event.target.value;
+        this.dailyAllowanceEligibilityChecked = false;
+    
+        // Check eligibility when date changes
+        if (this.todayDate && this.selectedEmployeeId) {
+            this.checkAllowanceEligibility();
+        }
     }
 
     async handleSubmit() {
@@ -1560,11 +1991,6 @@ export default class ExpenseForm extends NavigationMixin(LightningElement) {
             return false;
         }
 
-        if (this.selectedVoucherType === 'Outstation' && !this.selectedTourId) {
-            this.showToast('Error', 'Please select a Tour for Outstation expense', 'error');
-            return false;
-        }
-
         for (let i = 0; i < this.lineItems.length; i++) {
             const item = this.lineItems[i];
             const isPrivate = this.isPrivateExpense(item.typeOfExpenseId);
@@ -1605,12 +2031,6 @@ export default class ExpenseForm extends NavigationMixin(LightningElement) {
 
                 if (isPrivate && item.transportMode === 'Bus') {
                     this.showToast('Error', `Private expense cannot use Bus transport in row ${i + 1}`, 'error');
-                    return false;
-                }
-
-                // Validate KM Rate is required for all Local vouchers
-                if (!item.kmRate || item.kmRate <= 0) {
-                    this.showToast('Error', `Enter valid KM Rate/Bus Fare for row ${i + 1}`, 'error');
                     return false;
                 }
 

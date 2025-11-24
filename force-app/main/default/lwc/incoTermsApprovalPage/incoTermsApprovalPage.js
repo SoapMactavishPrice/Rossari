@@ -30,10 +30,9 @@ export default class IncoTermsApprovalPage extends LightningElement {
                 }));
             })
             .catch(error => {
-                this.showToast('Error', error.body.message, 'error');
+                this.showToast('Error', error.body ? error.body.message : error.message, 'error');
             });
     }
-
 
     handleChange(event) {
         const field = event.target.dataset.field;
@@ -51,21 +50,17 @@ export default class IncoTermsApprovalPage extends LightningElement {
             .then(result => {
                 if (result === 'Success') {
                     this.showToast('Success', 'Inco approval updated and emails sent.', 'success');
-                    setTimeout(() => window.location.reload(), 1000);
-                    this.loadQuotes();
+                    setTimeout(() => window.location.reload(), 800);
                 } else {
                     this.showToast('Error', result, 'error');
                 }
             })
             .catch(error => {
-                this.showToast('Error', error.body.message, 'error');
+                this.showToast('Error', error.body ? error.body.message : error.message, 'error');
             });
     }
 
     showToast(title, message, variant) {
         this.dispatchEvent(new ShowToastEvent({ title, message, variant }));
     }
-
-    
-
 }

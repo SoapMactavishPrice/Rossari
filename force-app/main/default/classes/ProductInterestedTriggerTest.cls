@@ -14,14 +14,15 @@ public class ProductInterestedTriggerTest {
         insert leadRecord;
 
         Product_Interested__c prodInterest = new Product_Interested__c(
-            //Name = 'Interest A',
             Lead__c = leadRecord.Id
-            //Quantity__c = 5
         );
 
         Test.startTest();
 
         insert prodInterest;
+
+        prodInterest.New_Product_Name__c = 'New Product ABC';
+        update prodInterest;
 
         delete prodInterest;
 
