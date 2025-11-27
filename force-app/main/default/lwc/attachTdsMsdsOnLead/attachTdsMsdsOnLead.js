@@ -14,6 +14,7 @@ import uploadDocuments from '@salesforce/apex/DocumentApprovalHandler.uploadDocu
 import sendLeadDocumentEmail from '@salesforce/apex/DocumentApprovalHandler.sendLeadDocumentEmail';
 import savePreviousViewType from '@salesforce/apex/DocumentApprovalHandler.savePreviousViewType';
 import getPreviousViewType from '@salesforce/apex/DocumentApprovalHandler.getPreviousViewType';
+import getConvertedRecordId from '@salesforce/apex/DocumentApprovalHandler.getConvertedRecordId';
 import saveRemarks from '@salesforce/apex/DocumentApprovalHandler.saveRemarks';
 
 
@@ -451,30 +452,42 @@ export default class AttachTdsMsdsOnLead extends NavigationMixin(LightningElemen
 
     connectedCallback() {
         console.log('leadId', this.rId);
-        Promise.all([
-            this.getViewType()
-        ])
 
-        setTimeout(() => {
-            if (this.viewType == 'customer') {
-                this.getProduct();
-                this.getLeadDetail();
-                this.getLeadInformation();
-                this.checkIfRequestDocumentSubmitted();
-                this.getDocumentDetails();
-            } else if (this.viewType == 'product') {
-                this.getProduct();
-                this.getLeadDetail();
-                this.getLeadInformation();
-            }
-        }, 1500);
+        getConvertedRecordId({ leadId: this.rId })
+            .then(result => {
+                console.log('Converted redirect URL ===> ', result);
 
+                if (result) {
+                    window.location.href = result;
+                    return;
+                }
+
+                return this.getViewType();
+            })
+            .then(() => {
+                setTimeout(() => {
+                    if (this.viewType == 'customer') {
+                        this.getProduct();
+                        this.getLeadDetail();
+                        this.getLeadInformation();
+                        this.checkIfRequestDocumentSubmitted();
+                        this.getDocumentDetails();
+                    } else if (this.viewType == 'product') {
+                        this.getProduct();
+                        this.getLeadDetail();
+                        this.getLeadInformation();
+                    }
+                }, 1500);
+            })
+            .catch(error => {
+                console.error('Error in connectedCallback:', error);
+            });
     }
+
 
     getLeadDetail() {
         getEmailDetails({ leadId: this.rId }).then(data => {
             if (data != null) {
-                this.ToAddress = data.Email;
                 this.ccAddress = data.Owner.Email;
             } else {
                 this.showToast('Error', 'Error', 'Lead Contact Email not found');

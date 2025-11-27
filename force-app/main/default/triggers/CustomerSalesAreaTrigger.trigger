@@ -1,10 +1,11 @@
 trigger CustomerSalesAreaTrigger on Customer_Sales_Area__c (before insert, before update) {
     Map<String, Customer_Sales_Area__c> newCombinations = new Map<String, Customer_Sales_Area__c>();
 
-    Set<Id> companyCodes = new Set<Id>();
-    Set<Id> distChannels = new Set<Id>();
-    Set<Id> divisions = new Set<Id>();
-    Set<Id> salesOrgs = new Set<Id>();
+    // Change from Set<Id> to Set<String>
+    Set<String> companyCodes = new Set<String>();
+    Set<String> distChannels = new Set<String>();
+    Set<String> divisions = new Set<String>();
+    Set<String> salesOrgs = new Set<String>();
 
     for (Customer_Sales_Area__c csa : Trigger.new) {
         if (csa.Customer_Code__c != null &&
@@ -12,7 +13,7 @@ trigger CustomerSalesAreaTrigger on Customer_Sales_Area__c (before insert, befor
             csa.Division__c != null &&
             csa.Sales_Organisation__c != null) {
 
-            String key = csa.Customer_Code__c  + '-' +
+            String key = csa.Customer_Code__c + '-' +
                          csa.Distribution_Channel__c + '-' +
                          csa.Division__c + '-' +
                          csa.Sales_Organisation__c;
@@ -24,7 +25,8 @@ trigger CustomerSalesAreaTrigger on Customer_Sales_Area__c (before insert, befor
                 newCombinations.put(key, csa);
             }
 
-            companyCodes.add(csa.Customer_Code__c );
+            // Add values to sets
+            companyCodes.add(csa.Customer_Code__c);
             distChannels.add(csa.Distribution_Channel__c);
             divisions.add(csa.Division__c);
             salesOrgs.add(csa.Sales_Organisation__c);
@@ -34,9 +36,9 @@ trigger CustomerSalesAreaTrigger on Customer_Sales_Area__c (before insert, befor
     if (!newCombinations.isEmpty()) {
         // Query existing combinations
         List<Customer_Sales_Area__c> existing = [
-            SELECT Id, Customer_Code__c , Distribution_Channel__c, Division__c, Sales_Organisation__c
+            SELECT Id, Customer_Code__c, Distribution_Channel__c, Division__c, Sales_Organisation__c
             FROM Customer_Sales_Area__c
-            WHERE Customer_Code__c  IN :companyCodes
+            WHERE Customer_Code__c IN :companyCodes
               AND Distribution_Channel__c IN :distChannels
               AND Division__c IN :divisions
               AND Sales_Organisation__c IN :salesOrgs
@@ -45,7 +47,7 @@ trigger CustomerSalesAreaTrigger on Customer_Sales_Area__c (before insert, befor
         // Build key map from existing records
         Map<String, Id> existingKeyMap = new Map<String, Id>();
         for (Customer_Sales_Area__c csa : existing) {
-            String key = csa.Customer_Code__c  + '-' +
+            String key = csa.Customer_Code__c + '-' +
                          csa.Distribution_Channel__c + '-' +
                          csa.Division__c + '-' +
                          csa.Sales_Organisation__c;
@@ -54,12 +56,12 @@ trigger CustomerSalesAreaTrigger on Customer_Sales_Area__c (before insert, befor
 
         // Validate against existing records
         for (Customer_Sales_Area__c csa : Trigger.new) {
-            if (csa.Customer_Code__c  != null &&
+            if (csa.Customer_Code__c != null &&
                 csa.Distribution_Channel__c != null &&
                 csa.Division__c != null &&
                 csa.Sales_Organisation__c != null) {
 
-                String key = csa.Customer_Code__c  + '-' +
+                String key = csa.Customer_Code__c + '-' +
                              csa.Distribution_Channel__c + '-' +
                              csa.Division__c + '-' +
                              csa.Sales_Organisation__c;

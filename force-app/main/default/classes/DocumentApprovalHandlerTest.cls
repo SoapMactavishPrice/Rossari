@@ -206,84 +206,199 @@ public class DocumentApprovalHandlerTest {
     }
     
     @IsTest
-static void testUpdateApproversAndSendEmails() {
-    // Get test data
-    Lead leadRecord = [SELECT Id, TDS_Approver__c, MSDS_Approver__c, Technical_Document_Approver__c, COA_Document_Approver__c 
-                      FROM Lead LIMIT 1];
-    List<User> testUsers = [SELECT Id, Email FROM User WHERE IsActive = true LIMIT 5];
+    static void testUpdateApproversAndSendEmails() {
+        // Get test data
+        Lead leadRecord = [SELECT Id, TDS_Approver__c, MSDS_Approver__c, Technical_Document_Approver__c, COA_Document_Approver__c 
+                          FROM Lead LIMIT 1];
+        List<User> testUsers = [SELECT Id, Email FROM User WHERE IsActive = true LIMIT 5];
+        
+        // Create approver model
+        DocumentApprovalHandler.ApproverModel approverModel = new DocumentApprovalHandler.ApproverModel();
+        approverModel.tdsApproverId = testUsers[0].Id;
+        approverModel.msdsApproverId = testUsers[1].Id;
+        approverModel.technicalDocApproverId = testUsers[2].Id;
+        approverModel.coaDocApproverId = testUsers[3].Id;
+        String approverStringObject = JSON.serialize(approverModel);
+        
+        // Create sample document wrapper with files
+        DocumentApprovalHandler.SampleDocumentWrapper sampleDocs = new DocumentApprovalHandler.SampleDocumentWrapper();
+        
+        // Create sample files for each document type
+        DocumentApprovalHandler.ContentVersionWrapper tdsFile = new DocumentApprovalHandler.ContentVersionWrapper();
+        tdsFile.fileName = 'tds_sample.pdf';
+        tdsFile.base64Data = EncodingUtil.base64Encode(Blob.valueOf('TDS sample content'));
+        
+        DocumentApprovalHandler.ContentVersionWrapper msdsFile = new DocumentApprovalHandler.ContentVersionWrapper();
+        msdsFile.fileName = 'msds_sample.pdf';
+        msdsFile.base64Data = EncodingUtil.base64Encode(Blob.valueOf('MSDS sample content'));
+        
+        DocumentApprovalHandler.ContentVersionWrapper techFile = new DocumentApprovalHandler.ContentVersionWrapper();
+        techFile.fileName = 'tech_sample.pdf';
+        techFile.base64Data = EncodingUtil.base64Encode(Blob.valueOf('Technical document sample content'));
+        
+        DocumentApprovalHandler.ContentVersionWrapper coaFile = new DocumentApprovalHandler.ContentVersionWrapper();
+        coaFile.fileName = 'coa_sample.pdf';
+        coaFile.base64Data = EncodingUtil.base64Encode(Blob.valueOf('COA sample content'));
+        
+        // Add files to respective lists
+        sampleDocs.tdsSampleFiles = new List<DocumentApprovalHandler.ContentVersionWrapper>{tdsFile};
+        sampleDocs.msdsSampleFiles = new List<DocumentApprovalHandler.ContentVersionWrapper>{msdsFile};
+        sampleDocs.techDocSampleFiles = new List<DocumentApprovalHandler.ContentVersionWrapper>{techFile};
+        sampleDocs.coaSampleFiles = new List<DocumentApprovalHandler.ContentVersionWrapper>{coaFile};
+        
+        String sampleDocumentStringObj = JSON.serialize(sampleDocs);
+        
+        Test.startTest();
+        // Test with all approvers and files
+        String result1 = DocumentApprovalHandler.updateApproversAndSendEmails(approverStringObject, sampleDocumentStringObj, leadRecord.Id);
+        
+        // Test with partial approvers
+        DocumentApprovalHandler.ApproverModel partialApproverModel = new DocumentApprovalHandler.ApproverModel();
+        partialApproverModel.tdsApproverId = testUsers[0].Id;
+        partialApproverModel.msdsApproverId = null;
+        partialApproverModel.technicalDocApproverId = testUsers[2].Id;
+        partialApproverModel.coaDocApproverId = null;
+        String partialApproverStringObject = JSON.serialize(partialApproverModel);
+        
+        // Create partial files
+        DocumentApprovalHandler.SampleDocumentWrapper partialSampleDocs = new DocumentApprovalHandler.SampleDocumentWrapper();
+        partialSampleDocs.tdsSampleFiles = new List<DocumentApprovalHandler.ContentVersionWrapper>{tdsFile};
+        partialSampleDocs.msdsSampleFiles = new List<DocumentApprovalHandler.ContentVersionWrapper>();
+        partialSampleDocs.techDocSampleFiles = new List<DocumentApprovalHandler.ContentVersionWrapper>{techFile};
+        partialSampleDocs.coaSampleFiles = new List<DocumentApprovalHandler.ContentVersionWrapper>();
+        String partialSampleDocumentStringObj = JSON.serialize(partialSampleDocs);
+        
+        String result2 = DocumentApprovalHandler.updateApproversAndSendEmails(partialApproverStringObject, partialSampleDocumentStringObj, leadRecord.Id);
+        
+        // Test with empty files
+        DocumentApprovalHandler.SampleDocumentWrapper emptySampleDocs = new DocumentApprovalHandler.SampleDocumentWrapper();
+        emptySampleDocs.tdsSampleFiles = new List<DocumentApprovalHandler.ContentVersionWrapper>();
+        emptySampleDocs.msdsSampleFiles = new List<DocumentApprovalHandler.ContentVersionWrapper>();
+        emptySampleDocs.techDocSampleFiles = new List<DocumentApprovalHandler.ContentVersionWrapper>();
+        emptySampleDocs.coaSampleFiles = new List<DocumentApprovalHandler.ContentVersionWrapper>();
+        String emptySampleDocumentStringObj = JSON.serialize(emptySampleDocs);
+        
+        String result3 = DocumentApprovalHandler.updateApproversAndSendEmails(approverStringObject, emptySampleDocumentStringObj, leadRecord.Id);
+        
+        Test.stopTest();
+        
+        // Verify lead was updated
+        Lead updatedLead = [SELECT TDS_Approver__c, MSDS_Approver__c, Technical_Document_Approver__c, COA_Document_Approver__c 
+                           FROM Lead WHERE Id = :leadRecord.Id];
+    }
     
-    // Create approver model
-    DocumentApprovalHandler.ApproverModel approverModel = new DocumentApprovalHandler.ApproverModel();
-    approverModel.tdsApproverId = testUsers[0].Id;
-    approverModel.msdsApproverId = testUsers[1].Id;
-    approverModel.technicalDocApproverId = testUsers[2].Id;
-    approverModel.coaDocApproverId = testUsers[3].Id;
-    String approverStringObject = JSON.serialize(approverModel);
+    // NEW TEST METHODS FOR getConvertedRecordId
     
-    // Create sample document wrapper with files
-    DocumentApprovalHandler.SampleDocumentWrapper sampleDocs = new DocumentApprovalHandler.SampleDocumentWrapper();
+    @IsTest
+    static void testGetConvertedRecordId_WithBlankLeadId() {
+        Test.startTest();
+        String result = DocumentApprovalHandler.getConvertedRecordId('');
+        Test.stopTest();
+        
+        System.assertEquals(null, result, 'Should return null for blank lead ID');
+    }
     
-    // Create sample files for each document type
-    DocumentApprovalHandler.ContentVersionWrapper tdsFile = new DocumentApprovalHandler.ContentVersionWrapper();
-    tdsFile.fileName = 'tds_sample.pdf';
-    tdsFile.base64Data = EncodingUtil.base64Encode(Blob.valueOf('TDS sample content'));
+    @IsTest
+    static void testGetConvertedRecordId_WithNullLeadId() {
+        Test.startTest();
+        String result = DocumentApprovalHandler.getConvertedRecordId(null);
+        Test.stopTest();
+        
+        System.assertEquals(null, result, 'Should return null for null lead ID');
+    }
     
-    DocumentApprovalHandler.ContentVersionWrapper msdsFile = new DocumentApprovalHandler.ContentVersionWrapper();
-    msdsFile.fileName = 'msds_sample.pdf';
-    msdsFile.base64Data = EncodingUtil.base64Encode(Blob.valueOf('MSDS sample content'));
+    @IsTest
+    static void testGetConvertedRecordId_NotConvertedLead() {
+        Lead leadRecord = [SELECT Id FROM Lead LIMIT 1];
+        
+        Test.startTest();
+        String result = DocumentApprovalHandler.getConvertedRecordId(leadRecord.Id);
+        Test.stopTest();
+        
+        System.assertEquals(null, result, 'Should return null for non-converted lead');
+    }
     
-    DocumentApprovalHandler.ContentVersionWrapper techFile = new DocumentApprovalHandler.ContentVersionWrapper();
-    techFile.fileName = 'tech_sample.pdf';
-    techFile.base64Data = EncodingUtil.base64Encode(Blob.valueOf('Technical document sample content'));
+    @IsTest
+    static void testGetConvertedRecordId_ConvertedToOpportunity() {
+        // Create a fresh lead for conversion to avoid trigger issues
+        User ownerUser = [SELECT Id FROM User WHERE IsActive = true AND Id = :UserInfo.getUserId() LIMIT 1];
+        
+        Lead conversionLead = new Lead(
+            FirstName = 'Conversion',
+            LastName = 'Test',
+            Company = 'ConversionCo_' + String.valueOf(Datetime.now().getTime()),
+            OwnerId = ownerUser.Id,
+            MobilePhone = '9876543210',
+            Email = 'conversiontest@example.com',
+            Status = 'Open - Not Contacted'
+        );
+        insert conversionLead;
+        
+        // Create an Account to convert the lead to
+        Account testAccount = new Account(
+            Name = 'Test Account for Conversion'
+        );
+        insert testAccount;
+        
+        // Convert lead with opportunity creation
+        Database.LeadConvert lc = new Database.LeadConvert();
+        lc.setLeadId(conversionLead.Id);
+        lc.setAccountId(testAccount.Id);
+        lc.setConvertedStatus('Qualified');
+        lc.setDoNotCreateOpportunity(false);
+        lc.setOwnerId(ownerUser.Id);
+        
+        Test.startTest();
+        Database.LeadConvertResult lcr = Database.convertLead(lc);
+        
+        String result = DocumentApprovalHandler.getConvertedRecordId(conversionLead.Id);
+        Test.stopTest();
+        
+        System.assert(lcr.isSuccess(), 'Lead conversion should succeed');
+        System.assertNotEquals(null, result, 'Should return URL for converted lead with opportunity');
+        System.assert(result.contains('AttachTdsMsdsOnOpportunityCaller'), 'URL should contain opportunity component');
+        System.assert(result.contains(lcr.getOpportunityId()), 'URL should contain converted opportunity ID');
+    }
     
-    DocumentApprovalHandler.ContentVersionWrapper coaFile = new DocumentApprovalHandler.ContentVersionWrapper();
-    coaFile.fileName = 'coa_sample.pdf';
-    coaFile.base64Data = EncodingUtil.base64Encode(Blob.valueOf('COA sample content'));
-    
-    // Add files to respective lists
-    sampleDocs.tdsSampleFiles = new List<DocumentApprovalHandler.ContentVersionWrapper>{tdsFile};
-    sampleDocs.msdsSampleFiles = new List<DocumentApprovalHandler.ContentVersionWrapper>{msdsFile};
-    sampleDocs.techDocSampleFiles = new List<DocumentApprovalHandler.ContentVersionWrapper>{techFile};
-    sampleDocs.coaSampleFiles = new List<DocumentApprovalHandler.ContentVersionWrapper>{coaFile};
-    
-    String sampleDocumentStringObj = JSON.serialize(sampleDocs);
-    
-    Test.startTest();
-    // Test with all approvers and files
-    String result1 = DocumentApprovalHandler.updateApproversAndSendEmails(approverStringObject, sampleDocumentStringObj, leadRecord.Id);
-    
-    // Test with partial approvers
-    DocumentApprovalHandler.ApproverModel partialApproverModel = new DocumentApprovalHandler.ApproverModel();
-    partialApproverModel.tdsApproverId = testUsers[0].Id;
-    partialApproverModel.msdsApproverId = null;
-    partialApproverModel.technicalDocApproverId = testUsers[2].Id;
-    partialApproverModel.coaDocApproverId = null;
-    String partialApproverStringObject = JSON.serialize(partialApproverModel);
-    
-    // Create partial files
-    DocumentApprovalHandler.SampleDocumentWrapper partialSampleDocs = new DocumentApprovalHandler.SampleDocumentWrapper();
-    partialSampleDocs.tdsSampleFiles = new List<DocumentApprovalHandler.ContentVersionWrapper>{tdsFile};
-    partialSampleDocs.msdsSampleFiles = new List<DocumentApprovalHandler.ContentVersionWrapper>();
-    partialSampleDocs.techDocSampleFiles = new List<DocumentApprovalHandler.ContentVersionWrapper>{techFile};
-    partialSampleDocs.coaSampleFiles = new List<DocumentApprovalHandler.ContentVersionWrapper>();
-    String partialSampleDocumentStringObj = JSON.serialize(partialSampleDocs);
-    
-    String result2 = DocumentApprovalHandler.updateApproversAndSendEmails(partialApproverStringObject, partialSampleDocumentStringObj, leadRecord.Id);
-    
-    // Test with empty files
-    DocumentApprovalHandler.SampleDocumentWrapper emptySampleDocs = new DocumentApprovalHandler.SampleDocumentWrapper();
-    emptySampleDocs.tdsSampleFiles = new List<DocumentApprovalHandler.ContentVersionWrapper>();
-    emptySampleDocs.msdsSampleFiles = new List<DocumentApprovalHandler.ContentVersionWrapper>();
-    emptySampleDocs.techDocSampleFiles = new List<DocumentApprovalHandler.ContentVersionWrapper>();
-    emptySampleDocs.coaSampleFiles = new List<DocumentApprovalHandler.ContentVersionWrapper>();
-    String emptySampleDocumentStringObj = JSON.serialize(emptySampleDocs);
-    
-    String result3 = DocumentApprovalHandler.updateApproversAndSendEmails(approverStringObject, emptySampleDocumentStringObj, leadRecord.Id);
-    
-    Test.stopTest();
-    
-    // Verify lead was updated
-    Lead updatedLead = [SELECT TDS_Approver__c, MSDS_Approver__c, Technical_Document_Approver__c, COA_Document_Approver__c 
-                       FROM Lead WHERE Id = :leadRecord.Id];
-}
+    @IsTest
+    static void testGetConvertedRecordId_ConvertedToAccountOnly() {
+        // Create a fresh lead for conversion to avoid trigger issues
+        User ownerUser = [SELECT Id FROM User WHERE IsActive = true AND Id = :UserInfo.getUserId() LIMIT 1];
+        
+        Lead conversionLead = new Lead(
+            FirstName = 'AccountOnly',
+            LastName = 'Test',
+            Company = 'AccountOnlyCo_' + String.valueOf(Datetime.now().getTime()),
+            OwnerId = ownerUser.Id,
+            MobilePhone = '9876543211',
+            Email = 'accountonly@example.com',
+            Status = 'Open - Not Contacted'
+        );
+        insert conversionLead;
+        
+        // Create an Account to convert the lead to
+        Account testAccount = new Account(
+            Name = 'Test Account for Conversion Only'
+        );
+        insert testAccount;
+        
+        // Convert lead without creating opportunity
+        Database.LeadConvert lc = new Database.LeadConvert();
+        lc.setLeadId(conversionLead.Id);
+        lc.setAccountId(testAccount.Id);
+        lc.setConvertedStatus('Qualified');
+        lc.setDoNotCreateOpportunity(true);
+        lc.setOwnerId(ownerUser.Id);
+        
+        Test.startTest();
+        Database.LeadConvertResult lcr = Database.convertLead(lc);
+        
+        String result = DocumentApprovalHandler.getConvertedRecordId(conversionLead.Id);
+        Test.stopTest();
+        
+        System.assert(lcr.isSuccess(), 'Lead conversion should succeed');
+        System.assertNotEquals(null, result, 'Should return URL for converted lead with account only');
+        System.assert(result.contains('AttachTdsMsdsOnAccountCaller'), 'URL should contain account component');
+        System.assert(result.contains(lcr.getAccountId()), 'URL should contain converted account ID');
+    }
 }

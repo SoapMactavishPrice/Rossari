@@ -32,7 +32,7 @@
 
             <template if:true={fullRows.length}>
                 <!-- <h3 class="slds-m-top_medium">Preview ({fullRows.length})</h3> -->
-                <div style="height: 51vh">
+                <div style="height: 50vh" class="customTableHeader">
                     <lightning-datatable key-field="__rowIndex" data={displayedRows} columns={columns}
                         hide-checkbox-column show-row-number-column row-number-offset="0" enable-infinite-loading
                         onloadmore={handleLoadMore}></lightning-datatable>

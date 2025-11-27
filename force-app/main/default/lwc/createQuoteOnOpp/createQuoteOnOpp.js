@@ -27,7 +27,9 @@ export default class CreateQuoteFromOpportunity extends NavigationMixin(Lightnin
         incoTerms: '',
         paymentTermId: '',
         transportationCost: 0,
-        containerType: ''
+        containerType: '',
+        conversionRateDollar: 0,
+        conversionRateEuro: 0
     };
     @track showContainerType = false;
     @track paymetTermField = true;
@@ -42,6 +44,8 @@ export default class CreateQuoteFromOpportunity extends NavigationMixin(Lightnin
     @track leadRecordType;
     @track hasProducts = false;
     @track domesticDeliveryTermsOptions = [];
+    @track showConversionRateDollar = false;
+    @track showConversionRateEuro = false;
 
     // Add method to calculate discount
     calculateDiscount(listPrice, salesPrice) {
@@ -374,6 +378,63 @@ export default class CreateQuoteFromOpportunity extends NavigationMixin(Lightnin
         console.log('Inco Terms changed to:', newValue, 'Show Container Type:', this.showContainerType);
     }
 
+    // handleFieldChange(event) {
+    //     const field = event.target.dataset.field;
+
+    //     // Skip handling for incoTerms as it's now handled by handleIncoTermsChange
+    //     if (field === 'incoTerms' || field === 'paymentTermId') return;
+
+    //     this.quoteFields = {
+    //         ...this.quoteFields,
+    //         [field]: event.detail.value
+    //     };
+
+    //     // Your existing currency change logic
+    //     if (field === 'currencyCode') {
+    //         console.log('Currency changed to:', this.quoteFields.currencyCode);
+    //     }
+
+    //     // Your existing sales area logic
+    //     if (field === 'salesOrg') {
+    //         this.salesOrgValue = event.detail.value;
+    //         console.log('salesOrg:', this.salesOrgValue);
+    //         this.distChOptions = [];
+    //         this.distChValue = '';
+    //         this.divisionOptions = [];
+    //         this.divisionValue = '';
+    //         this.handleGetDistributionChannel();
+    //     }
+    //     if (field === 'distCh') {
+    //         this.distChValue = event.detail.value;
+    //         console.log('distCh:', this.distChValue);
+    //         this.divisionOptions = [];
+    //         this.divisionValue = '';
+    //         this.handleGetDivision();
+    //     }
+    //     if (field === 'division') {
+    //         this.divisionValue = event.detail.value;
+    //         console.log('division:', this.divisionValue);
+    //         this.handleGetSalesArea();
+    //     }
+    // }
+
+
+    // Add methods to handle conversion rate changes
+    handleConversionRateDollarChange(event) {
+        this.quoteFields = {
+            ...this.quoteFields,
+            conversionRateDollar: parseFloat(event.target.value) || 0
+        };
+    }
+
+    handleConversionRateEuroChange(event) {
+        this.quoteFields = {
+            ...this.quoteFields,
+            conversionRateEuro: parseFloat(event.target.value) || 0
+        };
+    }
+
+    // Update handleFieldChange method to handle currency changes
     handleFieldChange(event) {
         const field = event.target.dataset.field;
 
@@ -385,9 +446,10 @@ export default class CreateQuoteFromOpportunity extends NavigationMixin(Lightnin
             [field]: event.detail.value
         };
 
-        // Your existing currency change logic
+        // Handle currency change to show/hide conversion rate fields
         if (field === 'currencyCode') {
             console.log('Currency changed to:', this.quoteFields.currencyCode);
+            this.updateConversionRateVisibility();
         }
 
         // Your existing sales area logic
@@ -412,6 +474,19 @@ export default class CreateQuoteFromOpportunity extends NavigationMixin(Lightnin
             console.log('division:', this.divisionValue);
             this.handleGetSalesArea();
         }
+    }
+
+    updateConversionRateVisibility() {
+        const currency = this.quoteFields.currencyCode;
+
+        // Show Dollar conversion rate only for USD currency
+        this.showConversionRateDollar = currency === 'USD';
+
+        // Show Euro conversion rate only for EUR currency
+        this.showConversionRateEuro = currency === 'EUR';
+
+        console.log('Conversion Rate Dollar visible:', this.showConversionRateDollar);
+        console.log('Conversion Rate Euro visible:', this.showConversionRateEuro);
     }
 
     validateData(itemsToValidate = this.oppLineItems) {
@@ -679,8 +754,13 @@ export default class CreateQuoteFromOpportunity extends NavigationMixin(Lightnin
                     pricebookId: result.pricebookId,
                     incoTerms: result.opportunityIncoTerms || '',
                     paymentTermId: result.opportunityPaymentTermId || '',
-                    domesticDeliveryTerms: result.opportunityDomesticDeliveryTerms || ''
+                    domesticDeliveryTerms: result.opportunityDomesticDeliveryTerms || '',
+                    conversionRateDollar: result.defaultConversionRateDollar || 0,
+                    conversionRateEuro: result.defaultConversionRateEuro || 0
                 };
+
+                // Set initial conversion rate visibility based on default currency
+                this.updateConversionRateVisibility();
 
                 this.statusOptions = result.statusOptions;
                 this.currencyOptions = result.currencyOptions;

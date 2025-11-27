@@ -36,6 +36,25 @@
                 </lightning-combobox>
             </div>
 
+            <template if:true={showConversionRateDollar}>
+                <div class="slds-col slds-size_1-of-4 slds-p-around_x-small"
+                    style="margin-left: -21px;margin-right: 22px;">
+                    <lightning-input type="number" label="Conversion Rate ($)" value={quoteFields.conversionRateDollar}
+                        step="0.0001" min="0" onchange={handleConversionRateDollarChange} variant="label-stacked">
+                    </lightning-input>
+                </div>
+            </template>
+
+            <!-- Conversion Rate Euro Field - Show only for EUR -->
+            <template if:true={showConversionRateEuro}>
+                <div class="slds-col slds-size_1-of-4 slds-p-around_x-small"
+                    style="margin-left: -21px;margin-right: 22px;">
+                    <lightning-input type="number" label="Conversion Rate (€)" value={quoteFields.conversionRateEuro}
+                        step="0.0001" min="0" onchange={handleConversionRateEuroChange} variant="label-stacked">
+                    </lightning-input>
+                </div>
+            </template>
+
             <!-- Add new fields here -->
             <!-- <div class="slds-col slds-size_1-of-4 slds-p-around_x-small" style="margin-left: -21px;margin-right: 22px;">
                 <lightning-combobox label="Sales Org" options={salesOrgOptions} value={salesOrgValue}

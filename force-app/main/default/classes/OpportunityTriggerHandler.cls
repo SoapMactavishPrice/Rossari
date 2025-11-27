@@ -1,6 +1,6 @@
 public class OpportunityTriggerHandler {
     
-      public static void convertHandler(List<Lead> newRecords, Map<Id, Lead> oldLeadMap) {
+    public static void convertHandler(List<Lead> newRecords, Map<Id, Lead> oldLeadMap) {
         Map<Id, Id> leadToOppMap = new Map<Id, Id>();
         Map<Id, Id> leadToAccountMap = new Map<Id, Id>();
         
@@ -20,31 +20,95 @@ public class OpportunityTriggerHandler {
         if (leadToOppMap.isEmpty() && leadToAccountMap.isEmpty()) {
             return;
         }
-        
+
+        Map<Id, Lead> leadsWithFields = new Map<Id, Lead>([
+            SELECT Id, COA_Document_Approver__c, MSDS_Approver__c, TDS_Approver__c, 
+                Technical_Document_Approver__c, COA_Doc_Remark__c, MSDS_Remark__c, 
+                TDS_Remark__c, Tech_Doc_Remark__c, COA_Doc_Upload_Status__c, 
+                MSDS_Upload_Status__c, TDS_Upload_Status__c, Technical_Doc_Upload_Status__c
+            FROM Lead
+            WHERE Id IN :leadToAccountMap.keySet()
+        ]);
+
         Map<Id, Opportunity> convertedOpps = new Map<Id, Opportunity>([
             SELECT Id, Pricebook2Id, CurrencyIsoCode
             FROM Opportunity 
             WHERE Id IN :leadToOppMap.values()
         ]);
-        
+
+        Map<Id, Account> convertedAccts = new Map<Id, Account>([
+            SELECT Id
+            FROM Account
+            WHERE Id IN :leadToAccountMap.values()
+        ]);
+
+        List<Opportunity> oppToUpdateLeadId = new List<Opportunity>();
+        List<Account> acctToUpdateLeadId = new List<Account>();
+
+        for (Id leadId : leadToOppMap.keySet()) {
+            Opportunity opp = convertedOpps.get(leadToOppMap.get(leadId));
+            Lead lead = leadsWithFields.get(leadId);
+            
+            if (opp != null && lead != null) {
+                opp.COA_Document_Approver__c = lead.COA_Document_Approver__c;
+                opp.MSDS_Approver__c = lead.MSDS_Approver__c;
+                opp.TDS_Approver__c = lead.TDS_Approver__c;
+                opp.Technical_Document_Approver__c = lead.Technical_Document_Approver__c;
+                opp.COA_Doc_Remark__c = lead.COA_Doc_Remark__c;
+                opp.MSDS_Remark__c = lead.MSDS_Remark__c;
+                opp.TDS_Remark__c = lead.TDS_Remark__c;
+                opp.Tech_Doc_Remark__c = lead.Tech_Doc_Remark__c;
+                opp.COA_Doc_Upload_Status__c = lead.COA_Doc_Upload_Status__c;
+                opp.MSDS_Upload_Status__c = lead.MSDS_Upload_Status__c;
+                opp.TDS_Upload_Status__c = lead.TDS_Upload_Status__c;
+                opp.Technical_Doc_Upload_Status__c = lead.Technical_Doc_Upload_Status__c;
+                oppToUpdateLeadId.add(opp);
+            }
+        }
+
+        for (Id leadId : leadToAccountMap.keySet()) {
+            Account acc = convertedAccts.get(leadToAccountMap.get(leadId));
+            Lead lead = leadsWithFields.get(leadId);
+            
+            if (acc != null && lead != null) {
+                acc.COA_Document_Approver__c = lead.COA_Document_Approver__c;
+                acc.MSDS_Approver__c = lead.MSDS_Approver__c;
+                acc.TDS_Approver__c = lead.TDS_Approver__c;
+                acc.Technical_Document_Approver__c = lead.Technical_Document_Approver__c;
+                acc.COA_Doc_Remark__c = lead.COA_Doc_Remark__c;
+                acc.MSDS_Remark__c = lead.MSDS_Remark__c;
+                acc.TDS_Remark__c = lead.TDS_Remark__c;
+                acc.Tech_Doc_Remark__c = lead.Tech_Doc_Remark__c;
+                acc.COA_Doc_Upload_Status__c = lead.COA_Doc_Upload_Status__c;
+                acc.MSDS_Upload_Status__c = lead.MSDS_Upload_Status__c;
+                acc.TDS_Upload_Status__c = lead.TDS_Upload_Status__c;
+                acc.Technical_Doc_Upload_Status__c = lead.Technical_Doc_Upload_Status__c;
+                acctToUpdateLeadId.add(acc);
+            }
+        }
+
+        if (!oppToUpdateLeadId.isEmpty()) update oppToUpdateLeadId;
+        if (!acctToUpdateLeadId.isEmpty()) update acctToUpdateLeadId;
+
         List<Product_Interested__c> piList = [
             SELECT Id, Product__c, Lead__c, Account__c, Quantity_in_Kgs__c, Expected_Price__c, 
-            Quantity_Frequency__c, Add_in_Opportunity__c
+                Quantity_Frequency__c, Add_in_Opportunity__c
             FROM Product_Interested__c
             WHERE Lead__c IN :leadToAccountMap.keySet()
         ];
         
         if (piList.isEmpty()) {
+            copyFilesToConvertedRecords(leadToOppMap, leadToAccountMap);
             return;
         }
-        
+
         Set<Id> productIds = new Set<Id>();
         for (Product_Interested__c pi : piList) {
             if (pi.Product__c != null) {
                 productIds.add(pi.Product__c);
             }
         }
-        
+
         Map<String, PricebookEntry> productPricebookMap = new Map<String, PricebookEntry>();
         if (!productIds.isEmpty()) {
             for (PricebookEntry pbe : [
@@ -56,22 +120,23 @@ public class OpportunityTriggerHandler {
                 productPricebookMap.put(key, pbe);
             }
         }
-        
+
         List<OpportunityLineItem> oliList = new List<OpportunityLineItem>();
         List<Product_Interested__c> piToUpdateList = new List<Product_Interested__c>();
-        
+
         for (Product_Interested__c pi : piList) {
             Id oppId = leadToOppMap.get(pi.Lead__c);
             Id acctId = leadToAccountMap.get(pi.Lead__c);
-            
+
             if (pi.Add_in_Opportunity__c == true && oppId != null) {
                 Opportunity opp = convertedOpps.get(oppId);
+
                 if (opp != null) {
                     String key = pi.Product__c + '-' + opp.Pricebook2Id + '-' + opp.CurrencyIsoCode;
-                    
+
                     if (productPricebookMap.containsKey(key)) {
                         PricebookEntry pbe = productPricebookMap.get(key);
-                        
+
                         OpportunityLineItem oli = new OpportunityLineItem();
                         oli.OpportunityId = oppId;
                         oli.PricebookEntryId = pbe.Id;
@@ -83,24 +148,77 @@ public class OpportunityTriggerHandler {
                     }
                 }
             }
-            
+
             if (acctId != null && (pi.Account__c == null || pi.Account__c != acctId)) {
                 pi.Account__c = acctId;
                 piToUpdateList.add(pi);
             }
         }
-        
+
         if (!oliList.isEmpty()) {
             try {
                 insert oliList;
-            } catch (Exception e) {
-            }
+            } catch (Exception e) {}
         }
-        
+
         if (!piToUpdateList.isEmpty()) {
             update piToUpdateList;
         }
+
+        copyFilesToConvertedRecords(leadToOppMap, leadToAccountMap);
     }
+
+    private static void copyFilesToConvertedRecords(Map<Id, Id> leadToOppMap, Map<Id, Id> leadToAccountMap) {
+        Set<Id> allLeadIds = new Set<Id>();
+        allLeadIds.addAll(leadToOppMap.keySet());
+        allLeadIds.addAll(leadToAccountMap.keySet());
+        
+        if (allLeadIds.isEmpty()) {
+            return;
+        }
+
+        List<ContentDocumentLink> leadFiles = [
+            SELECT Id, ContentDocumentId, LinkedEntityId, ShareType, Visibility
+            FROM ContentDocumentLink
+            WHERE LinkedEntityId IN :allLeadIds
+        ];
+
+        if (leadFiles.isEmpty()) {
+            return;
+        }
+
+        List<ContentDocumentLink> newLinks = new List<ContentDocumentLink>();
+
+        for (ContentDocumentLink cdl : leadFiles) {
+            Id leadId = cdl.LinkedEntityId;
+            
+            if (leadToOppMap.containsKey(leadId)) {
+                ContentDocumentLink oppLink = new ContentDocumentLink();
+                oppLink.ContentDocumentId = cdl.ContentDocumentId;
+                oppLink.LinkedEntityId = leadToOppMap.get(leadId);
+                oppLink.ShareType = 'V';
+                oppLink.Visibility = 'AllUsers';
+                newLinks.add(oppLink);
+            }
+            
+            if (leadToAccountMap.containsKey(leadId)) {
+                ContentDocumentLink acctLink = new ContentDocumentLink();
+                acctLink.ContentDocumentId = cdl.ContentDocumentId;
+                acctLink.LinkedEntityId = leadToAccountMap.get(leadId);
+                acctLink.ShareType = 'V';
+                acctLink.Visibility = 'AllUsers';
+                newLinks.add(acctLink);
+            }
+        }
+
+        if (!newLinks.isEmpty()) {
+            try {
+                insert newLinks;
+            } catch (Exception e) {}
+        }
+    }
+
+
     
     @future
     public static void markConvertedOpportunitiesFuture(Set<Id> opportunityIds) {

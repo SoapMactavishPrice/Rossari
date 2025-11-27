@@ -201,40 +201,40 @@ export default class VisitReport extends NavigationMixin(LightningElement) {
     visitNatureMapping = {
         'Customer Visit': {
             // Textile user type
-            'TEXTILE': ['Distributor Visit', 'B2B Visit', 'B2C Visit', 'Industry Visit', 'Technician'],
+            'TEXTILE': ['Distributor Visit', 'B2B Visit', 'B2C Visit', 'Industry Visit', 'Technician', 'Other'],
 
             // AHN user type  
-            'AHN': ['Distributor Visit', 'B2B Customer Visit', 'Farm Visit', 'Consultant', 'Farmer Meeting'],
+            'AHN': ['Distributor Visit', 'B2B Customer Visit', 'Farm Visit', 'Consultant', 'Farmer Meeting', 'Other'],
 
             // Synthetic user type
-            'SYNTHETIC': ['Distributor Visit', 'B2B Visit', 'B2C Visit'],
+            'SYNTHETIC': ['Distributor Visit', 'B2B Visit', 'B2C Visit', 'Other'],
 
             // Default for other user types
-            'DEFAULT': ['Distributor Visit', 'B2B Customer Visit']
+            'DEFAULT': ['Distributor Visit', 'B2B Customer Visit', 'Other']
         },
         'Competitor Tracking': {
-            'TEXTILE': ['Competitor Distributor', 'Competition Visit'],
-            'AHN': ['Competitor Distributor', 'Competition Visit'],
-            'SYNTHETIC': ['Competitor Distributor', 'Competition Visit'],
-            'DEFAULT': ['Competitor Distributor', 'Competition Visit']
+            'TEXTILE': ['Competitor Distributor', 'Competition Visit', 'Other'],
+            'AHN': ['Competitor Distributor', 'Competition Visit', 'Other'],
+            'SYNTHETIC': ['Competitor Distributor', 'Competition Visit', 'Other'],
+            'DEFAULT': ['Competitor Distributor', 'Competition Visit', 'Other']
         },
         'Internal Meeting': {
-            'TEXTILE': ['HO Meeting', 'Zonal Meeting'],
-            'AHN': ['HO Meeting', 'Zonal Meeting'],
-            'SYNTHETIC': ['HO Meeting'],
-            'DEFAULT': ['HO Meeting']
+            'TEXTILE': ['HO Meeting', 'Zonal Meeting', 'Other'],
+            'AHN': ['HO Meeting', 'Zonal Meeting', 'Other'],
+            'SYNTHETIC': ['HO Meeting', 'Other'],
+            'DEFAULT': ['HO Meeting', 'Other']
         },
         'R&D related Visit': {
-            'TEXTILE': ['External Lab Visit', 'University Visit', 'Lab Trial'],
-            'AHN': ['External Lab Testing', 'University Trial', 'Field Trial – Existing Product'],
-            'SYNTHETIC': ['External Lab Visit', 'University Visit', 'Lab Trial'],
-            'DEFAULT': ['External Lab Visit', 'University Visit', 'Lab Trial']
+            'TEXTILE': ['External Lab Visit', 'University Visit', 'Lab Trial', 'Other'],
+            'AHN': ['External Lab Testing', 'University Trial', 'Field Trial – Existing Product', 'Other'],
+            'SYNTHETIC': ['External Lab Visit', 'University Visit', 'Lab Trial', 'Other'],
+            'DEFAULT': ['External Lab Visit', 'University Visit', 'Lab Trial', 'Other']
         },
         'Seminar/ Conferences': {
-            'TEXTILE': ['Conferences'],
-            'AHN': ['Conferences', 'Technical Seminar'],
-            'SYNTHETIC': ['Conferences'],
-            'DEFAULT': ['Conferences']
+            'TEXTILE': ['Conferences', 'Other'],
+            'AHN': ['Conferences', 'Technical Seminar', 'Other'],
+            'SYNTHETIC': ['Conferences', 'Other'],
+            'DEFAULT': ['Conferences', 'Other']
         }
     };
 

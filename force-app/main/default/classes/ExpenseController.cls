@@ -947,4 +947,124 @@ public with sharing class ExpenseController {
             throw new AuraHandledException('Error checking allowance eligibility: ' + e.getMessage());
         }
     }
+    
+    @AuraEnabled
+    public static List<Expense_Team_Member__c> createExpenseTeamMembers(List<Expense_Team_Member__c> teamMembers) {
+        try {
+            if (teamMembers != null && !teamMembers.isEmpty()) {
+                // Check for duplicates before inserting
+                Set<String> existingCombinations = new Set<String>();
+                List<Expense_Team_Member__c> membersToInsert = new List<Expense_Team_Member__c>();
+                
+                for (Expense_Team_Member__c member : teamMembers) {
+                    String combination = member.Expense__c + '-' + member.Attendee__c;
+                    if (!existingCombinations.contains(combination)) {
+                        membersToInsert.add(member);
+                        existingCombinations.add(combination);
+                    }
+                }
+                
+                if (!membersToInsert.isEmpty()) {
+                    insert membersToInsert;
+                    return membersToInsert;
+                }
+            }
+            return new List<Expense_Team_Member__c>();
+        } catch (Exception e) {
+            throw new AuraHandledException('Error creating team members: ' + e.getMessage());
+        }
+    }
+    
+    @AuraEnabled(cacheable=true)
+    public static Decimal getCombinedAllowances(String expenseOwnerId, List<String> teamMemberIds, String cityType, String salesType, String expenseType) {
+        try {
+            Decimal totalAllowance = 0;
+            
+            // Combine all user IDs (expense owner + team members)
+            Set<String> allUserIds = new Set<String>();
+            if (String.isNotBlank(expenseOwnerId)) {
+                allUserIds.add(expenseOwnerId);
+            }
+            if (teamMemberIds != null) {
+                allUserIds.addAll(teamMemberIds);
+            }
+            
+            if (allUserIds.isEmpty()) {
+                return totalAllowance;
+            }
+            
+            // Get users with their grades
+            List<User> users = [SELECT Id, Name, Grades__c FROM User WHERE Id IN :allUserIds AND IsActive = true];
+            
+            // Create a map to store grade allowances for each user
+            Map<String, Decimal> userAllowances = new Map<String, Decimal>();
+            
+            // Get unique grade names
+            Set<String> gradeNames = new Set<String>();
+            for (User u : users) {
+                if (String.isNotBlank(u.Grades__c)) {
+                    gradeNames.add(u.Grades__c);
+                }
+            }
+            
+            if (!gradeNames.isEmpty()) {
+                // Query grade details with sales type
+                String query = 'SELECT Id, Name, Lodging_Hotel__c, ' +
+                    'Lodging_Hotel_B_Class__c, Boarding_Food__c, Boarding_Food_B_Class__c ' +
+                    'FROM Grade__c WHERE Name IN :gradeNames';
+                
+                if (String.isNotBlank(salesType)) {
+                    query += ' AND Sales_Type__c = :salesType';
+                }
+                
+                List<Grade__c> grades = Database.query(query);
+                Map<String, Grade__c> gradeMap = new Map<String, Grade__c>();
+                for (Grade__c grade : grades) {
+                    gradeMap.put(grade.Name, grade);
+                }
+                
+                // Calculate allowance for EACH user and SUM them
+                for (User user : users) {
+                    if (String.isNotBlank(user.Grades__c) && gradeMap.containsKey(user.Grades__c)) {
+                        Grade__c userGrade = gradeMap.get(user.Grades__c);
+                        
+                        Decimal userAllowance = 0;
+                        
+                        // Determine allowance based on expense type and city type
+                        if (expenseType == 'Hotel') {
+                            if (cityType == 'A Class City') {
+                                userAllowance = userGrade.Lodging_Hotel__c != null ? userGrade.Lodging_Hotel__c : 0;
+                            } else {
+                                userAllowance = userGrade.Lodging_Hotel_B_Class__c != null ? userGrade.Lodging_Hotel_B_Class__c : 
+                                (userGrade.Lodging_Hotel__c != null ? userGrade.Lodging_Hotel__c : 0);
+                                    }
+                        } else if (expenseType == 'Food') {
+                            if (cityType == 'A Class City') {
+                                userAllowance = userGrade.Boarding_Food__c != null ? userGrade.Boarding_Food__c : 0;
+                            } else {
+                                userAllowance = userGrade.Boarding_Food_B_Class__c != null ? userGrade.Boarding_Food_B_Class__c : 
+                                (userGrade.Boarding_Food__c != null ? userGrade.Boarding_Food__c : 0);
+                                    }
+                        }
+                        
+                        userAllowances.put(user.Id, userAllowance);
+                        totalAllowance += userAllowance;
+                        
+                        System.debug('User ' + user.Name + ' with grade ' + user.Grades__c + ' adds: ' + userAllowance);
+                    } else {
+                        System.debug('No grade found for user: ' + user.Name);
+                        userAllowances.put(user.Id, 0);
+                    }
+                }
+            }
+            
+            System.debug('Total combined allowance for all users: ' + totalAllowance);
+            System.debug('Individual user allowances: ' + userAllowances);
+            
+            return totalAllowance;
+            
+        } catch (Exception e) {
+            throw new AuraHandledException('Error getting combined allowances: ' + e.getMessage());
+        }
+    }
 }

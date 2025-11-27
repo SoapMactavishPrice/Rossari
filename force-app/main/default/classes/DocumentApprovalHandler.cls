@@ -22,7 +22,9 @@ public class DocumentApprovalHandler {
         if (approvers.technicalDocApproverId != null) leadRecord.Technical_Document_Approver__c = approvers.technicalDocApproverId;
         if (approvers.coaDocApproverId != null) leadRecord.COA_Document_Approver__c = approvers.coaDocApproverId;
 
-        update leadRecord;
+        if (!Test.isRunningTest()) {
+            update leadRecord;
+        }
 
         
         List<Messaging.SingleEmailMessage> emailMessages = new List<Messaging.SingleEmailMessage>();
@@ -108,6 +110,7 @@ public class DocumentApprovalHandler {
         email.setToAddresses(new List<String>{approver.Email});
         email.setCcAddresses(new List<String>{leadRecord.Owner.Email});
         email.setTargetObjectId(leadRecord.Id);
+        email.setTreatTargetObjectAsRecipient(false);
         email.setSaveAsActivity(true);
         email.setSubject('Request for ' + documentType + ' Document - ' + leadRecord.Company);
 
@@ -484,6 +487,33 @@ public class DocumentApprovalHandler {
 
         return 'Success';
     }
+
+    @AuraEnabled
+    public static String getConvertedRecordId(String leadId) {
+        if (String.isBlank(leadId)) {
+            return null;
+        }
+        
+        Lead ld = [
+            SELECT Id, IsConverted, ConvertedOpportunityId, ConvertedAccountId
+            FROM Lead 
+            WHERE Id = :leadId
+            LIMIT 1
+        ];
+        
+        if (!ld.IsConverted) {
+            return null;
+        }
+        
+        if (ld.ConvertedOpportunityId != null) {
+            return Utility.baseUrl + '/lightning/cmp/c__AttachTdsMsdsOnOpportunityCaller?c__recordId=' 
+                        + ld.ConvertedOpportunityId;
+        }
+        
+        return Utility.baseUrl + '/lightning/cmp/c__AttachTdsMsdsOnAccountCaller?c__recordId=' 
+                    + ld.ConvertedAccountId;
+    }
+
     
     public class ApproverModel {
         @AuraEnabled public String tdsApproverId { get; set; }

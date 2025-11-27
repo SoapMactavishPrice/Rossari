@@ -170,4 +170,40 @@ public class ExpenseControllerTest {
 
         Test.stopTest();
     }
+    
+    
+	@isTest
+    static void testEligibleForBoth() {
+        User u = [SELECT Id FROM User LIMIT 1];
+        String todayStr = String.valueOf(Date.today());
+        
+        Test.startTest();
+        Map<String, Object> result = ExpenseController.checkAllowanceEligibility(todayStr, u.Id);
+        Test.stopTest();
+        
+    }   
+    
+    @isTest
+    static void testCheckAllowanceEligibilityScenarios() {
+        User u = [SELECT Id FROM User LIMIT 1];
+        Date today = Date.today();
+        
+        // Case 1: Eligible for both
+        Map<String, Object> result = ExpenseController.checkAllowanceEligibility(String.valueOf(today), u.Id);
+        
+        // Case 2: Daily Allowance claimed
+        Expense__c expLocal = new Expense__c(Employee_Name__c = u.Id, Date__c = today, Type_of_Voucher__c = 'Local');
+        insert expLocal;
+        insert new Expense_Line_Item__c(Expense__c = expLocal.Id, Daily_Allowance__c = 100);
+        
+        result = ExpenseController.checkAllowanceEligibility(String.valueOf(today), u.Id);
+        
+        // Case 3: Out of Pocket claimed
+        Expense__c expOutstation = new Expense__c(Employee_Name__c = u.Id, Date__c = today, Type_of_Voucher__c = 'Outstation');
+        insert expOutstation;
+        insert new Expense_Line_Item__c(Expense__c = expOutstation.Id, Daily_Allowance__c = 200);
+        
+        result = ExpenseController.checkAllowanceEligibility(String.valueOf(today), u.Id);
+    }
+
 }

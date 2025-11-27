@@ -91,6 +91,17 @@
                         </c-city-lookup-component>
                     </div>
 
+                    <!-- Team Members Multi-Select (Visible only for Outstation) -->
+                    <div class="slds-col slds-size_1-of-2 slds-medium-size_1-of-4" 
+                        if:true={showTourLookup}>
+                        <c-user-multi-select-lookup
+                            label="Team Members"
+                            placeholder="Search team members..."
+                            max-results="8"
+                            onselectionchange={handleTeamMembersChange}>
+                        </c-user-multi-select-lookup>
+                    </div>
+
                     <!-- Tour Lookup Field (Visible only for Outstation) -->
                     <div class="slds-col slds-size_1-of-2 slds-medium-size_1-of-4" if:true={showTourLookup}>
                         <c-tour-lookup-component label="Tour" onselected={handleTourSelected}></c-tour-lookup-component>

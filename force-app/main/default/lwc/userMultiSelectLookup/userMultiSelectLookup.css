@@ -1,0 +1,49 @@
+.slds-tags_container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.25rem;
+    margin-top: 0.5rem;
+}
+
+.slds-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+}
+
+.slds-listbox__option:hover {
+    background-color: #f3f3f3;
+    cursor: pointer;
+}
+
+.slds-dropdown {
+    max-height: 200px;
+    overflow-y: auto;
+}
+
+/* CRITICAL FIX: Proper combobox container styling */
+.slds-combobox_container {
+    position: relative;
+}
+
+/* CRITICAL FIX: Ensure dropdown is visible and properly positioned */
+.slds-dropdown-trigger {
+    position: relative;
+}
+
+.slds-dropdown {
+    position: absolute;
+    width: 100%;
+    z-index: 9000; /* Increased z-index */
+    background: white;
+    border: 1px solid #dddbda;
+    border-radius: 0.25rem;
+    margin-top: 0.125rem;
+    box-shadow: 0 2px 3px 0 rgba(0, 0, 0, 0.16);
+    display: block !important; /* Force display */
+}
+
+/* Ensure the combobox input has proper styling */
+.slds-combobox__input {
+    min-height: 2rem;
+}

@@ -15,6 +15,8 @@ import getModeOfTravelOptions from '@salesforce/apex/ExpenseController.getModeOf
 import getExportTransportModes from '@salesforce/apex/ExpenseController.getExportTransportModes';
 import getCityDetails from '@salesforce/apex/ExpenseController.getCityDetails';
 import checkAllowanceEligibility from '@salesforce/apex/ExpenseController.checkAllowanceEligibility';
+import createExpenseTeamMembers from '@salesforce/apex/ExpenseController.createExpenseTeamMembers';
+import getCombinedAllowances from '@salesforce/apex/ExpenseController.getCombinedAllowances';
 import { loadStyle } from 'lightning/platformResourceLoader';
 import LightningFileUploadHideLabelCss from '@salesforce/resourceUrl/LightningFileUploadHideLabelCss';
 
@@ -41,9 +43,6 @@ export default class ExpenseForm extends NavigationMixin(LightningElement) {
     @track dailyAllowanceBClass = 0;
     @track lodgingHotelBClass = 0;
     @track boardingFoodBClass = 0;
-
-    @track lodgingHotelBClass = 0;
-    @track boardingFoodBClass = 0;
     @track selectedCityId = '';
     @track selectedCityName = ''; // Add this
     @track selectedCityType = ''; // Add this
@@ -60,10 +59,8 @@ export default class ExpenseForm extends NavigationMixin(LightningElement) {
     @track privateTransportModes = [];
     @track lineItems = [];
     @track filesMap = new Map(); // Store files by line item index
-    @track isPublicExpenseForHeader = false;
     @track selectedTourId = ''; // Add this
     @track selectedTourName = ''; // Add this
-    @track selectedCustomerVisitId = ''; // Add this to class properties
     @track selectedAccountId = '';
     @track selectedAccountName = '';
     @track selectedAccounts = []; // Track multiple selected accounts   
@@ -78,6 +75,10 @@ export default class ExpenseForm extends NavigationMixin(LightningElement) {
     @track isFilePreviewModalOpen = false;
     @track currentPreviewFiles = [];
     @track currentPreviewIndex = -1;
+    @track selectedTeamMembers = [];
+    @track selectedTeamMemberIds = [];
+    @track lineItemCombinedLimits = new Map();
+
     @track selectedCurrency = 'INR';
     @track currencyOptions = [
         { label: 'Indian Rupee (INR)', value: 'INR' },
@@ -253,6 +254,99 @@ export default class ExpenseForm extends NavigationMixin(LightningElement) {
         //this.forceCurrencyUpdate();
     }
 
+    async handleTeamMembersChange(event) {
+        this.selectedTeamMembers = event.detail.selectedUsers;
+        this.selectedTeamMemberIds = event.detail.selectedUserIds;
+        console.log('Team members selected:', this.selectedTeamMembers);
+        console.log('Team member IDs:', this.selectedTeamMemberIds);
+        console.log('Expense Owner ID:', this.selectedEmployeeId);
+        
+        // Clear previous limits
+        this.lineItemCombinedLimits.clear();
+        
+        // Recalculate combined limits for all line items
+        await this.calculateAllCombinedLimits();
+        
+        // Refresh all limitation texts
+        this.refreshAllLimitationTexts();
+        
+        // Show debug info
+        console.log('Line Item Combined Limits:', this.lineItemCombinedLimits);
+    }
+
+    logCombinedLimitDetails() {
+    console.log('=== COMBINED LIMIT CALCULATION DETAILS ===');
+    console.log('Expense Owner ID:', this.selectedEmployeeId);
+    console.log('Team Member IDs:', this.selectedTeamMemberIds);
+    console.log('Total Users:', 1 + (this.selectedTeamMemberIds ? this.selectedTeamMemberIds.length : 0));
+    console.log('City Type:', this.selectedCityType);
+    console.log('Sales Type:', this.salesType);
+    console.log('Line Item Combined Limits Map:', this.lineItemCombinedLimits);
+    
+    // Log each line item's combined limit
+    this.lineItems.forEach((item, index) => {
+        const limit = this.lineItemCombinedLimits.get(index) || 0;
+        const expenseType = this.typeOfExpenseOptions.find(opt => opt.value === item.typeOfExpenseId);
+        console.log(`Line Item ${index} [${expenseType?.label}]: ${this.currencySymbol}${limit}`);
+    });
+}
+
+    async calculateAllCombinedLimits() {
+    // Clear previous limits
+        this.lineItemCombinedLimits.clear();
+        
+        // Calculate for each line item that has food/hotel expense type
+        for (let i = 0; i < this.lineItems.length; i++) {
+            const item = this.lineItems[i];
+            if (item.typeOfExpenseId) {
+                await this.calculateCombinedLimitForItem(i);
+            }
+        }
+        this.logCombinedLimitDetails();
+    }
+
+    async calculateCombinedLimitForItem(index) {
+        const item = this.lineItems[index];
+        if (!item.typeOfExpenseId) return;
+        
+        const expenseType = this.typeOfExpenseOptions.find(opt => opt.value === item.typeOfExpenseId);
+        if (!expenseType || !expenseType.label) return;
+        
+        const label = expenseType.label.toLowerCase();
+        const isHotelExpense = label.includes('hotel');
+        const isFoodExpense = label.includes('food');
+        
+        if (!isHotelExpense && !isFoodExpense) {
+            this.lineItemCombinedLimits.set(index, 0);
+            return;
+        }
+        
+        try {
+            const expenseTypeName = isHotelExpense ? 'Hotel' : 'Food';
+            
+            // Calculate combined limit for ALL users (expense owner + team members)
+            const combinedLimit = await getCombinedAllowances({
+                expenseOwnerId: this.selectedEmployeeId,
+                teamMemberIds: this.selectedTeamMemberIds,
+                cityType: this.selectedCityType || 'A Class City',
+                salesType: this.salesType,
+                expenseType: expenseTypeName
+            });
+            
+            console.log(`Combined limit for line item ${index}:`, combinedLimit);
+            console.log('Expense Owner:', this.selectedEmployeeId);
+            console.log('Team Members:', this.selectedTeamMemberIds);
+            console.log('Total Users:', 1 + this.selectedTeamMemberIds.length);
+            
+            // Store the combined limit for this line item
+            this.lineItemCombinedLimits.set(index, combinedLimit);
+            
+        } catch (error) {
+            console.error('Error calculating combined limit for line item:', error);
+            this.lineItemCombinedLimits.set(index, 0);
+        }
+    }
+
     handleVisitReportSelected(event) {
         this.visitReportId = event.detail.recordId;
         this.visitReportName = event.detail.recordName;
@@ -312,6 +406,8 @@ export default class ExpenseForm extends NavigationMixin(LightningElement) {
                 await this.updateGradeDetailsWithSalesType(this.userGradeName, this.salesType);
             }
         }
+        // Recalculate combined limits with new sales type
+        await this.calculateAllCombinedLimits();
 
         // Auto-change currency
         if (this.salesType === 'Export') {
@@ -637,34 +733,6 @@ export default class ExpenseForm extends NavigationMixin(LightningElement) {
         return baseOptions;
     }
 
-    // NEW: Handle viewing uploaded files
-    handleViewFiles(event) {
-        const idx = parseInt(event.currentTarget.dataset.index, 10);
-        const item = this.lineItems[idx];
-        const key = item.key;
-        
-        if (this.filesMap.has(key)) {
-            const documentIds = this.filesMap.get(key);
-            console.log('Viewing files for line item', idx, 'Document IDs:', documentIds);
-            
-            if (documentIds && documentIds.length > 0) {
-                // Open each file in a new tab
-                documentIds.forEach(docId => {
-                    if (docId) {
-                        const fileUrl = `/sfc/servlet.shepherd/document/download/${docId}`;
-                        window.open(fileUrl, '_blank');
-                    }
-                });
-                
-                this.showToast('Success', `Opening ${documentIds.length} file(s) in new tabs`, 'success');
-            } else {
-                this.showToast('Info', 'No files to view', 'info');
-            }
-        } else {
-            this.showToast('Info', 'No files uploaded for this line item', 'info');
-        }
-    }
-
     // ENHANCE the openFilePreviewModal method to use stored file names
     openFilePreviewModal(event) {
         const idx = parseInt(event.currentTarget.dataset.index, 10);
@@ -744,11 +812,6 @@ export default class ExpenseForm extends NavigationMixin(LightningElement) {
                 }
             });
         }
-    }
-
-    // Getter to check if line item has files
-    get hasNoFiles() {
-        return this.currentPreviewFiles.length === 0;
     }
 
     // Check if expense type is private
@@ -851,11 +914,25 @@ export default class ExpenseForm extends NavigationMixin(LightningElement) {
                 this.canEditDailyAllowance = false;
                 this.gradeTransportModeOptions = [];
             }
+
+            // Recalculate combined limits with new expense owner
+            await this.calculateAllCombinedLimits();
+            this.refreshAllLimitationTexts();
+
             // Check eligibility after employee is selected
             if (this.todayDate) {
                 await this.checkDailyAllowanceEligibility();
             }
         }
+    }
+
+    updateLineItemsWithLimitationText() {
+        this.lineItems = this.lineItems.map((item, index) => {
+            return {
+                ...item,
+                limitationText: this.computeLimitationText(item, index) // Compute and store the value
+            };
+        });
     }
 
     calculateAmountClaimedForLocal(item) {
@@ -916,7 +993,7 @@ export default class ExpenseForm extends NavigationMixin(LightningElement) {
         return false;
     }
 
-    handleTypeOfExpenseChange(event) {
+    async handleTypeOfExpenseChange(event) {
         const idx = parseInt(event.currentTarget.dataset.index, 10);
         const value = event.detail.value;
 
@@ -950,7 +1027,7 @@ export default class ExpenseForm extends NavigationMixin(LightningElement) {
             this.updateLineItem(idx, 'glCodeName', expenseType.glCodeName || '');
         }
 
-        // NEW LOGIC: Auto-set Special Allowance for Own Arrangement expense types when Out of Pocket is eligible
+        // Auto-set Special Allowance for Own Arrangement expense types when Out of Pocket is eligible
         if (isOwnArrangement) {
             console.log('Own Arrangement expense detected, setting Special Allowance:', this.specialAllowance);
             this.updateLineItem(idx, 'amountClaimed', this.specialAllowance);
@@ -962,11 +1039,16 @@ export default class ExpenseForm extends NavigationMixin(LightningElement) {
             }
         }
 
+        // Calculate combined limit for this specific line item
+        if (isFoodOrHotel) {
+            await this.calculateCombinedLimitForItem(idx);
+        }
+
         // Update limitation text
         const limitationText = this.computeLimitationText({
             ...this.lineItems[idx],
             typeOfExpenseId: value
-        });
+        }, idx);
         this.updateLineItem(idx, 'limitationText', limitationText);
 
         // If it's a food/hotel expense, clear transport mode values
@@ -983,6 +1065,7 @@ export default class ExpenseForm extends NavigationMixin(LightningElement) {
         // Force refresh to update the header text
         this.lineItems = [...this.lineItems];
     }
+
 
     updateLineItemTotal(index) {
         const item = this.lineItems[index];
@@ -1122,8 +1205,7 @@ export default class ExpenseForm extends NavigationMixin(LightningElement) {
         });
     }
 
-    //  Compute limitation text with City logic
-    computeLimitationText(item) {
+    computeLimitationText(item, index) {
         if (!this.showLimitation || !item.typeOfExpenseId) {
             return '';
         }
@@ -1134,28 +1216,25 @@ export default class ExpenseForm extends NavigationMixin(LightningElement) {
         }
 
         const label = expenseType.label.toLowerCase();
-        let limitation = '';
-
-        // For Domestic sales type, use City-based logic
-        if (this.salesType === 'Domestic') {
-            if (label.includes('hotel')) {
-                limitation = `Limit: ${this.currencySymbol}${this.lodgingHotel}`;
-            } else if (label.includes('food')) {
-                limitation = `Limit: ${this.currencySymbol}${this.boardingFood}`;
-            }
-        }
-        // For Export sales type, use existing logic (no city type dependency)
-        else if (this.salesType === 'Export') {
-            if (label.includes('hotel')) {
-                limitation = `Limit: ${this.currencySymbol}${this.lodgingHotel}`;
-            } else if (label.includes('food')) {
-                limitation = `Limit: ${this.currencySymbol}${this.boardingFood}`;
-            }
+        const isHotelExpense = label.includes('hotel');
+        const isFoodExpense = label.includes('food');
+        
+        if (!isHotelExpense && !isFoodExpense) {
+            return '';
         }
 
+        // Get the combined limit for this line item (SUM of all users)
+        const combinedLimit = this.lineItemCombinedLimits.get(index) || 0;
+        
+        // Calculate total users (expense owner + team members)
+        const totalUsers = 1 + (this.selectedTeamMemberIds ? this.selectedTeamMemberIds.length : 0);
+        
+        // Build limitation text showing TOTAL SUM
+        let limitation = `Total Limit: ${this.currencySymbol}${combinedLimit.toFixed(2)}`;
+        limitation += ` (${totalUsers} user${totalUsers > 1 ? 's combined' : ''})`;
+        
         return limitation;
     }
-
 
     async handleCitySelected(event) {
         this.selectedCityId = event.detail.recordId;
@@ -1175,6 +1254,8 @@ export default class ExpenseForm extends NavigationMixin(LightningElement) {
                 if (this.salesType === 'Domestic') {
                     await this.updateAllowancesBasedOnCity();
                 }
+                // Recalculate combined limits with new city type
+                await this.calculateAllCombinedLimits();
 
                 // Refresh limitation texts for all line items
                 this.refreshAllLimitationTexts();
@@ -1256,10 +1337,9 @@ export default class ExpenseForm extends NavigationMixin(LightningElement) {
         }
     }
 
-    // NEW: Refresh all limitation texts
-    refreshAllLimitationTexts() {
-        this.lineItems = this.lineItems.map(item => {
-            const limitationText = this.computeLimitationText(item);
+        refreshAllLimitationTexts() {
+        this.lineItems = this.lineItems.map((item, index) => {
+            const limitationText = this.computeLimitationText(item, index);
             return {
                 ...item,
                 limitationText: limitationText
@@ -1411,34 +1491,6 @@ export default class ExpenseForm extends NavigationMixin(LightningElement) {
         const idx = parseInt(event.target.dataset.index, 10);
         const value = event.target.value;
         this.updateLineItem(idx, 'remark', value);
-    }
-
-    // Calculate total for each line item
-    get lineItemsWithTotals() {
-        return this.lineItems.map(item => {
-            const amountClaimed = parseFloat(item.amountClaimed) || 0;
-            const dailyAllowance = parseFloat(item.dailyAllowance) || 0;
-            const total = amountClaimed + dailyAllowance;
-
-            return {
-                ...item,
-                total: total
-            };
-        });
-    }
-
-    // Update the grand total getter to use the new computed property
-    get grandTotal() {
-        return this.lineItemsWithTotals.reduce((sum, item) => {
-            return sum + (parseFloat(item.total) || 0);
-        }, 0);
-    }
-
-    // Add handler for total display
-    handleTotalDisplay(event) {
-        // This method can be used if you need to handle total changes
-        const idx = parseInt(event.target.dataset.index, 10);
-        // Total is calculated automatically, so no need to update
     }
 
     addLineItem() {
@@ -1629,28 +1681,6 @@ export default class ExpenseForm extends NavigationMixin(LightningElement) {
             const calculatedAmountDisplay = calculatedAmount.toFixed(2);
             this.updateLineItem(index, 'calculatedAmountDisplay', calculatedAmountDisplay);
         }
-    }
-
-    getLimitationText(item) {
-        if (!this.showLimitation || !item.typeOfExpenseId) {
-            return '';
-        }
-
-        const expenseType = this.typeOfExpenseOptions.find(opt => opt.value === item.typeOfExpenseId);
-        if (!expenseType || !expenseType.label) {
-            return '';
-        }
-
-        const label = expenseType.label.toLowerCase();
-        let limitation = '';
-
-        if (label.includes('hotel')) {
-            limitation = `Limit: ${this.currencySymbol}${this.lodgingHotel}`;
-        } else if (label.includes('food')) {
-            limitation = `Limit: ${this.currencySymbol}${this.boardingFood}`;
-        }
-
-        return limitation;
     }
 
     async handleVoucherTypeChange(event) {
@@ -1860,6 +1890,26 @@ export default class ExpenseForm extends NavigationMixin(LightningElement) {
         }
     }
 
+    async createExpenseTeamMembers(expenseId) {
+        try {
+            const teamMembersToCreate = this.selectedTeamMembers.map(member => ({
+                Expense__c: expenseId,
+                Attendee__c: member.Id
+            }));
+
+            // FIX: Call the Apex method, not the same JavaScript method
+            const result = await createExpenseTeamMembers({ 
+                teamMembers: teamMembersToCreate 
+            });
+            
+            console.log('Expense Team Members created:', result);
+            return result;
+        } catch (error) {
+            console.error('Error creating expense team members:', error);
+            throw error;
+        }
+    }
+
     async handleSubmit() {
         if (!this.validateForm()) return;
 
@@ -1867,6 +1917,7 @@ export default class ExpenseForm extends NavigationMixin(LightningElement) {
 
         try {
             const customerVisitIds = [];
+            const expenseTeamMemberIds = [];
 
             if (this.selectedVoucherType === 'Outstation' && this.selectedTourId && this.selectedAccounts.length > 0) {
                 for (const account of this.selectedAccounts) {
@@ -1945,6 +1996,11 @@ export default class ExpenseForm extends NavigationMixin(LightningElement) {
                 filesPerLineItem: filesPerLineItem
             });
 
+            // Create Expense Team Member records
+            if (this.selectedTeamMembers.length > 0 && expenseId) {
+                await this.createExpenseTeamMembers(expenseId);
+            }
+
             this.showToast('Success', 'Expense claim submitted successfully with all attachments', 'success');
             setTimeout(() => window.location.reload(), 1000);
             this.navigateToRecord(expenseId);
@@ -1967,11 +2023,6 @@ export default class ExpenseForm extends NavigationMixin(LightningElement) {
                 isValid = false;
             }
         });
-
-        // if (!this.expenseName) {
-        //     this.showToast('Error', 'Enter Voucher No', 'error');
-        //     return false;
-        // }
 
         if (!this.todayDate) {
             this.showToast('Error', 'Select Expense Date', 'error');
@@ -2061,19 +2112,6 @@ export default class ExpenseForm extends NavigationMixin(LightningElement) {
                         this.showToast('Error', `Select Date for Outstation expense in row ${i + 1}`, 'error');
                         return false;
                     }
-                    // if (!item.outstationFromLocation || item.outstationFromLocation.trim() === '') {
-                    //     this.showToast('Error', `Enter From Location for Outstation expense in row ${i + 1}`, 'error');
-                    //     return false;
-                    // }
-                    // if (!item.outstationToLocation || item.outstationToLocation.trim() === '') {
-                    //     this.showToast('Error', `Enter To Location for Outstation expense in row ${i + 1}`, 'error');
-                    //     return false;
-                    // }
-                    // if (!isFood && !item.outstationTransportMode) {
-                    //     this.showToast('Error', `Select Transport Mode for Outstation expense in row ${i + 1}`, 'error');
-                    //     return false;
-                    // }
-
                     // If it's a food expense, clear any transport mode value
                     if (isFood && item.outstationTransportMode) {
                         this.updateLineItem(i, 'outstationTransportMode', '');

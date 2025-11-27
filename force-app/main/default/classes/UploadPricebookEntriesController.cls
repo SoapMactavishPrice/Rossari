@@ -46,7 +46,7 @@ public with sharing class UploadPricebookEntriesController {
         Map<String, PricebookEntry> existingPbeByKey = new Map<String, PricebookEntry>();
         if (!productIds.isEmpty()) {
             for (PricebookEntry pbe : [
-                SELECT Id, Product2Id, UnitPrice, CurrencyIsoCode, Conversion_Rate_Dollar__c, Conversion_Rate_Euro__c 
+                SELECT Id, Product2Id, UnitPrice, Last_Price__c, CurrencyIsoCode, Conversion_Rate_Dollar__c, Conversion_Rate_Euro__c 
                 FROM PricebookEntry 
                 WHERE Pricebook2Id = :pricebookId AND Product2Id IN :productIds
             ]) {
@@ -97,22 +97,39 @@ public with sharing class UploadPricebookEntriesController {
             Object convDollarObj = row.get('ConvDollar');
             Object convEuroObj = row.get('ConvEuro');
 
-            if (convDollarObj != null) {
-                try {
-                    String convDollarStr = String.valueOf(convDollarObj);
-                    convDollarStr = convDollarStr.replace('₹', '').replace('$', '').replace('£', '').replace(',', '').trim();
-                    convDollar = Decimal.valueOf(convDollarStr);
-                } catch (Exception e) {
+            // Only process conversion rates that match the currency
+            if (currencyCode == 'USD') {
+                // For USD currency, only save Conversion_Rate_Dollar__c
+                if (convDollarObj != null) {
+                    try {
+                        String convDollarStr = String.valueOf(convDollarObj);
+                        convDollarStr = convDollarStr.replace('₹', '').replace('$', '').replace('£', '').replace(',', '').trim();
+                        convDollar = Decimal.valueOf(convDollarStr);
+                    } catch (Exception e) {
+                        // Log error but continue
+                        System.debug('Error parsing ConvDollar: ' + e.getMessage());
+                    }
                 }
-            }
-
-            if (convEuroObj != null) {
-                try {
-                    String convEuroStr = String.valueOf(convEuroObj);
-                    convEuroStr = convEuroStr.replace('₹', '').replace('$', '').replace('£', '').replace(',', '').trim();
-                    convEuro = Decimal.valueOf(convEuroStr);
-                } catch (Exception e) {
+                // Don't save Conversion_Rate_Euro__c for USD currency
+                convEuro = null;
+            } else if (currencyCode == 'EUR') {
+                // For EUR currency, only save Conversion_Rate_Euro__c
+                if (convEuroObj != null) {
+                    try {
+                        String convEuroStr = String.valueOf(convEuroObj);
+                        convEuroStr = convEuroStr.replace('₹', '').replace('$', '').replace('£', '').replace(',', '').trim();
+                        convEuro = Decimal.valueOf(convEuroStr);
+                    } catch (Exception e) {
+                        // Log error but continue
+                        System.debug('Error parsing ConvEuro: ' + e.getMessage());
+                    }
                 }
+                // Don't save Conversion_Rate_Dollar__c for EUR currency
+                convDollar = null;
+            } else {
+                // For other currencies (like INR), don't save any conversion rates
+                convDollar = null;
+                convEuro = null;
             }
 
             PricebookEntry existing = existingPbeByKey.get(key);
@@ -122,30 +139,73 @@ public with sharing class UploadPricebookEntriesController {
                     Product2Id = prod.Id, 
                     UnitPrice = unitPrice, 
                     IsActive = true,
-                    Conversion_Rate_Dollar__c = convDollar,
-                    Conversion_Rate_Euro__c = convEuro
+                    Last_Price__c = null // For new entries, Last_Price__c will be null initially
                 );
+                
+                // Set conversion rates based on currency
+                if (currencyCode == 'USD') {
+                    pbe.Conversion_Rate_Dollar__c = convDollar;
+                    pbe.Conversion_Rate_Euro__c = null; // Explicitly set to null for USD
+                } else if (currencyCode == 'EUR') {
+                    pbe.Conversion_Rate_Euro__c = convEuro;
+                    pbe.Conversion_Rate_Dollar__c = null; // Explicitly set to null for EUR
+                } else {
+                    // For other currencies, set both to null
+                    pbe.Conversion_Rate_Dollar__c = null;
+                    pbe.Conversion_Rate_Euro__c = null;
+                }
+                
                 if (currencyCode != null && currencyCode != '') pbe.put('CurrencyIsoCode', currencyCode);
                 toInsert.add(pbe);
                 toInsertIndexes.add(i);
             } else {
                 Boolean hasChanges = false;
                 
+                // Check if UnitPrice is changing and update Last_Price__c accordingly
                 if (existing.UnitPrice == null || existing.UnitPrice != unitPrice) {
+                    // Store current UnitPrice in Last_Price__c before updating
+                    if (existing.UnitPrice != null) {
+                        existing.Last_Price__c = existing.UnitPrice;
+                    }
                     existing.UnitPrice = unitPrice;
                     hasChanges = true;
                 }
                 
-                if (convDollar != null) {
-                    if (existing.Conversion_Rate_Dollar__c == null || existing.Conversion_Rate_Dollar__c != convDollar) {
-                        existing.Conversion_Rate_Dollar__c = convDollar;
+                // Update conversion rates based on currency
+                if (currencyCode == 'USD') {
+                    // For USD, only update Conversion_Rate_Dollar__c
+                    if (convDollar != null) {
+                        if (existing.Conversion_Rate_Dollar__c == null || existing.Conversion_Rate_Dollar__c != convDollar) {
+                            existing.Conversion_Rate_Dollar__c = convDollar;
+                            hasChanges = true;
+                        }
+                    }
+                    // Always set Conversion_Rate_Euro__c to null for USD
+                    if (existing.Conversion_Rate_Euro__c != null) {
+                        existing.Conversion_Rate_Euro__c = null;
                         hasChanges = true;
                     }
-                }
-                
-                if (convEuro != null) {
-                    if (existing.Conversion_Rate_Euro__c == null || existing.Conversion_Rate_Euro__c != convEuro) {
-                        existing.Conversion_Rate_Euro__c = convEuro;
+                } else if (currencyCode == 'EUR') {
+                    // For EUR, only update Conversion_Rate_Euro__c
+                    if (convEuro != null) {
+                        if (existing.Conversion_Rate_Euro__c == null || existing.Conversion_Rate_Euro__c != convEuro) {
+                            existing.Conversion_Rate_Euro__c = convEuro;
+                            hasChanges = true;
+                        }
+                    }
+                    // Always set Conversion_Rate_Dollar__c to null for EUR
+                    if (existing.Conversion_Rate_Dollar__c != null) {
+                        existing.Conversion_Rate_Dollar__c = null;
+                        hasChanges = true;
+                    }
+                } else {
+                    // For other currencies, set both conversion rates to null
+                    if (existing.Conversion_Rate_Dollar__c != null) {
+                        existing.Conversion_Rate_Dollar__c = null;
+                        hasChanges = true;
+                    }
+                    if (existing.Conversion_Rate_Euro__c != null) {
+                        existing.Conversion_Rate_Euro__c = null;
                         hasChanges = true;
                     }
                 }

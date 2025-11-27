@@ -30,7 +30,7 @@ export default class UploadPricebookEntries extends LightningElement {
     columns = [
         { label: 'Material', fieldName: 'Material' },
         { label: 'Material Description', fieldName: 'MaterialDescription' },
-        { label: 'DOM Price Nov25', fieldName: 'DomesticPrice', type: 'number' },
+        { label: 'DOM Price', fieldName: 'DomesticPrice', type: 'number' },
         { label: 'Conv Rate Dollar', fieldName: 'ConvDollar', type: 'number' },
         { label: 'EXP Price Dollar', fieldName: 'ExportDollar', type: 'number' },
         { label: 'Conv Rate Euro', fieldName: 'ConvEuro', type: 'number' },
@@ -50,6 +50,7 @@ export default class UploadPricebookEntries extends LightningElement {
             .then(() => {
                 // sheetjs available as window.XLSX
                 console.log('XLSX loaded');
+
             })
             .catch(error => {
                 this.showToast('Error', 'Unable to load XLSX', 'error', error);
@@ -68,7 +69,7 @@ export default class UploadPricebookEntries extends LightningElement {
         const headers = [
             'Material',
             'Material Description',
-            'Domestic Price Nov25',
+            'Domestic Price',
             'Conversion Rate Dollar',
             'Export Price Dollar',
             'Conversion Rate Euro',
@@ -251,7 +252,7 @@ export default class UploadPricebookEntries extends LightningElement {
                 __rowIndex: idx + 1,
                 Material: r['Material'] || r['material'] || r['MATERIAL'] || r['Material '],
                 MaterialDescription: r['Material Description'] || r['MaterialDescription'] || r['Description'],
-                DomesticPrice: r['Domestic Price Nov25'] || r['Domestic Price'] || r['DomesticPrice'] || null,
+                DomesticPrice: r['Domestic Price'] || r['Domestic Price'] || r['DomesticPrice'] || null,
                 ConvDollar: r['Conversion Rate Dollar'] || r['ConversionRateDollar'] || null,
                 ExportDollar: r['Export Price Dollar'] || r['ExportPriceDollar'] || null,
                 ConvEuro: r['Conversion Rate Euro'] || null,
@@ -274,7 +275,7 @@ export default class UploadPricebookEntries extends LightningElement {
         this.displayedRows = this.fullRows.slice(0, this.loadBatchSize);
         this.hasMoreData = this.fullRows.length > this.displayedRows.length;
         this.progressPercent = 0;
-        this.statusMessage = '';
+        this.statusMessage = ''
     }
 
     // File: pricebookUploader.js (startUpload method only)
@@ -374,6 +375,7 @@ export default class UploadPricebookEntries extends LightningElement {
 
                 processed += chunk.length;
                 this.progressPercent = Math.round((processed / total) * 100);
+
             }
 
             catch (err) {

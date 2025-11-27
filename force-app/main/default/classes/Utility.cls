@@ -528,7 +528,7 @@ public with sharing class Utility {
             userCompanyList = [
                 SELECT Division__c, Product_Group__c
                 FROM Company_User__c
-                WHERE User__c = :currentUserId AND (Company__r.Name = 'Tristar Intermediates Private Limited' OR Company__r.SAP_Code__c = '4000' OR Company__r.Name = 'Unitop Chemicals Private Limited' OR Company__r.SAP_Code__c = '3000')
+                WHERE User__c = :currentUserId AND (Company__r.Name = 'Tristar Intermediates Private Limited' OR Company__r.SAP_Code__c = '4000' OR Company__r.Name = 'Unitop Chemicals Private Limited' OR Company__r.SAP_Code__c = '3000' OR Company__r.SAP_Code__c = '1000')
             ];
         }
 

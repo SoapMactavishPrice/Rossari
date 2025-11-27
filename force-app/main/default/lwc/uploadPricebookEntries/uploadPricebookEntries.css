@@ -16,3 +16,8 @@
     color: white !important;
     font-weight: bold;
 }
+.customTableHeader lightning-datatable table thead th {
+    background-color: #1f5fbf !important;
+    color: white !important;
+    font-weight: 600;
+}

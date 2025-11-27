@@ -1,0 +1,81 @@
+<template>
+    <div class="slds-form-element">
+        <label class="slds-form-element__label" for="member-lookup">
+            <abbr class="slds-required" title="required" if:true={required}>* </abbr>
+            Team Members
+        </label>
+        <div class="slds-form-element__control">
+            <div class="slds-combobox_container">
+                <div class="slds-combobox slds-dropdown-trigger slds-dropdown-trigger_click">
+                    <div class="slds-combobox__form-element slds-input-has-fixed-addon" role="none">
+                        <input type="text" 
+                               class="slds-input slds-combobox__input" 
+                               id="member-lookup"
+                               aria-autocomplete="list"
+                               role="combobox"
+                               placeholder={placeholder}
+                               value={searchTerm}
+                               oninput={handleSearch}
+                               onfocus={handleFocus}
+                               onkeydown={handleKeyDown}
+                               aria-expanded={isDropdownOpen}
+                               aria-controls="dropdown-id" />
+                    </div>
+                    
+                    <!-- Selected Users Display -->
+                    <div class="slds-p-around_small" if:true={selectedUsers.length}>
+                        <div class="slds-tags_container">
+                            <template for:each={selectedUsers} for:item="user">
+                                <span key={user.Id} class="slds-tag slds-tag_light">
+                                    <span class="slds-tag__text">{user.Name}</span>
+                                    <button class="slds-button slds-button_icon slds-button_icon-small" 
+                                            title="Remove" 
+                                            onclick={handleRemoveUser}
+                                            data-user-id={user.Id}>
+                                        <lightning-icon icon-name="utility:close" size="xx-small"></lightning-icon>
+                                        <span class="slds-assistive-text">Remove {user.Name}</span>
+                                    </button>
+                                </span>
+                            </template>
+                        </div>
+                    </div>
+
+                    <!-- Dropdown List -->
+                    <div id="dropdown-id" 
+                        class="slds-dropdown slds-dropdown_length-5 slds-dropdown_fluid" 
+                        role="listbox"
+                        if:true={showDropdown}>
+                        <ul class="slds-listbox slds-listbox_vertical" role="presentation">
+                            <template for:each={searchResults} for:item="user">
+                                <li key={user.value} role="presentation" class="slds-listbox__item">  <!-- Use user.value as key -->
+                                    <div id="option-{user.value}" 
+                                        class="slds-media slds-listbox__option slds-listbox__option_plain slds-media_small" 
+                                        role="option"
+                                        onclick={handleUserSelect}
+                                        data-user-id={user.value}>
+                                        <div class="slds-media__figure">
+                                            <lightning-icon icon-name="standard:user" size="small"></lightning-icon>
+                                        </div>
+                                        <div class="slds-media__body">
+                                            <span class="slds-truncate" title={user.label}>{user.label}</span>
+                                            <div class="slds-text-color_weak slds-text-body_small">
+                                                {user.grade}<!-- Use the exact property names from Apex -->
+                                            </div>
+                                        </div>
+                                    </div>
+                                </li>
+                            </template>
+                        </ul>
+                    </div>
+
+                    <!-- No Results Message -->
+                    <div if:true={showNoResults} class="slds-dropdown slds-dropdown_fluid">
+                        <div class="slds-p-around_small slds-text-align_center">
+                            No users found matching "{searchTerm}"
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</template>

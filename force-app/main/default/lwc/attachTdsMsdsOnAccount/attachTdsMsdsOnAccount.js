@@ -475,7 +475,6 @@ export default class AttachTdsMsdsOnLead extends NavigationMixin(LightningElemen
     getLeadDetail() {
         getEmailDetails({ leadId: this.rId }).then(data => {
             if (data != null) {
-                this.ToAddress = data.Email;
                 this.ccAddress = data.Owner.Email;
             } else {
                 this.showToast('Error', 'Error', 'Lead Contact Email not found');
