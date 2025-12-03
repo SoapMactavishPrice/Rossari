@@ -3,6 +3,7 @@ import { NavigationMixin } from 'lightning/navigation';
 import { ShowToastEvent } from 'lightning/platformShowToastEvent';
 import getOppLineItems from '@salesforce/apex/QuoteController.getOppLineItems';
 import getQuoteInitialData from '@salesforce/apex/QuoteController.getQuoteInitialData';
+import getProductPricingData from '@salesforce/apex/QuoteController.getProductPricingData';
 import createQuoteFromOpportunity from '@salesforce/apex/QuoteController.createQuoteFromOpportunity';
 import deleteProductInterested from '@salesforce/apex/QuoteController.deleteProductInterested';
 import sendEmailToManagerForQuote from '@salesforce/apex/ManagerEmailSender.sendEmailToManagerForQuote';
@@ -47,6 +48,12 @@ export default class CreateQuoteFromOpportunity extends NavigationMixin(Lightnin
     @track showConversionRateDollar = false;
     @track showConversionRateEuro = false;
 
+    // Add these properties for new columns
+    @track showCustomerMaterialPriceColumn = false;
+    @track showLastSellingPriceColumn = false;
+    @track disableCreateButton = false;
+    @track paymentTermFilters = [];
+
     // Add method to calculate discount
     calculateDiscount(listPrice, salesPrice) {
         if (!listPrice || listPrice <= 0 || !salesPrice || salesPrice <= 0) {
@@ -78,13 +85,37 @@ export default class CreateQuoteFromOpportunity extends NavigationMixin(Lightnin
             return;
         }
 
-        console.log('Selected record description:', selectedRecord.description);
+        console.log('Selected record detail:', selectedRecord);
 
+        // Fetch pricing data for the newly selected product
+        if (selectedRecord.proId) {
+            this.fetchPricingForProduct(selectedRecord.proId, index, selectedRecord);
+        }
+    }
+
+    // New method to fetch pricing for a single product
+    fetchPricingForProduct(productId, index, selectedRecord) {
+        getProductPricingData({
+            opportunityId: this.recordId,
+            productIds: [productId]
+        })
+            .then(pricingData => {
+                this.updateItemWithPricing(productId, index, pricingData, selectedRecord);
+            })
+            .catch(error => {
+                console.error('Error fetching pricing for product:', error);
+                this.updateItemWithPricing(productId, index, {}, selectedRecord);
+            });
+    }
+
+    // Update item with pricing data
+    updateItemWithPricing(productId, index, pricingData, selectedRecord) {
         this.oppLineItems = this.oppLineItems.map((item) => {
             if (item.index === index) {
                 const listPrice = selectedRecord.unitPrice || 0;
-                const salesPrice = selectedRecord.unitPrice || 0; // Initially set sales price same as list price
+                const salesPrice = selectedRecord.unitPrice || 0;
                 const discount = this.calculateDiscount(listPrice, salesPrice);
+                const productPricing = pricingData[productId] || {};
 
                 const updatedItem = {
                     ...item,
@@ -95,24 +126,27 @@ export default class CreateQuoteFromOpportunity extends NavigationMixin(Lightnin
                     listPrice: listPrice,
                     Product2Id: selectedRecord.proId,
                     prodId: selectedRecord.proId,
-                    Description: selectedRecord.description || '',
+                    Description: selectedRecord.Description || '',
                     Customer_Target_Price__c: item.Customer_Target_Price__c || 0,
                     Container_Type__c: item.Container_Type__c || '',
                     Customer_Product_Name__c: item.Customer_Product_Name__c || '',
                     Customer_HS_Code__c: item.Customer_HS_Code__c || '',
-                    Discount: discount, // Auto-calculate discount
+                    Discount: discount,
+                    // Add pricing data
+                    customerMaterialPrice: productPricing.customerMaterialPrice || 0,
+                    lastSellingPrice: productPricing.lastSellingPrice || 0,
                     Product2: {
                         Id: selectedRecord.proId,
                         Name: selectedRecord.mainField,
                         ProductCode: selectedRecord.subField || '',
-                        Description: selectedRecord.description || ''
+                        Description: selectedRecord.Description || ''
                     },
                     prodName: selectedRecord.mainField,
                     prodCode: selectedRecord.subField || '',
                     isEdit: true
                 };
 
-                console.log('Updated item - List Price:', updatedItem.listPrice, 'Sales Price:', updatedItem.salesPrice, 'Discount:', updatedItem.Discount);
+                console.log('Updated item with pricing:', updatedItem);
                 return updatedItem;
             }
             return item;
@@ -186,6 +220,8 @@ export default class CreateQuoteFromOpportunity extends NavigationMixin(Lightnin
             Container_Type__c: originalItem.Container_Type__c || '',
             Customer_Product_Name__c: originalItem.Customer_Product_Name__c || '',
             Customer_HS_Code__c: originalItem.Customer_HS_Code__c || '',
+            customerMaterialPrice: originalItem.customerMaterialPrice || 0,
+            lastSellingPrice: originalItem.lastSellingPrice || 0,
             selected: true,
         };
 
@@ -194,62 +230,125 @@ export default class CreateQuoteFromOpportunity extends NavigationMixin(Lightnin
         this.oppLineItems = [...this.oppLineItems];
     }
 
-    // Update loadOppLineItems method to calculate discount for existing items
+    // Update loadOppLineItems method
     loadOppLineItems() {
         getOppLineItems({ opportunityId: this.recordId })
             .then(result => {
                 console.log('>>> Opp Line Items Raw Result:', result);
                 if (result && result.length > 0) {
                     this.hasProducts = true;
-                    this.oppLineItems = result.map(item => {
-                        const listPrice = item.PricebookEntry?.UnitPrice || item.UnitPrice || 0;
-                        const salesPrice = item.UnitPrice || 0;
-                        const discount = this.calculateDiscount(listPrice, salesPrice);
 
-                        return {
-                            ...item,
-                            index: this.generateRandomNum(),
-                            tempId: Date.now().toString() + Math.random().toString(16).slice(2),
-                            isEdit: !!item.Id,
-                            isNew: !item.Id,
-                            salesPrice: salesPrice,
-                            listPrice: listPrice,
-                            Discount: discount, // Set calculated discount
-                            pbeId: item.PricebookEntryId,
-                            prodId: item.Product2Id,
-                            prodName: item.Product2?.Name || '',
-                            prodCode: item.Product2?.ProductCode || '',
-                            Description: item.Product2?.Description,
-                            selected: true,
-                            Customer_Target_Price__c: 0,
-                            Container_Type__c: '',
-                            Customer_Product_Name__c: '',
-                            Customer_HS_Code__c: '',
-                            Product2: {
-                                Id: item.Product2Id,
-                                Name: item.Product2?.Name || '',
-                                ProductCode: item.Product2?.ProductCode || '',
-                                Description: item.Description || '',
-                            }
-                        };
-                    });
+                    // Extract product IDs to fetch additional pricing data
+                    const productIds = result.map(item => item.Product2Id).filter(id => id);
+
+                    // Fetch additional pricing data
+                    this.fetchProductPricingData(productIds, result);
                 } else {
                     this.hasProducts = false;
                     this.showToast('Warning',
                         'No products available in Opportunity. Please add products before creating a Quote.',
                         'warning');
+                    this.isLoading = false;
                 }
             })
             .catch(error => {
                 this.error = error.body.message;
                 this.showToast('Error', this.error, 'error');
-            })
-            .finally(() => {
                 this.isLoading = false;
             });
     }
 
-    // Rest of your existing methods remain exactly the same...
+    // New method to fetch product pricing data
+    fetchProductPricingData(productIds, oppLineItems) {
+        if (productIds.length === 0) {
+            this.processOppLineItems(oppLineItems, {});
+            return;
+        }
+
+        getProductPricingData({
+            opportunityId: this.recordId,
+            productIds: productIds
+        })
+            .then(pricingData => {
+                this.processOppLineItems(oppLineItems, pricingData);
+            })
+            .catch(error => {
+                console.error('Error fetching product pricing data:', error);
+                this.processOppLineItems(oppLineItems, {});
+            });
+    }
+
+    // Update processOppLineItems method
+    processOppLineItems(items, pricingData) {
+        this.oppLineItems = items.map(item => {
+            const listPrice = item.PricebookEntry?.UnitPrice || item.UnitPrice || 0;
+            const salesPrice = item.UnitPrice || 0;
+            const discount = this.calculateDiscount(listPrice, salesPrice);
+
+            // Get pricing data for this product
+            const productPricing = pricingData[item.Product2Id] || {};
+
+            return {
+                ...item,
+                index: this.generateRandomNum(),
+                tempId: Date.now().toString() + Math.random().toString(16).slice(2),
+                isEdit: !!item.Id,
+                isNew: !item.Id,
+                salesPrice: salesPrice,
+                listPrice: listPrice,
+                Discount: discount,
+                pbeId: item.PricebookEntryId,
+                prodId: item.Product2Id,
+                prodName: item.Product2?.Name || '',
+                prodCode: item.Product2?.ProductCode || '',
+                Description: item.Product2?.Description,
+                selected: true,
+                Customer_Target_Price__c: 0,
+                Container_Type__c: '',
+                Customer_Product_Name__c: '',
+                Customer_HS_Code__c: '',
+                // Add the new pricing fields
+                customerMaterialPrice: productPricing.customerMaterialPrice || item.Customer_Material_Price__c || 0,
+                lastSellingPrice: productPricing.lastSellingPrice || item.Last_Selling_Price__c || 0,
+                Product2: {
+                    Id: item.Product2Id,
+                    Name: item.Product2?.Name || '',
+                    ProductCode: item.Product2?.ProductCode || '',
+                    Description: item.Description || '',
+                }
+            };
+        });
+
+        this.isLoading = false;
+    }
+
+
+    handleCheckboxChange(event) {
+        const index = parseInt(event.target.dataset.index, 10);
+        const isChecked = event.target.checked;
+
+        this.oppLineItems = this.oppLineItems.map(item => {
+            if (item.index === index) {
+                return {
+                    ...item,
+                    selected: isChecked
+                };
+            }
+            return item;
+        });
+    }
+
+    handleContainerTypeInput(event) {
+        // Forward to the existing handler
+        this.handleContainerTypeChange(event);
+    }
+
+
+    get getBusinessType() {
+
+        return 'Standard';
+    }
+
     handleContactClick() {
         if (this.contacts.length === 0) {
             this.showToast('Warning', 'No contacts available for Account. Please Create a Contact.', 'warning');
@@ -272,7 +371,7 @@ export default class CreateQuoteFromOpportunity extends NavigationMixin(Lightnin
         let newContainerType = event.target.value;
 
         // Remove any numbers and special characters, convert to uppercase
-        newContainerType = newContainerType.replace(/[^A-Za-z\s]/g, '').toUpperCase();
+        //  newContainerType = newContainerType.replace(/[^A-Za-z\s]/g, '').toUpperCase();
 
         // Check if it's a line item (has data-index attribute)
         const index = event.target.dataset.index;
@@ -378,47 +477,6 @@ export default class CreateQuoteFromOpportunity extends NavigationMixin(Lightnin
         console.log('Inco Terms changed to:', newValue, 'Show Container Type:', this.showContainerType);
     }
 
-    // handleFieldChange(event) {
-    //     const field = event.target.dataset.field;
-
-    //     // Skip handling for incoTerms as it's now handled by handleIncoTermsChange
-    //     if (field === 'incoTerms' || field === 'paymentTermId') return;
-
-    //     this.quoteFields = {
-    //         ...this.quoteFields,
-    //         [field]: event.detail.value
-    //     };
-
-    //     // Your existing currency change logic
-    //     if (field === 'currencyCode') {
-    //         console.log('Currency changed to:', this.quoteFields.currencyCode);
-    //     }
-
-    //     // Your existing sales area logic
-    //     if (field === 'salesOrg') {
-    //         this.salesOrgValue = event.detail.value;
-    //         console.log('salesOrg:', this.salesOrgValue);
-    //         this.distChOptions = [];
-    //         this.distChValue = '';
-    //         this.divisionOptions = [];
-    //         this.divisionValue = '';
-    //         this.handleGetDistributionChannel();
-    //     }
-    //     if (field === 'distCh') {
-    //         this.distChValue = event.detail.value;
-    //         console.log('distCh:', this.distChValue);
-    //         this.divisionOptions = [];
-    //         this.divisionValue = '';
-    //         this.handleGetDivision();
-    //     }
-    //     if (field === 'division') {
-    //         this.divisionValue = event.detail.value;
-    //         console.log('division:', this.divisionValue);
-    //         this.handleGetSalesArea();
-    //     }
-    // }
-
-
     // Add methods to handle conversion rate changes
     handleConversionRateDollarChange(event) {
         this.quoteFields = {
@@ -507,6 +565,17 @@ export default class CreateQuoteFromOpportunity extends NavigationMixin(Lightnin
             return false;
         }
 
+        // if (!this.quoteFields.incoTerms || this.quoteFields.incoTerms.trim() === '') {
+        //     this.showToast('Error', 'Please select an Incoterm', 'error');
+        //     return false;
+        // }
+
+        // if (!this.quoteFields.paymentTermId || this.quoteFields.paymentTermId.trim() === '') {
+        //     this.showToast('Error', 'Please select an Payment Terms', 'error');
+        //     return false;
+        // }
+
+
         for (let item of itemsToValidate) {
             if (!item.Product2Id || item.Product2Id === '') {
                 this.showToast('Error', 'Please select a product for all selected rows.', 'error');
@@ -577,7 +646,10 @@ export default class CreateQuoteFromOpportunity extends NavigationMixin(Lightnin
             CustomerTargetPrice: item.Customer_Target_Price__c || 0,
             ContainerType: item.Container_Type__c || '',
             CustomerProductName: item.Customer_Product_Name__c,
-            CustomerHsCode: item.Customer_HS_Code__c
+            CustomerHsCode: item.Customer_HS_Code__c,
+            // Add new pricing fields
+            CustomerMaterialPrice: item.customerMaterialPrice || 0,
+            LastSellingPrice: item.lastSellingPrice || 0
         }));
 
         createQuoteFromOpportunity({
@@ -665,6 +737,10 @@ export default class CreateQuoteFromOpportunity extends NavigationMixin(Lightnin
         }));
     }
 
+    showError(title, message) {
+        this.showToast(title, message, 'error');
+    }
+
     handleCancel() {
         this[NavigationMixin.Navigate]({
             type: 'standard__recordPage',
@@ -686,11 +762,7 @@ export default class CreateQuoteFromOpportunity extends NavigationMixin(Lightnin
     }
 
     connectedCallback() {
-        this.loadInitialData();
-        this.handleGetSalesOrg();
-        this.getRecordType();
         this.checkExistingQuote();
-
     }
 
     checkExistingQuote() {
@@ -762,6 +834,10 @@ export default class CreateQuoteFromOpportunity extends NavigationMixin(Lightnin
                 // Set initial conversion rate visibility based on default currency
                 this.updateConversionRateVisibility();
 
+                // Set visibility flags for new columns
+                this.showCustomerMaterialPriceColumn = result.showCustomerMaterialPriceColumn || false;
+                this.showLastSellingPriceColumn = result.showLastSellingPriceColumn || false;
+
                 this.statusOptions = result.statusOptions;
                 this.currencyOptions = result.currencyOptions;
                 this.contacts = result.contacts.map(contact => ({
@@ -790,6 +866,8 @@ export default class CreateQuoteFromOpportunity extends NavigationMixin(Lightnin
 
                 console.log('Opportunity Inco Terms:', result.opportunityIncoTerms);
                 console.log('Opportunity Payment Term ID:', result.opportunityPaymentTermId);
+                console.log('Show Customer Material Price Column:', this.showCustomerMaterialPriceColumn);
+                console.log('Show Last Selling Price Column:', this.showLastSellingPriceColumn);
 
                 this.loadOppLineItems();
             })

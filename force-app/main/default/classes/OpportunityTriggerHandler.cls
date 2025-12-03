@@ -98,6 +98,8 @@ public class OpportunityTriggerHandler {
         ];
         
         if (piList.isEmpty()) {
+            
+            updateNewProductDevelopmentRecords(leadToAccountMap, leadToOppMap);
             copyFilesToConvertedRecords(leadToOppMap, leadToAccountMap);
             return;
         }
@@ -165,7 +167,52 @@ public class OpportunityTriggerHandler {
             update piToUpdateList;
         }
 
+          updateNewProductDevelopmentRecords(leadToAccountMap, leadToOppMap);
         copyFilesToConvertedRecords(leadToOppMap, leadToAccountMap);
+    }
+    
+    // Add this new method inside your LeadTriggerHandler class
+    private static void updateNewProductDevelopmentRecords(Map<Id, Id> leadToAccountMap, Map<Id, Id> leadToOppMap) {
+        // Query all NPD records linked to converted leads
+        List<New_Product_Development__c> npdRecords = [
+            SELECT Id, Lead__c, Name_of_the_Customer__c, Opportunity__c
+            FROM New_Product_Development__c
+            WHERE Lead__c IN :leadToAccountMap.keySet()
+        ];
+        
+        if (npdRecords.isEmpty()) {
+            return;
+        }
+        
+        List<New_Product_Development__c> npdToUpdate = new List<New_Product_Development__c>();
+        
+        for (New_Product_Development__c npd : npdRecords) {
+            Id leadId = npd.Lead__c;
+            Id accountId = leadToAccountMap.get(leadId);
+            Id oppId = leadToOppMap.get(leadId);
+            
+            boolean hasUpdates = false;
+            
+            // Map to Account if not already set
+            if (accountId != null && npd.Name_of_the_Customer__c == null) {
+                npd.Name_of_the_Customer__c = accountId;
+                hasUpdates = true;
+            }
+            
+            // Map to Opportunity if not already set
+            if (oppId != null && npd.Opportunity__c == null) {
+                npd.Opportunity__c = oppId;
+                hasUpdates = true;
+            }
+            
+            if (hasUpdates) {
+                npdToUpdate.add(npd);
+            }
+        }
+        
+        if (!npdToUpdate.isEmpty()) {
+            update npdToUpdate;
+        }
     }
 
     private static void copyFilesToConvertedRecords(Map<Id, Id> leadToOppMap, Map<Id, Id> leadToAccountMap) {

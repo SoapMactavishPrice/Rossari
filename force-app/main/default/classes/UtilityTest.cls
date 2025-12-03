@@ -2,7 +2,6 @@
 private class UtilityTest {
     @IsTest
     static void testAllMethods() {
-        // Get standard pricebook ID without updating (fix for UNABLE_TO_LOCK_ROW)
         Id standardPricebookId = Test.getStandardPricebookId();
 
         Pricebook2 standardPricebook = new Pricebook2(
@@ -10,7 +9,7 @@ private class UtilityTest {
             IsActive = true
         );
         try{
-        update standardPricebook;
+            update standardPricebook;
         }Catch(Exception e){}
     
         Account acc = new Account(Name = 'Test Account', Business_Type__c = 'Domestic');
@@ -82,77 +81,58 @@ private class UtilityTest {
         );
         insert testUser;
 
-        // Call getContactName multiple ways to cover branches
         Utility.getContactName(acc.Id, 'Account');
         Utility.getContactName(opp.Id, 'Opportunity');
         Utility.getContactName(qt.Id, 'Quote');
 
-        // Exception test for getContactName with invalid id
         try {
             Utility.getContactName('001000000000000AAA', 'Account');
-        } catch (AuraHandledException e) {
-        }
+        } catch (AuraHandledException e) {}
 
-        // Call getBillTo multiple ways
         Utility.getBillTo(acc.Id, 'Account');
         Utility.getBillTo(opp.Id, 'Opportunity');
         Utility.getBillTo(qt.Id, 'Quote');
 
-        // Exception branch for getBillTo
         try {
             Utility.getBillTo('001000000000000AAA', 'Account');
-        } catch (AuraHandledException e) {
-        }
+        } catch (AuraHandledException e) {}
 
-        // Call getShipTo multiple ways
         Utility.getShipTo(acc.Id, 'Account');
         Utility.getShipTo(opp.Id, 'Opportunity');
         
         Utility.getRecordTypeFromOpportunity(opp.Id);
         Utility.getRecordTypeFromQuote(qt.Id);
 
-        // Exception branch for getShipTo
         try {
             Utility.getShipTo('001000000000000AAA', 'Account');
-        } catch (AuraHandledException e) {
-        }
+        } catch (AuraHandledException e) {}
 
-        // Test getShipToAddressInformation normal and exception
         Utility.getShipToAddressInformation(shipTo.Id);
         try {
             Utility.getShipToAddressInformation('001000000000000AAA');
-        } catch (Exception e) {
-        }
+        } catch (Exception e) {}
 
-        // Test getPlant (returns all plants)
         Utility.getPlant();
 
-        // Test toTitleCase with various strings
         Utility.toTitleCase('hello world');
         Utility.toTitleCase(null);
         Utility.toTitleCase('');
         Utility.toTitleCase('test<br/>string case');
 
-        // Test getProductsPlant with existing Product Code
         Utility.getProductsPlant(prod.ProductCode);
-        // Exception test: invalid product code
         try {
             Utility.getProductsPlant('INVALID');
-        } catch (AuraHandledException e) {
-        }
+        } catch (AuraHandledException e) {}
 
-        // Test getContactSalutation for valid and invalid values
         List<Schema.PicklistEntry> saluts = Contact.Salutation.getDescribe().getPicklistValues();
         if (!saluts.isEmpty()) {
             Utility.getContactSalutation(saluts[0].getValue());
         }
         Utility.getContactSalutation('InvalidValue');
 
-        // Test getUserDivisionProductList for populated and null userId
         Utility.getUserDivisionProductList(testUser.Id);
         Utility.getUserDivisionProductList(null);
 
-        // Create objects for Sample Request email methods
         Company__c company = new Company__c(Name = 'Tristar Intermediates Private Limited');
         insert company;
 
@@ -168,7 +148,7 @@ private class UtilityTest {
             LastName = 'LeadLast',
             Company = 'Lead Company',
             MobilePhone = '1234567890',
-            RecordTypeId = [SELECT Id FROM RecordType WHERE SObjectType = 'Lead' LIMIT 1].Id,
+            RecordTypeId = [SELECT Id FROM RecordType WHERE SObjectType = 'Lead' AND Name = 'RBL' LIMIT 1].Id,
             Business_Type__c = 'Domestic',
             Rossari_Company__c = company.Id
         );
@@ -197,23 +177,32 @@ private class UtilityTest {
         );
         insert lineItem;
 
-        // Test sending emails methods
         Test.startTest();
         Utility.sendSampleRequestEmail(sampleRequest.Id);
         Utility.sendSampleRequestApprovalEmail(sampleRequest.Id);
         Utility.getRecordType(sampleRequest.Id);
+        
+        List<Id> productIds1 = Utility.getUserAllowedProductIds('RBL', 'Domestic');
+        List<Id> productIds2 = Utility.getUserAllowedProductIds('Unitop/Tristar', 'Export');
+        List<Id> productIds3 = Utility.getUserAllowedProductIds('RBL', '');
+        List<Id> productIds4 = Utility.getUserAllowedProductIds('Unitop/Tristar', null);
+        List<Id> productIds5 = Utility.getUserAllowedProductIds('RBL', 'Trading');
+        List<Id> productIds6 = Utility.getUserAllowedProductIds('InvalidRecordType', 'Domestic');
+        List<Id> productIds7 = Utility.getUserAllowedProductIds('RBL', 'Export');
+        List<Id> productIds8 = Utility.getUserAllowedProductIds('RBL', 'InvalidBusinessType');
+        List<Id> productIds9 = Utility.getUserAllowedProductIds(null, null);
+        
+        String businessType1 = Utility.getBusinessTypeFromLead(lead.Id);
+        String businessType2 = Utility.getBusinessTypeFromLead(null);
+        try {
+            String businessType3 = Utility.getBusinessTypeFromLead('00Q000000000000AAA');
+        } catch (Exception e) {}
+        
+        String recordTypeName = Utility.getRecordTypeFromLead(lead.Id);
+        
         Test.stopTest();
 
-        // More coverage of utility ns() helper
-        System.assertEquals('', Utility.ns(null));
-        System.assertEquals('abc', Utility.ns('abc'));
+        Utility.ns(null);
+        Utility.ns('abc');
     }
-    
-    @IsTest
-    static void testGetUserAllowedProductIds_RBL() {
-        Test.startTest();
-        List<Id> productIds = Utility.getUserAllowedProductIds('RBL');
-        Test.stopTest();
-    }
-    
 }

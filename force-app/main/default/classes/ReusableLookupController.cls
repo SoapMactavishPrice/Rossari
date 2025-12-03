@@ -1,7 +1,7 @@
 public with sharing class ReusableLookupController {
     @AuraEnabled
     public static List<ResultWrapper> fetchRecords(SearchWrapper inputWrapper, string currencyCode) {
-        // try {
+        try {
             // Validate input parameters
             if (inputWrapper == null) {
                 throw new AuraHandledException('Input parameters cannot be null');
@@ -12,19 +12,27 @@ public with sharing class ReusableLookupController {
             }
             
             System.debug('inputWrapper --> ' + inputWrapper);
+            System.debug('currencyCode --> ' + currencyCode);
+            System.debug('leadRecordType --> ' + inputWrapper.leadRecordType);
+            System.debug('businessType --> ' + inputWrapper.businessType);
             
             Boolean isPricebookEntry = inputWrapper.objectApiName == 'PricebookEntry';
             Boolean isProduct = inputWrapper.objectApiName == 'Product2';
-            String fieldsToQuery;
-
+            
             List<String> productIds = new List<String>();
 
-            // List<String> productIds = Utility.getUserDivisionProductList(UserInfo.getUserId());
+            // Get product IDs with both parameters
             if (inputWrapper.leadRecordType != null) {
-                productIds = Utility.getUserAllowedProductIds(inputWrapper.leadRecordType);
+                // Use businessType if provided, otherwise default to 'Domestic'
+                String businessTypeToUse = String.isNotBlank(inputWrapper.businessType) ? inputWrapper.businessType : 'Domestic';
+                System.debug('Calling Utility.getUserAllowedProductIds with leadRecordType: ' + inputWrapper.leadRecordType + ', businessType: ' + businessTypeToUse);
+                
+                productIds = Utility.getUserAllowedProductIds(inputWrapper.leadRecordType, businessTypeToUse);
+                System.debug('Retrieved ' + productIds.size() + ' product IDs');
             }
             
             // Step 1: Compose the SELECT clause
+            String fieldsToQuery;
             if (isPricebookEntry) {
                 // Fields for PricebookEntry
                 fieldsToQuery = 'SELECT Id, Product2Id, UnitPrice, Product2.Name, Product2.ProductCode, ' +
@@ -49,38 +57,58 @@ public with sharing class ReusableLookupController {
             }
             
             String filterCriteria = '';
-            // Step 2: Build WHERE filter
-            if (isProduct && String.isBlank(inputWrapper.selectedRecordId) && String.isNotBlank(inputWrapper.leadRecordType)) {
-                filterCriteria = 'Id IN :productIds';
+            List<String> conditions = new List<String>();
+            
+            // Step 2: Build WHERE filter for PricebookEntry
+            if (isPricebookEntry) {
+                // Currency filter for PricebookEntry
+                if (String.isNotBlank(currencyCode)) {
+                    conditions.add('CurrencyIsoCode = \'' + String.escapeSingleQuotes(currencyCode) + '\'');
+                }
+                
+                // IsActive filter for PricebookEntry
+                conditions.add('IsActive = true');
+                
+                // Product filter based on leadRecordType
+                if (String.isNotBlank(inputWrapper.leadRecordType) && !productIds.isEmpty()) {
+                    conditions.add('Product2Id IN :productIds');
+                }
             }
             
-            // Add currency filter only for PricebookEntry
-            if (isPricebookEntry && String.isNotBlank(currencyCode)) {
-                if (String.isNotBlank(filterCriteria)) filterCriteria += ' AND ';
-                filterCriteria += ' CurrencyIsoCode = \'' + String.escapeSingleQuotes(currencyCode) + '\'';
+            // Step 2a: Build WHERE filter for Product2
+            else if (isProduct) {
+                // Product filter based on leadRecordType
+                if (String.isBlank(inputWrapper.selectedRecordId) && 
+                    String.isNotBlank(inputWrapper.leadRecordType) && 
+                    !productIds.isEmpty()) {
+                    conditions.add('Id IN :productIds');
+                }
             }
             
             // Handle selected record ID
             if (String.isNotBlank(inputWrapper.selectedRecordId)) {
-                if (String.isNotBlank(filterCriteria)) filterCriteria += ' AND ';
-                filterCriteria += ' Id = \'' + String.escapeSingleQuotes(inputWrapper.selectedRecordId) + '\'';
+                conditions.add('Id = \'' + String.escapeSingleQuotes(inputWrapper.selectedRecordId) + '\'');
             } 
-            // Handle search string - UPDATED: Search by both Name and ProductCode
+            // Handle search string
             else if (String.isNotBlank(inputWrapper.searchString)) {
                 String searchStr = String.escapeSingleQuotes(inputWrapper.searchString.trim());
-                if (String.isNotBlank(filterCriteria)) filterCriteria += ' AND ';
                 
                 if (isPricebookEntry) {
                     // Search by both Product Name and Product Code
-                    filterCriteria += '(Product2.Name LIKE \'%' + searchStr + '%\' OR Product2.ProductCode LIKE \'%' + searchStr + '%\')';
+                    conditions.add('(Product2.Name LIKE \'%' + searchStr + '%\' OR Product2.ProductCode LIKE \'%' + searchStr + '%\')');
                 } 
                 else if (isProduct) {
                     // Search by both Product Name and Product Code
-                    filterCriteria += '(Name LIKE \'%' + searchStr + '%\' OR ProductCode LIKE \'%' + searchStr + '%\')';
+                    conditions.add('(Name LIKE \'%' + searchStr + '%\' OR ProductCode LIKE \'%' + searchStr + '%\')');
                 }
                 else if (String.isNotBlank(inputWrapper.fieldApiName)) {
-                    filterCriteria += inputWrapper.fieldApiName + ' LIKE \'%' + searchStr + '%\'';
+                    conditions.add(inputWrapper.fieldApiName + ' LIKE \'%' + searchStr + '%\'');
                 }
+            }
+            
+            // Combine all conditions
+            if (!conditions.isEmpty()) {
+                filterCriteria = String.join(conditions, ' AND ');
             }
             
             // Step 3: Add WHERE, ORDER BY and LIMIT clauses
@@ -106,8 +134,44 @@ public with sharing class ReusableLookupController {
             List<ResultWrapper> returnWrapperList = new List<ResultWrapper>();
             
             if (isPricebookEntry) {
+                // Use dynamic query with binding variables for better performance and security
+                List<PricebookEntry> pbeList;
+                
+                if (!conditions.isEmpty()) {
+                    // Build dynamic query with binding variables
+                    String dynamicQuery = 'SELECT Id, Product2Id, UnitPrice, Product2.Name, Product2.ProductCode, ' +
+                                        'Product2.Family, Product2.Plant_Name__c, Product2.Description, ' +
+                                        'CurrencyIsoCode ' +
+                                        'FROM PricebookEntry ' +
+                                        'WHERE IsActive = true ';
+                    
+                    if (String.isNotBlank(currencyCode)) {
+                        dynamicQuery += 'AND CurrencyIsoCode = \'' + String.escapeSingleQuotes(currencyCode) + '\' ';
+                    }
+                    
+                    if (String.isNotBlank(inputWrapper.leadRecordType) && !productIds.isEmpty()) {
+                        dynamicQuery += 'AND Product2Id IN :productIds ';
+                    }
+                    
+                    if (String.isNotBlank(inputWrapper.selectedRecordId)) {
+                        dynamicQuery += 'AND Id = \'' + String.escapeSingleQuotes(inputWrapper.selectedRecordId) + '\' ';
+                    }
+                    
+                    if (String.isNotBlank(inputWrapper.searchString)) {
+                        String searchStr = '%' + String.escapeSingleQuotes(inputWrapper.searchString.trim()) + '%';
+                        dynamicQuery += 'AND (Product2.Name LIKE \'' + searchStr + '\' OR Product2.ProductCode LIKE \'' + searchStr + '\') ';
+                    }
+                    
+                    dynamicQuery += 'ORDER BY Product2.Name ASC LIMIT 100';
+                    
+                    System.debug('Dynamic Query: ' + dynamicQuery);
+                    pbeList = Database.query(dynamicQuery);
+                } else {
+                    pbeList = Database.query(query);
+                }
+                
                 List<string> prodCodeList = new List<string>();
-                for (PricebookEntry entry : Database.query(query)) {
+                for (PricebookEntry entry : pbeList) {
                     if (entry.Product2 != null && !prodCodeList.contains(entry.Product2.ProductCode)) {
                         ResultWrapper wrap = new ResultWrapper();
                         wrap.mainField = entry.Product2.Name;
@@ -116,7 +180,6 @@ public with sharing class ReusableLookupController {
                         wrap.unitPrice = entry.UnitPrice;
                         wrap.productPlant = entry.Product2.Plant_Name__c;
                         wrap.Description = entry.Product2.Description;
-                   //     wrap.uom = entry.Product2.UOM_Master__c;
                         wrap.proId = entry.Product2Id;
                         wrap.id = entry.Id;
                         prodCodeList.add(entry.Product2.ProductCode);
@@ -125,21 +188,22 @@ public with sharing class ReusableLookupController {
                 }
             } 
             else if (isProduct) {
-                for (Product2 product : Database.query(query)) {
+                List<Product2> productList = Database.query(query);
+                for (Product2 product : productList) {
                     ResultWrapper wrap = new ResultWrapper();
                     wrap.mainField = product.Name;
                     wrap.subField = product.ProductCode;
                     wrap.familyField = product.Family;
                     wrap.productPlant = product.Plant_Name__c;
                     wrap.Description = product.Description;
-              //      wrap.uom = product.UOM_Master__c;
                     wrap.id = product.Id;
                     returnWrapperList.add(wrap);
                 }
             } 
             else {
                 // Generic object handling
-                for (SObject obj : Database.query(query)) {
+                List<SObject> objList = Database.query(query);
+                for (SObject obj : objList) {
                     ResultWrapper wrap = new ResultWrapper();
                     wrap.id = (String)obj.get('Id');
                     if (String.isNotBlank(inputWrapper.fieldApiName)) {
@@ -155,12 +219,13 @@ public with sharing class ReusableLookupController {
                 }
             }
             
-            system.debug('returnWrapperList==>'+returnWrapperList);
+            system.debug('returnWrapperList size ==>' + returnWrapperList.size());
             return returnWrapperList;
-        // } catch (Exception err) {
-        //     System.debug('Error at line: ' + err.getLineNumber() + ' - ' + err.getMessage());
-        //     throw new AuraHandledException(err.getMessage());
-        // }
+        } catch (Exception err) {
+            System.debug('Error at line: ' + err.getLineNumber() + ' - ' + err.getMessage());
+            System.debug('Stack trace: ' + err.getStackTraceString());
+            throw new AuraHandledException('Error fetching records: ' + err.getMessage());
+        }
     }
     
     public class ResultWrapper {
@@ -184,5 +249,6 @@ public with sharing class ReusableLookupController {
         @AuraEnabled public String parentRecordId {get; set;}
         @AuraEnabled public String parentFieldApiName {get; set;}
         @AuraEnabled public String leadRecordType {get; set;}
+        @AuraEnabled public String businessType {get; set;}
     }
 }

@@ -66,7 +66,7 @@
                                                         onclick={toggleResult} value={searchKey} variant="label-hidden"
                                                         placeholder="Search Product here..."
                                                         onkeyup={showFilteredProducts} onchange={showFilteredProducts}
-                                                        class="searchBox"></lightning-input>
+                                                        class="searchBox" disabled={showSpinner}></lightning-input>
                                                     <span if:true={showErrorMsg} style="color:red">First, enter keywords
                                                         for a product. Then add filters and click Apply.</span>
                                                 </div>
@@ -194,9 +194,21 @@
                                     <th class="" scope="col">
                                         <div class="slds-truncate" title="Item Number">Product Name</div>
                                     </th>
+                                    <template if:true={showCustomerMaterialPriceColumn}>
+                                        <th class="" scope="col">
+                                            <div class="slds-truncate" title="Customer Material Price">Customer Material
+                                                Price</div>
+                                        </th>
+                                    </template>
                                     <th class="" scope="col">
                                         <div class="slds-truncate" title="Pack Size">List Price</div>
                                     </th>
+                                    <template if:true={showLastSellingPriceColumn}>
+                                        <th class="" scope="col">
+                                            <div class="slds-truncate" title="Last Selling Price">Last Selling Price
+                                            </div>
+                                        </th>
+                                    </template>
                                     <!-- <th class="" scope="col">
                                         <div class="slds-truncate" title="Item Number">HSN Master</div>
                                     </th> -->
@@ -239,11 +251,28 @@
                                                 <a href={product.purl} tabindex="-1">{product.Name}</a>
                                             </div>
                                         </th>
-                                        <th data-label="Opportunity Name" scope="row" class="slds-text-align_center">
-                                            <div class="sldit's-truncate" title="Cloudhub">
+                                        <template if:true={showCustomerMaterialPriceColumn}>
+                                            <th data-label="Customer Material Price" scope="row"
+                                                class="slds-text-align_center">
+                                                <div class="slds-truncate">
+                                                    <!-- show value only when backend populated, else blank -->
+                                                    {product.customerMaterialPrice}
+                                                </div>
+                                            </th>
+                                        </template>
+                                        <th data-label="List Price" scope="row" class="slds-text-align_center">
+                                            <div class="slds-truncate">
                                                 {product.ListPrice}
                                             </div>
                                         </th>
+                                        <template if:true={showLastSellingPriceColumn}>
+                                            <th data-label="Last Selling Price" scope="row"
+                                                class="slds-text-align_center">
+                                                <div class="slds-truncate">
+                                                    {product.lastSellingPrice}
+                                                </div>
+                                            </th>
+                                        </template>
                                         <!-- <th data-label="Opportunity Name" scope="row">
                                             <div class="slds-truncate" title="Cloudhub">
                                                 {product.PackSize}
@@ -255,7 +284,7 @@
                                                 onchange={handleQuantityChange}></lightning-input>
                                         </td>
                                         <td>
-                                            <lightning-input type="text" value={product.Price} placeholder="0"
+                                            <lightning-input type="text" value="0" placeholder="0"
                                                 data-target-id={product.Id} variant="label-hidden"
                                                 onchange={handleSalesPriceChange} step="any"></lightning-input>
                                         </td>

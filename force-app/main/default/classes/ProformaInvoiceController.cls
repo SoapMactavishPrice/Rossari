@@ -23,7 +23,7 @@ public class ProformaInvoiceController {
                 Country_of_Destination__c, Place_of_Supplier__c, Pre_Carriage_Mode__c,
                 Quote_Valid_From__c,Bank__c,Destination__c,BillingCity,BillingState,
                 BillingCountry,ShippingStreet,ShippingPostalCode,ShippingCity,
-                ShippingName,ShippingState,ShippingCountry,Vessel_Flight_No__c,Grand_Total__c,
+                ShippingName,ShippingState,ShippingCountry,Vessel_Flight_No__c,Grand_Total__c,Transportation_Cost__c,
                 Loading_Port__c, Destination_Port__c,Terms_and_Conditions__c,Declaration__c,
                 BillingName,BillingStreet,BillingPostalCode,Pre_Carriage_Destination__c,Payment_Term__c,                
                 (SELECT Id, Product2Id,Product2.Name, ListPrice, UnitPrice, Quantity, Quality__c, 
@@ -105,7 +105,8 @@ public class ProformaInvoiceController {
                 Ship_To_State__c = quote.ShippingState,
                 Ship_To_Country__c = quote.ShippingCountry,
                 Pre_Carriage_Destination__c = quote.Pre_Carriage_Destination__c,
-                Vessel_Flight_No__c = quote.Vessel_Flight_No__c
+                Vessel_Flight_No__c = quote.Vessel_Flight_No__c,
+                Transportation_Cost__c = quote.Transportation_Cost__c
                 
             );
             insert invoice;

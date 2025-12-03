@@ -1,9 +1,4 @@
 <template>
-    <!-- <lightning-button variant="brand" label="Add Product" title="Add Product" onclick={openModal}
-        class="slds-m-left_x-small">
-    </lightning-button> -->
-
-    <!-- <template if:true={isModalOpen} style="max-width: 90rem !important;width:90% !important;"> -->
     <template if:true={isModalOpen}>
         <section role="dialog" aria-labelledby="modal-heading-01" aria-modal="true"
             aria-describedby="modal-content-id-1" class="slds-modal slds-fade-in-open">
@@ -17,7 +12,6 @@
                     </button>
                     <template if:true={isFirstPage}>
                         <h2 id="modal-heading-02" class="slds-text-heading_medium slds-hyphenate">Add Products</h2>
-                        <!-- <h3 id="modal-heading-03">Price Book: {PriceBook}</h3> -->
                     </template>
                     <template if:false={isFirstPage}>
                         <h2 id="modal-heading-04" class="slds-text-heading_medium">Edit Selected Products</h2>
@@ -87,32 +81,16 @@
                                 </div>
                             </div>
                             <div class="slds-col">
-                                <!-- <lightning-button-icon icon-name="utility:filterList" size="medium" onclick={datafilter}
-                                    alternative-text="Filter"
-                                    class="slds-m-left_xx-small slds-float_right"></lightning-button-icon> -->
+                                <!-- Filter button if needed -->
                             </div>
-
                         </div>
-                        <!-- <div class="slds-grid slds-grid_vertical slds-m-vertical_x-small">
-                            <a aria-live="polite" if:true={ShowViewAll} onclick={handleviewAll}
-                                class="slds-m-vertical_xx-small slds-col slds-p-around_xx-small"
-                                style="height: 10px !important">Back to Result</a>
-                            <a aria-live="polite" if:true={ShowSelected} onclick={handleShowSelected}
-                                class="slds-m-vertical_xx-small slds-col slds-p-around_xx-small"
-                                style="height: 10px !important">Show Selected ({SelectedRecordCount})</a>
-                        </div> -->
-
-                        <!-- <label>showspninner is : {showSpinner}</label> -->
-
-
 
                         <div class="demo-only demo-only--sizing slds-grid slds-wrap slds-scrollable_y"
                             style="height:21rem;">
                             <div class="slds-size_3-of-3">
                                 <div class="slds-text-align_center slds-m-top_x-small">
                                     <div class="slds-col slds-box">
-
-                                        <lightning-datatable data={ShowTableData} key-field="Id" columns={cols}
+                                        <lightning-datatable data={ShowTableData} key-field="Id" columns={columns}
                                             if:false={showSpinner} data-id="datatable"
                                             selected-rows={selectedProductCode} onrowselection={SelectedProduct}>
                                         </lightning-datatable>
@@ -122,10 +100,7 @@
                                                 </lightning-spinner>
                                             </div>
                                         </template>
-
-
                                     </div>
-
                                 </div>
                             </div>
                             <div class="slds-size_3-of-3 divclas" if:true={datafilterval}>
@@ -148,81 +123,76 @@
                                     label="Apply"></lightning-button>
                             </div>
                         </div>
-                        <!-- <div class="slds-grid slds-gutters slds-scrollable_y" style="height:23rem;"
-                            if:false={datafilterval}>
-                            <div class="slds-col slds-box">
-                                <lightning-datatable data={ShowTableData} key-field="Id" columns={cols}
-                                    data-id="datatable" selected-rows={selectedProductCode}
-                                    onrowselection={SelectedProduct}>
-                                </lightning-datatable>
-                            </div>
-                        </div> -->
                     </template>
-                    <template if:true={isSecondPage}>
 
+                    <template if:true={isSecondPage}>
                         <table class="slds-table slds-table_cell-buffer slds-table_bordered slds-table_col-bordered">
                             <thead>
                                 <tr id="firstRow" class="slds-line-height_reset">
-                                    <!-- <th class="" scope="col">
-                                    </th> -->
                                     <th class="" scope="col">
                                         <div class="slds-truncate" title="Item Number">Product Name</div>
                                     </th>
+
+                                    <!-- Customer Material Price column (only for Sales Org 1000) -->
+                                    <th class="" scope="col" if:true={shouldShowCustomerMaterialPrice}>
+                                        <div class="slds-truncate" title="Customer Material Price">Customer Material
+                                            Price</div>
+                                    </th>
+
+
                                     <th class="" scope="col">
                                         <div class="slds-truncate" title="Pack Size">List Price</div>
                                     </th>
-                                    <!-- <th class="" scope="col">
-                                        <div class="slds-truncate" title="Item Number">HSN Master</div>
-                                    </th> -->
+
+                                    <!-- Last Selling Price column (only for Sales Org 3000/4000) -->
+                                    <th class="" scope="col" if:true={shouldShowLastSellingPrice}>
+                                        <div class="slds-truncate" title="Last Selling Price">Last Selling Price</div>
+                                    </th>
                                     <th class="" scope="col">
-                                        <div class="slds-truncate" title="Quantity"><span
-                                                class="slds-required requiredHeader">*</span><span
-                                                class="slds-truncate">Quantity</span>
+                                        <div class="slds-truncate" title="Quantity">
+                                            <span class="slds-required requiredHeader">*</span>
+                                            <span class="slds-truncate">Quantity</span>
                                         </div>
                                     </th>
                                     <th class="" scope="col">
-                                        <div class="slds-truncate" title="Sales Price"><span
-                                                class="slds-required requiredHeader">*</span><span
-                                                class="slds-truncate">Sales
-                                                Price</span></div>
+                                        <div class="slds-truncate" title="Sales Price">
+                                            <span class="slds-required requiredHeader">*</span>
+                                            <span class="slds-truncate">Sales Price</span>
+                                        </div>
                                     </th>
                                     <th class="" scope="col">
                                         <div class="slds-truncate" title="Discount">Discount</div>
                                     </th>
-
-                                    <!--<th class="" scope="col">
-                                        <div class="slds-truncate" title="Date">Date</div>
-                                    </th>-->
-                                    <!--<th class="" scope="col">
-                                        <div class="slds-truncate" title="Line Description">Line Description</div>
-                                    </th>-->
-                                    <!-- <th class="" scope="col">
-                                    </th> -->
-
                                 </tr>
                             </thead>
                             <tbody>
                                 <template for:each={SelectedProductData} for:item="product" for:index="index">
-
                                     <tr key={product.id} id={product.Id}>
-                                        <!-- <td data-index="index" class="slds-show">
-                                            <div>{product.index}</div>
-                                        </td> -->
-                                        <th data-label="Opportunity Name" scope="row">
+                                        <th data-label="Product Name" scope="row">
                                             <div class="slds-truncate" title="Cloudhub">
                                                 <a href={product.purl} tabindex="-1">{product.Name}</a>
                                             </div>
                                         </th>
-                                        <th data-label="Opportunity Name" scope="row" class="slds-text-align_center">
+
+                                        <!-- Customer Material Price cell (only for Sales Org 1000) -->
+                                        <td if:true={shouldShowCustomerMaterialPrice}>
+                                            <div class="slds-truncate slds-text-align_center">
+                                                {product.customerMaterialPrice}
+                                            </div>
+                                        </td>
+
+                                        <th data-label="List Price" scope="row" class="slds-text-align_center">
                                             <div class="slds-truncate" title="Cloudhub">
                                                 {product.ListPrice}
                                             </div>
                                         </th>
-                                        <!-- <th data-label="Opportunity Name" scope="row">
-                                            <div class="slds-truncate" title="Cloudhub">
-                                                {product.PackSize}
+
+                                        <!-- Last Selling Price cell (only for Sales Org 3000/4000) -->
+                                        <td if:true={shouldShowLastSellingPrice}>
+                                            <div class="slds-truncate slds-text-align_center">
+                                                {product.lastSellingPrice}
                                             </div>
-                                        </th> -->
+                                        </td>
                                         <td>
                                             <lightning-input type="text" value={product.Quantity} placeholder="0"
                                                 data-target-id={product.Id} variant="label-hidden"
@@ -233,34 +203,17 @@
                                                 data-target-id={product.Id} variant="label-hidden"
                                                 onchange={handleSalesPriceChange} step="any"></lightning-input>
                                         </td>
-                                        <!-- <td>
-                                            <lightning-input type="number" value={product.Discount}
-                                                data-target-id={product.Id} variant="label-hidden"
-                                                onchange={handleDateChange}></lightning-input>
-                                        </td> -->
-
                                         <td>
                                             <lightning-input type="number" value={product.Discount}
                                                 data-target-id={product.Id} variant="label-hidden" disabled step="any">
                                             </lightning-input>
                                         </td>
-
-                                        <!-- <td>
-                                            <lightning-input type="text" value={product.LineDescription}
-                                                variant="label-hidden" data-target-id={product.Id}
-                                                onchange={handleLineDescriptionChange}></lightning-input>
-                                        </td>-->
-                                        <!-- <td>
-                                            <lightning-button-icon icon-name="utility:delete" onclick={hadleDelete}
-                                                variant="label-hidden" value={product.Id} data-target-id={product.Id}
-                                                data-field="delete" alternative-text="Delete"
-                                                class="slds-m-left_xx-small" title="Delete"></lightning-button-icon>
-                                        </td> -->
                                     </tr>
                                 </template>
                             </tbody>
                         </table>
                     </template>
+
                     <footer class="slds-modal__footer">
                         <div style="display:flex; justify-content: center;">
                             <div class="slds-align_absolute-center" if:true={isFirstPage}>
@@ -307,5 +260,4 @@
         </section>
         <div class="slds-backdrop slds-backdrop_open"></div>
     </template>
-
 </template>

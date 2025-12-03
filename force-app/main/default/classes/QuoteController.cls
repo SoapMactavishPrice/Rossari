@@ -4,7 +4,8 @@ public with sharing class QuoteController {
     public static List<OpportunityLineItem> getOppLineItems(String opportunityId) {
         return [
             SELECT Id, Product2Id, Product2.Name, UnitPrice, Quantity, Product2.Description,
-            PricebookEntryId, PricebookEntry.UnitPrice, Description, Discount
+            PricebookEntryId, PricebookEntry.UnitPrice, Description, Discount,
+            Customer_Material_Price__c, Last_Selling_Price__c  // Add these fields
             FROM OpportunityLineItem
             WHERE OpportunityId = :opportunityId
             ORDER BY SortOrder
@@ -20,6 +21,7 @@ public with sharing class QuoteController {
                            Contact__c, Contact__r.Name, Contact__r.Id,
                            Inco_Terms__c, Payment_Term__c, Payment_Term__r.Name,
                            Sales_Organisations__c, Division__c, Distribution_Channel__c,
+                           Sales_Organisations__r.Name, Division__r.Division_Code__c, // Add these
                            Account.Name
                            FROM Opportunity 
                            WHERE Id = :opportunityId LIMIT 1];
@@ -151,6 +153,14 @@ public with sharing class QuoteController {
         result.put('opportunityPaymentTermName', opp.Payment_Term__r?.Name);
         result.put('opportunityDomesticDeliveryTerms', '');
         
+        // Add visibility flags for Customer Material Price and Last Selling Price columns
+        String salesOrg = opp.Sales_Organisations__r?.Name;
+        String division = opp.Division__r?.Division_Code__c;
+        Set<String> allowedDivisions = new Set<String>{'10','11','22'};
+        
+        result.put('showCustomerMaterialPriceColumn', salesOrg == '1000' && allowedDivisions.contains(division));
+        result.put('showLastSellingPriceColumn', salesOrg == '3000' || salesOrg == '4000');
+        
         if (opp.Contact__c != null && opp.Contact__r != null) {
             result.put('defaultContact', new Map<String, String>{
                 'label' => opp.Contact__r.Name,
@@ -159,6 +169,80 @@ public with sharing class QuoteController {
         }
         
         return result;
+    }
+    
+    // Add this method to get Customer Material Price and Last Selling Price
+    @AuraEnabled(cacheable=true)
+    public static Map<String, Map<String, Decimal>> getProductPricingData(String opportunityId, List<String> productIds) {
+        Map<String, Map<String, Decimal>> result = new Map<String, Map<String, Decimal>>();
+        
+        try {
+            // Get opportunity details including Sales Org and Division
+            Opportunity opp = [
+                SELECT Id, AccountId, Sales_Organisations__r.Name, Division__r.Division_Code__c
+                FROM Opportunity 
+                WHERE Id = :opportunityId 
+                LIMIT 1
+            ];
+            
+            if (opp == null || opp.AccountId == null) {
+                return result;
+            }
+            
+            String salesOrg = opp.Sales_Organisations__r?.Name;
+            String division = opp.Division__r?.Division_Code__c;
+            
+            // Prepare Customer Material Price map
+            Map<String, Decimal> customerMaterialPriceMap = new Map<String, Decimal>();
+            Map<String, Decimal> lastSellingPriceMap = new Map<String, Decimal>();
+            
+            // 1. Get Customer Material Price (only for Sales Org '1000' and Division in {'10','11','22'})
+            Set<String> allowedDivisions = new Set<String>{'10','11','22'};
+            
+            if (salesOrg == '1000' && allowedDivisions.contains(division)) {
+                List<Customer_Material_Pricelist__c> cmpl = [
+                    SELECT Id, Material__c, Material_Price__c
+                    FROM Customer_Material_Pricelist__c
+                    WHERE Customer__c = :opp.AccountId 
+                    AND Material__c IN :productIds
+                ];
+                
+                for (Customer_Material_Pricelist__c cm : cmpl) {
+                    customerMaterialPriceMap.put(cm.Material__c, cm.Material_Price__c);
+                }
+            }
+            
+            // 2. Get Last Selling Price (only for Sales Org '3000' or '4000')
+            if (salesOrg == '3000' || salesOrg == '4000') {
+                List<Invoice_Line_Item__c> invItems = [
+                    SELECT Id, Item_Taxable_Value__c, Product__c
+                    FROM Invoice_Line_Item__c
+                    WHERE Product__c IN :productIds 
+                    AND Invoice__r.Customer_Name__c = :opp.AccountId
+                    ORDER BY Invoice__r.CreatedDate DESC
+                ];
+                
+                for (Invoice_Line_Item__c ili : invItems) {
+                    if (!lastSellingPriceMap.containsKey(ili.Product__c)) {
+                        lastSellingPriceMap.put(ili.Product__c, ili.Item_Taxable_Value__c);
+                    }
+                }
+            }
+            
+            // Combine into result map
+            for (String productId : productIds) {
+                Map<String, Decimal> priceMap = new Map<String, Decimal>();
+                priceMap.put('customerMaterialPrice', customerMaterialPriceMap.get(productId));
+                priceMap.put('lastSellingPrice', lastSellingPriceMap.get(productId));
+                result.put(productId, priceMap);
+            }
+            
+            return result;
+            
+        } catch (Exception e) {
+            System.debug('Error in getProductPricingData: ' + e.getMessage());
+            return result;
+        }
     }
     
     @AuraEnabled
@@ -230,11 +314,13 @@ public with sharing class QuoteController {
         Boolean isPaymentTermChanged = opp.Payment_Term__c != paymentTermId;
         Boolean isIncoTermsChanged = opp.Inco_Terms__c != incoTerms;
         
-        // Determine final status - if terms changed, set to 'Credit Approval', otherwise use the provided status
+        // Determine final status - if terms changed, set to 'Payment/Incoterms Approval', otherwise use the provided status
         String finalStatus = status;
         if (isPaymentTermChanged || isIncoTermsChanged) {
             finalStatus = 'Payment/Incoterms Approval';
-        }
+        } else if (String.isBlank(finalStatus)) {
+        finalStatus = 'Working'; // Default if not provided
+    }
         
         // Query the Company__c record for 'Rossari Biotech Limited'
         Company__c rossariCompany = [SELECT Id FROM Company__c WHERE Name = 'Rossari Biotech Limited' LIMIT 1];
@@ -343,7 +429,10 @@ public with sharing class QuoteController {
                 Description = itemWrapper.Description,
                 Customer_Target_Price__c = itemWrapper.CustomerTargetPrice != null ? itemWrapper.CustomerTargetPrice : 0,
                 Customer_Product_Name__c = itemWrapper.CustomerProductName != null ? itemWrapper.CustomerProductName : '',
-                Customer_HS_Code__c = itemWrapper.CustomerHsCode != null ? itemWrapper.CustomerHsCode : ''
+                Customer_HS_Code__c = itemWrapper.CustomerHsCode != null ? itemWrapper.CustomerHsCode : '',
+                // Add these new fields
+                Customer_Material_Price__c = itemWrapper.CustomerMaterialPrice != null ? itemWrapper.CustomerMaterialPrice : 0,
+                Last_Selling_Price__c = itemWrapper.LastSellingPrice != null ? itemWrapper.LastSellingPrice : 0
             ));
         }
         
@@ -708,5 +797,10 @@ public static Boolean hasExistingQuote(Id opportunityId) {
         public String CustomerHsCode { get; set; }
         @AuraEnabled
         public String TransportationCost { get; set; }
+        // Add these new fields
+        @AuraEnabled
+        public Decimal CustomerMaterialPrice { get; set; }
+        @AuraEnabled
+        public Decimal LastSellingPrice { get; set; }
     }
 }

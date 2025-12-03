@@ -81,7 +81,7 @@
             <div class="slds-col slds-size_1-of-4 slds-p-around_x-small" style="margin-left: -21px;margin-right: 22px;">
                 <lightning-record-picker label="Payment Term" placeholder="Search Payment Terms..."
                     object-api-name="Payment_Term__c" value={quoteFields.paymentTermId} filters={paymentTermFilters}
-                    onchange={handlePaymentTermSelected} variant="label-stacked" required="false">
+                    onchange={handlePaymentTermSelected} variant="label-stacked">
                 </lightning-record-picker>
             </div>
 
@@ -123,10 +123,9 @@
                             style="text-align: center; font-size: 13px; background-color: #9d0b0f; font-weight: bold; padding: 4px 6px; color: white; width: 25%;">
                             Product Name
                         </th>
-                        <!-- <th
-                            style="text-align: center; font-size: 13px; background-color: #9d0b0f; font-weight: bold; padding: 4px 6px; color: white;">
-                            Product Description
-                        </th> -->
+
+
+
                         <th
                             style="text-align: center; font-size: 13px; background-color: #9d0b0f; font-weight: bold; padding: 4px 6px; color: white;">
                             Customer Product Name
@@ -137,12 +136,32 @@
                         </th>
                         <th
                             style="text-align: center; font-size: 13px; background-color: #9d0b0f; font-weight: bold; padding: 4px 6px; color: white;">
-                            List Price ({quoteFields.currencyCode})
-                        </th>
-                        <th
-                            style="text-align: center; font-size: 13px; background-color: #9d0b0f; font-weight: bold; padding: 4px 6px; color: white;">
                             Customer Price ({quoteFields.currencyCode})
                         </th>
+                        <!-- Customer Material Price Column -->
+                        <template if:true={showCustomerMaterialPriceColumn}>
+                            <th
+                                style="text-align: center; font-size: 13px; background-color: #9d0b0f; font-weight: bold; padding: 4px 6px; color: white;">
+                                Customer Material Price ({quoteFields.currencyCode})
+                            </th>
+                        </template>
+
+                        <!-- <th
+                            style="text-align: center; font-size: 13px; background-color: #9d0b0f; font-weight: bold; padding: 4px 6px; color: white;">
+                            Product Description
+                        </th> -->
+                        <th
+                            style="text-align: center; font-size: 13px; background-color: #9d0b0f; font-weight: bold; padding: 4px 6px; color: white;">
+                            List Price ({quoteFields.currencyCode})
+                        </th>
+
+                        <!-- Last Selling Price Column -->
+                        <template if:true={showLastSellingPriceColumn}>
+                            <th
+                                style="text-align: center; font-size: 13px; background-color: #9d0b0f; font-weight: bold; padding: 4px 6px; color: white;">
+                                Last Selling Price ({quoteFields.currencyCode})
+                            </th>
+                        </template>
                         <th
                             style="text-align: center; font-size: 13px; background-color: #9d0b0f; font-weight: bold; padding: 4px 6px; color: white;">
                             Sales Price ({quoteFields.currencyCode})
@@ -181,15 +200,14 @@
                                         data-label="prodId" index={item.index} selected-icon-name="standard:product"
                                         object-label="Product" object-api-name="PricebookEntry"
                                         other-field-api-name="Product2Id,Product2.Name,Product2.ProductCode,Product2.Description"
-                                        onvalueselected={handleValueSelectedOnAccount}
-                                        lead-record-type={leadRecordType}>
+                                        onvalueselected={handleValueSelectedOnAccount} lead-record-type={leadRecordType}
+                                        business-type={getBusinessType}>
                                     </c-reusable-lookup>
                                 </div>
                             </td>
-                            <!-- <td style="width: 15%;">
-                                <lightning-input type="text" value={item.Description} disabled
-                                    variant="label-hidden"></lightning-input>
-                            </td> -->
+
+
+
                             <td class="slds-text-align_center" data-label="Customer Product Name">
                                 <lightning-input type="text" variant="label-hidden"
                                     value={item.Customer_Product_Name__c} data-index={item.index}
@@ -201,17 +219,41 @@
                                     data-index={item.index} onchange={handleHSCodeChange} maxlength="255">
                                 </lightning-input>
                             </td>
-                            <td class="slds-text-align_center" data-label="List Price">
-                                <lightning-formatted-number value={item.listPrice} format-style="currency"
-                                    currency-code={quoteFields.currencyCode}>
-                                </lightning-formatted-number>
-                            </td>
                             <td class="slds-text-align_center" data-label="Customer Target Price">
                                 <lightning-input type="number" variant="label-hidden"
                                     value={item.Customer_Target_Price__c} data-index={item.index}
                                     onchange={handleCustomerTargetPriceChange} step="Any">
                                 </lightning-input>
                             </td>
+                            <!-- Customer Material Price Column -->
+                            <template if:true={showCustomerMaterialPriceColumn}>
+                                <td class="slds-text-align_center" data-label="Customer Material Price">
+                                    <lightning-formatted-number value={item.customerMaterialPrice}
+                                        format-style="currency" currency-code={quoteFields.currencyCode}>
+                                    </lightning-formatted-number>
+                                </td>
+                            </template>
+
+                            <!-- <td style="width: 15%;">
+                                <lightning-input type="text" value={item.Description} disabled
+                                    variant="label-hidden"></lightning-input>
+                            </td> -->
+
+                            <!-- List Price Column -->
+                            <td class="slds-text-align_center" data-label="List Price">
+                                <lightning-formatted-number value={item.listPrice} format-style="currency"
+                                    currency-code={quoteFields.currencyCode}>
+                                </lightning-formatted-number>
+                            </td>
+
+                            <!-- Last Selling Price Column -->
+                            <template if:true={showLastSellingPriceColumn}>
+                                <td class="slds-text-align_center" data-label="Last Selling Price">
+                                    <lightning-formatted-number value={item.lastSellingPrice} format-style="currency"
+                                        currency-code={quoteFields.currencyCode}>
+                                    </lightning-formatted-number>
+                                </td>
+                            </template>
                             <td class="slds-text-align_center" data-label="Sales Price">
                                 <lightning-input type="number" variant="label-hidden" value={item.salesPrice}
                                     data-index={item.index} onchange={handlePriceChange} step="Any">

@@ -3,16 +3,12 @@ public class lookupComponentControllerTest {
 
     @testSetup
     static void setupData() {
-        // Create a test user (this is needed if UserInfo.getUserId() is NOT a system user for your test context)
-        // Otherwise, using current user is fine.
-
         Pricebook2 pb = new Pricebook2(Id = Test.getStandardPricebookId(), IsActive=true);
         
-          try{
-        update pb;
+        try{
+            update pb;
         }Catch(Exception e){}
         
-        // Create Company__c records
         Company__c companyRBL = new Company__c(Name='Rossari Biotech Limited', SAP_Code__c='1000');
         insert companyRBL;
         Company__c companyTristar = new Company__c(Name='Tristar Intermediates Private Limited', SAP_Code__c='4000');
@@ -20,34 +16,30 @@ public class lookupComponentControllerTest {
         Company__c companyUnitop = new Company__c(Name='Unitop Chemicals Private Limited', SAP_Code__c='3000');
         insert companyUnitop;
 
-        // Create Division__c and Product_Group__c picklist values or records. Adjust if these are custom objects in your org.
         Division__c division = new Division__c(Name='TestDivision');
         insert division;
         Product_Group__c prodGroup = new Product_Group__c(Name='TestProductGroup');
         insert prodGroup;
 
-        // Create Product2 as 'Item_Master__c' target
         Product2 p1 = new Product2(Name='Prod1', ProductCode='PCODE1', Family='FamilyA', Division__c=division.Id, Item_Group__c=prodGroup.Id, Description='Description 1');
         Product2 p2 = new Product2(Name='Prod2', ProductCode='PCODE2', Family='FamilyB', Division__c=division.Id, Item_Group__c=prodGroup.Id, Description='Description 2');
         insert p1;
         insert p2;
 
-        // Company_User__c for current user, referencing division and product group
         insert new Company_User__c(
             User__c = UserInfo.getUserId(),
             Division__c = division.Id,
             Product_Group__c = prodGroup.Id,
-            Company__c = companyRBL.Id // For 'RBL' tests
+            Company__c = companyRBL.Id
         );
 
         insert new Company_User__c(
             User__c = UserInfo.getUserId(),
             Division__c = division.Id,
             Product_Group__c = prodGroup.Id,
-            Company__c = companyTristar.Id // For 'Unitop/Tristar' tests
+            Company__c = companyTristar.Id
         );
 
-        // Sales_Organisation__c records to match salesOrg filter
         Sales_Organisation__c salesOrg1000 = new Sales_Organisation__c(Name='1000');
         insert salesOrg1000;
         Sales_Organisation__c salesOrg3000 = new Sales_Organisation__c(Name='3000');
@@ -55,7 +47,6 @@ public class lookupComponentControllerTest {
         Sales_Organisation__c salesOrg4000 = new Sales_Organisation__c(Name='4000');
         insert salesOrg4000;
 
-        // Sales_Area__c records linking to products and sales orgs for both groups
         insert new Sales_Area__c(
             Sales_Organisation__c = salesOrg1000.Id,
             Item_Master__c = p1.Id
@@ -66,9 +57,6 @@ public class lookupComponentControllerTest {
             Item_Master__c = p2.Id
         );
 
-        // Pricebook2 and PricebookEntry records so controller can query results
-        
-
         PricebookEntry pbe1 = new PricebookEntry(Pricebook2Id=pb.Id, Product2Id=p1.Id, UnitPrice=101, IsActive=true, CurrencyIsoCode='USD');
         PricebookEntry pbe2 = new PricebookEntry(Pricebook2Id=pb.Id, Product2Id=p2.Id, UnitPrice=102, IsActive=true, CurrencyIsoCode='USD');
         insert pbe1;
@@ -76,7 +64,7 @@ public class lookupComponentControllerTest {
     }
 
     @isTest
-    static void testFindRecords_PricebookEntry_RBL() {
+    static void testAllMethods() {
         String searchKey = 'Prod';
         String objectName = 'PricebookEntry';
         String returnFields = '';
@@ -87,9 +75,10 @@ public class lookupComponentControllerTest {
         String family = '';
         String currencyCode = 'USD';
         String leadRecordType = 'RBL';
-        String divisionId = null; // Add divisionId parameter
+        String divisionId = null;
+        String businessType = 'Domestic';
 
-        String result = lookupComponentController.findRecords(
+        String result1 = lookupComponentController.findRecords(
             searchKey, 
             objectName, 
             returnFields, 
@@ -100,45 +89,26 @@ public class lookupComponentControllerTest {
             family,
             currencyCode,
             leadRecordType,
-            divisionId // Add this parameter
+            divisionId,
+            businessType
         );
 
-    }
-
-    @isTest
-    static void testFindRecords_PricebookEntry_UnitopTristar() {
-        String searchKey = 'Prod';
-        String objectName = 'PricebookEntry';
-        List<String> queryFields = new List<String>{'Name', 'ProductCode'};
-        String filter = '';
-        String sortColumn = '';
-        String maxResults = '10';
-        String family = '';
-        String currencyCode = 'USD';
-        String leadRecordType = 'Unitop/Tristar';
-        String divisionId = null; // Add divisionId parameter
-
-        String result = lookupComponentController.findRecords(
+        String result2 = lookupComponentController.findRecords(
             searchKey, 
             objectName, 
-            '', 
+            returnFields, 
             queryFields, 
             filter, 
             sortColumn, 
             maxResults, 
             family,
             currencyCode,
-            leadRecordType,
-            divisionId // Add this parameter
+            'Unitop/Tristar',
+            divisionId,
+            'Export'
         );
 
-    }
-
-    @isTest
-    static void testFindRecords_FamilyFilter() {
-        String divisionId = null; // Add divisionId parameter
-        
-        String result = lookupComponentController.findRecords(
+        String result3 = lookupComponentController.findRecords(
             'Prod', 
             'PricebookEntry',
             '', 
@@ -146,21 +116,17 @@ public class lookupComponentControllerTest {
             '', 
             '', 
             '10', 
-            'FamilyA', // Should filter only FamilyA
+            'FamilyA',
             'USD',
             'RBL',
-            divisionId // Add this parameter
+            divisionId,
+            'Domestic'
         );
 
-    }
-
-    @isTest
-    static void testFindRecords_WithDivisionId() {
-        // Get a division ID for testing
         Division__c division = [SELECT Id FROM Division__c LIMIT 1];
-        String divisionId = division.Id;
+        String divisionIdActual = division.Id;
         
-        String result = lookupComponentController.findRecords(
+        String result4 = lookupComponentController.findRecords(
             'Prod', 
             'PricebookEntry',
             '', 
@@ -171,19 +137,14 @@ public class lookupComponentControllerTest {
             '', 
             'USD',
             'RBL',
-            divisionId // Test with actual division ID
+            divisionIdActual,
+            'Domestic'
         );
 
-    }
-
-    @isTest
-    static void testFindRecords_UnsupportedObject() {
-        String divisionId = null; // Add divisionId parameter
-        
         try {
             lookupComponentController.findRecords(
                 'Prod', 
-                'Account', // Only PricebookEntry supported
+                'Account',
                 '', 
                 new List<String>{'Name'}, 
                 '', 
@@ -192,19 +153,13 @@ public class lookupComponentControllerTest {
                 '', 
                 '',
                 'RBL',
-                divisionId // Add this parameter
+                divisionId,
+                'Domestic'
             );
-        } catch (AuraHandledException e) {
-           
-        }
-    }
+        } catch (AuraHandledException e) {}
 
-    @isTest
-    static void testFindRecords_EmptySearch() {
-        String divisionId = null; // Add divisionId parameter
-        
-        String result = lookupComponentController.findRecords(
-            '', // Empty search key
+        String result5 = lookupComponentController.findRecords(
+            '', 
             'PricebookEntry',
             '', 
             new List<String>{'Name', 'ProductCode'}, 
@@ -214,21 +169,73 @@ public class lookupComponentControllerTest {
             '', 
             'USD',
             'RBL',
-            divisionId // Add this parameter
+            divisionId,
+            'Domestic'
         );
 
-    }
-
-    @isTest
-    static void testFetchDefaultRecord_Valid() {
         PricebookEntry entry = [SELECT Id FROM PricebookEntry LIMIT 1];
-        String result = lookupComponentController.fetchDefaultRecord(entry.Id);
+        String result6 = lookupComponentController.fetchDefaultRecord(entry.Id);
 
-    }
+        String result7 = lookupComponentController.fetchDefaultRecord('001000000000001AAA');
 
-    @isTest
-    static void testFetchDefaultRecord_InvalidId() {
-        String result = lookupComponentController.fetchDefaultRecord('001000000000001AAA');
-  
+        String result8 = lookupComponentController.findRecords(
+            searchKey, 
+            objectName, 
+            returnFields, 
+            queryFields, 
+            filter, 
+            sortColumn, 
+            maxResults, 
+            family,
+            currencyCode,
+            leadRecordType,
+            divisionId,
+            null
+        );
+
+        String result9 = lookupComponentController.findRecords(
+            searchKey, 
+            objectName, 
+            returnFields, 
+            queryFields, 
+            filter, 
+            sortColumn, 
+            maxResults, 
+            family,
+            currencyCode,
+            leadRecordType,
+            divisionId,
+            ''
+        );
+
+        String result10 = lookupComponentController.findRecords(
+            searchKey, 
+            objectName, 
+            returnFields, 
+            queryFields, 
+            filter, 
+            sortColumn, 
+            maxResults, 
+            null,
+            currencyCode,
+            leadRecordType,
+            null,
+            businessType
+        );
+
+        String result11 = lookupComponentController.findRecords(
+            null, 
+            objectName, 
+            returnFields, 
+            queryFields, 
+            filter, 
+            sortColumn, 
+            maxResults, 
+            family,
+            null,
+            leadRecordType,
+            divisionId,
+            businessType
+        );
     }
 }

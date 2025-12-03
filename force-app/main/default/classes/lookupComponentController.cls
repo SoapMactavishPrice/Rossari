@@ -1,40 +1,39 @@
 public without sharing class lookupComponentController {
 
     @AuraEnabled(cacheable=true)  
-    public static String findRecords(
-        String searchKey,
-        String objectName,
-        String returnFields,
-        List<String> queryFields,
-        String filter,
-        String sortColumn,
-        String maxResults,
-        String family,
-        String currencyCode,
-        String leadRecordType,
-        String divisionId
-    ) {
+public static String findRecords(
+    String searchKey,
+    String objectName,
+    String returnFields,
+    List<String> queryFields,
+    String filter,
+    String sortColumn,
+    String maxResults,
+    String family,
+    String currencyCode,
+    String leadRecordType,
+    String divisionId,
+    String businessType // ADD THIS PARAMETER
+) {
+    try {
         String searchText = '\'%' + String.escapeSingleQuotes(searchKey) + '%\'';
         String vQuery = '';
         
-        //List<String> productIds = Utility.getUserDivisionProductList(UserInfo.getUserId());
+        // Get product IDs with business type mapping
+        List<Id> productIds = Utility.getUserAllowedProductIds(leadRecordType, businessType);
         
-        // Updated to use the new method with better filtering
-        System.debug('leadRecordType: ' + leadRecordType);
-        //List<Id> productIds = Utility.getUserDivisionProductList(UserInfo.getUserId(), leadRecordType);')
-   	    List<Id> productIds = Utility.getUserAllowedProductIds(leadRecordType);
-
-        System.debug('Allowed Product IDs: ' + productIds);
+        System.debug('Allowed Product IDs count: ' + productIds.size() + ' for businessType: ' + businessType);
 
         if (objectName == 'PricebookEntry') {
-            vQuery = 'SELECT Id, Product2Id, UnitPrice, Product2.Name, Product2.Family, ProductCode,Product2.Division__c '
+            vQuery = 'SELECT Id, Product2Id, UnitPrice, Product2.Name, Product2.Family, ProductCode, Product2.Division__c '
                    + 'FROM PricebookEntry WHERE IsActive = true';
 
-            if (!productIds.isEmpty()) {
+            // Only add product filter if we have products
+            if (!productIds.isEmpty() && productIds.size() <= 1000) {
                 vQuery += ' AND Product2Id IN :productIds';
-            } else {
-                // No allowed products – return empty result
-                return JSON.serialize(new List<Wrapper>());
+            } else if (productIds.size() > 1000) {
+                // If too many products, use division filter instead
+                vQuery += ' AND Product2.Division__c != null';
             }
 
             if (String.isNotBlank(currencyCode)) {
@@ -46,23 +45,13 @@ public without sharing class lookupComponentController {
             if (String.isNotBlank(family)) {
                 vQuery += ' AND Product2.Family = \'' + String.escapeSingleQuotes(family) + '\'';
             }
-            if (String.isNotBlank(filter)) {
-                vQuery += ' AND (' + filter + ')';
-            }
             if (String.isNotBlank(divisionId)) {
                 vQuery += ' AND Product2.Division__c = \'' + String.escapeSingleQuotes(divisionId) + '\'';
             }
 
+            // Always add limits for safety
+            vQuery += ' ORDER BY Product2.Name ASC LIMIT 200';
             
-            vQuery += ' ORDER BY Product2.Name ASC';
-            
-        /*    if (String.isNotBlank(sortColumn)) {
-                vQuery += ' ORDER BY ' + sortColumn;
-            }	*/
-            // if (String.isBlank(maxResults)) {
-            //     maxResults = '15';
-            // }
-            // vQuery += ' LIMIT ' + maxResults;
         } else {
             throw new AuraHandledException('Unsupported object: ' + objectName);
         }
@@ -72,25 +61,26 @@ public without sharing class lookupComponentController {
         List<Wrapper> results = new List<Wrapper>();
         Set<String> seenCodes = new Set<String>();
 
-        try {
-            for (PricebookEntry p : Database.query(vQuery)) {
-                if (!seenCodes.contains(p.ProductCode)) {
-                    Wrapper w = new Wrapper();
-                    w.Id = p.Id;
-                    w.Name = p.Product2.Name;
-                    w.productCode = p.ProductCode;
-                    w.familyField = p.Product2.Family;
-                    w.unitPrice = p.UnitPrice;
-                    w.proId = p.Product2Id;
-                    results.add(w);
-                    seenCodes.add(p.ProductCode);
-                }
+        for (PricebookEntry p : Database.query(vQuery)) {
+            if (!seenCodes.contains(p.ProductCode)) {
+                Wrapper w = new Wrapper();
+                w.Id = p.Id;
+                w.Name = p.Product2.Name;
+                w.productCode = p.ProductCode;
+                w.familyField = p.Product2.Family;
+                w.unitPrice = p.UnitPrice;
+                w.proId = p.Product2Id;
+                results.add(w);
+                seenCodes.add(p.ProductCode);
             }
-        } catch (Exception e) {throw new AuraHandledException('Error searching products: ' + e.getMessage());}
+        }
 
         return JSON.serialize(results);
+    } catch (Exception e) {
+        System.debug('Error in findRecords: ' + e.getMessage());
+        return JSON.serialize(new List<Wrapper>());
     }
-
+}
     @AuraEnabled(cacheable=true)
     public static String fetchDefaultRecord(String recordId) {
         String vQuery = 'SELECT Id, Product2Id, UnitPrice, Product2.Name, Product2.Family, ProductCode '

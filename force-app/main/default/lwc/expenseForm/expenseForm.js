@@ -206,6 +206,11 @@ export default class ExpenseForm extends NavigationMixin(LightningElement) {
         }
     }
 
+    // Add this getter to check if Visit Report is required
+    get isVisitReportRequired() {
+        return this.selectedVoucherType === 'Local' || this.selectedVoucherType === 'Outstation';
+    }
+
     get dailyAllowanceStatusVariant() {
         if (!this.dailyAllowanceEligibilityChecked) return 'info';
         
@@ -696,7 +701,7 @@ export default class ExpenseForm extends NavigationMixin(LightningElement) {
                 console.log('Filtered for Own Vehicle:', baseOptions);
             } else if (modeOfTravel === 'Public Transport') {
                 baseOptions = baseOptions.filter(mode => 
-                    mode.value !== 'Car' && mode.value !== 'Bike' && mode.value !== 'Own Vehicle'
+                    mode.value !== 'Bike' && mode.value !== 'Own Vehicle'
                 );
                 console.log('Filtered for Public Transport:', baseOptions);
             }
@@ -1005,6 +1010,8 @@ export default class ExpenseForm extends NavigationMixin(LightningElement) {
         const isPublic = expenseType && expenseType.name === 'Public';
         const isFoodOrHotel = this.isFoodOrHotelExpense(value);
         const isOwnArrangement = expenseType && expenseType.label && expenseType.label.toLowerCase().includes('own arrangement');
+        const isMandatory = expenseType && expenseType.isMandatory === 'true';
+        
 
         // Update line item
         this.updateLineItem(idx, 'typeOfExpenseId', value);
@@ -1012,6 +1019,8 @@ export default class ExpenseForm extends NavigationMixin(LightningElement) {
         this.updateLineItem(idx, 'isPublic', isPublic);
         this.updateLineItem(idx, 'isFoodOrHotel', isFoodOrHotel);
         this.updateLineItem(idx, 'isOwnArrangement', isOwnArrangement);
+        this.updateLineItem(idx, 'isMandatory', isMandatory);
+        this.updateLineItem(idx, 'typeOfExpenseName', expenseType ? expenseType.label : '');
 
         // Update disable flags
         this.updateLineItem(idx, 'disableTransportFields', isFoodOrHotel);
@@ -1560,7 +1569,9 @@ export default class ExpenseForm extends NavigationMixin(LightningElement) {
             computedLocationDisabled: computedLocationDisabled,
             // Add limitation text
             limitationText: limitationText,
-            isOwnArrangement: false // Initialize Own Arrangement flag
+            isOwnArrangement: false, // Initialize Own Arrangement flag
+            isMandatory: false, // Initialize mandatory flag
+            typeOfExpenseName: ''
         };
         this.lineItems = [...this.lineItems, newItem];
     }
@@ -1610,7 +1621,7 @@ export default class ExpenseForm extends NavigationMixin(LightningElement) {
         } else if (modeOfTravel === 'Public Transport') {
             // Exclude vehicle options for Public Transport
             filteredTransportOptions = baseOptions.filter(mode => 
-                mode.value !== 'Car' && mode.value !== 'Bike' && mode.value !== 'Own Vehicle'
+                mode.value !== 'Bike' && mode.value !== 'Own Vehicle'
             );
             console.log('Filtered transport options for Public Transport:', filteredTransportOptions);
         } else {
@@ -1688,6 +1699,11 @@ export default class ExpenseForm extends NavigationMixin(LightningElement) {
         this.selectedTourId = '';
         this.selectedTourName = '';
 
+        if (!(this.selectedVoucherType === 'Local' || this.selectedVoucherType === 'Outstation')) {
+            this.visitReportId = '';
+            this.visitReportName = '';
+        }
+
         // Reset currency if not Export
         if (this.salesType !== 'Export') {
             this.selectedCurrency = 'INR';
@@ -1760,7 +1776,9 @@ export default class ExpenseForm extends NavigationMixin(LightningElement) {
                     amountClaimed: amountClaimedValue,
                     disableDailyAllowance: !isFirstItem || 
                         (this.selectedVoucherType === 'Outstation' ? !this.isOutOfPocketEligible : !this.isDailyAllowanceEligible),
-                    isOwnArrangement: false 
+                    isOwnArrangement: false,
+                    isMandatory: false,
+                    typeOfExpenseName: ''
                 };
             });
 
@@ -2042,6 +2060,11 @@ export default class ExpenseForm extends NavigationMixin(LightningElement) {
             return false;
         }
 
+        if ((this.selectedVoucherType === 'Local' || this.selectedVoucherType === 'Outstation') && !this.visitReportId) {
+            this.showToast('Error', 'Please select a Visit Report for ' + this.selectedVoucherType + ' voucher', 'error');
+            return false;
+        }
+
         for (let i = 0; i < this.lineItems.length; i++) {
             const item = this.lineItems[i];
             const isPrivate = this.isPrivateExpense(item.typeOfExpenseId);
@@ -2054,6 +2077,12 @@ export default class ExpenseForm extends NavigationMixin(LightningElement) {
                 this.showToast('Error', `Enter valid Amount Claimed for row ${i + 1}`, 'error');
                 return false;
             }
+            const hasFiles = this.filesMap.has(item.key) && this.filesMap.get(item.key).length > 0;
+            if (item.isMandatory && !hasFiles) {
+                const expenseTypeName = item.typeOfExpenseName || 'this expense type';
+                this.showToast('Error', `File upload is mandatory for "${expenseTypeName}" in row ${i + 1}`, 'error');
+                return false;
+            }
             // Validate reason field only for Misc voucher type
             if (this.selectedVoucherType === 'Misc' && (!item.reason || item.reason.trim() === '')) {
                 this.showToast('Error', `Enter Reason for Misc expense in row ${i + 1}`, 'error');
@@ -2061,7 +2090,6 @@ export default class ExpenseForm extends NavigationMixin(LightningElement) {
             }
             // FILE VALIDATION FOR CAR TRANSPORT MODE
             const transportMode = this.selectedVoucherType === 'Local' ? item.transportMode : item.outstationTransportMode;
-            const hasFiles = this.filesMap.has(item.key) && this.filesMap.get(item.key).length > 0;
 
             if (transportMode === 'Car' && !hasFiles) {
                 this.showToast('Error', `Meter Photo upload is mandatory for Car transport mode in row ${i + 1}`, 'error');

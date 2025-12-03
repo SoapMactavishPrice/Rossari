@@ -157,16 +157,10 @@ public class ExpenseControllerTest {
         // Test getExportTransportModes with valid grade name
         List<Map<String, String>> exportModes = ExpenseController.getExportTransportModes(grade.Name);
 
-
         // Test getExportTransportModes with invalid grade name
         List<Map<String, String>> exportModesInvalid = ExpenseController.getExportTransportModes('InvalidGrade');
 
-
-        // Test getModeOfTravelOptions 
         List<Map<String, String>> modes = ExpenseController.getModeOfTravelOptions();
-
-
-        // Test exception in getModeOfTravelOptions by temporarily mocking Schema method (optional and advanced)
 
         Test.stopTest();
     }
@@ -204,6 +198,146 @@ public class ExpenseControllerTest {
         insert new Expense_Line_Item__c(Expense__c = expOutstation.Id, Daily_Allowance__c = 200);
         
         result = ExpenseController.checkAllowanceEligibility(String.valueOf(today), u.Id);
+    }
+    
+    
+
+// Utility method to create test Users with Grades__c
+    private static List<User> createTestUsers(Integer count, String gradeName) {
+        List<User> users = new List<User>();
+        Profile p = [SELECT Id FROM Profile WHERE Name = 'Standard User' LIMIT 1];
+        for (Integer i = 0; i < count; i++) {
+            users.add(new User(
+                FirstName = 'Test',
+                LastName = 'User' + i,
+                Email = 'testuser' + i + '@example.com',
+                Username = 'testuserassa21' + i + '@example.com',
+                Alias = 'tusr' + i,
+                TimeZoneSidKey = 'Asia/Kolkata',
+                LocaleSidKey = 'en_US',
+                EmailEncodingKey = 'UTF-8',
+                LanguageLocaleKey = 'en_US',
+                ProfileId = p.Id,
+                Grades__c = gradeName
+            ));
+        }
+        insert users;
+        return users;
+    }
+
+    // Utility method to create Grade__c records
+    private static Grade__c createGrade(String name, String salesType) {
+        Grade__c grade = new Grade__c(
+            Name = name,
+            Sales_Type__c = salesType,
+            Lodging_Hotel__c = 5000,
+            Lodging_Hotel_B_Class__c = 3000,
+            Boarding_Food__c = 1500,
+            Boarding_Food_B_Class__c = 1000
+        );
+        insert grade;
+        return grade;
+    }
+
+    @isTest
+    static void testCreateExpenseTeamMembers() {
+        // Prepare test data
+        Expense__c expense = new Expense__c(Name = 'Test Expense');
+        insert expense;
+
+        User attendee = [SELECT Id FROM User LIMIT 1];
+
+        List<Expense_Team_Member__c> teamMembers = new List<Expense_Team_Member__c>{
+            new Expense_Team_Member__c(Expense__c = expense.Id, Attendee__c = attendee.Id),
+            new Expense_Team_Member__c(Expense__c = expense.Id, Attendee__c = attendee.Id) // Duplicate
+        };
+
+        Test.startTest();
+        List<Expense_Team_Member__c> insertedMembers = ExpenseController.createExpenseTeamMembers(teamMembers);
+        Test.stopTest();
+    }
+
+    @isTest
+    static void testCreateExpenseTeamMembersEmptyList() {
+        Test.startTest();
+        List<Expense_Team_Member__c> result = ExpenseController.createExpenseTeamMembers(new List<Expense_Team_Member__c>());
+        Test.stopTest();
+    }
+
+    @isTest
+    static void testGetCombinedAllowancesHotelAClass() {
+        // Prepare Users and Grade
+        Grade__c grade = createGrade('Grade1', 'Domestic');
+        List<User> users = createTestUsers(2, 'DR');
+
+        Test.startTest();
+        Decimal allowance = ExpenseController.getCombinedAllowances(
+            users[0].Id,
+            new List<String>{users[1].Id},
+            'A Class City',
+            'Domestic',
+            'Hotel'
+        );
+        Test.stopTest();
+    }
+
+    @isTest
+    static void testGetCombinedAllowancesFoodBClass() {
+        Grade__c grade = createGrade('Grade2', 'Domestic');
+        List<User> users = createTestUsers(1, 'DR');
+
+        Test.startTest();
+        Decimal allowance = ExpenseController.getCombinedAllowances(
+            users[0].Id,
+            null,
+            'B Class City',
+            'Domestic',
+            'Food'
+        );
+        Test.stopTest();
+    }
+
+    @isTest
+    static void testGetCombinedAllowancesNoUsers() {
+        Test.startTest();
+        Decimal allowance = ExpenseController.getCombinedAllowances(
+            null,
+            null,
+            'A Class City',
+            'Retail',
+            'Hotel'
+        );
+        Test.stopTest();
+    }
+
+    @isTest
+    static void testGetCombinedAllowancesUserWithoutGrade() {
+        // Create user without grade
+        Profile p = [SELECT Id FROM Profile WHERE Name = 'Standard User' LIMIT 1];
+        User userWithoutGrade = new User(
+            FirstName = 'NoGrade',
+            LastName = 'User',
+            Email = 'nograde@example.com',
+            Username = 'nograde@example.com',
+            Alias = 'ngusr',
+            TimeZoneSidKey = 'Asia/Kolkata',
+            LocaleSidKey = 'en_US',
+            EmailEncodingKey = 'UTF-8',
+            LanguageLocaleKey = 'en_US',
+            ProfileId = p.Id
+        );
+        insert userWithoutGrade;
+
+        Test.startTest();
+        Decimal allowance = ExpenseController.getCombinedAllowances(
+            userWithoutGrade.Id,
+            null,
+            'A Class City',
+            'Retail',
+            'Hotel'
+        );
+        Test.stopTest();
+
     }
 
 }

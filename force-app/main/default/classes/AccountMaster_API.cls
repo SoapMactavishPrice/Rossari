@@ -11,14 +11,15 @@ global class AccountMaster_API {
     public static Map < String, Distribution_Channel__c > dcMap = new Map < String, Distribution_Channel__c > ();
     public static Map < String, Division__c > diMap = new Map < String, Division__c > ();
     public static Map < String, Company__c > cmMap = new Map < String, Company__c > ();
+    public static Map < String, User > seMap = new Map < String, User > ();
     public static Map < String, Customer_Sales_Area__c > csaMap = new Map < String, Customer_Sales_Area__c > ();
-    public static Map<String, Id> sapCodeToIdMap = new Map<String, Id>();
-    public static List<AccountMasterRequest> accountRequests = new List<AccountMasterRequest> ();
-    public static Map<String, Payment_Term__c> ptMap = new Map<String, Payment_Term__c>();
-    public static Map<String, Sales_District__c> sdMap = new Map<String, Sales_District__c>();
+    public static Map < String, Id > sapCodeToIdMap = new Map < String, Id > ();
+    public static List < AccountMasterRequest > accountRequests = new List < AccountMasterRequest > ();
+    public static Map < String, Payment_Term__c > ptMap = new Map < String, Payment_Term__c > ();
+    public static Map < String, Sales_District__c > sdMap = new Map < String, Sales_District__c > ();
     public static Set < String > custNumberSet = new Set < String > ();
     public static Set < String > customerSFIDSet = new Set < String > ();
-    
+
     @HttpPost
     global static void upsertAccountMaster() {
         // Get the request body
@@ -36,24 +37,24 @@ global class AccountMaster_API {
 
         API_log__c apiLog = new API_log__c();
         apiLog.Name = 'AccountMaster_API';
-        
+
         try {
-            
+
             // Deserialize the JSON into a list of AccountMasterRequest objects
-            accountRequests = (List<AccountMasterRequest>) JSON.deserialize(requestBody, List<AccountMasterRequest>.class);
-            
+            accountRequests = (List < AccountMasterRequest > ) JSON.deserialize(requestBody, List < AccountMasterRequest > .class);
+
             // apiLog.Request__c = requestBody;
             Integer maxLength = 2000; // Safe default for most text fields
             apiLog.Request__c = requestBody.length() > maxLength ? requestBody.substring(0, maxLength - 10) + '...' : requestBody;
 
             // Process all accounts first
-            List<Account> accountsToUpsert = new List<Account>();
-            Map<String, List<Contact>> accountContactsMap = new Map<String, List<Contact>>();
-            Map<String, List<Bank_Information__c>> accountBankDetailsMap = new Map<String, List<Bank_Information__c>>();
-            Map<String, List<Customer_Sales_Area__c>> accountSalesAreasMap = new Map<String, List<Customer_Sales_Area__c>>();
+            List < Account > accountsToUpsert = new List < Account > ();
+            Map < String, List < Contact >> accountContactsMap = new Map < String, List < Contact >> ();
+            Map < String, List < Bank_Information__c >> accountBankDetailsMap = new Map < String, List < Bank_Information__c >> ();
+            Map < String, List < Customer_Sales_Area__c >> accountSalesAreasMap = new Map < String, List < Customer_Sales_Area__c >> ();
 
             // ! ========================================== Start (Get Existing Data) ========================================== ! //
-            
+
             // Set < String > custNumberSet = new Set < String > ();
             Set < String > cityNameSet = new Set < String > ();
             Set < String > postalCodeSet = new Set < String > ();
@@ -61,24 +62,28 @@ global class AccountMaster_API {
             Set < String > distChannelSet = new Set < String > ();
             Set < String > divisionSet = new Set < String > ();
             Set < String > companyCodeSet = new Set < String > ();
+            Set < String > salesEmpSet = new Set < String > ();
 
-            for (AccountMasterRequest accMaster : accountRequests) {
+            for (AccountMasterRequest accMaster: accountRequests) {
                 customerSFIDSet.add(accMaster.SFDC_ID);
                 custNumberSet.add(accMaster.CUSTOMER_NO);
                 cityNameSet.add(accMaster.CITY);
-                for (SalesArea sa : accMaster.SALES_AREA) {
+                for (SalesArea sa: accMaster.SALES_AREA) {
                     salesOrgSet.add(sa.SALES_ORG);
                     distChannelSet.add(sa.DISTR_CHL);
                     divisionSet.add(sa.DIVISION);
                     companyCodeSet.add(sa.DIVISION);
-                    for (PartnerFunction pf : sa.PARTNER_FUNCTIONS) {
+                    for (PartnerFunction pf: sa.PARTNER_FUNCTIONS) {
                         cityNameSet.add(pf.CITY0072);
                         cityNameSet.add(pf.CITY1);
                         custNumberSet.add(pf.CUSTOMR_NO);
+                        if (pf.PARTNERFN == 'VE') {
+                            salesEmpSet.add(pf.CUSTOMR_NO);
+                        }
                     }
                 }
                 if (accMaster.CONTACT != null && !accMaster.CONTACT.isEmpty()) {
-                    for (ContactData con : accMaster.CONTACT) {
+                    for (ContactData con: accMaster.CONTACT) {
                         cityNameSet.add(con.CONTACT_CITY);
                         postalCodeSet.add(con.CONTACT_POSTCODE);
                     }
@@ -109,8 +114,6 @@ global class AccountMaster_API {
                 accountIdMap.put(va.SFDC_Customer_Code__c, va);
             }
 
-
-
             // Get Existing City list
             List < City__c > cityList = new List < City__c > ();
             cityList = [SELECT ID, Name FROM City__c WHERE Name IN: cityNameSet];
@@ -125,7 +128,7 @@ global class AccountMaster_API {
             contList = [
                 SELECT Id, name, account.Name, account.SAP_Customer_Code__c, External_Id__c
                 FROM contact
-                WHERE account.SAP_Customer_Code__c IN :custNumberSet
+                WHERE account.SAP_Customer_Code__c IN: custNumberSet
             ];
 
             // map < String, Contact > mapContaccTemp = new map < String, Contact > ();
@@ -138,7 +141,7 @@ global class AccountMaster_API {
             bankInfoList = [
                 SELECT Id, Name, Account_Name__r.Name, Account_Name__r.SAP_Customer_Code__c, External_Id__c
                 FROM Bank_Information__c
-                WHERE Account_Name__r.SAP_Customer_Code__c IN :custNumberSet
+                WHERE Account_Name__r.SAP_Customer_Code__c IN: custNumberSet
             ];
 
             // map < String, Bank_Information__c > bankInfoMap = new map < String, Bank_Information__c > ();
@@ -191,63 +194,72 @@ global class AccountMaster_API {
                 cmMap.put(va.SAP_Code__c, va);
             }
 
+            // Get existing Sales Employee
+            List < User > seList = new List < User > ();
+            seList = [SELECT Id, Name, SAP_User_Id__c FROM User WHERE SAP_User_Id__c IN: salesEmpSet];
+
+            // Map < String, User > seMap = new Map < String, User > ();
+            for (User va: seList) {
+                seMap.put(va.SAP_User_Id__c, va);
+            }
+
             // Get existing Customer Sales Area
             List < Customer_Sales_Area__c > csaList = new List < Customer_Sales_Area__c > ();
             csaList = [
-                SELECT Id, Comapany_Code__c, Comapany_Code__r.SAP_Customer_Code__c,Sales_Organisation__c, Division__c,
+                SELECT Id, Comapany_Code__c, Comapany_Code__r.SAP_Customer_Code__c, Sales_Organisation__c, Division__c,
                 Sales_Organisation__r.Name, Distribution_Channel__c, Distribution_Channel__r.Distribution_Code__c, Division__r.Division_Code__c
                 FROM Customer_Sales_Area__c
                 WHERE Sales_Organisation__c != null
                 AND Distribution_Channel__c != null
                 AND Division__c != null
-                AND Comapany_Code__r.SAP_Customer_Code__c IN :custNumberSet
+                AND Comapany_Code__r.SAP_Customer_Code__c IN: custNumberSet
             ];
 
             // Map < String, Customer_Sales_Area__c > csaMap = new Map < String, Customer_Sales_Area__c > ();
             for (Customer_Sales_Area__c va: csaList) {
-                String mapKeyStr = va.Comapany_Code__r.SAP_Customer_Code__c+'-'+va.Sales_Organisation__r.Name+'-'+va.Distribution_Channel__r.Distribution_Code__c+'-'+va.Division__r.Division_Code__c;
+                String mapKeyStr = va.Comapany_Code__r.SAP_Customer_Code__c + '-' + va.Sales_Organisation__r.Name + '-' + va.Distribution_Channel__r.Distribution_Code__c + '-' + va.Division__r.Division_Code__c;
                 csaMap.put(mapKeyStr, va);
             }
 
             // Get Existing Payment Term
-            List<Payment_Term__c> paymentTermList = [
+            List < Payment_Term__c > paymentTermList = [
                 SELECT Id, Name, Payment_Term_Code__c
                 FROM Payment_Term__c
             ];
 
             // Map<String, Payment_Term__c> ptMap = new Map<String, Payment_Term__c>();
-            for (Payment_Term__c pt : paymentTermList) {
+            for (Payment_Term__c pt: paymentTermList) {
                 ptMap.put(pt.Payment_Term_Code__c, pt);
             }
 
             // Get Existing Sales District
-            List<Sales_District__c> salesDistrictList = [
+            List < Sales_District__c > salesDistrictList = [
                 SELECT Id, Name, Sales_District_Code__c
                 FROM Sales_District__c
             ];
 
             // Map<String, Sales_District__c> sdMap = new Map<String, Sales_District__c>();
-            for (Sales_District__c pt : salesDistrictList) {
+            for (Sales_District__c pt: salesDistrictList) {
                 sdMap.put(pt.Sales_District_Code__c, pt);
             }
 
             // ! ========================================== End (Get Existing Data) ========================================== ! //
-            
+
             // Prepare all data for bulk processing
-            for (AccountMasterRequest accMaster : accountRequests) {
+            for (AccountMasterRequest accMaster: accountRequests) {
                 // Process Account
                 Account acc = new Account();
                 if (String.isNotBlank(accMaster.SFDC_ID)) {
                     if (accountIdMap.containsKey(accMaster.SFDC_ID)) {
-                        acc.Id = accountIdMap.get(accMaster.SFDC_ID).id;    
+                        acc.Id = accountIdMap.get(accMaster.SFDC_ID).id;
                     } else {
                         if (accountMap.containsKey(accMaster.CUSTOMER_NO)) {
-                            acc.Id = accountMap.get(accMaster.CUSTOMER_NO).id;    
+                            acc.Id = accountMap.get(accMaster.CUSTOMER_NO).id;
                         }
                     }
                 } else {
                     if (accountMap.containsKey(accMaster.CUSTOMER_NO)) {
-                        acc.Id = accountMap.get(accMaster.CUSTOMER_NO).id;    
+                        acc.Id = accountMap.get(accMaster.CUSTOMER_NO).id;
                     }
                 }
                 // Map fields from request to Account object
@@ -256,7 +268,7 @@ global class AccountMaster_API {
                 acc.GST_No__c = accMaster.TAXNO3;
                 acc.Pan_No__c = accMaster.PAN_NO;
                 acc.Mobile_Number__c = accMaster.MOBILE_NO;
-                
+
                 acc.Name = accMaster.CUST_NAME;
                 acc.SAP_Customer_Code__c = accMaster.CUSTOMER_NO;
                 acc.Cust_Acct_Group__c = accMaster.CUST_ACCT_GROUP;
@@ -276,10 +288,10 @@ global class AccountMaster_API {
                 acc.Post_Code__c = accMaster.POST_CODE;
                 acc.State1__c = accMaster.REGION;
                 acc.RECON_ACCT__c = accMaster.RECON_ACCT;
-                acc.City1__c = accMaster.CITY;  
+                acc.City1__c = accMaster.CITY;
                 if (String.isNotBlank(accMaster.CITY)) {
                     if (cityMap.containsKey(accMaster.CITY)) {
-                        acc.City__c = cityMap.get(accMaster.CITY).id;    
+                        acc.City__c = cityMap.get(accMaster.CITY).id;
                     }
                 }
                 acc.Country_Text__c = accMaster.COUNTRY;
@@ -297,16 +309,16 @@ global class AccountMaster_API {
                 }
                 accountsToUpsert.add(acc);
             }
-            
+
             // Bulk upsert accounts
             Database.UpsertResult[] accountResults = Database.upsert(
-                accountsToUpsert, 
-                Account.Fields.SAP_Customer_Code__c, 
+                accountsToUpsert,
+                Account.Fields.SAP_Customer_Code__c,
                 false
             );
-            
+
             // Process results
-            Map<Id, Account> successAccounts = new Map<Id, Account>();
+            Map < Id, Account > successAccounts = new Map < Id, Account > ();
             // Map<String, Id> sapCodeToIdMap = new Map<String, Id>();
             for (Integer i = 0; i < accountResults.size(); i++) {
                 if (accountResults[i].isSuccess()) {
@@ -314,16 +326,16 @@ global class AccountMaster_API {
                     successAccounts.put(accountResults[i].getId(), accountsToUpsert[i]);
                     sapCodeToIdMap.put(acc.SAP_Customer_Code__c, accountResults[i].getId());
                 } else {
-                    for (Database.Error err : accountResults[i].getErrors()) {
+                    for (Database.Error err: accountResults[i].getErrors()) {
                         response.errors.add('Account ' + accountsToUpsert[i].SAP_Customer_Code__c + ' error: ' + err.getMessage());
                     }
                 }
             }
-            
+
             // Process related records for successful accounts
             if (!successAccounts.isEmpty()) {
 
-                for (AccountMasterRequest accMaster : accountRequests) {
+                for (AccountMasterRequest accMaster: accountRequests) {
                     // Process Contacts
                     Account acc = successAccounts.get(sapCodeToIdMap.get(accMaster.CUSTOMER_NO));
                     if (accMaster.CONTACT != null && !accMaster.CONTACT.isEmpty()) {
@@ -331,14 +343,14 @@ global class AccountMaster_API {
                             accountContactsMap.put(accMaster.CUSTOMER_NO, prepareContacts(accMaster.CONTACT, acc));
                         }
                     }
-                    
+
                     // Process Bank Details
                     if (accMaster.BANK != null && !accMaster.BANK.isEmpty()) {
                         if (sapCodeToIdMap.containsKey(accMaster.CUSTOMER_NO)) {
                             accountBankDetailsMap.put(accMaster.CUSTOMER_NO, prepareBankDetails(accMaster.BANK, acc));
                         }
                     }
-                    
+
                     // Process Sales Areas
                     if (accMaster.SALES_AREA != null && !accMaster.SALES_AREA.isEmpty()) {
                         if (sapCodeToIdMap.containsKey(accMaster.CUSTOMER_NO)) {
@@ -349,14 +361,14 @@ global class AccountMaster_API {
 
                 // Process contacts
                 processAllContacts(successAccounts, accountContactsMap, response);
-                
+
                 // Process bank details
                 processAllBankDetails(successAccounts, accountBankDetailsMap, response);
-                
+
                 // Process sales areas
                 processAllSalesAreas(successAccounts, accountSalesAreasMap, response);
             }
-            
+
             // Prepare response data
             if (!response.errors.isEmpty()) {
                 response.status = 'fail';
@@ -364,7 +376,7 @@ global class AccountMaster_API {
                 // response.status = 'partial_success';
                 // response.message = 'Completed with some errors';
             }
-            
+
             response.data.put('processedAccounts', successAccounts.size());
             response.data.put('totalAccounts', accountRequests.size());
 
@@ -373,26 +385,26 @@ global class AccountMaster_API {
             apiLog.Status__c = 'Success';
             apiLog.Response__c = truncateString(responseJson, 32768); // Standard text area limit
             res.responseBody = Blob.valueOf(responseJson);
-            
+
         } catch (Exception e) {
             Database.rollback(sp);
-            
+
             // Prepare error message with truncation
             String errorMessage = e.getMessage() + ' : ' + e.getCause() + ' : ' + e.getStackTraceString() + ' at ' + e.getLineNumber();
-            
+
             apiLog.Exception_Description__c = truncateString(errorMessage, 32768); // Standard text area limit
             apiLog.Status__c = 'Failed';
-            
+
             // Prepare response
             response.status = 'error';
             response.message = 'Error processing request';
             response.errors.add(truncateString(e.getMessage() + ' at ' + e.getLineNumber(), 1000));
-            
+
             // Set response with truncated error details
             String errorResponse = JSON.serialize(response);
             res.statusCode = 400;
             res.responseBody = Blob.valueOf(errorResponse);
-            
+
             // Update response in log (truncated)
             apiLog.Response__c = truncateString(errorResponse, 32768);
         } finally {
@@ -406,7 +418,7 @@ global class AccountMaster_API {
                 System.debug('Failed to insert API log: ' + logEx.getMessage());
             }
         }
-        
+
         // return response;
     }
 
@@ -421,12 +433,12 @@ global class AccountMaster_API {
         if (input.length() <= maxLength) return input;
         return input.substring(0, maxLength - 3) + '...';
     }
-    
+
     // Prepare contacts for bulk processing
-    public static List<Contact> prepareContacts(List<ContactData> contacts, Account acc) {
-        List<Contact> contactsToUpsert = new List<Contact>();
-        
-        for (ContactData conData : contacts) {
+    public static List < Contact > prepareContacts(List < ContactData > contacts, Account acc) {
+        List < Contact > contactsToUpsert = new List < Contact > ();
+
+        for (ContactData conData: contacts) {
             Contact con = new Contact();
             con.AccountId = acc.Id;
             con.FirstName = String.isNotBlank(conData.FIRST_NAME0109) ? conData.FIRST_NAME0109 : '';
@@ -444,7 +456,7 @@ global class AccountMaster_API {
             // con.MailingState = conData.CONTACT_STATE;
             // con.MailingCountry = conData.CONTACT_COUNTRY;
             if (postalCodeMap.containsKey(conData.CONTACT_POSTCODE)) {
-                con.Pin_Code__c = postalCodeMap.get(conData.CONTACT_POSTCODE).id;    
+                con.Pin_Code__c = postalCodeMap.get(conData.CONTACT_POSTCODE).id;
             }
             // con.MailingPostalCode = conData.CONTACT_ZIP;
 
@@ -455,55 +467,55 @@ global class AccountMaster_API {
             }
             // Always set External_Id__c, whether it's a new or existing contact
             con.External_Id__c = contactKey;
-            
+
             contactsToUpsert.add(con);
         }
-        
+
         return contactsToUpsert;
     }
-    
+
     // Process all contacts in bulk
-    public static void processAllContacts(Map<Id, Account> successAccounts, Map<String, List<Contact>> accountContactsMap, ResponseWrapper response) {
-        List<Contact> allContacts = new List<Contact>();
-        
+    public static void processAllContacts(Map < Id, Account > successAccounts, Map < String, List < Contact >> accountContactsMap, ResponseWrapper response) {
+        List < Contact > allContacts = new List < Contact > ();
+
         // Collect all contacts for bulk upsert
-        for (Account acc : successAccounts.values()) {
+        for (Account acc: successAccounts.values()) {
             if (accountContactsMap.containsKey(acc.SAP_Customer_Code__c)) {
                 allContacts.addAll(accountContactsMap.get(acc.SAP_Customer_Code__c));
             }
         }
-        
+
         if (!allContacts.isEmpty()) {
             Database.UpsertResult[] results = Database.upsert(
-                allContacts, 
-                Contact.Fields.External_Id__c, 
+                allContacts,
+                Contact.Fields.External_Id__c,
                 false
             );
-            
+
             // Handle results
             for (Integer i = 0; i < results.size(); i++) {
                 if (!results[i].isSuccess()) {
-                    for (Database.Error err : results[i].getErrors()) {
+                    for (Database.Error err: results[i].getErrors()) {
                         response.errors.add('Contact error: ' + err.getMessage() + ' for fields ' + err.getFields());
                     }
                 }
             }
         }
     }
-    
+
     // Prepare bank details for bulk processing
-    public static List<Bank_Information__c> prepareBankDetails(List<BankData> bankDetails, Account acc) {
-        List<Bank_Information__c> bankAccounts = new List<Bank_Information__c>();
-        
-        for (BankData bankData : bankDetails) {
+    public static List < Bank_Information__c > prepareBankDetails(List < BankData > bankDetails, Account acc) {
+        List < Bank_Information__c > bankAccounts = new List < Bank_Information__c > ();
+
+        for (BankData bankData: bankDetails) {
             // Skip if essential data is missing
             if (String.isBlank(bankData.BANK_ACC_NO) && String.isBlank(bankData.BANKL)) {
                 continue;
             }
-            
+
             // Create a unique external ID for the bank account
             String externalId = bankData.CUSTOMER_NO0126 + '-' + bankData.BANK_ACC_NO;
-            
+
             Bank_Information__c bankAccount = new Bank_Information__c();
             if (bankInfoMap.containsKey(externalId)) {
                 bankAccount.Id = bankInfoMap.get(externalId).Id;
@@ -515,54 +527,54 @@ global class AccountMaster_API {
             bankAccount.Branch__c = bankData.BANKBRANCH;
             bankAccount.BANKL__c = bankData.BANKL;
             bankAccount.External_Id__c = externalId;
-            
+
             bankAccounts.add(bankAccount);
         }
-        
+
         return bankAccounts;
     }
-    
+
     // Process all bank details in bulk
-    public static void processAllBankDetails(Map<Id, Account> successAccounts,
-                                           Map<String, List<Bank_Information__c>> accountBankDetailsMap,
-                                           ResponseWrapper response) {
-        List<Bank_Information__c> allBankAccounts = new List<Bank_Information__c>();
-        
+    public static void processAllBankDetails(Map < Id, Account > successAccounts,
+        Map < String, List < Bank_Information__c >> accountBankDetailsMap,
+        ResponseWrapper response) {
+        List < Bank_Information__c > allBankAccounts = new List < Bank_Information__c > ();
+
         // Collect all bank accounts for bulk upsert
-        for (Account acc : successAccounts.values()) {
+        for (Account acc: successAccounts.values()) {
             if (accountBankDetailsMap.containsKey(acc.SAP_Customer_Code__c)) {
                 allBankAccounts.addAll(accountBankDetailsMap.get(acc.SAP_Customer_Code__c));
             }
         }
-        
+
         if (!allBankAccounts.isEmpty()) {
             Database.UpsertResult[] results = Database.upsert(
                 allBankAccounts,
                 Bank_Information__c.Fields.External_Id__c,
                 false
             );
-            
+
             // Handle results
             for (Integer i = 0; i < results.size(); i++) {
                 if (!results[i].isSuccess()) {
-                    for (Database.Error err : results[i].getErrors()) {
-                        response.errors.add('Bank Account error: ' + err.getMessage() + 
-                                         ' for account: ' + allBankAccounts[i].Bank_A_C_No__c);
+                    for (Database.Error err: results[i].getErrors()) {
+                        response.errors.add('Bank Account error: ' + err.getMessage() +
+                            ' for account: ' + allBankAccounts[i].Bank_A_C_No__c);
                     }
                 }
             }
         }
     }
-    
+
     // // Prepare sales areas for bulk processing
-    public static List<Customer_Sales_Area__c> prepareSalesAreas(List<SalesArea> salesAreas, Account acc) {
-        List<Customer_Sales_Area__c> salesAreasToUpsert = new List<Customer_Sales_Area__c>();
-        
-        for (SalesArea saData : salesAreas) {
+    public static List < Customer_Sales_Area__c > prepareSalesAreas(List < SalesArea > salesAreas, Account acc) {
+        List < Customer_Sales_Area__c > salesAreasToUpsert = new List < Customer_Sales_Area__c > ();
+
+        for (SalesArea saData: salesAreas) {
             // Create a unique external ID for the sales area
-            String csaKey = acc.SAP_Customer_Code__c + '-' + saData.SALES_ORG + '-' + saData.DISTR_CHL + '-' +saData.DIVISION;
+            String csaKey = acc.SAP_Customer_Code__c + '-' + saData.SALES_ORG + '-' + saData.DISTR_CHL + '-' + saData.DIVISION;
             String externalId = acc.SAP_Customer_Code__c + '-' + saData.SALES_ORG + '-' + saData.DISTR_CHL + '-' + saData.DIVISION;
-            
+
             Customer_Sales_Area__c salesArea = new Customer_Sales_Area__c();
             if (csaMap.containsKey(csaKey)) {
                 salesArea.Id = csaMap.get(csaKey).Id;
@@ -618,30 +630,30 @@ global class AccountMaster_API {
             salesArea.CurrencyIsoCode = String.isNotBlank(saData.CURR) ? saData.CURR : 'INR';
 
             salesArea.External_Id__c = externalId;
-            
+
             salesAreasToUpsert.add(salesArea);
         }
-        
+
         return salesAreasToUpsert;
     }
-    
+
     // Process all sales areas in bulk
-    public static void processAllSalesAreas(Map<Id, Account> successAccounts, Map<String, List<Customer_Sales_Area__c>> accountSalesAreasMap, ResponseWrapper response) {
-        List<Customer_Sales_Area__c> allSalesAreas = new List<Customer_Sales_Area__c>();
-        Map<String, List<PartnerFunction>> salesAreaPartnerFunctions = new Map<String, List<PartnerFunction>>();
-        
+    public static void processAllSalesAreas(Map < Id, Account > successAccounts, Map < String, List < Customer_Sales_Area__c >> accountSalesAreasMap, ResponseWrapper response) {
+        List < Customer_Sales_Area__c > allSalesAreas = new List < Customer_Sales_Area__c > ();
+        Map < String, List < PartnerFunction >> salesAreaPartnerFunctions = new Map < String, List < PartnerFunction >> ();
+
         // Collect all sales areas for bulk upsert and gather partner functions
-        for (Account acc : successAccounts.values()) {
+        for (Account acc: successAccounts.values()) {
             if (accountSalesAreasMap.containsKey(acc.SAP_Customer_Code__c)) {
-                List<Customer_Sales_Area__c> salesAreas = accountSalesAreasMap.get(acc.SAP_Customer_Code__c);
+                List < Customer_Sales_Area__c > salesAreas = accountSalesAreasMap.get(acc.SAP_Customer_Code__c);
                 allSalesAreas.addAll(salesAreas);
-                
+
                 // Store partner functions for processing after sales area upsert
-                for (AccountMasterRequest accMaster : accountRequests) {
-                    for (SalesArea sa : accMaster.SALES_AREA) {
-                        String csaKey = accMaster.CUSTOMER_NO + '-' + sa.SALES_ORG + '-' + sa.DISTR_CHL + '-' +sa.DIVISION;
+                for (AccountMasterRequest accMaster: accountRequests) {
+                    for (SalesArea sa: accMaster.SALES_AREA) {
+                        String csaKey = accMaster.CUSTOMER_NO + '-' + sa.SALES_ORG + '-' + sa.DISTR_CHL + '-' + sa.DIVISION;
                         salesAreaPartnerFunctions.put(csaKey, sa.PARTNER_FUNCTIONS);
-                        System.debug('csaKey::> ' +csaKey);
+                        System.debug('csaKey::> ' + csaKey);
                         // for (PartnerFunction pf : sa.PARTNER_FUNCTIONS) {
                         //     String csaKey = accMaster.CUSTOMER_NO + '-' + sa.SALES_ORG + '-' + sa.DISTR_CHL + '-' +sa.DIVISION + '-' +pf.PARTNERFN;
                         //     salesAreaPartnerFunctions.put(csaKey, sa.PARTNER_FUNCTIONS);
@@ -650,7 +662,7 @@ global class AccountMaster_API {
                 }
             }
         }
-        
+
         if (!allSalesAreas.isEmpty()) {
             // First upsert sales areas
             Database.UpsertResult[] results = Database.upsert(
@@ -658,13 +670,13 @@ global class AccountMaster_API {
                 Customer_Sales_Area__c.Fields.External_Id__c,
                 false
             );
-            
+
             // Handle results and collect successful sales area IDs
-            Map<String, Id> salesAreaMap = new Map<String, Id>();
-            Set<String> salesAreaIdSet = new Set<String>();
+            Map < String, Id > salesAreaMap = new Map < String, Id > ();
+            Set < String > salesAreaIdSet = new Set < String > ();
             for (Integer i = 0; i < results.size(); i++) {
                 if (!results[i].isSuccess()) {
-                    for (Database.Error err : results[i].getErrors()) {
+                    for (Database.Error err: results[i].getErrors()) {
                         response.errors.add('Customer Sales Area error: ' + err.getMessage() + ' for sales org: ' + allSalesAreas[i].Sales_Organisation__r.Name);
                     }
                 } else {
@@ -675,18 +687,18 @@ global class AccountMaster_API {
             }
 
             // Get all partner functions for the successfully upserted sales areas
-            List<Partner_Function__c> partnerFunctions = [
+            List < Partner_Function__c > partnerFunctions = [
                 SELECT Id, PARTNERFN__c, Customer_Sales_Area__c, Customer_Sales_Area__r.External_Id__c, External_Id__c,
                 Partner_code__c, Name, TXT_SALES_ORG0079__c, TXT_DISTR_CHANN__c, TXT_DIVISION0081__c
                 FROM Partner_Function__c
-                WHERE Customer_Sales_Area__c IN :salesAreaIdSet
+                WHERE Customer_Sales_Area__c IN: salesAreaIdSet
             ];
 
-            Map<String, Partner_Function__c> pfMap = new Map<String, Partner_Function__c>();
-            for (Partner_Function__c pf : partnerFunctions) {
+            Map < String, Partner_Function__c > pfMap = new Map < String, Partner_Function__c > ();
+            for (Partner_Function__c pf: partnerFunctions) {
                 // String pfKey = pf.Customer_Sales_Area__r.External_Id__c + pf.PARTNERFN__c;
                 // String pfKey = pf.External_Id__c;
-                String pfKey = pf.Partner_code__c+'-'+pf.Name+'-'+pf.TXT_SALES_ORG0079__c+'-'+pf.TXT_DISTR_CHANN__c+'-'+pf.TXT_DIVISION0081__c;
+                String pfKey = pf.Partner_code__c + '-' + pf.Name + '-' + pf.TXT_SALES_ORG0079__c + '-' + pf.TXT_DISTR_CHANN__c + '-' + pf.TXT_DIVISION0081__c;
                 System.debug('pfKey: ' + pfKey);
                 pfmap.put(pfKey, pf);
             }
@@ -698,30 +710,30 @@ global class AccountMaster_API {
                 accountMap.put(va.SAP_Customer_Code__c, va);
             }
 
-            
             // Process partner functions for successfully upserted sales areas
             if (!salesAreaMap.isEmpty() && !salesAreaPartnerFunctions.isEmpty()) {
-                List<Partner_Function__c> partnerFunctionsToUpsert = new List<Partner_Function__c>();
-                
+                List < Partner_Function__c > partnerFunctionsToUpsert = new List < Partner_Function__c > ();
+
                 // Prepare partner functions for upsert
-                for (String salesAreaExtId : salesAreaMap.keySet()) {
+                for (String salesAreaExtId: salesAreaMap.keySet()) {
                     if (salesAreaPartnerFunctions.containsKey(salesAreaExtId)) {
-                        for (PartnerFunction pf : salesAreaPartnerFunctions.get(salesAreaExtId)) {
-                            System.debug('salesAreaExtId: ' + salesAreaExtId+pf.PARTNERFN);
+                        for (PartnerFunction pf: salesAreaPartnerFunctions.get(salesAreaExtId)) {
+                            System.debug('salesAreaExtId: ' + salesAreaExtId + pf.PARTNERFN);
                             // Set the lookup to the parent sales area
                             Partner_Function__c partnerFn = new Partner_Function__c();
-                            if (pfmap.containsKey(pf.CUSTOMR_NO+'-'+pf.PARTNERFN+'-'+pf.SALES_ORG0079+'-'+pf.DISTR_CHANN+'-'+pf.DIVISION0081)) {
-                                partnerFn.Id = pfmap.get(pf.CUSTOMR_NO+'-'+pf.PARTNERFN+'-'+pf.SALES_ORG0079+'-'+pf.DISTR_CHANN+'-'+pf.DIVISION0081).Id;
+                            if (pfmap.containsKey(pf.CUSTOMR_NO + '-' + pf.PARTNERFN + '-' + pf.SALES_ORG0079 + '-' + pf.DISTR_CHANN + '-' + pf.DIVISION0081)) {
+                                partnerFn.Id = pfmap.get(pf.CUSTOMR_NO + '-' + pf.PARTNERFN + '-' + pf.SALES_ORG0079 + '-' + pf.DISTR_CHANN + '-' + pf.DIVISION0081).Id;
                             }
                             // partnerFn.Account__c = sapCodeToIdMap.get(pf.CUSTOMR_NO);
                             if (accountMap.containsKey(pf.CUSTOMR_NO)) {
-                                partnerFn.Account__c = accountMap.get(pf.CUSTOMR_NO).id;    
+                                partnerFn.Account__c = accountMap.get(pf.CUSTOMR_NO).id;
                             }
                             partnerFn.Partner_code__c = pf.CUSTOMR_NO;
-                            partnerFn.Name = pf.CUSTOMR_NO+'/'+pf.PARTNERFN;
+                            partnerFn.Name = pf.CUSTOMR_NO + '/' + pf.PARTNERFN;
                             partnerFn.PARTNERFN__c = pf.PARTNERFN;
-                            partnerFn.PARTNER_FUNC__c = pf.PARTNER_FUNC;
-                            partnerFn.TITLE0070__c = pf.TITLE0070;
+                            partnerFn.PARTNER_FUNC__c = pf.PARTNER_FUNCTIONS;
+                            // partnerFn.TITLE0070__c = pf.TITLE0070;
+                            partnerFn.TITLE__c = pf.TITLE0070;
                             partnerFn.Customer_Sales_Area__c = salesAreaMap.get(salesAreaExtId);
                             partnerFn.CUSTOMER_NAME__c = pf.NAME;
                             partnerFn.FIRST_NAME0088__c = pf.FIRST_NAME0088;
@@ -743,12 +755,20 @@ global class AccountMaster_API {
                             partnerFn.TXT_TAX_CLASS0099__c = pf.TAX_CLASS0099;
                             partnerFn.TXT_REGION0074__c = pf.REGION0074;
                             partnerFn.TXT_REGION0096__c = pf.REGION0096;
-                            partnerFn.External_Id__c = pf.CUSTOMR_NO+'-'+pf.PARTNERFN+'-'+pf.SALES_ORG0079+'-'+pf.DISTR_CHANN+'-'+pf.DIVISION0081;
+                            if (pf.PARTNERFN == 'VE') {
+                                partnerFn.PERNR__c = pf.CUSTOMR_NO;
+                                partnerFn.ENAME__c = pf.FIRST_NAME0088;
+                                // partnerFn.SUPP_NAME_c = pf.LAST_NAME0089;
+                                if (seMap.containsKey(pf.CUSTOMR_NO)) {
+                                    partnerFn.Sales_Employee__c = seMap.get(pf.CUSTOMR_NO).Id;
+                                }
+                            }
+                            partnerFn.External_Id__c = pf.CUSTOMR_NO + '-' + pf.PARTNERFN + '-' + pf.SALES_ORG0079 + '-' + pf.DISTR_CHANN + '-' + pf.DIVISION0081;
                             partnerFunctionsToUpsert.add(partnerFn);
                         }
                     }
                 }
-                
+
                 // Upsert partner functions
                 if (!partnerFunctionsToUpsert.isEmpty()) {
                     Database.UpsertResult[] pfResults = Database.upsert(
@@ -756,11 +776,11 @@ global class AccountMaster_API {
                         Partner_Function__c.Fields.External_Id__c,
                         false
                     );
-                    
+
                     // Handle partner function upsert results
                     for (Integer i = 0; i < pfResults.size(); i++) {
                         if (!pfResults[i].isSuccess()) {
-                            for (Database.Error err : pfResults[i].getErrors()) {
+                            for (Database.Error err: pfResults[i].getErrors()) {
                                 response.errors.add('Partner Function error: ' + err.getMessage() + ' for partner function: ' + partnerFunctionsToUpsert[i].PARTNERFN__c);
                             }
                         }
@@ -769,12 +789,12 @@ global class AccountMaster_API {
             }
         }
     }
-    
+
     // private static void processSalesAreas(List<SalesArea> salesAreas, Account acc, ResponseWrapper response) {
     //     try {
     //         List<Customer_Sales_Area__c> salesAreasToUpsert = new List<Customer_Sales_Area__c>();
     //         List<Partner_Function__c> partnerFunctionsToUpsert = new List<Partner_Function__c>();
-            
+
     //         // Get existing sales areas for this account to avoid duplicates
     //         Map<String, Customer_Sales_Area__c> existingSalesAreas = new Map<String, Customer_Sales_Area__c>();
     //         for (Customer_Sales_Area__c sa : [SELECT Id, External_Id__c, Account__c, Sales_Org__c, 
@@ -783,17 +803,17 @@ global class AccountMaster_API {
     //                                 WHERE Account__c = :acc.Id]) {
     //             existingSalesAreas.put(sa.External_Id__c, sa);
     //         }
-            
+
     //         // Process each sales area from the request
     //         for (SalesArea saData : salesAreas) {
     //             // Create a unique external ID for the sales area
     //             String externalId = acc.SAP_Customer_Code__c + '-' + saData.SALES_ORG + '-' + 
     //                              saData.DISTR_CHL + '-' + saData.DIVISION;
-                
+
     //             // Create or update sales area record
     //             Customer_Sales_Area__c salesArea = existingSalesAreas.containsKey(externalId) ? 
     //                 existingSalesAreas.get(externalId) : new Customer_Sales_Area__c();
-                
+
     //             // Map fields from request to Customer_Sales_Area__c object
     //             salesArea.Account__c = acc.Id;
     //             salesArea.External_Id__c = externalId;
@@ -821,20 +841,20 @@ global class AccountMaster_API {
     //             salesArea.Customer_Statistics_Group__c = saData.CUSTSTATGR;
     //             salesArea.Invoice_Date_Type__c = saData.INVOIC_DAT;
     //             salesArea.Invoice_List_Schedule__c = saData.INVLISTSCH;
-                
+
     //             salesAreasToUpsert.add(salesArea);
-                
+
     //             // Process partner functions if they exist
     //             if (saData.PARTNER_FUNCTIONS != null && !saData.PARTNER_FUNCTIONS.isEmpty()) {
     //                 processPartnerFunctions(saData.PARTNER_FUNCTIONS, acc, salesArea, partnerFunctionsToUpsert, response);
     //             }
     //         }
-            
+
     //         // Upsert sales areas
     //         if (!salesAreasToUpsert.isEmpty()) {
     //             Database.UpsertResult[] salesAreaResults = Database.upsert(salesAreasToUpsert, 
     //                 Customer_Sales_Area__c.Fields.External_Id__c, false);
-                
+
     //             // Handle any errors from sales area upsert
     //             for (Integer i = 0; i < salesAreaResults.size(); i++) {
     //                 Database.UpsertResult sr = salesAreaResults[i];
@@ -848,12 +868,12 @@ global class AccountMaster_API {
     //                 }
     //             }
     //         }
-            
+
     //         // Upsert partner functions
     //         if (!partnerFunctionsToUpsert.isEmpty()) {
     //             Database.UpsertResult[] pfResults = Database.upsert(partnerFunctionsToUpsert, 
     //                 Partner_Function__c.Fields.External_Id__c, false);
-                
+
     //             // Handle any errors from partner function upsert
     //             for (Integer i = 0; i < pfResults.size(); i++) {
     //                 Database.UpsertResult sr = pfResults[i];
@@ -866,14 +886,14 @@ global class AccountMaster_API {
     //                 }
     //             }
     //         }
-            
+
     //     } catch (Exception e) {
     //         response.errorMessages.add('Error processing sales areas: ' + e.getMessage() + 
     //                                 ' at line ' + e.getLineNumber());
     //         throw e;
     //     }
     // }
-    
+
     // private static void processPartnerFunctions(List<PartnerFunction> partnerFunctions, 
     //                                          Account acc, Customer_Sales_Area__c salesArea,
     //                                          List<Partner_Function__c> partnerFunctionsToUpsert,
@@ -887,18 +907,18 @@ global class AccountMaster_API {
     //             existingPartnerFuncs.put(pf.External_Id__c, pf);
     //         }
     //     }
-        
+
     //     // Process each partner function
     //     for (PartnerFunction pfData : partnerFunctions) {
     //         // Create a unique external ID for the partner function
     //         String externalId = acc.SAP_Customer_Code__c + '-' + salesArea.Sales_Org__c + '-' + 
     //                          salesArea.Distribution_Channel__c + '-' + salesArea.Division__c + '-' + 
     //                          pfData.PARTNERFN;
-            
+
     //         // Create or update partner function record
     //         Partner_Function__c pf = existingPartnerFuncs.containsKey(externalId) ? 
     //             existingPartnerFuncs.get(externalId) : new Partner_Function__c();
-            
+
     //         // Map fields from request to Partner_Function__c object
     //         pf.Customer_Sales_Area__c = salesArea.Id;
     //         pf.External_Id__c = externalId;
@@ -926,7 +946,7 @@ global class AccountMaster_API {
     //         pf.Region_Code_2__c = pfData.REGION0096;
     //         pf.Country_2__c = pfData.COUNTRY0097;
     //         pf.Tax_Classification__c = pfData.TAX_CLASS0099;
-            
+
     //         partnerFunctionsToUpsert.add(pf);
     //     }
     // }
@@ -968,11 +988,11 @@ global class AccountMaster_API {
         public String RECON_ACCOUNT;
         public String EXRATETYPE;
         public String EXCH_RATE_TYPE_C;
-        public List<SalesArea> SALES_AREA;
-        public List<ContactData> CONTACT;
-        public List<BankData> BANK;
+        public List < SalesArea > SALES_AREA;
+        public List < ContactData > CONTACT;
+        public List < BankData > BANK;
     }
-    
+
     public class SalesArea {
         public String COCODE;
         public String SALES_ORG;
@@ -1001,12 +1021,12 @@ global class AccountMaster_API {
         public String INVLISTSCH;
         public String CRED_LIMIT;
         public String CURR;
-        public List<PartnerFunction> PARTNER_FUNCTIONS;
+        public List < PartnerFunction > PARTNER_FUNCTIONS;
     }
-    
+
     public class PartnerFunction {
         public String PARTNERFN;
-        public String PARTNER_FUNC;
+        public String PARTNER_FUNCTIONS;
         public String TITLE0070;
         public String TITLE_C0071;
         public String CITY0072;
@@ -1030,7 +1050,7 @@ global class AccountMaster_API {
         public String COUNTRY0097;
         public String TAX_CLASS0099;
     }
-    
+
     public class ContactData {
         public String CUSTOMER_NO0103;
         public String FIRST_NAME0109;
@@ -1050,7 +1070,7 @@ global class AccountMaster_API {
         public String CONTACT_ZIP;
         public String CONTACT_POSTCODE;
     }
-    
+
     public class BankData {
         public String CUSTOMER_NO0126;
         public String BANK_KEY;
@@ -1059,18 +1079,18 @@ global class AccountMaster_API {
         public String BANKBRANCH;
         public String BANK_ACC_NO;
     }
-    
+
     global class ResponseWrapper {
-        public String status;  // 'success' or 'error'
+        public String status; // 'success' or 'error'
         public String message;
-        public Map<String, Object> data;
-        public List<String> errors;
-        
+        public Map < String, Object > data;
+        public List < String > errors;
+
         public ResponseWrapper() {
             this.status = 'success';
             this.message = 'Customer Upsert successfully';
-            this.data = new Map<String, Object>();
-            this.errors = new List<String>();
+            this.data = new Map < String, Object > ();
+            this.errors = new List < String > ();
         }
     }
 

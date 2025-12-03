@@ -19,11 +19,11 @@ public with sharing class ProformaInvoicePdfController {
                             Ship_To_Name__c, Ship_To_Street__c, Ship_To_City__c, Ship_To_Country__c, Ship_To_Zip_Postal_Code__c, Ship_To_State__c,
                             Bank__r.Bank_Account_No__c, Bank__r.Name, Bank__r.Branch__c, Bank__r.SWIFT_Code__c, Quote__r.Letter_Company_Name__c, Quote__r.Letter_Company_Name__r.Name,
                             Terms_and_Conditions__c, Declaration__c, Subtotal__c, PO_No__c, PO_Date__c, Account_Name__r.GST_No__c,
-                            Grand_Total__c FROM Proforma_Invoice__c WHERE Id = :proformaInvoiceId];
+                            Grand_Total__c,Total_Price__c,Transportation_Cost__c,Grand_Total_Final__c FROM Proforma_Invoice__c WHERE Id = :proformaInvoiceId];
 
         this.isExport = proformaInvoice.Business_Type__c == 'Export';
 
-        Integer grandTotal = proformaInvoice.Grand_Total__c.intValue();
+        Integer grandTotal = proformaInvoice.Grand_Total_Final__c.intValue();
 
         String grandTotalInWords = ConvertCurrencytowords.convert(grandTotal);
         if (proformaInvoice.CurrencyIsoCode == 'INR') {
@@ -52,11 +52,11 @@ public with sharing class ProformaInvoicePdfController {
                             Ship_To_Name__c, Ship_To_Street__c, Ship_To_City__c, Ship_To_Country__c, Ship_To_Zip_Postal_Code__c, Ship_To_State__c,
                             Bank__r.Bank_Account_No__c, Bank__r.Name, Bank__r.Branch__c, Bank__r.SWIFT_Code__c, Quote__r.Letter_Company_Name__c, Quote__r.Letter_Company_Name__r.Name,
                             Terms_and_Conditions__c, Declaration__c, Subtotal__c, PO_No__c, PO_Date__c, Account_Name__r.GST_No__c,
-                            Grand_Total__c FROM Proforma_Invoice__c WHERE Id = :proformaInvoiceId];
+                            Grand_Total__c,Total_Price__c,Transportation_Cost__c,Grand_Total_Final__c FROM Proforma_Invoice__c WHERE Id = :proformaInvoiceId];
 
         this.isExport = proformaInvoice.Business_Type__c == 'Export';
 
-        Integer grandTotal = proformaInvoice.Grand_Total__c.intValue();
+        Integer grandTotal = proformaInvoice.Grand_Total_Final__c.intValue();
 
         String grandTotalInWords = ConvertCurrencytowords.convert(grandTotal);
         if (proformaInvoice.CurrencyIsoCode == 'INR') {
@@ -238,10 +238,10 @@ public with sharing class ProformaInvoicePdfController {
         html += '<th style="' + borderStyle + 'text-align:center; width:5%;">Sr. No.</th>';
         html += '<th style="' + borderStyle + 'text-align:center; width:12%;">Material Code</th>';
         html += '<th style="' + borderStyle + 'text-align:center; width:10%;">HSN/SAC</th>';
-        html += '<th style="' + borderStyle + 'text-align:center; width:23%;">Item Description</th>';
+        html += '<th style="' + borderStyle + 'text-align:center; width:23%;" colspan="2">Item Description</th>';
         html += '<th style="' + borderStyle + 'text-align:center; width:8%;">UOM</th>';
         html += '<th style="' + borderStyle + 'text-align:center; width:10%;">Quantity</th>';
-        html += '<th style="' + borderStyle + 'text-align:center; width:10%;">List Price</th>';
+        //html += '<th style="' + borderStyle + 'text-align:center; width:10%;">List Price</th>';
         html += '<th style="' + borderStyle + 'text-align:center; width:10%;">Sales Price</th>';
         html += '<th style="' + borderStyle + 'text-align:center; width:12%;">Amount</th>';
         html += '</tr>';
@@ -252,10 +252,10 @@ public with sharing class ProformaInvoicePdfController {
             html += '<td style="' + borderStyle + 'text-align:center;">' + srNo + '</td>';
             html += '<td style="' + borderStyle + 'text-align:left;">' + ns(item.Product__r.ProductCode) + '</td>';
             html += '<td style="' + borderStyle + 'text-align:center;">' + ns(item.Product__r.HSN__c) + '</td>';
-            html += '<td style="' + borderStyle + 'text-align:left;">' + ns(item.Product__c) + '</td>';
+            html += '<td style="' + borderStyle + 'text-align:left;" colspan="2">' + ns(item.Product__c) + '</td>';
             html += '<td style="' + borderStyle + 'text-align:center;">' + ns(item.Product__r.Base_UOM__r.Name) + '</td>';
             html += '<td style="' + borderStyle + 'text-align:right;">' + ns(item.Quantity__c) + '</td>';
-            html += '<td style="' + borderStyle + 'text-align:right;">' + ns(item.List_Price__c) + '</td>';
+            //html += '<td style="' + borderStyle + 'text-align:right;">' + ns(item.List_Price__c) + '</td>';
             html += '<td style="' + borderStyle + 'text-align:right;">' + ns(item.Sales_Price__c) + '</td>';
             html += '<td style="' + borderStyle + 'text-align:right;">' + ns(item.Total_Price__c) + '</td>';
             html += '</tr>';
@@ -267,19 +267,33 @@ public with sharing class ProformaInvoicePdfController {
         html += '<td colspan="9" style="' + borderStyle + 'text-align:left; white-space:pre-wrap;"><b>Terms and Conditions:</b><br/>' + ns(proformaInvoice.Terms_and_Conditions__c) + '</td>';
         html += '</tr>';
 
+        // Terms & Totals - Updated for Proforma Invoice
         html += '<tr>';
-        html += '<td colspan="5" style="' + borderStyle + 'text-align:left;"><b>Net Weight</b>: ' + ns(proformaInvoice.Net_weight__c) + '</td>';
-        html += '<td colspan="3" style="' + boldStyle + borderStyle + 'text-align:right;">Grand Total</td>';
-        html += '<td style="' + borderStyle + 'text-align:right;">' + ns(proformaInvoice.Grand_Total__c) + '</td>';
+        html += '<td colspan="9" style="' + borderStyle + 'text-align:left; white-space:pre-wrap;"><b>Terms and Conditions:</b><br/>' + ns(proformaInvoice.Terms_and_Conditions__c) + '</td>';
         html += '</tr>';
         html += '</table>';
-
+        
+        // NEW: Totals Calculation Section for Proforma Invoice - Single Table with 2 rows
+        html += '<table style="' + tableStyle + '">';
+        html += '<tr>';
+        html += '<td colspan="5" style="' + borderStyle + 'text-align:left;"><b>Transportation Cost:</b> ' + ns(proformaInvoice.Transportation_Cost__c) + '</td>';
+        html += '<td colspan="3" style="' + boldStyle + borderStyle + 'text-align:right;">Total Price</td>';
+        html += '<td style="' + borderStyle + 'text-align:right;">' + ns(proformaInvoice.Total_Price__c) + '</td>';
+        html += '</tr>';
+        
+        html += '<tr>';
+        html += '<td colspan="5" style="' + borderStyle + 'text-align:left;"><b>Net Weight:</b> ' + ns(proformaInvoice.Net_weight__c) + '</td>';
+        html += '<td colspan="3" style="' + boldStyle + borderStyle + 'text-align:right;">Grand Total</td>';
+        html += '<td style="' + boldStyle + borderStyle + 'text-align:right;">' + ns(proformaInvoice.Grand_Total_Final__c) + '</td>';
+        html += '</tr>';
+        html += '</table>';
+        
         // Amount in Words & Declaration
         html += '<table style="' + tableStyle + '">';
         html += '<tr><td style="text-align:left; ' + borderStyle + 'border-top:none;' + '"><b>Total Amount in Words:</b> ' + ns(totalAmountInWords) + '</td></tr>';
         html += '<tr><td style="text-align:left; ' + borderStyle + '"><b>Declaration</b>: ' + ns(this.proformaInvoice.Declaration__c) + '</td></tr>';
         html += '</table>';
-
+        
         return html;
     }
 

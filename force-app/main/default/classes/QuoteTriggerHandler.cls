@@ -8,6 +8,7 @@ public class QuoteTriggerHandler {
         Set<Id> ownerIds = new Set<Id>();
         Set<Id> paymentTermIds = new Set<Id>();
         Set<Id> opportunityIds = new Set<Id>();
+        Set<Id> distributionChannelIds = new Set<Id>();
         
         for (Quote q : quotes) {
             if (q.AccountId != null) accountIds.add(q.AccountId);
@@ -16,6 +17,7 @@ public class QuoteTriggerHandler {
             if (q.Payment_Term__c != null) paymentTermIds.add(q.Payment_Term__c);
             if (q.Previous_Payment_Terms__c != null) paymentTermIds.add(q.Previous_Payment_Terms__c);
             if (q.OpportunityId != null) opportunityIds.add(q.OpportunityId);
+            if (q.Distribution_Channel__c != null) distributionChannelIds.add(q.Distribution_Channel__c);
         }
         
         Map<Id, Account> accountMap = new Map<Id, Account>([
@@ -38,6 +40,12 @@ public class QuoteTriggerHandler {
             SELECT Id, Payment_Term__c, Inco_Terms__c, Payment_Term__r.Name
             FROM Opportunity 
             WHERE Id IN :opportunityIds
+        ]);
+        
+        Map<Id, Distribution_Channel__c> distributionChannelMap = new Map<Id, Distribution_Channel__c>([
+            SELECT Id, Distribution_Code__c, Name 
+            FROM Distribution_Channel__c 
+            WHERE Id IN :distributionChannelIds
         ]);
         
         List<Messaging.SingleEmailMessage> emails = new List<Messaging.SingleEmailMessage>();
@@ -108,14 +116,33 @@ public class QuoteTriggerHandler {
                 mail.setToAddresses(new String[] { hod.Email });
             }
             
-            mail.setWhatId(q.Id);
+            List<String> ccAddresses = new List<String>();
+            
             if (owner != null && owner.Email != null) {
-                mail.setCcAddresses(new String[] { owner.Email });
+                ccAddresses.add(owner.Email);
             }
+            
+            if (q.Distribution_Channel__c != null) {
+                Distribution_Channel__c dc = distributionChannelMap.get(q.Distribution_Channel__c);
+                if (dc != null) {
+                    if (dc.Distribution_Code__c == '10') {
+                        ccAddresses.add('ankit@finessedirect.com');
+                    } else if (dc.Distribution_Code__c == '20') {
+                        ccAddresses.add('sahil@finessedirect.com');
+                    }
+                }
+            }
+            
+            // Set CC addresses if any
+            if (!ccAddresses.isEmpty()) {
+                mail.setCcAddresses(ccAddresses);
+            }
+            
+            mail.setWhatId(q.Id);
             
             String subject = 'Quote Terms Updated: ' + q.Name;
             if (q.Payment_Term__c != q.Previous_Payment_Terms__c && q.Inco_Terms__c != q.Previous_Inco_Terms__c) {
-                subject = 'Quote Payment & Inco Terms Updated: ' + q.Name;
+                subject = 'Quote Payment/Inco Terms Updated: ' + q.Name;
             } else if (q.Payment_Term__c != q.Previous_Payment_Terms__c) {
                 subject = 'Quote Payment Term Updated: ' + q.Name;
             } else if (q.Inco_Terms__c != q.Previous_Inco_Terms__c) {
@@ -141,50 +168,80 @@ public class QuoteTriggerHandler {
     public static void sendPaymentTermsApprovalEmails(List<Quote> quotes, Map<Id, Quote> oldMap) {
         List<Messaging.SingleEmailMessage> emails = new List<Messaging.SingleEmailMessage>();
         
+        // Get distribution channel information
+        Set<Id> distributionChannelIds = new Set<Id>();
+        for (Quote newQuote : quotes) {
+            distributionChannelIds.add(newQuote.Distribution_Channel__c);
+        }
+        
+        Map<Id, Distribution_Channel__c> distributionChannelMap = new Map<Id, Distribution_Channel__c>([
+            SELECT Id, Distribution_Code__c, Name 
+            FROM Distribution_Channel__c 
+            WHERE Id IN :distributionChannelIds
+        ]);
+        
         for (Quote newQuote : quotes) {
             Quote oldQuote = oldMap.get(newQuote.Id);
             
             // Check if Payment Terms approval status changed to Approved or Rejected
             if (newQuote.Credit_Approval_Status__c != oldQuote.Credit_Approval_Status__c &&
                 (newQuote.Credit_Approval_Status__c == 'Approved' || newQuote.Credit_Approval_Status__c == 'Rejected')) {
-                
-                // Get quote details with related records
-                Quote q = [
-                    SELECT Id, Name, QuoteNumber, Account.Name, Account.SAP_Customer_Code__c,
-                           Payment_Term__r.Name, Previous_Payment_Terms__r.Name,
-                           Payment_Remark__c, Credit_Approval_Status__c,
-                           Owner.Name, Owner.Email, HOD_of_Sales_Department__r.Name, 
-                           HOD_of_Sales_Department__r.Email
-                    FROM Quote 
-                    WHERE Id = :newQuote.Id
-                ];
-                
-                String statusColor = q.Credit_Approval_Status__c == 'Approved' ? 'green' : 'red';
-                String statusText = q.Credit_Approval_Status__c == 'Approved' ? 'Approved' : 'Rejected';
-                
-                String emailBody = 
-                    'Hello ' + q.Owner.Name + ',<br/><br/>' +
-                    '<p>Your Payment Terms change request for Quote: <b>' + q.Name + '</b> has been <span style="color:' + statusColor + '; font-weight: bold;">' + statusText + '</span>.</p>' +
-                    '<table border="1" style="border-collapse: collapse; width: 100%;">' +
-                    '<tr><th style="text-align: left; width: 30%;">Quote Number</th><td style="width: 70%;">' + q.QuoteNumber + '</td></tr>' +
-                    '<tr><th style="text-align: left;">Customer Name</th><td>' + q.Account.Name + '</td></tr>' +
-                    '<tr><th style="text-align: left;">Customer Code</th><td>' + (q.Account.SAP_Customer_Code__c != null ? q.Account.SAP_Customer_Code__c : 'N/A') + '</td></tr>' +
-                    '<tr><th style="text-align: left;">Previous Payment Term</th><td>' + q.Previous_Payment_Terms__r.Name + '</td></tr>' +
-                    '<tr><th style="text-align: left;">Requested Payment Term</th><td>' + q.Payment_Term__r.Name + '</td></tr>' +
-                    '<tr><th style="text-align: left;">Approval Status</th><td><span style="color:' + statusColor + '; font-weight: bold;">' + statusText + '</span></td></tr>' +
-                    '<tr><th style="text-align: left;">Remarks</th><td>' + (q.Payment_Remark__c != null ? q.Payment_Remark__c : 'No remarks provided') + '</td></tr>' +
-                    '<tr><th style="text-align: left;">Approved By</th><td>' + q.HOD_of_Sales_Department__r.Name + '</td></tr>' +
-                    '</table><br/><br/>' +
-                    'Regards,<br/>Salesforce Automation';
-                
-                Messaging.SingleEmailMessage mail = new Messaging.SingleEmailMessage();
-                mail.setToAddresses(new String[] { q.Owner.Email });
-                mail.setSubject('Payment Terms ' + statusText + ' for Quote: ' + q.Name);
-                mail.setHtmlBody(emailBody);
-                mail.setWhatId(q.Id);
-                
-                emails.add(mail);
-            }
+                    
+                    // Get quote details with related records
+                    Quote q = [
+                        SELECT Id, Name, QuoteNumber, Account.Name, Account.SAP_Customer_Code__c,
+                        Payment_Term__r.Name, Previous_Payment_Terms__r.Name,
+                        Payment_Remark__c, Credit_Approval_Status__c,
+                        Owner.Name, Owner.Email, HOD_of_Sales_Department__r.Name, 
+                        HOD_of_Sales_Department__r.Email, Distribution_Channel__c
+                        FROM Quote 
+                        WHERE Id = :newQuote.Id
+                    ];
+                    
+                    String statusColor = q.Credit_Approval_Status__c == 'Approved' ? 'green' : 'red';
+                    String statusText = q.Credit_Approval_Status__c == 'Approved' ? 'Approved' : 'Rejected';
+                    
+                    String emailBody = 
+                        'Hello ' + q.Owner.Name + ',<br/><br/>' +
+                        '<p>Your Payment Terms change request for Quote: <b>' + q.Name + '</b> has been <span style="color:' + statusColor + '; font-weight: bold;">' + statusText + '</span>.</p>' +
+                        '<table border="1" style="border-collapse: collapse; width: 100%;">' +
+                        '<tr><th style="text-align: left; width: 30%;">Quote Number</th><td style="width: 70%;">' + q.QuoteNumber + '</td></tr>' +
+                        '<tr><th style="text-align: left;">Customer Name</th><td>' + q.Account.Name + '</td></tr>' +
+                        '<tr><th style="text-align: left;">Customer Code</th><td>' + (q.Account.SAP_Customer_Code__c != null ? q.Account.SAP_Customer_Code__c : 'N/A') + '</td></tr>' +
+                        '<tr><th style="text-align: left;">Previous Payment Term</th><td>' + q.Previous_Payment_Terms__r.Name + '</td></tr>' +
+                        '<tr><th style="text-align: left;">Requested Payment Term</th><td>' + q.Payment_Term__r.Name + '</td></tr>' +
+                        '<tr><th style="text-align: left;">Approval Status</th><td><span style="color:' + statusColor + '; font-weight: bold;">' + statusText + '</span></td></tr>' +
+                        '<tr><th style="text-align: left;">Remarks</th><td>' + (q.Payment_Remark__c != null ? q.Payment_Remark__c : 'No remarks provided') + '</td></tr>' +
+                        '<tr><th style="text-align: left;">Approved By</th><td>' + q.HOD_of_Sales_Department__r.Name + '</td></tr>' +
+                        '</table><br/><br/>' +
+                        'Regards,<br/>Salesforce Automation';
+                    
+                    Messaging.SingleEmailMessage mail = new Messaging.SingleEmailMessage();
+                    mail.setToAddresses(new String[] { q.Owner.Email });
+                    
+                    // NEW: Add distribution channel specific CC
+                    List<String> ccAddresses = new List<String>();
+                    if (q.Distribution_Channel__c != null) {
+                        Distribution_Channel__c dc = distributionChannelMap.get(q.Distribution_Channel__c);
+                        if (dc != null) {
+                            if (dc.Distribution_Code__c == '10') {
+                                ccAddresses.add('ankit@finessedirect.com');
+                            } else if (dc.Distribution_Code__c == '20') {
+                                ccAddresses.add('sahil@finessedirect.com');
+                            }
+                        }
+                    }
+                    
+                    if (!ccAddresses.isEmpty()) {
+                        mail.setCcAddresses(ccAddresses);
+                    }
+                    
+                    mail.setSubject('Payment Terms ' + statusText + ' for Quote: ' + q.Name);
+                    mail.setHtmlBody(emailBody);
+                    mail.setWhatId(q.Id);
+                    
+                    emails.add(mail);
+                }
         }
         
         if (!emails.isEmpty()) {
@@ -200,50 +257,78 @@ public class QuoteTriggerHandler {
     public static void sendIncoTermsApprovalEmails(List<Quote> quotes, Map<Id, Quote> oldMap) {
         List<Messaging.SingleEmailMessage> emails = new List<Messaging.SingleEmailMessage>();
         
+        Set<Id> distributionChannelIds = new Set<Id>();
+        for (Quote newQuote : quotes) {
+            distributionChannelIds.add(newQuote.Distribution_Channel__c);
+        }
+        
+        Map<Id, Distribution_Channel__c> distributionChannelMap = new Map<Id, Distribution_Channel__c>([
+            SELECT Id, Distribution_Code__c, Name 
+            FROM Distribution_Channel__c 
+            WHERE Id IN :distributionChannelIds
+        ]);
+        
         for (Quote newQuote : quotes) {
             Quote oldQuote = oldMap.get(newQuote.Id);
             
             // Check if Inco Terms approval status changed to Approved or Rejected
             if (newQuote.Inco_Terms_Approval_Status__c != oldQuote.Inco_Terms_Approval_Status__c &&
                 (newQuote.Inco_Terms_Approval_Status__c == 'Approved' || newQuote.Inco_Terms_Approval_Status__c == 'Rejected')) {
-                
-                // Get quote details with related records
-                Quote q = [
-                    SELECT Id, Name, QuoteNumber, Account.Name, Account.SAP_Customer_Code__c,
-                           Inco_Terms__c, Previous_Inco_Terms__c,
-                           Inco_Remark__c, Inco_Terms_Approval_Status__c,
-                           Owner.Name, Owner.Email, HOD_of_Sales_Department__r.Name, 
-                           HOD_of_Sales_Department__r.Email
-                    FROM Quote 
-                    WHERE Id = :newQuote.Id
-                ];
-                
-                String statusColor = q.Inco_Terms_Approval_Status__c == 'Approved' ? 'green' : 'red';
-                String statusText = q.Inco_Terms_Approval_Status__c == 'Approved' ? 'Approved' : 'Rejected';
-                
-                String emailBody = 
-                    'Hello ' + q.Owner.Name + ',<br/><br/>' +
-                    '<p>Your Inco Terms change request for Quote: <b>' + q.Name + '</b> has been <span style="color:' + statusColor + '; font-weight: bold;">' + statusText + '</span>.</p>' +
-                    '<table border="1" style="border-collapse: collapse; width: 100%;">' +
-                    '<tr><th style="text-align: left; width: 30%;">Quote Number</th><td style="width: 70%;">' + q.QuoteNumber + '</td></tr>' +
-                    '<tr><th style="text-align: left;">Customer Name</th><td>' + q.Account.Name + '</td></tr>' +
-                    '<tr><th style="text-align: left;">Customer Code</th><td>' + (q.Account.SAP_Customer_Code__c != null ? q.Account.SAP_Customer_Code__c : 'N/A') + '</td></tr>' +
-                    '<tr><th style="text-align: left;">Previous Inco Term</th><td>' + q.Previous_Inco_Terms__c + '</td></tr>' +
-                    '<tr><th style="text-align: left;">Requested Inco Term</th><td>' + q.Inco_Terms__c + '</td></tr>' +
-                    '<tr><th style="text-align: left;">Approval Status</th><td><span style="color:' + statusColor + '; font-weight: bold;">' + statusText + '</span></td></tr>' +
-                    '<tr><th style="text-align: left;">Remarks</th><td>' + (q.Inco_Remark__c != null ? q.Inco_Remark__c : 'No remarks provided') + '</td></tr>' +
-                    '<tr><th style="text-align: left;">Approved By</th><td>' + q.HOD_of_Sales_Department__r.Name + '</td></tr>' +
-                    '</table><br/><br/>' +
-                    'Regards,<br/>Salesforce Automation';
-                
-                Messaging.SingleEmailMessage mail = new Messaging.SingleEmailMessage();
-                mail.setToAddresses(new String[] { q.Owner.Email });
-                mail.setSubject('Inco Terms ' + statusText + ' for Quote: ' + q.Name);
-                mail.setHtmlBody(emailBody);
-                mail.setWhatId(q.Id);
-                
-                emails.add(mail);
-            }
+                    
+                    // Get quote details with related records
+                    Quote q = [
+                        SELECT Id, Name, QuoteNumber, Account.Name, Account.SAP_Customer_Code__c,
+                        Inco_Terms__c, Previous_Inco_Terms__c,
+                        Inco_Remark__c, Inco_Terms_Approval_Status__c,
+                        Owner.Name, Owner.Email, HOD_of_Sales_Department__r.Name, 
+                        HOD_of_Sales_Department__r.Email, Distribution_Channel__c
+                        FROM Quote 
+                        WHERE Id = :newQuote.Id
+                    ];
+                    
+                    String statusColor = q.Inco_Terms_Approval_Status__c == 'Approved' ? 'green' : 'red';
+                    String statusText = q.Inco_Terms_Approval_Status__c == 'Approved' ? 'Approved' : 'Rejected';
+                    
+                    String emailBody = 
+                        'Hello ' + q.Owner.Name + ',<br/><br/>' +
+                        '<p>Your Inco Terms change request for Quote: <b>' + q.Name + '</b> has been <span style="color:' + statusColor + '; font-weight: bold;">' + statusText + '</span>.</p>' +
+                        '<table border="1" style="border-collapse: collapse; width: 100%;">' +
+                        '<tr><th style="text-align: left; width: 30%;">Quote Number</th><td style="width: 70%;">' + q.QuoteNumber + '</td></tr>' +
+                        '<tr><th style="text-align: left;">Customer Name</th><td>' + q.Account.Name + '</td></tr>' +
+                        '<tr><th style="text-align: left;">Customer Code</th><td>' + (q.Account.SAP_Customer_Code__c != null ? q.Account.SAP_Customer_Code__c : 'N/A') + '</td></tr>' +
+                        '<tr><th style="text-align: left;">Previous Inco Term</th><td>' + q.Previous_Inco_Terms__c + '</td></tr>' +
+                        '<tr><th style="text-align: left;">Requested Inco Term</th><td>' + q.Inco_Terms__c + '</td></tr>' +
+                        '<tr><th style="text-align: left;">Approval Status</th><td><span style="color:' + statusColor + '; font-weight: bold;">' + statusText + '</span></td></tr>' +
+                        '<tr><th style="text-align: left;">Remarks</th><td>' + (q.Inco_Remark__c != null ? q.Inco_Remark__c : 'No remarks provided') + '</td></tr>' +
+                        '<tr><th style="text-align: left;">Approved By</th><td>' + q.HOD_of_Sales_Department__r.Name + '</td></tr>' +
+                        '</table><br/><br/>' +
+                        'Regards,<br/>Salesforce Automation';
+                    
+                    Messaging.SingleEmailMessage mail = new Messaging.SingleEmailMessage();
+                    mail.setToAddresses(new String[] { q.Owner.Email });
+                    
+                    List<String> ccAddresses = new List<String>();
+                    if (q.Distribution_Channel__c != null) {
+                        Distribution_Channel__c dc = distributionChannelMap.get(q.Distribution_Channel__c);
+                        if (dc != null) {
+                            if (dc.Distribution_Code__c == '10') {
+                                ccAddresses.add('ankit@finessedirect.com');
+                            } else if (dc.Distribution_Code__c == '20') {
+                                ccAddresses.add('sahil@finessedirect.com');
+                            }
+                        }
+                    }
+                    
+                    if (!ccAddresses.isEmpty()) {
+                        mail.setCcAddresses(ccAddresses);
+                    }
+                    
+                    mail.setSubject('Inco Terms ' + statusText + ' for Quote: ' + q.Name);
+                    mail.setHtmlBody(emailBody);
+                    mail.setWhatId(q.Id);
+                    
+                    emails.add(mail);
+                }
         }
         
         if (!emails.isEmpty()) {

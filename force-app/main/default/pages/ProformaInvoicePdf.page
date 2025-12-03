@@ -224,10 +224,10 @@
             <th style="text-align: center; width: 5%;">Sr. No.</th>
             <th style="text-align: center; width: 12%;">Material Code</th>
             <th style="text-align: center; width: 10%;">HSN/SAC</th>
-            <th style="text-align: center; width: 23%;">Item Description</th>
+            <th style="text-align: center; width: 23%;" colspan="2">Item Description</th>
             <th style="text-align: center; width: 8%;">UOM</th>
             <th style="text-align: center; width: 10%;">Quantity</th>
-            <th style="text-align: center; width: 10%;">List Price</th>
+            <!-- <th style="text-align: center; width: 10%;">List Price</th> -->
             <th style="text-align: center; width: 10%;">Sales Price</th>
             <th style="text-align: center; width: 12%;">Amount</th>
         </tr>
@@ -237,10 +237,10 @@
                 <td style="text-align: center;">{!srNo}</td>
                 <td style="text-align: left;">{!item.Product__r.ProductCode}</td>
                 <td style="text-align: center;">{!item.Product__r.HSN__c}</td>
-                <td style="text-align: left;">{!item.Product__c}</td>
+                <td style="text-align: left;" colspan="2">{!item.Product__c}</td>
                 <td style="text-align: center;">{!item.Product__r.Base_UOM__r.Name}</td>
                 <td style="text-align: right;">{!item.Quantity__c}</td>
-                <td style="text-align: right;">{!item.List_Price__c}</td>
+                <!-- <td style="text-align: right;">{!item.List_Price__c}</td> -->
                 <td style="text-align: right;">{!item.Sales_Price__c}</td>
                 <td style="text-align: right;">{!item.Total_Price__c}</td>
             </tr>
@@ -252,10 +252,33 @@
                 <p style="white-space: pre-wrap; padding: 0px; margin: 0px;">{!proformaInvoice.Terms_and_Conditions__c}</p>
             </td>
         </tr>
+    </table>
+    <!-- Updated Totals Section for Proforma Invoice -->
+    <table>
         <tr>
-            <td colspan="5" style="text-align: left;"><b>Net Weight</b>: {!proformaInvoice.Net_weight__c}</td>
+            <td colspan="5" style="text-align: left;">
+                <b>Transportation Cost:</b>&nbsp;
+                <apex:outputText value="{0,number,###,##0.00}">
+                    <apex:param value="{!proformaInvoice.Transportation_Cost__c}" />
+                </apex:outputText>
+            </td>
+            <td colspan="3" class="bold" style="text-align: right;">Total Price</td>
+            <td style="text-align: right;">
+                <apex:outputText value="{0,number,###,##0.00}">
+                    <apex:param value="{!proformaInvoice.Total_Price__c}" />
+                </apex:outputText>
+            </td>
+        </tr>
+        <tr>
+            <td colspan="5" style="text-align: left;">
+                <b>Net Weight:</b>&nbsp;{!proformaInvoice.Net_weight__c}
+            </td>
             <td colspan="3" class="bold" style="text-align: right;">Grand Total</td>
-            <td style="text-align: right;">{!proformaInvoice.Grand_Total__c}</td>
+            <td style="text-align: right; font-weight: bold;">
+                <apex:outputText value="{0,number,###,##0.00}">
+                    <apex:param value="{!proformaInvoice.Grand_Total_Final__c}" />
+                </apex:outputText>
+            </td>
         </tr>
     </table>
 

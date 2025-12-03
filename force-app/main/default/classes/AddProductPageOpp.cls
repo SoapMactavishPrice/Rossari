@@ -229,122 +229,165 @@ public without sharing class AddProductPageOpp {
 
 
     
-    @AuraEnabled
-    public static String findProduct(string recordId, List<String> productFamily, string salesOrg, string distributionChannel, string division) {
+  @AuraEnabled
+public static String findProduct(string recordId, List<String> productFamily, string salesOrg, string distributionChannel, string division) {
+    
+    // 1. Get opportunity details FIRST
+    Opportunity op = [
+        SELECT Id, Pricebook2Id, Pricebook2.Name, AccountId, CurrencyIsoCode, 
+        Sales_Organisations__r.Name, Division__r.Name 
+        FROM Opportunity 
+        WHERE Id =: recordId
+    ];
 
-        // Example multipicklist field on User: User.Division_Code__c 
-        User currentUser = [
-            SELECT Id, Division_Code__c, Division_Code_2__c, Division_Code_3__c
-            FROM User
-            WHERE Id = :UserInfo.getUserId()
-        ];
+    // Store the values in local variables for binding
+    Id pricebookId = op.Pricebook2Id;
+    String currencyCode = op.CurrencyIsoCode;
+    Id accountId = op.AccountId;
 
-        List<Sales_Area__c> salesAreaList = new List<Sales_Area__c>();
-        salesAreaList = [
-            SELECT Id, Name, Sales_Organisation__c, Distribution_Channel__c, Sales_Organisation__r.Name,
-            Distribution_Channel__r.Distribution_Code__c, Item_Master__c
-            FROM Sales_Area__c
-            WHERE Distribution_Channel__r.Distribution_Code__c = :distributionChannel
-            AND Sales_Organisation__r.Name = :salesOrg
-        ];
+    // 2. Get sales area products for this salesOrg/distributionChannel
+    List<Sales_Area__c> salesAreaList = [
+        SELECT Id, Item_Master__c
+        FROM Sales_Area__c
+        WHERE Distribution_Channel__r.Distribution_Code__c = :distributionChannel
+        AND Sales_Organisation__r.Name = :salesOrg
+        AND Item_Master__c != null
+    ];
 
-        Set<String> salesAreaProductSet = new Set<String>();
-        for (Sales_Area__c salesArea : salesAreaList) {
-            salesAreaProductSet.add(salesArea.Item_Master__c);
-        }
+    Set<Id> salesAreaProductSet = new Set<Id>();
+    for (Sales_Area__c salesArea : salesAreaList) {
+        salesAreaProductSet.add(salesArea.Item_Master__c);
+    }
 
-        // Multipicklist values come as a semicolon-separated string, e.g. "East;West;North"
-        Set<String> divSet = new Set<String>();
-
-        // if (String.isNotBlank(currentUser.Division_Code__c)) {
-        //     divSet.addAll(currentUser.Division_Code__c.split(';'));
-        // }
-        // if (String.isNotBlank(currentUser.Division_Code_2__c)) {
-        //     divSet.addAll(currentUser.Division_Code_2__c.split(';'));
-        // }
-        // if (String.isNotBlank(currentUser.Division_Code_3__c)) {
-        //     divSet.addAll(currentUser.Division_Code_3__c.split(';'));
-        // }
-
-        // Debug to check values
-        System.debug('Region Set => ' + divSet);
-
-
-        system.debug('recordId ' + recordId);
-        Opportunity op = [SELECT Id, Pricebook2Id, Pricebook2.Name, AccountId, CurrencyIsoCode FROM Opportunity WHERE Id =: recordId];
-
-        List < OpportunityLineItem > oplIst = [
-            SELECT Id, Product2Id
-            FROM OpportunityLineItem
-            WHERE OpportunityId =: recordId
-        ];
-
-        set < Id > existingProdId = new set < Id > ();
-        if (oplIst.size() > 0) {
-            for (OpportunityLineItem opr: oplIst) {
-                existingProdId.add(opr.Product2Id);
-            }
-        }
+    // If no products in sales area, return empty early
+    if (salesAreaProductSet.isEmpty()) {
         wrapperClass wc = new wrapperClass();
         wc.priceBook = op.Pricebook2.Name;
+        wc.productList = new List<ProductWrapper>();
+        return JSON.serialize(wc);
+    }
 
-        string productQuery = 'select Id,Name,Family  from Product2 where Id NOT IN :existingProdId';
+    // 3. Get existing products in the opportunity
+    List<OpportunityLineItem> oplIst = [
+        SELECT Id, Product2Id
+        FROM OpportunityLineItem
+        WHERE OpportunityId =: recordId
+    ];
 
-        if (productFamily.size() > 0) {
-            productQuery += ' AND Family IN : productFamily';
-        }
+    Set<Id> existingProdId = new Set<Id>();
+    for (OpportunityLineItem opr: oplIst) {
+        existingProdId.add(opr.Product2Id);
+    }
 
-        set < Id > prodId = new set < Id > ();
-        for (Product2 pd: database.query(productQuery)) {
-            prodId.add(pd.Id);
-        }
+    // 4. Build dynamic query with proper variable binding
+    String query = 'SELECT Id, CurrencyIsoCode, UnitPrice, Product2Id, ' +
+                  'Product2.Name, Product2.Family, Product2.ProductCode, Product2.Description ' +
+                  'FROM PricebookEntry ' +
+                  'WHERE Pricebook2Id = :pricebookId ' + // Use local variable
+                  'AND Product2Id IN :salesAreaProductSet ' +
+                  'AND Product2.Division__r.Division_Code__c = :division ' +
+                  'AND Product2Id NOT IN :existingProdId ' +
+                  'AND CurrencyIsoCode = :currencyCode ' + // Use local variable
+                  'AND IsActive = true ';
 
-        String query = 'SELECT Id,CurrencyIsoCode,UnitPrice,Product2Id,Product2.Name,Product2.Family,Product2.ProductCode,Product2.Description FROM PricebookEntry WHERE Pricebook2Id = \'' + op.Pricebook2Id + '\'  AND Product2.Division__r.Division_Code__c = :division AND Product2Id IN :prodId AND CurrencyIsoCode =\''+op.currencyISOcode+'\'ORDER BY Product2.Name ASC';
-        List < PricebookEntry > lstPBE = (List < PricebookEntry > ) Database.query(query);
-        // return lstPBE;
+    // Add product family filter if provided
+    if (productFamily != null && !productFamily.isEmpty()) {
+        query += 'AND Product2.Family IN :productFamily ';
+    }
 
+    query += 'ORDER BY Product2.Name ASC';
+
+    // Execute the query with all bind variables
+    List<PricebookEntry> lstPBE = Database.query(query);
+
+    // 5. Get Customer Material Price list (only for specific sales orgs)
+    Map<Id, Customer_Material_Pricelist__c> cmplMap = new Map<Id, Customer_Material_Pricelist__c>();
+    
+    // Only query Customer Material Price if needed
+    Set<String> allowedDivisions = new Set<String>{'10','11','22'};
+    if (salesOrg == '1000' && allowedDivisions.contains(division)) {
         List<Customer_Material_Pricelist__c> cmpl = [
-            SELECT Id, Name, Material_Price__c, Customer__c, Material__c, Material_Code__c
+            SELECT Id, Material_Price__c, Material__c
             FROM Customer_Material_Pricelist__c
-            WHERE Customer__c =: op.AccountId AND Material__c IN :prodId
+            WHERE Customer__c = :accountId  // Use local variable
+            AND Material__c IN :salesAreaProductSet
         ];
-
-        Map<String, Customer_Material_Pricelist__c> cmplMap = new Map<String, Customer_Material_Pricelist__c>();
+        
         for (Customer_Material_Pricelist__c cm: cmpl) {
             cmplMap.put(cm.Material__c, cm);
         }
-
-        List < ProductWrapper > lstProduct = new List < ProductWrapper > ();
-        integer i = 0;
-        for (PricebookEntry pbe: lstPBE) {
-            if (salesAreaProductSet.contains(pbe.Product2Id)) {
-                ProductWrapper pw = new ProductWrapper();
-                pw.Id = pbe.Id;
-                pw.purl = '/lightning/r/' + pbe.Id + '/view';
-                pw.Product2Id = pbe.Product2Id;
-                pw.Name = pbe.Product2.Name;
-                pw.ProductCode = pbe.Product2.ProductCode;
-                pw.Description = pbe.Product2.Description;
-                
-                pw.ListPrice = pbe.UnitPrice;
-                
-                if (cmplMap.containsKey(pbe.Product2Id)) {
-                    pw.Price = cmplMap.get(pbe.Product2Id).Material_Price__c;
-                } else {
-                    pw.Price = pbe.UnitPrice;
-                }
-                pw.Family = pbe.Product2.Family;
-                pw.index = i++;
-                pw.showError = false;
-                lstProduct.add(pw);
-            }
-        }
-
-        wc.productList = lstProduct;
-        return JSON.serialize(wc);
-
     }
 
+    // 6. Prepare Invoice last selling price map only for Sales Org 3000/4000
+    Map<Id, Decimal> lastSellingPriceMap = new Map<Id, Decimal>();
+    if (accountId != null && (salesOrg == '3000' || salesOrg == '4000')) {
+        List<Invoice_Line_Item__c> invItems = [
+            SELECT Item_Taxable_Value__c, Product__c
+            FROM Invoice_Line_Item__c
+            WHERE Product__c IN :salesAreaProductSet 
+            AND Invoice__r.Customer_Name__c = :accountId  // Use local variable
+            ORDER BY Invoice__r.CreatedDate DESC
+        ];
+        
+        // Get only the latest price per product
+        for (Invoice_Line_Item__c ili : invItems) {
+            if (!lastSellingPriceMap.containsKey(ili.Product__c)) {
+                lastSellingPriceMap.put(ili.Product__c, ili.Item_Taxable_Value__c);
+            }
+        }
+    }
+
+    // 7. Create wrapper list
+    wrapperClass wc = new wrapperClass();
+    wc.priceBook = op.Pricebook2.Name;
+    
+    List<ProductWrapper> lstProduct = new List<ProductWrapper>();
+    integer i = 0;
+    
+    for (PricebookEntry pbe: lstPBE) {
+        ProductWrapper pw = new ProductWrapper();
+        pw.Id = pbe.Id;
+        pw.purl = '/lightning/r/' + pbe.Id + '/view';
+        pw.Product2Id = pbe.Product2Id;
+        pw.Name = pbe.Product2.Name;
+        pw.ProductCode = pbe.Product2.ProductCode;
+        pw.Description = pbe.Product2.Description;
+        pw.ListPrice = pbe.UnitPrice;
+        pw.Family = pbe.Product2.Family;
+        pw.index = i++;
+        pw.showError = false;
+
+        // Set price - use Customer Material Price if available, otherwise List Price
+        if (cmplMap.containsKey(pbe.Product2Id)) {
+            pw.Price = cmplMap.get(pbe.Product2Id).Material_Price__c;
+        } else {
+            pw.Price = pbe.UnitPrice;
+        }
+
+        // Set Customer Material Price
+        if (salesOrg == '1000' && allowedDivisions.contains(division)) {
+            if (cmplMap.containsKey(pbe.Product2Id)) {
+                pw.customerMaterialPrice = cmplMap.get(pbe.Product2Id).Material_Price__c;
+            } else {
+                pw.customerMaterialPrice = 0;
+            }
+        } else {
+            pw.customerMaterialPrice = 0;
+        }
+
+        // Set Last Selling Price
+        if ((salesOrg == '3000' || salesOrg == '4000') && lastSellingPriceMap.containsKey(pbe.Product2Id)) {
+            pw.lastSellingPrice = lastSellingPriceMap.get(pbe.Product2Id);
+        } else {
+            pw.lastSellingPrice = 0;
+        }
+
+        lstProduct.add(pw);
+    }
+
+    wc.productList = lstProduct;
+    return JSON.serialize(wc);
+}
     /* @AuraEnabled
     public static String findProduct(string recordId, List<String> productFamily){
         system.debug('recordId '+recordId);
@@ -439,27 +482,26 @@ public without sharing class AddProductPageOpp {
         for (ProductWrapper pw: wc) {
             OpportunityLineItem oli = new OpportunityLineItem();
             oli.Quantity = pw.Quantity;
-            oli.UnitPrice = pw.Price;
-            oli.UnitPrice = pw.Price;
+
+            // Use Price as Sales Price input, List Price remains from Pricebook
             oli.UnitPrice = pw.Price;
 
-            //oli.Product_Category__c = pw.Family;
-            oli.UnitPrice = pw.Price;
-            system.debug(oli.UnitPrice);
+            // Set service and discount/description data
             oli.ServiceDate = system.today();
             oli.Discount = pw.Discount;
             oli.Description = pw.LineDescription;
-            oli.OpportunityId = recId; //'0065j00000N2RXiAAN';
-            oli.Product2Id = pw.Product2Id;
-            // oli.HSN_Master__c = pw.hsnMasterId;
-            //oli.CGST_RATE__c = pw.CGSTRATE;
-            //oli.SGST_RATE__c = pw.SGSTRATE;
-            //oli.IGST_RATE__c = pw.IGSTRATE;
-            //oli.Pack_Size__c = pw.PackSize;
-            oli.PricebookEntryId = pw.Id; //'01u5j000003Pq51AAC';
-            lstOpp.add(oli);
-            //  System.debug(' pw' + lstOpp);
 
+            // Parent and product refs
+            oli.OpportunityId = recId;
+            oli.Product2Id = pw.Product2Id;
+            oli.PricebookEntryId = pw.Id;
+
+            // Persist Customer Material Price and Last Selling Price to custom fields (read-only UI columns)
+            // These custom fields must exist on OpportunityLineItem
+            oli.Customer_Material_Price__c = pw.customerMaterialPrice;
+            oli.Last_Selling_Price__c = pw.lastSellingPrice;
+
+            lstOpp.add(oli);
         }
         try {
             insert lstOpp;
@@ -578,6 +620,10 @@ public without sharing class AddProductPageOpp {
         public decimal SGSTRATE;
         public boolean showError;
         public decimal Discount = 0;
+
+        // New read-only display fields
+        public Decimal customerMaterialPrice;
+        public Decimal lastSellingPrice;
     }
 
     public class PicklistValue {

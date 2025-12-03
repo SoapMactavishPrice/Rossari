@@ -22,11 +22,11 @@ public with sharing class QuotationPdfController {
                             BillingStreet, BillingCity, BillingState, BillingPostalCode, BillingCountry, Business_Type__c, Vessel_Flight_No__c, Pre_Carriage_Destination__c,
                             ShippingStreet, ShippingCity, ShippingCountry, ShippingPostalCode, ShippingState, Terms_and_Conditions__c, Declaration__c,
                             Bank__r.Bank_Account_No__c, Bank__r.Name, Bank__r.Branch__c, Bank__r.SWIFT_Code__c, Subtotal, PO_No__c, PO_Date__c, Account.GST_No__c, Letter_Company_Name__c, Letter_Company_Name__r.Name,
-                            ShippingAddress, Grand_Total__c FROM Quote WHERE Id = :quotationId];
+                            ShippingAddress, Grand_Total__c,Grand_Total_Final__c,Transportation_Cost__c FROM Quote WHERE Id = :quotationId];
 
         this.isExport = quotation.Business_Type__c == 'Export';
 
-        Integer grandTotal = quotation.Grand_Total__c.intValue();
+        Integer grandTotal = quotation.Grand_Total_Final__c.intValue();
 
         String grandTotalInWords = ConvertCurrencytowords.convert(grandTotal);
         if (quotation.CurrencyIsoCode == 'INR') {
@@ -54,11 +54,11 @@ public with sharing class QuotationPdfController {
                             BillingStreet, BillingCity, BillingState, BillingPostalCode, BillingCountry, Business_Type__c, Vessel_Flight_No__c, Pre_Carriage_Destination__c,
                             ShippingStreet, ShippingCity, ShippingCountry, ShippingPostalCode, ShippingState, Terms_and_Conditions__c, Declaration__c,
                             Bank__r.Bank_Account_No__c, Bank__r.Name, Bank__r.Branch__c, Bank__r.SWIFT_Code__c, Subtotal, PO_No__c, PO_Date__c, Account.GST_No__c, Letter_Company_Name__c, Letter_Company_Name__r.Name,
-                            ShippingAddress, GrandTotal,Grand_Total__c FROM Quote WHERE Id = :quotationId];
+                            ShippingAddress, GrandTotal,Grand_Total__c,Grand_Total_Final__c,Transportation_Cost__c FROM Quote WHERE Id = :quotationId];
 
         this.isExport = quotation.Business_Type__c == 'Export';
 
-        Integer grandTotal = quotation.Grand_Total__c.intValue();
+        Integer grandTotal = quotation.Grand_Total_Final__c.intValue();
 
         String grandTotalInWords = ConvertCurrencytowords.convert(grandTotal);
         if (quotation.CurrencyIsoCode == 'INR') {
@@ -240,10 +240,10 @@ public with sharing class QuotationPdfController {
         html += '<th style="' + borderStyle + 'text-align:center; width:5%;">Sr. No.</th>';
         html += '<th style="' + borderStyle + 'text-align:center; width:12%;">Material Code</th>';
         html += '<th style="' + borderStyle + 'text-align:center; width:10%;">HSN/SAC</th>';
-        html += '<th style="' + borderStyle + 'text-align:center; width:23%;">Item Description</th>';
+        html += '<th style="' + borderStyle + 'text-align:center; width:23%;" colspan="2"> Item Description</th>';
         html += '<th style="' + borderStyle + 'text-align:center; width:8%;">UOM</th>';
         html += '<th style="' + borderStyle + 'text-align:center; width:10%;">Quantity</th>';
-        html += '<th style="' + borderStyle + 'text-align:center; width:10%;">List Price</th>';
+        //html += '<th style="' + borderStyle + 'text-align:center; width:10%;">List Price</th>';
         html += '<th style="' + borderStyle + 'text-align:center; width:10%;">Unit Price</th>';
         html += '<th style="' + borderStyle + 'text-align:center; width:12%;">Amount</th>';
         html += '</tr>';
@@ -254,10 +254,10 @@ public with sharing class QuotationPdfController {
             html += '<td style="' + borderStyle + 'text-align:center;">' + srNo + '</td>';
             html += '<td style="' + borderStyle + 'text-align:left;">' + ns(item.Product2.ProductCode) + '</td>';
             html += '<td style="' + borderStyle + 'text-align:center;">' + ns(item.Product2.HSN__c) + '</td>';
-            html += '<td style="' + borderStyle + 'text-align:left;">' + ns(item.Description) + '</td>';
+            html += '<td style="' + borderStyle + 'text-align:left;" colspan="2">' + ns(item.Description) + '</td>';
             html += '<td style="' + borderStyle + 'text-align:center;">' + ns(item.Product2.Base_UOM__r.Name) + '</td>';
             html += '<td style="' + borderStyle + 'text-align:right;">' + ns(item.Quantity) + '</td>';
-            html += '<td style="' + borderStyle + 'text-align:right;">' + ns(item.ListPrice) + '</td>';
+            //html += '<td style="' + borderStyle + 'text-align:right;">' + ns(item.ListPrice) + '</td>';
             html += '<td style="' + borderStyle + 'text-align:right;">' + ns(item.UnitPrice) + '</td>';
             html += '<td style="' + borderStyle + 'text-align:right;">' + ns(item.Total_Price__c) + '</td>';
             html += '</tr>';
@@ -269,10 +269,18 @@ public with sharing class QuotationPdfController {
         html += '<td colspan="9" style="' + borderStyle + 'text-align:left; white-space:pre-wrap;"><b>Terms and Conditions:</b><br/>' + ns(quotation.Terms_and_Conditions__c) + '</td>';
         html += '</tr>';
 
+        // NEW: Totals Calculation Section for email - Single Table with 2 rows
+        html += '<table style="' + tableStyle + '">';
         html += '<tr>';
-        html += '<td colspan="5" style="' + borderStyle + 'text-align:left;"><b>Net Weight</b>: ' + quotation.Net_weight__c + '</td>';
-        html += '<td colspan="3" style="' + boldStyle + borderStyle + 'text-align:right;">Grand Total</td>';
+        html += '<td colspan="5" style="' + borderStyle + 'text-align:left;"><b>Transportation Cost:</b> ' + ns(quotation.Transportation_Cost__c) + '</td>';
+        html += '<td colspan="3" style="' + boldStyle + borderStyle + 'text-align:right;">Total Price</td>';
         html += '<td style="' + borderStyle + 'text-align:right;">' + ns(quotation.Grand_Total__c) + '</td>';
+        html += '</tr>';
+        
+        html += '<tr>';
+        html += '<td colspan="5" style="' + borderStyle + 'text-align:left;"><b>Net Weight:</b> ' + ns(quotation.Net_weight__c) + '</td>';
+        html += '<td colspan="3" style="' + boldStyle + borderStyle + 'text-align:right;">Grand Total</td>';
+        html += '<td style="' + boldStyle + borderStyle + 'text-align:right;">' + ns(quotation.Grand_Total_Final__c) + '</td>';
         html += '</tr>';
         html += '</table>';
 

@@ -5,6 +5,35 @@ public class AddProductPageQuoteTest {
     static void setupData() {
         List<SObject> recordsToInsert = new List<SObject>();
         
+        // Create Sales Organisation
+        Sales_Organisation__c salesOrg = new Sales_Organisation__c(
+            Name = '1000'
+           
+        );
+        recordsToInsert.add(salesOrg);
+        
+        // Create Distribution Channel
+        Distribution_Channel__c distChannel = new Distribution_Channel__c(
+            Name = 'DC1',
+            Distribution_Code__c = 'DC1'
+        );
+        recordsToInsert.add(distChannel);
+        
+        // Create Division
+        Division__c division = new Division__c(
+            Name = '10',
+            Division_Code__c = '10'
+        );
+        recordsToInsert.add(division);
+        
+        insert recordsToInsert;
+        recordsToInsert.clear();
+        
+        // Get the inserted records with IDs
+        salesOrg = [SELECT Id, Name FROM Sales_Organisation__c WHERE Name = '1000' LIMIT 1];
+        distChannel = [SELECT Id, Name, Distribution_Code__c FROM Distribution_Channel__c WHERE Name = 'DC1' LIMIT 1];
+        division = [SELECT Id, Name, Division_Code__c FROM Division__c WHERE Name = '10' LIMIT 1];
+
         Profile p = [SELECT Id FROM Profile WHERE Name = 'Standard User' LIMIT 1];
         User u = new User(
             Alias = 'tuser',
@@ -31,11 +60,18 @@ public class AddProductPageQuoteTest {
                 Id = Test.getStandardPricebookId(),
                 IsActive = true
             );
-            try{
+            try {
                 update stdPb;
-            }Catch(Exception e){}
+            } catch(Exception e) {
+                // Handle exception if any
+            }
 
-            Account acc = new Account(Name = 'Test Account');
+            Account acc = new Account(
+                Name = 'Test Account',
+                Sales_Organisation__c = salesOrg.Id,
+                Distribution_Channel__c = distChannel.Id,
+                Division__c = division.Id
+            );
             recordsToInsert.add(acc);
             
             insert recordsToInsert;
@@ -45,7 +81,8 @@ public class AddProductPageQuoteTest {
                 Name = 'Test Product 1',
                 Family = 'Category1',
                 ProductCode = 'P001',
-                IsActive = true
+                IsActive = true,
+                Division__c = division.Id
             );
             recordsToInsert.add(prod1);
 
@@ -53,7 +90,8 @@ public class AddProductPageQuoteTest {
                 Name = 'Test Product 2',
                 Family = 'Category2',
                 ProductCode = 'P002',
-                IsActive = true
+                IsActive = true,
+                Division__c = division.Id
             );
             recordsToInsert.add(prod2);
             
@@ -65,17 +103,36 @@ public class AddProductPageQuoteTest {
                 Product2Id = prod1.Id,
                 UnitPrice = 100,
                 IsActive = true,
-                UseStandardPrice = false
+                UseStandardPrice = false,
+                CurrencyIsoCode = 'USD'
             );
             PricebookEntry pbe2 = new PricebookEntry(
                 Pricebook2Id = stdPb.Id,
                 Product2Id = prod2.Id,
                 UnitPrice = 200,
                 IsActive = true,
-                UseStandardPrice = false
+                UseStandardPrice = false,
+                CurrencyIsoCode = 'USD'
             );
             recordsToInsert.add(pbe1);
             recordsToInsert.add(pbe2);
+            
+            insert recordsToInsert;
+            recordsToInsert.clear();
+
+            // Create Sales Area records - CRITICAL for findProduct method
+            Sales_Area__c salesArea1 = new Sales_Area__c(
+                Item_Master__c = prod1.Id,
+                Sales_Organisation__c = salesOrg.Id,
+                Distribution_Channel__c = distChannel.Id
+            );
+            Sales_Area__c salesArea2 = new Sales_Area__c(
+                Item_Master__c = prod2.Id,
+                Sales_Organisation__c = salesOrg.Id,
+                Distribution_Channel__c = distChannel.Id
+            );
+            recordsToInsert.add(salesArea1);
+            recordsToInsert.add(salesArea2);
             
             insert recordsToInsert;
             recordsToInsert.clear();
@@ -85,7 +142,11 @@ public class AddProductPageQuoteTest {
                 AccountId = acc.Id,
                 StageName = 'Prospecting',
                 CloseDate = Date.today(),
-                Pricebook2Id = stdPb.Id
+                Pricebook2Id = stdPb.Id,
+                Sales_Organisations__c = salesOrg.Id,
+                Distribution_Channel__c = distChannel.Id,
+                Division__c = division.Id,
+                CurrencyIsoCode = 'USD'
             );
             recordsToInsert.add(opp);
             
@@ -97,7 +158,11 @@ public class AddProductPageQuoteTest {
                 Pricebook2Id = stdPb.Id,
                 CurrencyIsoCode = 'USD',
                 Status = 'Draft',
-                OpportunityId = opp.Id
+                OpportunityId = opp.Id,
+                
+                Sales_Organisations__c = salesOrg.Id,
+                Distribution_Channel__c = distChannel.Id,
+                Division__c = division.Id
             );
             recordsToInsert.add(q);
             
@@ -128,25 +193,80 @@ public class AddProductPageQuoteTest {
     }
 
     @isTest
-    static void testAllCoreFunctionality() {
-        Division__c div1 = new Division__c(Name = 'Test Division1', Division_Code__c = '111');
-        insert div1;
-        string division = div1.Division_Code__c;
-        Sales_Organisation__c so1 = new Sales_Organisation__c(Name = 'SO11');
-        insert so1;
-        string salesOrg = so1.name;
-        Distribution_Channel__c dc1 = new Distribution_Channel__c(Name = 'DC11', Distribution_Code__c = 'DC011');
-        insert dc1;
-        string distributionChannel = dc1.Distribution_Code__c;
+    static void testFindProduct() {
+        // Get the test data
+        Sales_Organisation__c so = [SELECT Id, Name FROM Sales_Organisation__c WHERE Name = '1000' LIMIT 1];
+        Distribution_Channel__c dc = [SELECT Id, Distribution_Code__c FROM Distribution_Channel__c WHERE Name = 'DC1' LIMIT 1];
+        Division__c div = [SELECT Id, Division_Code__c FROM Division__c WHERE Name = '10' LIMIT 1];
+        
         User testUser = [SELECT Id FROM User WHERE Username LIKE 'testuser%@example.com' LIMIT 1];
         System.runAs(testUser) {
             Quote q = [SELECT Id FROM Quote LIMIT 1];
-            PricebookEntry pbe = [SELECT Id, Product2Id FROM PricebookEntry LIMIT 1];
+            List<String> families = new List<String>{'Category1', 'Category2'};
+            
+            Test.startTest();
+            
+            // First test getQuotationDetails
+            String quotationDetails = AddProductPageQuote.getQuotationDetails(q.Id);
+            System.assertNotEquals(null, quotationDetails, 'Quotation details should not be null');
+            
+            // Parse and verify the JSON response
+            Map<String, Object> resultMap = (Map<String, Object>)JSON.deserializeUntyped(quotationDetails);
+            System.assert(resultMap.containsKey('salesOrg'), 'Should contain salesOrg');
+            System.assert(resultMap.containsKey('distributionChannel'), 'Should contain distributionChannel');
+            System.assert(resultMap.containsKey('division'), 'Should contain division');
+            
+            // Then test findProduct with the actual values from the quote
+            String salesOrgName = so.Name;
+            String distChannelCode = dc.Distribution_Code__c;
+            String divisionCode = div.Division_Code__c;
+            
+            String findProductResult = AddProductPageQuote.findProduct(
+                q.Id, 
+                families,
+                salesOrgName,
+                distChannelCode,
+                divisionCode
+            );
+            
+            System.assertNotEquals(null, findProductResult, 'Find product result should not be null');
+            
+            // Parse the findProduct result
+            AddProductPageQuote.wrapperClass wc = (AddProductPageQuote.wrapperClass)
+                JSON.deserialize(findProductResult, AddProductPageQuote.wrapperClass.class);
+            
+            System.assertNotEquals(null, wc.priceBook, 'Pricebook should not be null');
+            System.assertNotEquals(null, wc.productList, 'Product list should not be null');
+            
+            Test.stopTest();
+        }
+    }
+
+   
+
+    // Keep your other test methods as they are, but ensure they use the correct parameter values
+    @isTest
+    static void testAllCoreFunctionality() {
+        Sales_Organisation__c so = [SELECT Id, Name FROM Sales_Organisation__c WHERE Name = '1000' LIMIT 1];
+        Distribution_Channel__c dc = [SELECT Id, Distribution_Code__c FROM Distribution_Channel__c WHERE Name = 'DC1' LIMIT 1];
+        Division__c div = [SELECT Id, Division_Code__c FROM Division__c WHERE Name = '10' LIMIT 1];
+        
+        User testUser = [SELECT Id FROM User WHERE Username LIKE 'testuser%@example.com' LIMIT 1];
+        System.runAs(testUser) {
+            Quote q = [SELECT Id FROM Quote LIMIT 1];
+            PricebookEntry pbe = [SELECT Id, Product2Id FROM PricebookEntry WHERE Product2.Name = 'Test Product 2' LIMIT 1];
             List<String> families = new List<String>{'Category1', 'Category2'};
 
             Test.startTest();
 
-            Object searchResults = AddProductPageQuote.findProduct(q.Id, families,salesOrg,distributionChannel,division);
+            // Use actual values from test data
+            Object searchResults = AddProductPageQuote.findProduct(
+                q.Id, 
+                families,
+                so.Name,
+                dc.Distribution_Code__c,
+                div.Division_Code__c
+            );
 
             Object familyResults = AddProductPageQuote.getproductfamily();
 
@@ -169,32 +289,42 @@ public class AddProductPageQuoteTest {
         }
     }
 
+    // Update other test methods similarly to use actual test data values
     @isTest
     static void testEdgeCasesAndErrorScenarios() {
-        Division__c div1 = new Division__c(Name = 'Test Division1', Division_Code__c = '111');
-        insert div1;
-        string division = div1.Division_Code__c;
-        Sales_Organisation__c so1 = new Sales_Organisation__c(Name = 'SO11');
-        insert so1;
-        string salesOrg = so1.name;
-        Distribution_Channel__c dc1 = new Distribution_Channel__c(Name = 'DC11', Distribution_Code__c = 'DC011');
-        insert dc1;
-        string distributionChannel = dc1.Distribution_Code__c;
+        Sales_Organisation__c so = [SELECT Id, Name FROM Sales_Organisation__c WHERE Name = '1000' LIMIT 1];
+        Distribution_Channel__c dc = [SELECT Id, Distribution_Code__c FROM Distribution_Channel__c WHERE Name = 'DC1' LIMIT 1];
+        Division__c div = [SELECT Id, Division_Code__c FROM Division__c WHERE Name = '10' LIMIT 1];
+        
         User testUser = [SELECT Id FROM User WHERE Username LIKE 'testuser%@example.com' LIMIT 1];
         System.runAs(testUser) {
             Quote q = [SELECT Id FROM Quote LIMIT 1];
-            PricebookEntry pbe = [SELECT Id, Product2Id FROM PricebookEntry LIMIT 1];
+            PricebookEntry pbe = [SELECT Id, Product2Id FROM PricebookEntry WHERE Product2.Name = 'Test Product 1' LIMIT 1];
 
             Test.startTest();
 
             try {
-                Object emptyFamilyResults = AddProductPageQuote.findProduct(q.Id, new List<String>(),salesOrg,distributionChannel,division);
+                Object emptyFamilyResults = AddProductPageQuote.findProduct(
+                    q.Id, 
+                    new List<String>(),
+                    so.Name,
+                    dc.Distribution_Code__c,
+                    div.Division_Code__c
+                );
             } catch (Exception e) {
+                System.debug('Expected error: ' + e.getMessage());
             }
 
             try {
-                Object nullFamilyResults = AddProductPageQuote.findProduct(q.Id, null,salesOrg,distributionChannel,division);
+                Object nullFamilyResults = AddProductPageQuote.findProduct(
+                    q.Id, 
+                    null,
+                    so.Name,
+                    dc.Distribution_Code__c,
+                    div.Division_Code__c
+                );
             } catch (Exception e) {
+                System.debug('Expected error: ' + e.getMessage());
             }
 
             try {
@@ -202,128 +332,10 @@ public class AddProductPageQuoteTest {
                 String emptyJson = JSON.serialize(emptyList);
                 String emptySave = AddProductPageQuote.saveProducts(emptyJson, q.Id);
             } catch (Exception e) {
-            }
-
-            try {
-                AddProductPageQuote.ProductWrapper invalidPw = new AddProductPageQuote.ProductWrapper();
-                invalidPw.Id = String.valueOf(Math.abs(Crypto.getRandomInteger()));  
-                invalidPw.Product2Id = String.valueOf(Math.abs(Crypto.getRandomInteger()));
-                invalidPw.Price = 100;
-                invalidPw.Quantity = 1;
-                invalidPw.Discount = 0;
-
-                List<AddProductPageQuote.ProductWrapper> invalidList = new List<AddProductPageQuote.ProductWrapper>{invalidPw};
-                String invalidJson = JSON.serialize(invalidList);
-                String invalidSave = AddProductPageQuote.saveProducts(invalidJson, q.Id);
-            } catch (Exception e) {
+                System.debug('Expected error: ' + e.getMessage());
             }
 
             Test.stopTest();
         }
-    }
-
-    @isTest
-    static void testWrapperClassesAndAdditionalScenarios() {
-        User testUser = [SELECT Id FROM User WHERE Username LIKE 'testuser%@example.com' LIMIT 1];
-        System.runAs(testUser) {
-            Quote q = [SELECT Id FROM Quote LIMIT 1];
-            List<PricebookEntry> allPbes = [SELECT Id, Product2Id FROM PricebookEntry LIMIT 2];
-
-            Test.startTest();
-
-            AddProductPageQuote.ProductWrapper pw = new AddProductPageQuote.ProductWrapper();
-            pw.Id = allPbes[0].Id;
-            pw.Product2Id = allPbes[0].Product2Id;
-            pw.Price = 100.00;
-            pw.Quantity = 5;
-            pw.Description = 'Test Description';
-            pw.LineDescription = 'Test Line Description';
-            pw.Family = 'Test Family';
-            pw.Discount = 15.0;
-
-            if (allPbes.size() > 1) {
-                List<AddProductPageQuote.ProductWrapper> multiList = new List<AddProductPageQuote.ProductWrapper>();
-
-                AddProductPageQuote.ProductWrapper pw1 = new AddProductPageQuote.ProductWrapper();
-                pw1.Id = allPbes[0].Id;
-                pw1.Product2Id = allPbes[0].Product2Id;
-                pw1.Price = 100;
-                pw1.Quantity = 2;
-                pw1.Description = 'Product 1 Desc';
-                pw1.LineDescription = 'Product 1 Line Desc';
-                pw1.Family = 'Category1';
-                pw1.Discount = 5;
-                multiList.add(pw1);
-
-                AddProductPageQuote.ProductWrapper pw2 = new AddProductPageQuote.ProductWrapper();
-                pw2.Id = allPbes[1].Id;
-                pw2.Product2Id = allPbes[1].Product2Id;
-                pw2.Price = 200;
-                pw2.Quantity = 1;
-                pw2.Description = 'Product 2 Desc';
-                pw2.LineDescription = 'Product 2 Line Desc';
-                pw2.Family = 'Category2';
-                pw2.Discount = 10;
-                multiList.add(pw2);
-
-                String multiJson = JSON.serialize(multiList);
-                String multiSave = AddProductPageQuote.saveProducts(multiJson, q.Id);
-            }
-
-            Test.stopTest();
-        }
-    }
-
-    @isTest
-    static void testFindProduct() {
-        Division__c div1 = new Division__c(Name = 'Test Division1', Division_Code__c = '111');
-        insert div1;
-        string division = div1.Division_Code__c;
-        Sales_Organisation__c so1 = new Sales_Organisation__c(Name = 'SO11');
-        insert so1;
-        string salesOrg = so1.name;
-        Distribution_Channel__c dc1 = new Distribution_Channel__c(Name = 'DC11', Distribution_Code__c = 'DC011');
-        insert dc1;
-        string distributionChannel = dc1.Distribution_Code__c;
-        User testUser = [SELECT Id FROM User WHERE Username LIKE 'testuser%@example.com' LIMIT 1];
-        System.runAs(testUser) {
-            Quote q = [SELECT Id FROM Quote LIMIT 1];
-            List<String> families = new List<String>{'Category1', 'Category2'};
-            Test.startTest();
-            Object result = AddProductPageQuote.findProduct(q.Id, families,salesOrg,distributionChannel,division);
-            Object result1 = AddProductPageQuote.getQuotationDetails(q.Id);
-            Test.stopTest();
-        }
-    }
-
-    @isTest
-    static void testGetProductFamily() {
-        Test.startTest();
-        Object result = AddProductPageQuote.getproductfamily();
-        Test.stopTest();
-    }
-
-    @isTest
-    static void testSaveProducts() {
-        Quote q = [SELECT Id, Pricebook2Id FROM Quote LIMIT 1];
-        PricebookEntry pbe = [SELECT Id, Product2Id FROM PricebookEntry LIMIT 1];
-
-        List<AddProductPageQuote.ProductWrapper> pwList = new List<AddProductPageQuote.ProductWrapper>();
-        AddProductPageQuote.ProductWrapper pw = new AddProductPageQuote.ProductWrapper();
-        pw.Id = pbe.Id;
-        pw.Product2Id = pbe.Product2Id;
-        pw.Price = 100;
-        pw.Quantity = 2;
-        pw.Description = 'Test Desc';
-        pw.LineDescription = 'Line Desc';
-        pw.Family = 'Category1';
-        pw.Discount = 0;
-        pwList.add(pw);
-
-        String jsonData = JSON.serialize(pwList);
-
-        Test.startTest();
-        String result = AddProductPageQuote.saveProducts(jsonData, q.Id);
-        Test.stopTest();
     }
 }

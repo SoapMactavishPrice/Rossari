@@ -21,7 +21,7 @@ export default class ReusableLookup extends LightningElement {
     @api parentRecordId;
     @api parentFieldApiName;
     @api leadRecordType;
-
+    @api businessType = '';
 
 
 
@@ -37,7 +37,8 @@ export default class ReusableLookup extends LightningElement {
             selectedRecordId: this.selectedRecordId,
             parentRecordId: this.parentRecordId,
             parentFieldApiName: this.parentFieldApiName,
-            leadRecordType: this.leadRecordType
+            leadRecordType: this.leadRecordType,
+            businessType: this.businessType
         };
     }
 

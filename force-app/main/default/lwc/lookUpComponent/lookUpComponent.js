@@ -32,7 +32,7 @@ export default class LookUpComponent extends LightningElement {
     @track displayFieldsList = [];
     @api isdisabled = false;
     @api divisionId = '';
-
+    @api businessType = '';
 
 
     @api
@@ -153,7 +153,8 @@ export default class LookUpComponent extends LightningElement {
             family: this.family,
             currencyCode: this.currencyCode,
             leadRecordType: this.leadRecordType,
-            divisionId: this.divisionId
+            divisionId: this.divisionId,
+            businessType: this.businessType
         })
             .then(result => {
                 let vData = JSON.parse(result);

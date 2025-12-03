@@ -12,15 +12,10 @@ import { ShowToastEvent } from 'lightning/platformShowToastEvent';
 import { RefreshEvent } from 'lightning/refresh';
 const DELAY = 300;
 
-const COLS = [
+const COLS_BASE = [
     { label: 'Product Name', fieldName: 'purl', type: 'url', typeAttributes: { label: { fieldName: 'Name' } } },
     { label: 'Product Code', fieldName: 'ProductCode', type: 'text' },
-    // { label: 'HSN Master', fieldName: 'hsnMasterCode', type: 'text' },
-    { label: 'Product Category', fieldName: 'Family', type: 'text' },
-    // { label: 'Pack Size', fieldName: 'PackSize', type: 'text' },
-    { label: 'List Price', fieldName: 'Price', type: 'currency', cellAttributes: { alignment: 'left' } },
-    // { label: 'Product Description', fieldName: 'Description', type: 'text' }
-
+    { label: 'Product Category', fieldName: 'Family', type: 'text' }
 ];
 
 import { CurrentPageReference } from 'lightning/navigation';
@@ -28,7 +23,10 @@ import { NavigationMixin } from 'lightning/navigation';
 
 
 export default class AddProductPage extends NavigationMixin(LightningElement) {
-    cols = COLS;
+    cols = [];
+    showCustomerMaterialPriceColumn = false;
+    populateCustomerMaterialPrice = false;
+    showLastSellingPriceColumn = false;
 
     @track recId;
     @wire(CurrentPageReference)
@@ -125,6 +123,15 @@ export default class AddProductPage extends NavigationMixin(LightningElement) {
                 this.selectedSalesArea = data.salesOrg;
                 this.selectedDistributionChannel = data.distributionChannel;
                 this.selectedDivision = data.division;
+
+                // derive UI flags based on rules
+                this.showCustomerMaterialPriceColumn = (this.selectedSalesArea === '1000');
+                this.populateCustomerMaterialPrice = (this.selectedSalesArea === '1000' && ['10', '11', '22'].includes(this.selectedDivision));
+                this.showLastSellingPriceColumn = (this.selectedSalesArea === '3000' || this.selectedSalesArea === '4000');
+
+                // build datatable columns dynamically
+                this.buildColumns();
+
                 this.handlerFetchProductList();
             } else {
                 this.getCustomerSalesArea();
@@ -143,9 +150,14 @@ export default class AddProductPage extends NavigationMixin(LightningElement) {
         }).then(result => {
             // console.log('connectedCallback = ', result);
             let dataObj = JSON.parse(result);
-            // console.log(result);
             this.AllProductData = dataObj.productList;
-            this.ShowTableData = dataObj.productList;
+
+            // If populate flag is false for customer material price, zero out values to enforce UI rule
+            if (this.showCustomerMaterialPriceColumn && !this.populateCustomerMaterialPrice) {
+                this.AllProductData = this.AllProductData.map(p => ({ ...p, customerMaterialPrice: null }));
+            }
+
+            this.ShowTableData = this.AllProductData;
 
 
             // this.ShowTableData = result.map(pbe => {
@@ -183,7 +195,14 @@ export default class AddProductPage extends NavigationMixin(LightningElement) {
 
     handleSalesAreaChange(event) {
         this.selectedSalesArea = event.detail.value;
-        // Add any additional logic when sales area changes
+
+        // recalc flags and columns when sales area changes
+        this.showCustomerMaterialPriceColumn = (this.selectedSalesArea === '1000');
+        this.showLastSellingPriceColumn = (this.selectedSalesArea === '3000' || this.selectedSalesArea === '4000');
+        // division will be chosen later; reset populate flag until division chosen
+        this.populateCustomerMaterialPrice = false;
+        this.buildColumns();
+
         this.handlerGetDistributionChannel();
     }
 
@@ -225,7 +244,11 @@ export default class AddProductPage extends NavigationMixin(LightningElement) {
 
     handleDivisionChange(event) {
         this.selectedDivision = event.detail.value;
-        // Add any additional logic when division changes
+
+        // Recompute populate flag and columns
+        this.populateCustomerMaterialPrice = (this.selectedSalesArea === '1000' && ['10', '11', '22'].includes(this.selectedDivision));
+        this.buildColumns();
+
         this.handlerFetchProductList();
     }
 
@@ -338,6 +361,41 @@ export default class AddProductPage extends NavigationMixin(LightningElement) {
     // }
 
     @track startTime = performance.now();
+
+    buildColumns() {
+        // Always start with base
+        const cols = [...COLS_BASE];
+
+        // Conditionally insert Customer Material Price before List Price (Price)
+        if (this.showCustomerMaterialPriceColumn) {
+            cols.push({
+                label: 'Customer Material Price',
+                fieldName: 'customerMaterialPrice',
+                type: 'currency',
+                cellAttributes: { alignment: 'left' }
+            });
+        }
+
+        // Always include List Price (currently bound to Price which is used as sales price in first page list)
+        cols.push({
+            label: 'List Price',
+            fieldName: 'ListPrice',
+            type: 'currency',
+            cellAttributes: { alignment: 'left' }
+        });
+
+        // Conditionally add Last Selling Price
+        if (this.showLastSellingPriceColumn) {
+            cols.push({
+                label: 'Last Selling Price',
+                fieldName: 'lastSellingPrice',
+                type: 'currency',
+                cellAttributes: { alignment: 'left' }
+            });
+        }
+
+        this.cols = cols;
+    }
 
 
 

@@ -40,12 +40,16 @@ public class QuoteTriggerHandlerTest {
 
         Account acc = new Account(Name = 'Test Account', SAP_Customer_Code__c = 'SAP123');
         insert acc;
+        
+        Distribution_Channel__c dc = new Distribution_Channel__c(Name = 'DC1', Distribution_Code__c = '10');
+        insert dc;
 
         Opportunity opp = new Opportunity(
             Name = 'Test Opportunity',
             StageName = 'Prospecting',
             CloseDate = Date.today().addDays(30),
             AccountId = acc.Id,
+            Distribution_Channel__c = dc.id,
             Pricebook2Id = standardPricebookId // Use the pricebook ID directly
         );
         insert opp;
@@ -66,17 +70,35 @@ public class QuoteTriggerHandlerTest {
             Inco_Terms__c = 'EXW',
             Previous_Inco_Terms__c = 'FOB',
             Credit_Approval_Status__c = 'Approved',
-            Payment_Remark__c = 'Customer requested extension'
+            Inco_Terms_Approval_Status__c = 'Approved',
+            Payment_Remark__c = 'Customer requested extension',
+            Distribution_Channel__c = dc.Id
         );
         insert q;
+        
+        
+        Map<Id, Quote> oldMap = new Map<Id, Quote>();
+        Quote oldQuote = q.clone(false, false, false, false);
+        oldQuote.Credit_Approval_Status__c = 'Pending';
+        oldQuote.Inco_Terms_Approval_Status__c = 'Pending';
+        oldMap.put(q.Id, oldQuote);
+
+        // Update quote to Approved
+        q.Credit_Approval_Status__c = 'Approved';
+        q.Inco_Terms_Approval_Status__c = 'Approved';
+        update q;
+
 
         List<Quote> quotes = [SELECT Id, Name, AccountId, OwnerId, HOD_of_Sales_Department__c, OpportunityId,
                               Payment_Term__c, Previous_Payment_Terms__c, Credit_Approval_Status__c, Inco_Terms__c, Previous_Inco_Terms__c,
-                              QuoteNumber, Payment_Remark__c 
+                              QuoteNumber, Payment_Remark__c, Distribution_Channel__c, Inco_Terms_Approval_Status__c
                               FROM Quote WHERE Id = :q.Id];
 
         Test.startTest();
         QuoteTriggerHandler.sendPaymentTermChangeEmails(quotes);
+        QuoteTriggerHandler.sendPaymentTermsApprovalEmails(quotes, oldMap);
+        QuoteTriggerHandler.sendIncoTermsApprovalEmails(quotes, oldMap);
         Test.stopTest();
     }
+    
 }

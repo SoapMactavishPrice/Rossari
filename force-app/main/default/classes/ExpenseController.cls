@@ -457,7 +457,7 @@ public with sharing class ExpenseController {
     @AuraEnabled(cacheable=true)
     public static List<Map<String, String>> getTypeOfExpense(String searchTerm, String voucherType) {
         try {
-            String baseQuery = 'SELECT Id, Name, Type_of_Voucher__c, GL_Code__c, GL_Code__r.Name FROM Type_of_Expense__c';
+            String baseQuery = 'SELECT Id, Name, Type_of_Voucher__c, GL_Code__c, GL_Code__r.Name, Is_Mandatory__c FROM Type_of_Expense__c';
             List<String> conditions = new List<String>();
             
             if (String.isNotBlank(searchTerm)) {
@@ -485,7 +485,8 @@ public with sharing class ExpenseController {
                     'value' => e.Id,
                     'name' => e.Name,
                     'glCodeId' => e.GL_Code__c != null ? e.GL_Code__c : '',
-                    'glCodeName' => e.GL_Code__r != null ? e.GL_Code__r.Name : ''
+                    'glCodeName' => e.GL_Code__r != null ? e.GL_Code__r.Name : '',
+                    'isMandatory' => String.valueOf(e.Is_Mandatory__c)
                 });
             }
             return options;
@@ -704,41 +705,22 @@ public with sharing class ExpenseController {
         Map<String, String> recordTypeMap = getExpenseRecordTypes();
         String recordTypeId = null;
         
-        // Check if user has a cost center value
-        if (String.isNotBlank(currentUser.Cost_Center__c)) {
-            try {
-                // Query Cost_Center__c records with Sales_Org__c and Sales_Org__r.Name
-                List<Cost_Center__c> costCenters = [
-                    SELECT Id, Name, Sales_Org__c, Sales_Org__r.Name 
-                    FROM Cost_Center__c 
-                    WHERE Name = :currentUser.Cost_Center__c 
-                    AND Sales_Org__c != null
-                    LIMIT 1
-                ];
-                
-                if (!costCenters.isEmpty()) {
-                    Cost_Center__c userCostCenter = costCenters[0];
-                    String salesOrgName = userCostCenter.Sales_Org__r.Name;
-                    
-                    System.debug('User Cost Center: ' + userCostCenter.Name + ', Sales Org: ' + salesOrgName);
-                    
-                    // Determine record type based on Sales Organization name
-                    if (salesOrgName == '1000' && recordTypeMap.containsKey('RBL')) {
-                        recordTypeId = recordTypeMap.get('RBL');
-                    } else if ((salesOrgName == '3000' || salesOrgName == '4000') && 
-                               recordTypeMap.containsKey('Unitop_Tristar')) {
-                                   recordTypeId = recordTypeMap.get('Unitop_Tristar');
-                               }
-                    
-                    System.debug('Determined Record Type ID: ' + recordTypeId);
-                } else {
-                    System.debug('No Cost Center found with name: ' + currentUser.Cost_Center__c);
-                }
-            } catch (Exception e) {
-                System.debug('Error determining record type from cost center: ' + e.getMessage());
+        // Determine record type based on User_Type__c
+        if (String.isNotBlank(currentUser.User_Type__c)) {
+            String userType = currentUser.User_Type__c;
+            
+            System.debug('User Type: ' + userType);
+            
+            if ((userType == 'Textile' || userType == 'AHN') && recordTypeMap.containsKey('RBL')) {
+                recordTypeId = recordTypeMap.get('RBL');
+            } else if ((userType == 'Application' || userType == 'Synthetic') && 
+                       recordTypeMap.containsKey('Unitop_Tristar')) {
+                recordTypeId = recordTypeMap.get('Unitop_Tristar');
             }
+            
+            System.debug('Determined Record Type ID: ' + recordTypeId);
         } else {
-            System.debug('User does not have a Cost Center value');
+            System.debug('User does not have a User_Type__c value');
         }
         
         return recordTypeId;

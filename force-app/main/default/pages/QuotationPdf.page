@@ -224,10 +224,10 @@
             <th style="text-align: center; width: 5%;">Sr. No.</th>
             <th style="text-align: center; width: 12%;">Material Code</th>
             <th style="text-align: center; width: 10%;">HSN/SAC</th>
-            <th style="text-align: center; width: 23%;">Item Description</th>
+            <th style="text-align: center; width: 33%;" colspan="2">Item Description</th>
             <th style="text-align: center; width: 8%;">UOM</th>
             <th style="text-align: center; width: 10%;">Quantity</th>
-            <th style="text-align: center; width: 10%;">List Price</th>
+            <!-- <th style="text-align: center; width: 10%;">List Price</th> -->
             <th style="text-align: center; width: 10%;">Unit Price</th>
             <th style="text-align: center; width: 12%;">Amount</th>
         </tr>
@@ -237,10 +237,10 @@
                 <td style="text-align: center;">{!srNo}</td>
                 <td style="text-align: left;">{!item.Product2.ProductCode}</td>
                 <td style="text-align: center;">{!item.Product2.HSN__c}</td>
-                <td style="text-align: left;">{!item.Description}</td>
+                <td style="text-align: left;" colspan="2">{!item.Description}</td>
                 <td style="text-align: center;">{!item.Product2.Base_UOM__r.Name}</td>
                 <td style="text-align: right;">{!item.Quantity}</td>
-                <td style="text-align: right;">{!item.ListPrice}</td>
+                <!-- <td style="text-align: right;">{!item.ListPrice}</td> -->
                 <td style="text-align: right;">{!item.UnitPrice}</td>
                 <td style="text-align: right;">{!item.Total_Price__c}</td>
             </tr>
@@ -252,13 +252,36 @@
                 <p style="white-space: pre-wrap; padding: 0px; margin: 0px;">{!quotation.Terms_and_Conditions__c}</p>
             </td>
         </tr>
-        <tr>
-            <td colspan="5" style="text-align: left;"><b>Net Weight</b>: {!quotation.Net_weight__c}</td>
-            <td colspan="3" class="bold" style="text-align: right;">Grand Total</td>
-            <td style="text-align: right;">{!quotation.Grand_Total__c}</td>
-        </tr>
     </table>
 
+    <!-- NEW: Totals Calculation Section -->
+    <table>
+        <tr>
+            <td colspan="5" style="text-align: left;">
+                <b>Transportation Cost:</b>&nbsp;
+                <apex:outputText value="{0,number,###,##0.00}">
+                    <apex:param value="{!quotation.Transportation_Cost__c}" />
+                </apex:outputText>
+            </td>
+            <td colspan="3" class="bold" style="text-align: right;">Total Price</td>
+            <td style="text-align: right;">
+                <apex:outputText value="{0,number,###,##0.00}">
+                    <apex:param value="{!quotation.Grand_Total__c}" />
+                </apex:outputText>
+            </td>
+        </tr>
+        <tr>
+            <td colspan="5" style="text-align: left;">
+                <b>Net Weight:</b>&nbsp;{!quotation.Net_weight__c}
+            </td>
+            <td colspan="3" class="bold" style="text-align: right;">Grand Total</td>
+            <td style="text-align: right; font-weight: bold;">
+                <apex:outputText value="{0,number,###,##0.00}">
+                    <apex:param value="{!quotation.Grand_Total_Final__c}" />
+                </apex:outputText>
+            </td>
+        </tr>
+    </table>
     <table>
         <tr>
             <td style="text-align:left;"><b>Total Amount in Words:</b> {!totalAmountInWords}</td>
