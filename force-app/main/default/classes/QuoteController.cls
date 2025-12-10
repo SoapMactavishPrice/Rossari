@@ -311,8 +311,31 @@ public with sharing class QuoteController {
         User hodUser = getHODUserFromMetadata(opp.Distribution_Channel__r.Distribution_Code__c, currentUser.User_Type__c);
         
         // Determine if Payment Term or Inco Terms were changed from opportunity values
-        Boolean isPaymentTermChanged = opp.Payment_Term__c != paymentTermId;
-        Boolean isIncoTermsChanged = opp.Inco_Terms__c != incoTerms;
+       // Boolean isPaymentTermChanged = opp.Payment_Term__c != paymentTermId;
+       // Boolean isIncoTermsChanged = opp.Inco_Terms__c != incoTerms;
+       
+        // Check if Payment Term changed
+        Boolean isPaymentTermChanged;
+        if (opp.Payment_Term__c == null && paymentTermId == null) {
+            isPaymentTermChanged = false;
+        } else if (opp.Payment_Term__c == null || paymentTermId == null) {
+            // One is null, the other is not = changed
+            isPaymentTermChanged = true;
+        } else {
+            // Both have values, compare them
+            isPaymentTermChanged = opp.Payment_Term__c != paymentTermId;
+        }
+        
+        // Check if Inco Terms changed
+        Boolean isIncoTermsChanged;
+        if (opp.Inco_Terms__c == null && incoTerms == null) {
+            isIncoTermsChanged = false;
+        } else if (opp.Inco_Terms__c == null || incoTerms == null) {
+            isIncoTermsChanged = true;
+        } else {
+            isIncoTermsChanged = opp.Inco_Terms__c != incoTerms;
+        }
+        
         
         // Determine final status - if terms changed, set to 'Payment/Incoterms Approval', otherwise use the provided status
         String finalStatus = status;

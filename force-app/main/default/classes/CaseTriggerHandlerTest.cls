@@ -14,7 +14,8 @@ public class CaseTriggerHandlerTest {
             TimeZoneSidKey = 'Asia/Kolkata',
             LocaleSidKey = 'en_IN',
             EmailEncodingKey = 'UTF-8',
-            LanguageLocaleKey = 'en_US'
+            LanguageLocaleKey = 'en_US',
+            R_D_User__c = true
         );
         insert testUser;
 

@@ -14,7 +14,8 @@ import getGradeDetailsWithSalesType from '@salesforce/apex/ExpenseController.get
 import getModeOfTravelOptions from '@salesforce/apex/ExpenseController.getModeOfTravelOptions';
 import getExportTransportModes from '@salesforce/apex/ExpenseController.getExportTransportModes';
 import getCityDetails from '@salesforce/apex/ExpenseController.getCityDetails';
-import checkAllowanceEligibility from '@salesforce/apex/ExpenseController.checkAllowanceEligibility';
+import checkAllowanceEligibilityForDate from '@salesforce/apex/ExpenseController.checkAllowanceEligibilityForDate';
+import checkMultipleDatesAllowanceEligibility from '@salesforce/apex/ExpenseController.checkMultipleDatesAllowanceEligibility';
 import createExpenseTeamMembers from '@salesforce/apex/ExpenseController.createExpenseTeamMembers';
 import getCombinedAllowances from '@salesforce/apex/ExpenseController.getCombinedAllowances';
 import { loadStyle } from 'lightning/platformResourceLoader';
@@ -55,20 +56,14 @@ export default class ExpenseForm extends NavigationMixin(LightningElement) {
     @track gradeTransportModeOptions = [];
     @track modeOfTravelOptions = []; // Add this for Mode_of_Travel picklist
     @track modeOfOutstationTravelOptions = []; // Add this for outstation transport modes
-    @track publicTransportModes = [];
-    @track privateTransportModes = [];
     @track lineItems = [];
     @track filesMap = new Map(); // Store files by line item index
     @track selectedTourId = ''; // Add this
     @track selectedTourName = ''; // Add this
-    @track selectedAccountId = '';
-    @track selectedAccountName = '';
     @track selectedAccounts = []; // Track multiple selected accounts   
     @track visitReportId = '';
     @track visitReportName = '';
     @track isDailyAllowanceEligible = false;
-    @track dailyAllowanceEligibilityChecked = false;
-    @track dailyAllowanceEligibilityMessage = '';
     @track isOutOfPocketEligible = false;
     @track outOfPocket = 0;
     @track specialAllowance = 0;
@@ -78,6 +73,8 @@ export default class ExpenseForm extends NavigationMixin(LightningElement) {
     @track selectedTeamMembers = [];
     @track selectedTeamMemberIds = [];
     @track lineItemCombinedLimits = new Map();
+    @track lineItemDatesMap = new Map(); 
+    @track batchEligibilityLoading = false;
 
     @track selectedCurrency = 'INR';
     @track currencyOptions = [
@@ -92,7 +89,6 @@ export default class ExpenseForm extends NavigationMixin(LightningElement) {
     acceptedFormats = ['.pdf', '.jpg', '.jpeg', '.png', '.doc', '.docx'];
     nextKey = 0;
     isLoading = false;
-    @track lineItems = [];
 
     get isNotLoading() {
         return !this.isLoading;
@@ -101,6 +97,10 @@ export default class ExpenseForm extends NavigationMixin(LightningElement) {
     // Computed property to show/hide reason column
     get showReasonColumn() {
         return this.selectedVoucherType === 'Misc';
+    }
+
+    get showDateFieldForLocal() {
+        return this.selectedVoucherType === 'Local';
     }
 
     get showDailyAllowanceColumn() {
@@ -121,14 +121,33 @@ export default class ExpenseForm extends NavigationMixin(LightningElement) {
         return this.selectedVoucherType === 'Local';
     }
 
-    // Computed property to show/hide KM fields
     get showKMFields() {
-        return this.selectedVoucherType === 'Local';
+        return this.selectedVoucherType === 'Local' || 
+            (this.selectedVoucherType === 'Outstation' && 
+                this.lineItems.some(item => 
+                    item.outstationTransportMode === 'Car' || 
+                    item.outstationTransportMode === 'Bike'
+                ));
     }
 
-    // Computed property to show/hide Toll/Parking field
     get showTollParkingField() {
-        return this.selectedVoucherType === 'Local';
+        return this.selectedVoucherType === 'Local' || 
+           (this.selectedVoucherType === 'Outstation' && 
+            this.lineItems.some(item => 
+                item.outstationTransportMode === 'Car' || 
+                item.outstationTransportMode === 'Bike'
+            ));
+    }
+
+    // Also update showKMOrTollParkingField:
+    get showKMOrTollParkingField() {
+        return this.selectedVoucherType === 'Local' || 
+            (this.selectedVoucherType === 'Outstation' && 
+                this.lineItems.some(item => 
+                    item.outstationTransportMode === 'Car' || 
+                    item.outstationTransportMode === 'Bike' ||
+                    item.modeOfTravel === 'Own Vehicle'
+                ));
     }
 
     get showTourLookup() {
@@ -162,16 +181,16 @@ export default class ExpenseForm extends NavigationMixin(LightningElement) {
     }
 
     // NEW: Computed property to show limitation
+    cachedLimitation = false;
     get showLimitation() {
-        return this.isExportOutstation || this.isDomesticOutstation;
-    }
+        if (this.cachedLimitation !== (this.isExportOutstation || this.isDomesticOutstation)) {
+            this.cachedLimitation = this.isExportOutstation || this.isDomesticOutstation;
+        }
+        return this.cachedLimitation;
+    }   
 
     get showCityField() {
         return this.salesType === 'Domestic';
-    }
-
-    get showKMOrTollParkingField() {
-        return this.selectedVoucherType === 'Local' || this.selectedVoucherType === 'Outstation' && this.lineItems.some(item => item.modeOfTravel === 'Own Vehicle');
     }
 
     get currencySymbol() {
@@ -185,78 +204,9 @@ export default class ExpenseForm extends NavigationMixin(LightningElement) {
         return map[this.selectedCurrency] || this.selectedCurrency;
     }
 
-    get salesTypeDebug() {
-        console.log('Sales Type Updated:', this.salesType, 'Show City Field:', this.showCityField);
-        return this.salesType;
-    }
-
-    get dailyAllowanceStatus() {
-        if (!this.dailyAllowanceEligibilityChecked) {
-            return 'Checking eligibility...';
-        }
-        
-        if (this.isDailyAllowanceEligible && this.isOutOfPocketEligible) {
-            return 'Eligible for both Daily Allowance and Out of Pocket';
-        } else if (this.isDailyAllowanceEligible && !this.isOutOfPocketEligible) {
-            return 'Eligible for Daily Allowance only (Out of Pocket already claimed)';
-        } else if (!this.isDailyAllowanceEligible && this.isOutOfPocketEligible) {
-            return 'Eligible for Out of Pocket only (Daily Allowance already claimed)';
-        } else {
-            return 'Both Daily Allowance and Out of Pocket already claimed for this date';
-        }
-    }
-
-    // Add this getter to check if Visit Report is required
-    get isVisitReportRequired() {
-        return this.selectedVoucherType === 'Local' || this.selectedVoucherType === 'Outstation';
-    }
-
-    get dailyAllowanceStatusVariant() {
-        if (!this.dailyAllowanceEligibilityChecked) return 'info';
-        
-        if (this.isDailyAllowanceEligible && this.isOutOfPocketEligible) {
-            return 'success';
-        } else if (this.isDailyAllowanceEligible || this.isOutOfPocketEligible) {
-            return 'warning';
-        } else {
-            return 'error';
-        }
-    }
-
-    // Add this getter to your main component
-    get debugInfo() {
-        return {
-            salesType: this.salesType,
-            showCityField: this.showCityField,
-            salesTypeOptions: this.salesTypeOptions,
-            selectedCityId: this.selectedCityId,
-            selectedCityName: this.selectedCityName
-        };
-    }
-
-    // Add this to renderedCallback
-    renderedCallback() {
-        console.log('=== DEBUG INFO ===');
-        console.log('Sales Type:', this.salesType);
-        console.log('Show City Field:', this.showCityField);
-        console.log('Sales Type Options:', this.salesTypeOptions);
-        console.log('Selected City ID:', this.selectedCityId);
-        console.log('Selected City Name:', this.selectedCityName);
-
-        // Check if city field element exists
-        const cityField = this.template.querySelector('c-city-lookup-component');
-        console.log('City Field in DOM:', !!cityField);
-    }
-
-    forceCurrencyUpdate() {
-        // Create a deep copy to force re-render
-        this.lineItems = this.lineItems.map(item => ({ ...item }));
-    }
-
     // Add currency change handler
     handleCurrencyChange(event) {
         this.selectedCurrency = event.detail.value;
-        //this.forceCurrencyUpdate();
     }
 
     async handleTeamMembersChange(event) {
@@ -519,20 +469,8 @@ export default class ExpenseForm extends NavigationMixin(LightningElement) {
 
                     console.log('Updating line item with new grade data from sales type');
 
-                    // Determine correct allowance based on voucher type and eligibility
-                    const isFirstItem = index === 0;
-                    let dailyAllowanceValue = 0;
-                    if (this.selectedVoucherType === 'Outstation' && isFirstItem && this.isOutOfPocketEligible) {
-                        dailyAllowanceValue = this.outOfPocket || 0;
-                    } else if (this.selectedVoucherType === 'Local' && isFirstItem && this.isDailyAllowanceEligible) {
-                        dailyAllowanceValue = this.dailyAllowance || 0;
-                    }
-
                     return {
                         ...item,
-                        dailyAllowance: dailyAllowanceValue,
-                        disableDailyAllowance: !isFirstItem || 
-                            (this.selectedVoucherType === 'Outstation' ? !this.isOutOfPocketEligible : !this.isDailyAllowanceEligible),
                         transportOptions: transportOptions,
                         limitationText: limitationText,
                         // Auto-update KM rate if transport mode is set
@@ -615,9 +553,6 @@ export default class ExpenseForm extends NavigationMixin(LightningElement) {
             this.modeOfTravelOptions = await getModeOfTravelOptions();
             console.log('Mode of Travel options loaded:', this.modeOfTravelOptions);
 
-            this.publicTransportModes = this.allTransportModeOptions.filter(mode => mode.value === 'Bus');
-            this.privateTransportModes = this.allTransportModeOptions.filter(mode => mode.value === 'Car' || mode.value === 'Bike');
-
             this.employeeOptions = await getUsers({ searchTerm: '' });
             this.typeOfExpenseOptions = await getTypeOfExpense({
                 searchTerm: '',
@@ -629,23 +564,13 @@ export default class ExpenseForm extends NavigationMixin(LightningElement) {
                 const transportOptions = this.getTransportOptionsForItem('', this.selectedVoucherType);
                 console.log('Initializing line item with transport options:', transportOptions);
 
-                // FIXED: Respect daily allowance eligibility
-                const shouldHaveDailyAllowance = this.isDailyAllowanceEligible && index === 0;
-                const dailyAllowanceValue = shouldHaveDailyAllowance ? this.dailyAllowance : 0;
-
                 return {
                     ...item,
-                    dailyAllowance: dailyAllowanceValue,
-                    disableDailyAllowance: !shouldHaveDailyAllowance || !this.canEditDailyAllowance,
                     transportOptions: transportOptions,
                     modeOfTravel: '', // Initialize Mode_of_Travel
                     disableTransportFields: false // Initialize disable flag
                 };
             });
-
-            if (this.todayDate && this.selectedEmployeeId) {
-                await this.checkAllowanceEligibility();
-            }
         } catch (error) {
             console.error('Initialization error:', error);
             this.showToast('Error', error?.body?.message || error.message || 'Initialization failed', 'error');
@@ -800,25 +725,6 @@ export default class ExpenseForm extends NavigationMixin(LightningElement) {
         this.currentPreviewIndex = -1;
     }
 
-    // Method to preview individual file
-    handleFilePreview(event) {
-        const fileId = event.currentTarget.dataset.fileId;
-        console.log('Previewing file:', fileId);
-        
-        if (fileId) {
-            // Use Salesforce file preview page instead of download URL
-            this[NavigationMixin.Navigate]({
-                type: 'standard__namedPage',
-                attributes: {
-                    pageName: 'filePreview'
-                },
-                state: {
-                    selectedRecordId: fileId
-                }
-            });
-        }
-    }
-
     // Check if expense type is private
     isPrivateExpense(typeOfExpenseId) {
         if (!typeOfExpenseId) return false;
@@ -841,7 +747,6 @@ export default class ExpenseForm extends NavigationMixin(LightningElement) {
     async handleEmployeeChange(event) {
         const empId = event.detail.value;
         this.selectedEmployeeId = empId;
-        this.dailyAllowanceEligibilityChecked = false;
         const emp = this.employeeOptions.find(e => e.value === empId);
 
         if (emp) {
@@ -885,14 +790,8 @@ export default class ExpenseForm extends NavigationMixin(LightningElement) {
                         this.lineItems = this.lineItems.map((item, index) => {
                             const transportOptions = this.getTransportOptionsForItem(item.typeOfExpenseId);
                             
-                            // FIXED: Respect daily allowance eligibility
-                            const shouldHaveDailyAllowance = this.isDailyAllowanceEligible && index === 0;
-                            const dailyAllowanceValue = shouldHaveDailyAllowance ? this.dailyAllowance : 0;
-
                             const updatedItem = {
                                 ...item,
-                                dailyAllowance: dailyAllowanceValue,
-                                disableDailyAllowance: !shouldHaveDailyAllowance || !this.canEditDailyAllowance,
                                 transportOptions: transportOptions,
                                 // Auto-update KM rate if transport mode is set
                                 kmRate: this.getUpdatedKMRateForItem(item)
@@ -905,7 +804,6 @@ export default class ExpenseForm extends NavigationMixin(LightningElement) {
                         });
 
                         console.log('Updated line items with new grade data');
-
                     } catch (error) {
                         console.error('Error fetching grade details:', error);
                         this.dailyAllowance = 0;
@@ -924,20 +822,8 @@ export default class ExpenseForm extends NavigationMixin(LightningElement) {
             await this.calculateAllCombinedLimits();
             this.refreshAllLimitationTexts();
 
-            // Check eligibility after employee is selected
-            if (this.todayDate) {
-                await this.checkDailyAllowanceEligibility();
-            }
+            await this.checkAllLineItemsEligibility();
         }
-    }
-
-    updateLineItemsWithLimitationText() {
-        this.lineItems = this.lineItems.map((item, index) => {
-            return {
-                ...item,
-                limitationText: this.computeLimitationText(item, index) // Compute and store the value
-            };
-        });
     }
 
     calculateAmountClaimedForLocal(item) {
@@ -959,14 +845,37 @@ export default class ExpenseForm extends NavigationMixin(LightningElement) {
     }
 
     // Helper method to update KM rate when grade changes
-    getUpdatedKMRateForItem(item) {
-        const transportMode = item.transportMode || item.outstationTransportMode;
+    getUpdatedKMRateForItem(item, voucherType = this.selectedVoucherType) {
+        const transportMode = voucherType === 'Local' ? 
+            item.transportMode : item.outstationTransportMode;
+        
         if (transportMode === 'Car') {
-            return this.fourWheelerPerKm;
+            return this.fourWheelerPerKm || 0;
         } else if (transportMode === 'Bike') {
-            return this.twoWheelerPerKm;
+            return this.twoWheelerPerKm || 0;
         }
         return item.kmRate || 0;
+    }
+
+    calculateAmountClaimedForOutstation(item) {
+        // Only calculate for Car/Bike transport modes
+        const transportMode = item.outstationTransportMode;
+        
+        if (transportMode !== 'Car' && transportMode !== 'Bike') {
+            return parseFloat(item.amountClaimed) || 0;
+        }
+        
+        const startKM = parseFloat(item.startKM) || 0;
+        const endKM = parseFloat(item.endKM) || 0;
+        const kmRate = parseFloat(item.kmRate) || 0;
+        const tollParking = parseFloat(item.tollParking) || 0;
+        
+        // Calculate: (End KM - Start KM) * KM Rate + Toll Parking
+        const distance = endKM - startKM;
+        if (distance < 0) return 0;
+        
+        const calculatedAmount = (distance * kmRate) + tollParking;
+        return Math.max(0, calculatedAmount);
     }
 
     // Add this getter to dynamically determine header text based on transport mode
@@ -1075,16 +984,6 @@ export default class ExpenseForm extends NavigationMixin(LightningElement) {
         this.lineItems = [...this.lineItems];
     }
 
-
-    updateLineItemTotal(index) {
-        const item = this.lineItems[index];
-        const amountClaimed = parseFloat(item.amountClaimed) || 0;
-        const dailyAllowance = parseFloat(item.dailyAllowance) || 0;
-        const total = amountClaimed + dailyAllowance;
-
-        this.updateLineItem(index, 'total', total);
-    }
-
     // Update your change handlers to call updateLineItemTotal
     handleAmountClaimedChange(event) {
         const idx = parseInt(event.target.dataset.index, 10);
@@ -1120,11 +1019,15 @@ export default class ExpenseForm extends NavigationMixin(LightningElement) {
     handleTollParkingChange(event) {
         const idx = parseInt(event.target.dataset.index, 10);
         const value = parseFloat(event.target.value) || 0;
+        
         this.updateLineItem(idx, 'tollParking', value);
-
-        // Auto-calculate amount for Local voucher
-        if (this.selectedVoucherType === 'Local') {
-            const calculatedAmount = this.calculateAmountClaimedForLocal(this.lineItems[idx]);
+        
+        // Auto-calculate amount for both Local and Outstation
+        if (this.selectedVoucherType === 'Local' || this.selectedVoucherType === 'Outstation') {
+            const calculatedAmount = this.calculateAmountClaimed({
+                ...this.lineItems[idx],
+                tollParking: value
+            });
             this.updateLineItem(idx, 'amountClaimed', calculatedAmount);
         }
     }
@@ -1138,15 +1041,16 @@ export default class ExpenseForm extends NavigationMixin(LightningElement) {
     handleStartKMChange(event) {
         const idx = parseInt(event.target.dataset.index, 10);
         const value = parseFloat(event.target.value) || 0;
-
-        // Update the field
+        
         this.updateLineItem(idx, 'startKM', value);
-
-        // Auto-calculate amount for Local voucher
-        if (this.selectedVoucherType === 'Local') {
-            const calculatedAmount = this.calculateAmountClaimedForLocal(this.lineItems[idx]);
+        
+        // Auto-calculate amount for both Local and Outstation
+        if (this.selectedVoucherType === 'Local' || this.selectedVoucherType === 'Outstation') {
+            const calculatedAmount = this.calculateAmountClaimed({
+                ...this.lineItems[idx],
+                startKM: value
+            });
             this.updateLineItem(idx, 'amountClaimed', calculatedAmount);
-            this.updateCalculatedAmountDisplay(idx);
         }
     }
 
@@ -1154,14 +1058,22 @@ export default class ExpenseForm extends NavigationMixin(LightningElement) {
         const idx = parseInt(event.target.dataset.index, 10);
         const value = parseFloat(event.target.value) || 0;
 
-        // Update the field
         this.updateLineItem(idx, 'endKM', value);
 
-        // Auto-calculate amount for Local voucher
-        if (this.selectedVoucherType === 'Local') {
-            const calculatedAmount = this.calculateAmountClaimedForLocal(this.lineItems[idx]);
-            this.updateLineItem(idx, 'amountClaimed', calculatedAmount);
-            this.updateCalculatedAmountDisplay(idx);
+        // Auto-calculate amount for BOTH Local AND Outstation
+        if (this.selectedVoucherType === 'Local' || this.selectedVoucherType === 'Outstation') {
+            const item = this.lineItems[idx];
+            const transportMode = this.selectedVoucherType === 'Local' ? 
+                item.transportMode : item.outstationTransportMode;
+            
+            // Only calculate if it's Car or Bike (not Bus/Train/Flight)
+            if (transportMode === 'Car' || transportMode === 'Bike') {
+                const calculatedAmount = this.calculateAmountClaimed({
+                    ...item,
+                    endKM: value
+                });
+                this.updateLineItem(idx, 'amountClaimed', calculatedAmount);
+            }
         }
     }
 
@@ -1186,28 +1098,41 @@ export default class ExpenseForm extends NavigationMixin(LightningElement) {
         return amountClaimed + dailyAllowance;
     }
 
-    // MODIFIED: Update line item method to recalculate total
     updateLineItem(index, field, value) {
         this.lineItems = this.lineItems.map((item, i) => {
             if (i === index) {
                 const updatedItem = { ...item, [field]: value };
-
-                // Recompute disabled states when relevant fields change
+                
+                // When date changes, reset eligibility and trigger check
+                if (field === 'date' || field === 'outstationDate') {
+                    updatedItem.isDailyAllowanceEligible = false;
+                    updatedItem.isOutOfPocketEligible = false;
+                    updatedItem.eligibilityChecked = false;
+                    
+                    // Schedule eligibility check
+                    if (value && this.selectedEmployeeId) {
+                        setTimeout(() => {
+                            this.checkLineItemDateEligibility(index);
+                        }, 100);
+                    }
+                }
+                
+                // Recompute disabled states
                 if (field === 'disableTransportFields' || field === 'disableTransportMode' || field === 'isFoodOrHotel') {
                     updatedItem.computedTransportDisabled = updatedItem.disableTransportFields || updatedItem.disableTransportMode;
                     updatedItem.computedLocationDisabled = updatedItem.disableTransportFields;
                 }
-
-                // Recalculate total whenever amountClaimed or dailyAllowance changes
+                
+                // Recalculate total
                 if (field === 'amountClaimed' || field === 'dailyAllowance') {
                     updatedItem.total = this.calculateLineItemTotal(updatedItem);
                 }
-
-                // Update limitation text when expense type changes
+                
+                // Update limitation text
                 if (field === 'typeOfExpenseId') {
                     updatedItem.limitationText = this.computeLimitationText(updatedItem);
                 }
-
+                
                 return updatedItem;
             }
             return item;
@@ -1366,6 +1291,13 @@ export default class ExpenseForm extends NavigationMixin(LightningElement) {
         const idx = parseInt(event.target.dataset.index, 10);
         const value = event.target.value;
         this.updateLineItem(idx, 'outstationDate', value);
+
+        // For Outstation, use outstationDate for eligibility check
+        if (value && this.selectedEmployeeId) {
+            setTimeout(() => {
+                this.checkLineItemDateEligibility(idx);
+            }, 100);
+        }
     }
 
     handleOutstationFromLocationChange(event) {
@@ -1380,15 +1312,71 @@ export default class ExpenseForm extends NavigationMixin(LightningElement) {
         this.updateLineItem(idx, 'outstationToLocation', value);
     }
 
+    getKMRateForTransportMode(transportMode) {
+        if (transportMode === 'Car') {
+            return this.fourWheelerPerKm || 0;
+        } else if (transportMode === 'Bike') {
+            return this.twoWheelerPerKm || 0;
+        }
+        return 0; // Bus or other modes have 0 KM rate
+    }
+
+    // 2. Unified amount calculation
+    calculateAmountClaimed(item) {
+        if (this.selectedVoucherType === 'Local') {
+            return this.calculateAmountClaimedForLocal(item);
+        } else if (this.selectedVoucherType === 'Outstation') {
+            return this.calculateAmountClaimedForOutstation(item);
+        }
+        return parseFloat(item.amountClaimed) || 0;
+    }
+
+    // REVISED METHOD - FIX KM rate population
     handleOutstationTransportModeChange(event) {
         const idx = parseInt(event.currentTarget.dataset.index, 10);
         const value = event.detail.value;
-        this.updateTransportModeAndRate(idx, value, 'outstation');
+        
+        // Update transport mode
+        this.updateLineItem(idx, 'outstationTransportMode', value);
+        
+        // Auto-update KM rate FROM GRADE
+        let kmRate = 0;
+        if (value === 'Car') {
+            kmRate = this.fourWheelerPerKm || 0;
+        } else if (value === 'Bike') {
+            kmRate = this.twoWheelerPerKm || 0;
+        }
+        
+        this.updateLineItem(idx, 'kmRate', kmRate);
+        
+        // Update KM field states
+        const disableKM = (value === 'Bus');
+        this.updateLineItem(idx, 'disableKMFields', disableKM);
+        
+        // Update toll/parking field visibility
+        const showTollParking = this.shouldShowTollParking(value);
+        this.updateLineItem(idx, 'showTollParking', showTollParking);
+        this.updateLineItem(idx, 'disableTollParking', !showTollParking);
+        
+        // Clear toll/parking if not applicable
+        if (!showTollParking) {
+            this.updateLineItem(idx, 'tollParking', 0);
+        }
+        
+        // Auto-calculate amount for Outstation
+        if (this.selectedVoucherType === 'Outstation') {
+            const calculatedAmount = this.calculateAmountClaimedForOutstation({
+                ...this.lineItems[idx],
+                outstationTransportMode: value,
+                kmRate: kmRate
+            });
+            this.updateLineItem(idx, 'amountClaimed', calculatedAmount);
+        }
     }
 
     updateTransportModeAndRate(index, transportMode, type) {
         console.log(`Setting ${type} transport mode to:`, transportMode);
-
+        
         // Auto-set KM rate based on transport mode
         let kmRate = 0;
         if (transportMode === 'Car') {
@@ -1396,43 +1384,46 @@ export default class ExpenseForm extends NavigationMixin(LightningElement) {
         } else if (transportMode === 'Bike') {
             kmRate = this.twoWheelerPerKm || 0;
         }
-
-        // Update the appropriate transport mode field
+        
         if (type === 'local') {
             this.updateLineItem(index, 'transportMode', transportMode);
-            this.updateLineItem(index, 'kmRate', kmRate);
-
-            // Auto-calculate amount claimed for Local voucher
-            if (this.selectedVoucherType === 'Local') {
-                const calculatedAmount = this.calculateAmountClaimedForLocal({
-                    ...this.lineItems[index],
-                    transportMode: transportMode,
-                    kmRate: kmRate
-                });
-                this.updateLineItem(index, 'amountClaimed', calculatedAmount);
-                this.updateCalculatedAmountDisplay(index);
-            }
         } else {
             this.updateLineItem(index, 'outstationTransportMode', transportMode);
-            this.updateLineItem(index, 'kmRate', kmRate);
         }
-
-        // Handle KM field disabling (for Local only)
-        if (type === 'local') {
-            const disableKM = (transportMode === 'Bus');
-            this.updateLineItem(index, 'disableKMFields', disableKM);
-
-            // Toll/Parking visible only for Car/Bike
-            const showTollParking = this.shouldShowTollParking(transportMode);
-            this.updateLineItem(index, 'showTollParking', showTollParking);
-            this.updateLineItem(index, 'disableTollParking', !showTollParking);
-
-            if (!showTollParking) {
-                this.updateLineItem(index, 'tollParking', 0);
-            }
+        
+        // Update KM rate for both Local AND Outstation
+        this.updateLineItem(index, 'kmRate', kmRate);
+        
+        // Auto-calculate amount claimed based on voucher type
+        if (this.selectedVoucherType === 'Local') {
+            const calculatedAmount = this.calculateAmountClaimedForLocal({
+                ...this.lineItems[index],
+                transportMode: transportMode,
+                kmRate: kmRate
+            });
+            this.updateLineItem(index, 'amountClaimed', calculatedAmount);
+        } else if (this.selectedVoucherType === 'Outstation') {
+            const calculatedAmount = this.calculateAmountClaimedForOutstation({
+                ...this.lineItems[index],
+                outstationTransportMode: transportMode,
+                kmRate: kmRate
+            });
+            this.updateLineItem(index, 'amountClaimed', calculatedAmount);
         }
-
-        // Force re-render to update totals
+        
+        // Handle KM field disabling
+        const disableKM = (transportMode === 'Bus');
+        this.updateLineItem(index, 'disableKMFields', disableKM);
+        
+        // Toll/Parking visible only for Car/Bike for BOTH Local and Outstation
+        const showTollParking = this.shouldShowTollParking(transportMode);
+        this.updateLineItem(index, 'showTollParking', showTollParking);
+        this.updateLineItem(index, 'disableTollParking', !showTollParking);
+        
+        if (!showTollParking) {
+            this.updateLineItem(index, 'tollParking', 0);
+        }
+        
         this.lineItems = [...this.lineItems];
     }
 
@@ -1506,6 +1497,8 @@ export default class ExpenseForm extends NavigationMixin(LightningElement) {
         const transportOptions = this.getTransportOptionsForItem('', this.selectedVoucherType);
         console.log('Adding new line item with transport options:', transportOptions);
 
+        const defaultDate = this.todayDate;
+
         // Determine if this line item should have allowances
         const isFirstItem = this.lineItems.length === 0;
         
@@ -1529,7 +1522,7 @@ export default class ExpenseForm extends NavigationMixin(LightningElement) {
             key: this.nextKey++,
             typeOfExpenseId: '',
             amountClaimed: initialAmountClaimed,
-            dailyAllowance: dailyAllowanceValue, // Use calculated allowance
+            dailyAllowance: 0,
             total: initialTotal,
             reason: '',
             fromLocation: '',
@@ -1537,6 +1530,7 @@ export default class ExpenseForm extends NavigationMixin(LightningElement) {
             transportMode: '',
             startKM: '',
             endKM: '',
+            tollParking: 0,
             kmRate: 0,
             fileCount: 0,
             isPrivate: false,
@@ -1547,7 +1541,8 @@ export default class ExpenseForm extends NavigationMixin(LightningElement) {
             disableKMFields: false,
             showTollParking: false,
             disableTollParking: true,
-            outstationDate: this.todayDate,
+            date: this.selectedVoucherType === 'Local' ? defaultDate : null,
+            outstationDate: this.selectedVoucherType === 'Outstation' ? defaultDate : null,
             outstationFromLocation: '',
             outstationToLocation: '',
             outstationTransportMode: '',
@@ -1558,8 +1553,7 @@ export default class ExpenseForm extends NavigationMixin(LightningElement) {
             glCodeId: '',
             glCodeName: '',
             remark: '',
-            disableDailyAllowance: !isFirstItem || 
-                (this.selectedVoucherType === 'Outstation' ? !this.isOutOfPocketEligible : !this.isDailyAllowanceEligible),
+            disableDailyAllowance: true,
             calculatedAmountDisplay: '0.00',
             modeOfTravel: '', // Initialize Mode_of_Travel
             disableTransportFields: false,
@@ -1571,9 +1565,218 @@ export default class ExpenseForm extends NavigationMixin(LightningElement) {
             limitationText: limitationText,
             isOwnArrangement: false, // Initialize Own Arrangement flag
             isMandatory: false, // Initialize mandatory flag
-            typeOfExpenseName: ''
+            typeOfExpenseName: '',
+            isDailyAllowanceEligible: false,
+            isOutOfPocketEligible: false,
+            eligibilityChecked: false
         };
         this.lineItems = [...this.lineItems, newItem];
+
+        setTimeout(() => {
+            this.checkLineItemDateEligibility(this.lineItems.length - 1);
+        }, 100);
+    }
+
+    async checkLineItemDateEligibility(index) {
+        const item = this.lineItems[index];
+        // Use the appropriate date field based on voucher type
+        const itemDate = this.selectedVoucherType === 'Local' ? item.date : item.outstationDate;
+        if (!itemDate || !this.selectedEmployeeId) return;
+        
+        try {
+            // Prepare current page line items data (excluding the current one)
+            const currentPageLineItems = this.lineItems.map((li, idx) => ({
+                id: idx === index ? null : `temp_${li.key}`, // Null for current item
+                date: li.date,
+                outstationDate: li.outstationDate,
+                voucherType: this.selectedVoucherType,
+                dailyAllowance: li.dailyAllowance,
+                userId: this.selectedEmployeeId
+            })).filter((li, idx) => idx !== index); // Exclude current item
+            
+            const result = await checkAllowanceEligibilityForDate({
+                expenseDate: itemDate,
+                userId: this.selectedEmployeeId,
+                lineItemId: null, // Will be null for new line items
+                currentPageLineItems: currentPageLineItems
+            });
+            
+            console.log('Eligibility result for date', itemDate, ':', result);
+            
+            // Update line item with eligibility
+            this.updateLineItem(index, 'isDailyAllowanceEligible', result.isDailyAllowanceEligible);
+            this.updateLineItem(index, 'isOutOfPocketEligible', result.isOutOfPocketEligible);
+            this.updateLineItem(index, 'eligibilityChecked', true);
+            
+            // Show toast messages based on eligibility AND voucher type
+            if (this.selectedVoucherType === 'Local') {
+                if (!result.isDailyAllowanceEligible && result.hasDailyAllowanceClaimed) {
+                    this.showToast('Warning', 'Daily Allowance already claimed for this date', 'warning');
+                }
+                if (!result.isOutOfPocketEligible && result.hasOutOfPocketClaimed) {
+                    this.showToast('Warning', 'Out of Pocket already claimed for this date', 'warning');
+                }
+            } else if (this.selectedVoucherType === 'Outstation') {
+                if (!result.isOutOfPocketEligible && result.hasOutOfPocketClaimed) {
+                    this.showToast('Warning', 'Out of Pocket already claimed for this date', 'warning');
+                }
+                if (!result.isDailyAllowanceEligible && result.hasDailyAllowanceClaimed) {
+                    this.showToast('Warning', 'Daily Allowance already claimed for this date', 'warning');
+                }
+            }
+            
+            // Update allowances based on eligibility
+            this.updateLineItemAllowances(index);
+            
+        } catch (error) {
+            console.error('Error checking line item date eligibility:', error);
+            this.showToast('Error', 'Failed to check allowance eligibility for this date', 'error');
+        }
+    }
+
+    // NEW: Method to check eligibility for all line items at once (optimized)
+    async checkAllLineItemsEligibility() {
+        const dateUserIdMap = {};
+        
+        // Build map of date-user combinations
+        this.lineItems.forEach((item, index) => {
+            const itemDate = this.selectedVoucherType === 'Local' ? item.date : item.outstationDate;
+            if (itemDate && this.selectedEmployeeId) {
+                const key = `${itemDate}_${this.selectedEmployeeId}`;
+                dateUserIdMap[key] = key;
+            }
+        });
+        
+        if (Object.keys(dateUserIdMap).length === 0) return;
+        
+        try {
+            this.batchEligibilityLoading = true;
+            
+            // Prepare current page line items data
+            const currentPageLineItems = this.lineItems.map((li, index) => ({
+                id: `temp_${li.key}`,
+                date: li.date,
+                outstationDate: li.outstationDate,
+                voucherType: this.selectedVoucherType,
+                dailyAllowance: li.dailyAllowance,
+                userId: this.selectedEmployeeId
+            }));
+            
+            const results = await checkMultipleDatesAllowanceEligibility({
+                dateUserIdMap: dateUserIdMap,
+                currentPageLineItems: currentPageLineItems
+            });
+            
+            // Track if we've shown any toast messages
+            let hasShownToast = false;
+            
+            // Update each line item with its eligibility
+            this.lineItems = this.lineItems.map((item, index) => {
+                const itemDate = this.selectedVoucherType === 'Local' ? item.date : item.outstationDate;
+                if (itemDate && this.selectedEmployeeId) {
+                    const key = `${itemDate}_${this.selectedEmployeeId}`;
+                    const eligibility = results[key];
+                    
+                    if (eligibility) {
+                        // Show toast messages for the first eligible line item
+                        if (!hasShownToast) {
+                            if (this.selectedVoucherType === 'Local' && !eligibility.isDailyAllowanceEligible && eligibility.hasDailyAllowanceClaimed) {
+                                this.showToast('Warning', 'Daily Allowance already claimed for this date', 'warning');
+                                hasShownToast = true;
+                            } else if (this.selectedVoucherType === 'Outstation' && !eligibility.isOutOfPocketEligible && eligibility.hasOutOfPocketClaimed) {
+                                this.showToast('Warning', 'Out of Pocket already claimed for this date', 'warning');
+                                hasShownToast = true;
+                            }
+                        }
+                        
+                        return {
+                            ...item,
+                            isDailyAllowanceEligible: eligibility.isDailyAllowanceEligible || false,
+                            isOutOfPocketEligible: eligibility.isOutOfPocketEligible || false,
+                            eligibilityChecked: true
+                        };
+                    }
+                }
+                return item;
+            });
+            
+            // Update allowances for all line items
+            this.updateAllLineItemsAllowances();
+            
+        } catch (error) {
+            console.error('Error checking all line items eligibility:', error);
+        } finally {
+            this.batchEligibilityLoading = false;
+        }
+    }
+
+    // NEW: Method to update allowances for a specific line item
+    updateLineItemAllowances(index) {
+        const item = this.lineItems[index];
+        
+        let dailyAllowanceValue = 0;
+        let amountClaimedValue = item.amountClaimed || 0;
+        
+        // Determine allowances based on voucher type and line item eligibility
+        if (this.selectedVoucherType === 'Outstation') {
+            // For Outstation, use Out of Pocket if eligible
+            if (item.isOutOfPocketEligible) {
+                dailyAllowanceValue = this.outOfPocket || 0;
+            }
+        } else if (this.selectedVoucherType === 'Local') {
+            // For Local, use Daily Allowance if eligible
+            if (item.isDailyAllowanceEligible) {
+                dailyAllowanceValue = this.dailyAllowance || 0;
+            }
+        }
+        
+        // Auto-set Special Allowance for Own Arrangement
+        if (item.isOwnArrangement && this.outOfPocket > 0) {
+            amountClaimedValue = this.specialAllowance || 0;
+        } else if (!item.isOwnArrangement && item.typeOfExpenseId === '') {
+            amountClaimedValue = 0;
+        }
+        
+        this.updateLineItem(index, 'dailyAllowance', dailyAllowanceValue);
+        this.updateLineItem(index, 'amountClaimed', amountClaimedValue);
+        this.updateLineItem(index, 'disableDailyAllowance', 
+            this.selectedVoucherType === 'Outstation' ? !item.isOutOfPocketEligible : !item.isDailyAllowanceEligible);
+    }
+
+    // NEW: Method to update allowances for all line items
+    updateAllLineItemsAllowances() {
+        this.lineItems = this.lineItems.map((item, index) => {
+            const updatedItem = { ...item };
+            
+            let dailyAllowanceValue = 0;
+            let amountClaimedValue = item.amountClaimed || 0;
+            
+            if (this.selectedVoucherType === 'Outstation') {
+                if (item.isOutOfPocketEligible) {
+                    dailyAllowanceValue = this.outOfPocket || 0;
+                }
+            } else if (this.selectedVoucherType === 'Local') {
+                if (item.isDailyAllowanceEligible) {
+                    dailyAllowanceValue = this.dailyAllowance || 0;
+                }
+            }
+            
+            if (item.isOwnArrangement && this.outOfPocket > 0) {
+                amountClaimedValue = this.specialAllowance || 0;
+            } else if (!item.isOwnArrangement && item.typeOfExpenseId === '') {
+                amountClaimedValue = 0;
+            }
+            
+            updatedItem.dailyAllowance = dailyAllowanceValue;
+            updatedItem.amountClaimed = amountClaimedValue;
+            updatedItem.disableDailyAllowance = 
+                this.selectedVoucherType === 'Outstation' ? !item.isOutOfPocketEligible : !item.isDailyAllowanceEligible;
+            
+            // Recalculate total
+            updatedItem.total = this.calculateLineItemTotal(updatedItem);
+            
+            return updatedItem;
+        });
     }
 
     deleteLineItem(event) {
@@ -1583,13 +1786,23 @@ export default class ExpenseForm extends NavigationMixin(LightningElement) {
             this.filesMap.delete(key);
             this.lineItems.splice(idx, 1);
 
-            // If first item was deleted, update daily allowance for new first item
-            if (idx === 0 && this.isDailyAllowanceEligible) {
-                this.updateAllowancesForLineItems();
-            }
             this.lineItems = [...this.lineItems];
         } else {
             this.showToast('Info', 'At least one line item is required', 'info');
+        }
+    }
+
+    handleDateChange(event) {
+        const idx = parseInt(event.target.dataset.index, 10);
+        const value = event.target.value;
+        
+        this.updateLineItem(idx, 'date', value);
+        
+        // Check eligibility for this date
+        if (value && this.selectedEmployeeId) {
+            setTimeout(() => {
+                this.checkLineItemDateEligibility(idx);
+            }, 100);
         }
     }
 
@@ -1778,9 +1991,17 @@ export default class ExpenseForm extends NavigationMixin(LightningElement) {
                         (this.selectedVoucherType === 'Outstation' ? !this.isOutOfPocketEligible : !this.isDailyAllowanceEligible),
                     isOwnArrangement: false,
                     isMandatory: false,
-                    typeOfExpenseName: ''
+                    typeOfExpenseName: '',
+                    date: this.selectedVoucherType === 'Local' ? this.todayDate : null,
+                    outstationDate: this.selectedVoucherType === 'Outstation' ? this.todayDate : null,
+                    // Reset eligibility flags
+                    isDailyAllowanceEligible: false,
+                    isOutOfPocketEligible: false,
+                    eligibilityChecked: false
                 };
             });
+
+            await this.checkAllLineItemsEligibility();
 
         } catch (error) {
             console.error('Error in handleVoucherTypeChange:', error);
@@ -1792,120 +2013,6 @@ export default class ExpenseForm extends NavigationMixin(LightningElement) {
 
     handleNameChange(event) {
         this.expenseName = event.target.value;
-    }
-
-    // Method to check daily allowance eligibility
-    async checkAllowanceEligibility() {
-        if (!this.todayDate || !this.selectedEmployeeId) {
-            return;
-        }
-
-        try {
-            this.isLoading = true;
-            const result = await checkAllowanceEligibility({
-                expenseDate: this.todayDate,
-                userId: this.selectedEmployeeId
-            });
-
-            this.isDailyAllowanceEligible = result.isDailyAllowanceEligible;
-            this.isOutOfPocketEligible = result.isOutOfPocketEligible;
-            this.dailyAllowanceEligibilityChecked = true;
-            this.dailyAllowanceEligibilityMessage = result.message;
-
-            console.log('Allowance Eligibility Result:', result);
-            console.log('Daily Allowance Eligible:', this.isDailyAllowanceEligible);
-            console.log('Out of Pocket Eligible:', this.isOutOfPocketEligible);
-
-            if (!this.isDailyAllowanceEligible && !this.isOutOfPocketEligible) {
-                this.showToast('Info', result.message, 'info');
-                
-                // Remove both allowances from all line items
-                this.lineItems = this.lineItems.map(item => ({
-                    ...item,
-                    dailyAllowance: 0,
-                    amountClaimed: 0,
-                    disableDailyAllowance: true
-                }));
-            } else {
-                // Update allowances based on eligibility and voucher type
-                this.updateAllowancesForLineItems();
-                
-                // Show appropriate message
-                if (this.isDailyAllowanceEligible && !this.isOutOfPocketEligible) {
-                    this.showToast('Warning', 'Daily Allowance eligible, but Out of Pocket already claimed for this date', 'warning');
-                } else if (!this.isDailyAllowanceEligible && this.isOutOfPocketEligible) {
-                    this.showToast('Warning', 'Out of Pocket eligible, but Daily Allowance already claimed for this date', 'warning');
-                }
-            }
-
-        } catch (error) {
-            console.error('Error checking allowance eligibility:', error);
-            this.isDailyAllowanceEligible = false;
-            this.isOutOfPocketEligible = false;
-            this.dailyAllowanceEligibilityChecked = true;
-            this.showToast('Error', 'Failed to check allowance eligibility', 'error');
-        } finally {
-            this.isLoading = false;
-        }
-    }
-
-    // Method to update allowances for line items based on eligibility
-    updateAllowancesForLineItems() {
-        console.log('Updating allowances - Daily Allowance Eligible:', this.isDailyAllowanceEligible, 'Out of Pocket Eligible:', this.isOutOfPocketEligible);
-        console.log('Voucher Type:', this.selectedVoucherType);
-        console.log('Out of Pocket value:', this.outOfPocket);
-        console.log('Special Allowance value:', this.specialAllowance);
-
-        this.lineItems = this.lineItems.map((item, index) => {
-            const isFirstItem = index === 0;
-            
-            // NEW LOGIC: For Outstation vouchers, use Out of Pocket on first line item if eligible
-            let dailyAllowanceValue = 0;
-            if (this.selectedVoucherType === 'Outstation' && isFirstItem && this.isOutOfPocketEligible) {
-                dailyAllowanceValue = this.outOfPocket || 0;
-                console.log('Setting Out of Pocket for Outstation voucher:', dailyAllowanceValue);
-            }
-            // For Local vouchers, use Daily Allowance on first line item if eligible
-            else if (this.selectedVoucherType === 'Local' && isFirstItem && this.isDailyAllowanceEligible) {
-                dailyAllowanceValue = this.dailyAllowance || 0;
-                console.log('Setting Daily Allowance for Local voucher:', dailyAllowanceValue);
-            }
-            
-            // NEW LOGIC: Auto-set Special Allowance for Own Arrangement expense types
-            let amountClaimedValue = item.amountClaimed || 0;
-            if (item.isOwnArrangement && this.isOutOfPocketEligible) {
-                amountClaimedValue = this.specialAllowance || 0;
-                console.log('Setting Special Allowance for Own Arrangement:', amountClaimedValue);
-            } else if (!item.isOwnArrangement && item.typeOfExpenseId === '') {
-                // Reset amount claimed if not Own Arrangement and no expense type selected
-                amountClaimedValue = 0;
-            }
-
-            const updatedItem = {
-                ...item,
-                dailyAllowance: dailyAllowanceValue,
-                amountClaimed: amountClaimedValue,
-                disableDailyAllowance: !isFirstItem || 
-                    (this.selectedVoucherType === 'Outstation' ? !this.isOutOfPocketEligible : !this.isDailyAllowanceEligible)
-            };
-
-            // Recalculate total
-            updatedItem.total = this.calculateLineItemTotal(updatedItem);
-
-            return updatedItem;
-        });
-        
-        console.log('Line items after allowance update:', JSON.parse(JSON.stringify(this.lineItems)));
-    }
-
-    handleDateChange(event) {
-        this.todayDate = event.target.value;
-        this.dailyAllowanceEligibilityChecked = false;
-    
-        // Check eligibility when date changes
-        if (this.todayDate && this.selectedEmployeeId) {
-            this.checkAllowanceEligibility();
-        }
     }
 
     async createExpenseTeamMembers(expenseId) {
@@ -1976,6 +2083,8 @@ export default class ExpenseForm extends NavigationMixin(LightningElement) {
                 Amount_Claimed__c: item.amountClaimed,
                 Amount_Passed__c: item.amountClaimed,
                 Daily_Allowance__c: (this.selectedVoucherType === 'Local' || this.selectedVoucherType === 'Outstation') ? item.dailyAllowance : null,
+                Date__c: this.selectedVoucherType === 'Local' ? item.date : 
+                    (this.selectedVoucherType === 'Outstation' ? item.outstationDate : null),
                 Reason__c: this.selectedVoucherType === 'Misc' ? item.reason :
                     (this.selectedVoucherType === 'Outstation' ? item.outstationReason : null),
                 From_Location__c: this.selectedVoucherType === 'Local' ? item.fromLocation :
@@ -1985,12 +2094,26 @@ export default class ExpenseForm extends NavigationMixin(LightningElement) {
                 Mode_of_Transport__c: this.selectedVoucherType === 'Local' ? item.transportMode :
                     (this.selectedVoucherType === 'Outstation' ? item.outstationTransportMode : null),
                 Mode_of_Travel__c: this.showModeOfTravelField ? item.modeOfTravel : null,
-                Start_KM__c: this.selectedVoucherType === 'Local' ? (item.startKM || null) : null,
-                End_KM__c: this.selectedVoucherType === 'Local' ? (item.endKM || null) : null,
-                KM_Rate__c: this.selectedVoucherType === 'Local' ? item.kmRate : null,
-                Toll_Parking__c: this.selectedVoucherType === 'Local' ? item.tollParking : null,
+                Start_KM__c: (this.selectedVoucherType === 'Local' || 
+                     (this.selectedVoucherType === 'Outstation' && 
+                      (item.outstationTransportMode === 'Car' || item.outstationTransportMode === 'Bike'))) ? 
+                      (item.startKM || null) : null,
+        
+                End_KM__c: (this.selectedVoucherType === 'Local' || 
+                        (this.selectedVoucherType === 'Outstation' && 
+                            (item.outstationTransportMode === 'Car' || item.outstationTransportMode === 'Bike'))) ? 
+                            (item.endKM || null) : null,
+                
+                KM_Rate__c: (this.selectedVoucherType === 'Local' || 
+                            (this.selectedVoucherType === 'Outstation' && 
+                            (item.outstationTransportMode === 'Car' || item.outstationTransportMode === 'Bike'))) ? 
+                            item.kmRate : null,
+                
+                Toll_Parking__c: (this.selectedVoucherType === 'Local' || 
+                                (this.selectedVoucherType === 'Outstation' && 
+                                (item.outstationTransportMode === 'Car' || item.outstationTransportMode === 'Bike'))) ? 
+                                item.tollParking : null,
                 // Outstation fields
-                Date__c: this.selectedVoucherType === 'Outstation' ? item.outstationDate : null,
                 Ticket_Booked_By_Company__c: this.selectedVoucherType === 'Outstation' ? item.ticketBookedByCompany : false,
                 Description__c: this.selectedVoucherType === 'Outstation' ? item.outstationDescription :
                     (this.selectedVoucherType === 'Cash' ? item.cashDescription : null),
@@ -2170,7 +2293,7 @@ export default class ExpenseForm extends NavigationMixin(LightningElement) {
             type: 'standard__recordPage',
             attributes: {
                 recordId: recordId,
-                objectApiName: 'Expense__c', // Add this line
+                objectApiName: 'Expense__c',
                 actionName: 'view'
             }
         });

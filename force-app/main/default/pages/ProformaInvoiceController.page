@@ -1,4 +1,4 @@
-<apex:page controller="ProformaInvoiceController" action="{!createProformaInvoice}" showHeader="false" sidebar="false">
+<apex:page controller="ProformaInvoiceControllerLWC" action="{!createProformaInvoice}" showHeader="false" sidebar="false">
     <apex:pageMessages />
     <apex:form rendered="{!showCancelButton}">
         <div style="margin: 20px; text-align: center;">

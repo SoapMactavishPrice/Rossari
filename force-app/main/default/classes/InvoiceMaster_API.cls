@@ -203,7 +203,7 @@ global class InvoiceMaster_API {
                 lineRec.Item_Description__c = String.isNotBlank(line.itemDescription) ? line.itemDescription : null;
                 lineRec.Item_Qty__c = line.itemQty != null ? line.itemQty : null;
                 lineRec.Item_Taxable_Value__c = line.itemTaxableValue != null ? line.itemTaxableValue : null;
-                lineRec.Name = String.isNotBlank(line.name) ? line.name : null;
+             //   lineRec.Name = String.isNotBlank(line.name) ? line.name : null;
                 lineRec.Pack_Size__c = String.isNotBlank(line.packSize) ? line.packSize : null;
                 lineRec.Product_Code__c = line.productCode;
                 if (String.isNotBlank(line.productCode) && prodCodeMap.containsKey(line.productCode)) {

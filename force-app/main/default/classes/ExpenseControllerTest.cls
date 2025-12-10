@@ -62,8 +62,132 @@ public class ExpenseControllerTest {
     }
 
     @isTest
-    static void testCoreFunctionsAndExceptions() {
+    static void testAllMethodsInOne() {
+        // Setup additional data
+        City__c city = new City__c(Name = 'Test City');
+        insert city;
+
+        Grade__c grade = new Grade__c(
+            Name = 'TestGrade',
+            Sales_Type__c = 'Export',
+            Mode_of_Travel__c = 'Car;Bike'
+        );
+        insert grade;
+
+        User testUser = [SELECT Id FROM User WHERE UserName LIKE 'tuser%@test.com' LIMIT 1];
+        Tour__c testTour = [SELECT Id FROM Tour__c WHERE Name = 'Test Tour' LIMIT 1];
+        Account testAccount = [SELECT Id FROM Account WHERE Name = 'Test Account' LIMIT 1];
+        
+        // Create test expense records
+        Expense__c localExpense = new Expense__c(
+            Name = 'Local Test Expense',
+            Employee_Name__c = testUser.Id,
+            Type_of_Voucher__c = 'Local',
+            Date__c = Date.today()
+        );
+        insert localExpense;
+        
+        Expense__c outstationExpense = new Expense__c(
+            Name = 'Outstation Test Expense',
+            Employee_Name__c = testUser.Id,
+            Type_of_Voucher__c = 'Outstation',
+            Date__c = Date.today()
+        );
+        insert outstationExpense;
+        
+        // Create line items
+        Expense_Line_Item__c dailyAllowanceItem = new Expense_Line_Item__c(
+            Expense__c = localExpense.Id,
+            Daily_Allowance__c = 100,
+            Date__c = Date.today()
+        );
+        insert dailyAllowanceItem;
+        
+        Expense_Line_Item__c outOfPocketItem = new Expense_Line_Item__c(
+            Expense__c = outstationExpense.Id,
+            Daily_Allowance__c = 200,
+            Date__c = Date.today()
+        );
+        insert outOfPocketItem;
+
+        // Create another test user
+        Profile p = [SELECT Id FROM Profile WHERE Name = 'Standard User' LIMIT 1];
+        User testUser2 = new User(
+            Alias = 'tuser2',
+            Email = 'tuser2@test.com',
+            EmailEncodingKey = 'UTF-8',
+            LastName = 'Test2',
+            FirstName = 'User2',
+            LanguageLocaleKey = 'en_US',
+            LocaleSidKey = 'en_US',
+            TimeZoneSidKey = 'Asia/Kolkata',
+            UserName = 'tuser2' + DateTime.now().getTime() + '@test.com',
+            ProfileId = p.Id
+        );
+        insert testUser2;
+
+        // Create Expense for team members test
+        Expense__c expense = new Expense__c(Name = 'Test Expense');
+        insert expense;
+
+        // Create user without grade
+        User userWithoutGrade = new User(
+            FirstName = 'NoGrade',
+            LastName = 'User',
+            Email = 'nograde@example.com',
+            Username = 'nograde' + DateTime.now().getTime() + '@example.com',
+            Alias = 'ngusr',
+            TimeZoneSidKey = 'Asia/Kolkata',
+            LocaleSidKey = 'en_US',
+            EmailEncodingKey = 'UTF-8',
+            LanguageLocaleKey = 'en_US',
+            ProfileId = p.Id
+        );
+        insert userWithoutGrade;
+
+        // Create Grade for combined allowances tests
+        Grade__c grade1 = new Grade__c(
+            Name = 'Grade1',
+            Sales_Type__c = 'Domestic',
+            Lodging_Hotel__c = 5000,
+            Lodging_Hotel_B_Class__c = 3000,
+            Boarding_Food__c = 1500,
+            Boarding_Food_B_Class__c = 1000
+        );
+        insert grade1;
+
+        Grade__c grade2 = new Grade__c(
+            Name = 'Grade2',
+            Sales_Type__c = 'Domestic',
+            Lodging_Hotel__c = 5000,
+            Lodging_Hotel_B_Class__c = 3000,
+            Boarding_Food__c = 1500,
+            Boarding_Food_B_Class__c = 1000
+        );
+        insert grade2;
+
+        // Create test users with grades for combined allowances
+        List<User> users = new List<User>();
+        for (Integer i = 0; i < 2; i++) {
+            users.add(new User(
+                FirstName = 'Test',
+                LastName = 'User' + i,
+                Email = 'testuser' + i + '@example.com',
+                Username = 'testuserassa21' + i + DateTime.now().getTime() + '@example.com',
+                Alias = 'tusr' + i,
+                TimeZoneSidKey = 'Asia/Kolkata',
+                LocaleSidKey = 'en_US',
+                EmailEncodingKey = 'UTF-8',
+                LanguageLocaleKey = 'en_US',
+                ProfileId = p.Id,
+                Grades__c = 'DR'
+            ));
+        }
+        insert users;
+
         Test.startTest();
+        
+        // Test Core Functions and Exceptions
         ExpenseController.initializeExpense();
         ExpenseController.getGradeDetails('DR');
         ExpenseController.getGradeDetails('EM');
@@ -90,31 +214,19 @@ public class ExpenseControllerTest {
         ExpenseController.getExpenseRecordTypes();
         ExpenseController.getTransportModes();
         ExpenseController.getSalesTypeOptions();
-        Test.stopTest();
-    }
-
-    @isTest
-    static void testCustomerVisitAndExpenseCreation() {
-        Tour__c testTour = [SELECT Id FROM Tour__c WHERE Name = 'Test Tour' LIMIT 1];
-        Account testAccount = [SELECT Id FROM Account WHERE Name = 'Test Account' LIMIT 1];
-
-        Test.startTest();
+        
+        // Test Customer Visit and Expense Creation
         Id visitId1 = ExpenseController.createCustomerVisit(testTour.Id, testAccount.Id);
-        Id visitId2 = ExpenseController.createCustomerVisit(testTour.Id, testAccount.Id); // Should get existing record id
+        Id visitId2 = ExpenseController.createCustomerVisit(testTour.Id, testAccount.Id);
         
         try { ExpenseController.createCustomerVisit(null, testAccount.Id); } catch (AuraHandledException e) {}
         try { ExpenseController.createCustomerVisit(testTour.Id, null); } catch (AuraHandledException e) {}
-        Test.stopTest();
-    }
-
-    @isTest
-    static void testInitializeExpenseAndCreateExpenseWithFilesException() {
-        User testUser = [SELECT Id FROM User WHERE UserName LIKE 'tuser%@test.com' LIMIT 1];
+        
+        // Test Initialize Expense and Create Expense With Files Exception
         testUser.Grades__c = null;
         update testUser;
-
+        
         System.runAs(testUser) {
-            Test.startTest();
             try { ExpenseController.initializeExpense(); } catch (Exception e) {}
             
             Expense__c exp = new Expense__c(Name='Test Expense');
@@ -122,222 +234,184 @@ public class ExpenseControllerTest {
             try {
                 ExpenseController.createExpenseWithFiles(exp, lineItems, null);
             } catch (Exception e) {}
-            Test.stopTest();
         }
-    }
-
-    @isTest
-    static void testAdditionalMethods() {
-        // Insert a City__c record for getCityDetails
-        City__c city = new City__c(Name = 'Test City');
-        insert city;
-
-        // Insert Grade__c for getExportTransportModes
-        Grade__c grade = new Grade__c(
-            Name = 'TestGrade',
-            Sales_Type__c = 'Export',
-            Mode_of_Travel__c = 'Car;Bike'
-        );
-        insert grade;
-
-        Test.startTest();
-        // Test getCityDetails with valid Id
+        
+        // Test Additional Methods
         Map<String, Object> cityDetails = ExpenseController.getCityDetails(city.Id);
-
-        // Test getCityDetails with invalid Id
         try {
             ExpenseController.getCityDetails('001000000000000AAA');
-        } catch (AuraHandledException e) {
-            // expected exception
-        }
-
-        // Test getCityDetails with blank Id
+        } catch (AuraHandledException e) {}
         Map<String, Object> blankCity = ExpenseController.getCityDetails('');
-
-        // Test getExportTransportModes with valid grade name
         List<Map<String, String>> exportModes = ExpenseController.getExportTransportModes(grade.Name);
-
-        // Test getExportTransportModes with invalid grade name
         List<Map<String, String>> exportModesInvalid = ExpenseController.getExportTransportModes('InvalidGrade');
-
         List<Map<String, String>> modes = ExpenseController.getModeOfTravelOptions();
-
-        Test.stopTest();
-    }
-    
-    
-	@isTest
-    static void testEligibleForBoth() {
-        User u = [SELECT Id FROM User LIMIT 1];
+        
+        // Test Eligible For Both (placeholder)
         String todayStr = String.valueOf(Date.today());
+        // Map<String, Object> result = ExpenseController.checkAllowanceEligibility(todayStr, testUser.Id);
         
-        Test.startTest();
-        Map<String, Object> result = ExpenseController.checkAllowanceEligibility(todayStr, u.Id);
-        Test.stopTest();
-        
-    }   
-    
-    @isTest
-    static void testCheckAllowanceEligibilityScenarios() {
-        User u = [SELECT Id FROM User LIMIT 1];
-        Date today = Date.today();
-        
-        // Case 1: Eligible for both
-        Map<String, Object> result = ExpenseController.checkAllowanceEligibility(String.valueOf(today), u.Id);
-        
-        // Case 2: Daily Allowance claimed
-        Expense__c expLocal = new Expense__c(Employee_Name__c = u.Id, Date__c = today, Type_of_Voucher__c = 'Local');
-        insert expLocal;
-        insert new Expense_Line_Item__c(Expense__c = expLocal.Id, Daily_Allowance__c = 100);
-        
-        result = ExpenseController.checkAllowanceEligibility(String.valueOf(today), u.Id);
-        
-        // Case 3: Out of Pocket claimed
-        Expense__c expOutstation = new Expense__c(Employee_Name__c = u.Id, Date__c = today, Type_of_Voucher__c = 'Outstation');
-        insert expOutstation;
-        insert new Expense_Line_Item__c(Expense__c = expOutstation.Id, Daily_Allowance__c = 200);
-        
-        result = ExpenseController.checkAllowanceEligibility(String.valueOf(today), u.Id);
-    }
-    
-    
-
-// Utility method to create test Users with Grades__c
-    private static List<User> createTestUsers(Integer count, String gradeName) {
-        List<User> users = new List<User>();
-        Profile p = [SELECT Id FROM Profile WHERE Name = 'Standard User' LIMIT 1];
-        for (Integer i = 0; i < count; i++) {
-            users.add(new User(
-                FirstName = 'Test',
-                LastName = 'User' + i,
-                Email = 'testuser' + i + '@example.com',
-                Username = 'testuserassa21' + i + '@example.com',
-                Alias = 'tusr' + i,
-                TimeZoneSidKey = 'Asia/Kolkata',
-                LocaleSidKey = 'en_US',
-                EmailEncodingKey = 'UTF-8',
-                LanguageLocaleKey = 'en_US',
-                ProfileId = p.Id,
-                Grades__c = gradeName
-            ));
-        }
-        insert users;
-        return users;
-    }
-
-    // Utility method to create Grade__c records
-    private static Grade__c createGrade(String name, String salesType) {
-        Grade__c grade = new Grade__c(
-            Name = name,
-            Sales_Type__c = salesType,
-            Lodging_Hotel__c = 5000,
-            Lodging_Hotel_B_Class__c = 3000,
-            Boarding_Food__c = 1500,
-            Boarding_Food_B_Class__c = 1000
-        );
-        insert grade;
-        return grade;
-    }
-
-    @isTest
-    static void testCreateExpenseTeamMembers() {
-        // Prepare test data
-        Expense__c expense = new Expense__c(Name = 'Test Expense');
-        insert expense;
-
-        User attendee = [SELECT Id FROM User LIMIT 1];
-
+        // Test Create Expense Team Members
         List<Expense_Team_Member__c> teamMembers = new List<Expense_Team_Member__c>{
-            new Expense_Team_Member__c(Expense__c = expense.Id, Attendee__c = attendee.Id),
-            new Expense_Team_Member__c(Expense__c = expense.Id, Attendee__c = attendee.Id) // Duplicate
+            new Expense_Team_Member__c(Expense__c = expense.Id, Attendee__c = testUser.Id),
+            new Expense_Team_Member__c(Expense__c = expense.Id, Attendee__c = testUser.Id)
         };
-
-        Test.startTest();
         List<Expense_Team_Member__c> insertedMembers = ExpenseController.createExpenseTeamMembers(teamMembers);
-        Test.stopTest();
-    }
-
-    @isTest
-    static void testCreateExpenseTeamMembersEmptyList() {
-        Test.startTest();
-        List<Expense_Team_Member__c> result = ExpenseController.createExpenseTeamMembers(new List<Expense_Team_Member__c>());
-        Test.stopTest();
-    }
-
-    @isTest
-    static void testGetCombinedAllowancesHotelAClass() {
-        // Prepare Users and Grade
-        Grade__c grade = createGrade('Grade1', 'Domestic');
-        List<User> users = createTestUsers(2, 'DR');
-
-        Test.startTest();
-        Decimal allowance = ExpenseController.getCombinedAllowances(
+        List<Expense_Team_Member__c> resultEmpty = ExpenseController.createExpenseTeamMembers(new List<Expense_Team_Member__c>());
+        
+        // Test Get Combined Allowances
+        Decimal allowance1 = ExpenseController.getCombinedAllowances(
             users[0].Id,
             new List<String>{users[1].Id},
             'A Class City',
             'Domestic',
             'Hotel'
         );
-        Test.stopTest();
-    }
-
-    @isTest
-    static void testGetCombinedAllowancesFoodBClass() {
-        Grade__c grade = createGrade('Grade2', 'Domestic');
-        List<User> users = createTestUsers(1, 'DR');
-
-        Test.startTest();
-        Decimal allowance = ExpenseController.getCombinedAllowances(
+        
+        Decimal allowance2 = ExpenseController.getCombinedAllowances(
             users[0].Id,
             null,
             'B Class City',
             'Domestic',
             'Food'
         );
-        Test.stopTest();
-    }
-
-    @isTest
-    static void testGetCombinedAllowancesNoUsers() {
-        Test.startTest();
-        Decimal allowance = ExpenseController.getCombinedAllowances(
+        
+        Decimal allowance3 = ExpenseController.getCombinedAllowances(
             null,
             null,
             'A Class City',
             'Retail',
             'Hotel'
         );
-        Test.stopTest();
-    }
-
-    @isTest
-    static void testGetCombinedAllowancesUserWithoutGrade() {
-        // Create user without grade
-        Profile p = [SELECT Id FROM Profile WHERE Name = 'Standard User' LIMIT 1];
-        User userWithoutGrade = new User(
-            FirstName = 'NoGrade',
-            LastName = 'User',
-            Email = 'nograde@example.com',
-            Username = 'nograde@example.com',
-            Alias = 'ngusr',
-            TimeZoneSidKey = 'Asia/Kolkata',
-            LocaleSidKey = 'en_US',
-            EmailEncodingKey = 'UTF-8',
-            LanguageLocaleKey = 'en_US',
-            ProfileId = p.Id
-        );
-        insert userWithoutGrade;
-
-        Test.startTest();
-        Decimal allowance = ExpenseController.getCombinedAllowances(
+        
+        Decimal allowance4 = ExpenseController.getCombinedAllowances(
             userWithoutGrade.Id,
             null,
             'A Class City',
             'Retail',
             'Hotel'
         );
+        
+        // Test Check Allowance Eligibility For Date
+        Map<String, Object> result1 = ExpenseController.checkAllowanceEligibilityForDate(
+            String.valueOf(Date.today().addDays(1)),
+            testUser.Id,
+            null,
+            null
+        );
+        
+        Map<String, Object> result2 = ExpenseController.checkAllowanceEligibilityForDate(
+            String.valueOf(Date.today()),
+            testUser.Id,
+            null,
+            null
+        );
+        
+        Map<String, Object> result3 = ExpenseController.checkAllowanceEligibilityForDate(
+            String.valueOf(Date.today()),
+            testUser.Id,
+            dailyAllowanceItem.Id,
+            null
+        );
+        
+        List<Map<String, Object>> currentPageItems = new List<Map<String, Object>>();
+        currentPageItems.add(new Map<String, Object>{
+            'id' => 'tempId1',
+            'date' => String.valueOf(Date.today()),
+            'voucherType' => 'Local',
+            'dailyAllowance' => 100,
+            'userId' => testUser.Id
+        });
+        
+        Map<String, Object> result4 = ExpenseController.checkAllowanceEligibilityForDate(
+            String.valueOf(Date.today()),
+            testUser.Id,
+            null,
+            currentPageItems
+        );
+        
+        Map<String, Object> result5 = ExpenseController.checkAllowanceEligibilityForDate(
+            null,
+            null,
+            null,
+            null
+        );
+        
+        Map<String, Object> result6 = ExpenseController.checkAllowanceEligibilityForDate(
+            '',
+            testUser.Id,
+            null,
+            null
+        );
+        
+        try {
+            Map<String, Object> result7 = ExpenseController.checkAllowanceEligibilityForDate(
+                'invalid-date',
+                testUser.Id,
+                null,
+                null
+            );
+        } catch (Exception e) {}
+        
+        // Test Check Multiple Dates Allowance Eligibility
+        Map<String, String> dateUserIdMap = new Map<String, String>();
+        dateUserIdMap.put(Date.today() + '_' + testUser.Id, 'value1');
+        dateUserIdMap.put(Date.today().addDays(1) + '_' + testUser.Id, 'value2');
+        dateUserIdMap.put(Date.today() + '_' + testUser2.Id, 'value3');
+        dateUserIdMap.put(Date.today().addDays(2) + '_' + testUser2.Id, 'value4');
+        
+        Map<String, Map<String, Object>> multiResult1 = ExpenseController.checkMultipleDatesAllowanceEligibility(
+            dateUserIdMap,
+            null
+        );
+        
+        List<Map<String, Object>> currentPageItems2 = new List<Map<String, Object>>();
+        currentPageItems2.add(new Map<String, Object>{
+            'id' => 'tempId1',
+            'date' => String.valueOf(Date.today().addDays(1)),
+            'voucherType' => 'Outstation',
+            'dailyAllowance' => 200,
+            'userId' => testUser.Id
+        });
+        currentPageItems2.add(new Map<String, Object>{
+            'id' => 'tempId2',
+            'outstationDate' => String.valueOf(Date.today().addDays(2)),
+            'voucherType' => 'Local',
+            'dailyAllowance' => 150,
+            'userId' => testUser2.Id
+        });
+        
+        Map<String, Map<String, Object>> multiResult2 = ExpenseController.checkMultipleDatesAllowanceEligibility(
+            dateUserIdMap,
+            currentPageItems2
+        );
+        
+        Map<String, Map<String, Object>> multiResult3 = ExpenseController.checkMultipleDatesAllowanceEligibility(
+            new Map<String, String>(),
+            null
+        );
+        
+        Map<String, String> invalidMap = new Map<String, String>();
+        invalidMap.put('invalid_key', 'value');
+        
+        try {
+            Map<String, Map<String, Object>> multiResult4 = ExpenseController.checkMultipleDatesAllowanceEligibility(
+                invalidMap,
+                null
+            );
+        } catch (Exception e) {}
+        
+        try {
+            Map<String, Map<String, Object>> multiResult5 = ExpenseController.checkMultipleDatesAllowanceEligibility(
+                null,
+                null
+            );
+        } catch (Exception e) {}
+        
+        Map<String, Map<String, Object>> multiResult6 = ExpenseController.checkMultipleDatesAllowanceEligibility(
+            dateUserIdMap,
+            new List<Map<String, Object>>()
+        );
+        
         Test.stopTest();
-
     }
-
 }

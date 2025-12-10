@@ -53,7 +53,6 @@ public with sharing class AddProductPageQuote {
 
     @AuraEnabled
     public static String findProduct(string recordId, List<String> productFamily, string salesOrg, string distributionChannel, string division) {
-        
         try {
             // Get User info
             User currentUser = [

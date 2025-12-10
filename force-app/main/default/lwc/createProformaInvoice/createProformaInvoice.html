@@ -1,0 +1,149 @@
+<template>
+    <lightning-card>
+        <div class="slds-p-around_xx-small slds-text-align_center">
+            <h1 style="font-size: 18px; font-weight: bold;"> Create Proforma Invoice</h1>
+        </div>
+
+        <div class="slds-p-around_medium" style="margin-top: 0;">
+            <div class="slds-grid slds-wrap">
+
+                <!-- Quote Name -->
+                <div class="slds-col slds-size_1-of-4 slds-p-around_x-small">
+                    <lightning-input type="text" label="Quote Name" value={quoteName} disabled>
+                    </lightning-input>
+                </div>
+
+                <!-- Quote Status -->
+                <div class="slds-col slds-size_1-of-4 slds-p-around_x-small">
+                    <lightning-input type="text" label="Status" value={quoteStatus} disabled>
+                    </lightning-input>
+                </div>
+
+                <!-- Account Name -->
+                <div class="slds-col slds-size_1-of-4 slds-p-around_x-small">
+                    <lightning-input type="text" label="Account" value={accountName} disabled>
+                    </lightning-input>
+                </div>
+
+                <!-- Opportunity Name -->
+                <div class="slds-col slds-size_1-of-4 slds-p-around_x-small">
+                    <lightning-input type="text" label="Opportunity" value={opportunityName} disabled>
+                    </lightning-input>
+                </div>
+
+            </div>
+        </div>
+
+        <!-- Line Items Table -->
+        <div class="slds-box">
+            <h3 class="slds-text-heading_small slds-m-bottom_small" style="text-align: center;"><template
+                    if:true={noQtyError}>
+                    <div class="slds-text-color_error slds-text-heading_x-small slds-m-bottom_small"
+                        style="text-align:center;">
+                        Please select quantities for at least one item
+                    </div>
+                </template></h3>
+
+            <div>
+                <table class="slds-table slds-table_bordered slds-table_cell-buffer">
+                    <thead>
+                        <tr>
+                            <th style="text-align: center; font-size: 13px; background-color: #9d0b0f;
+                           font-weight: bold; padding: 4px 6px; color: white; width: 40%;">
+                                Product
+                            </th>
+                            <th style="text-align: center; font-size: 13px; background-color: #9d0b0f;
+                           font-weight: bold; padding: 4px 6px; color: white; width: 15%;">
+                                Quote Qty
+                            </th>
+                            <th style="text-align: center; font-size: 13px; background-color: #9d0b0f;
+                           font-weight: bold; padding: 4px 6px; color: white; width: 15%;">
+                                Remaining Qty
+                            </th>
+                            <th style="text-align: center; font-size: 13px; background-color: #9d0b0f;
+                           font-weight: bold; padding: 4px 6px; color: white; width: 15%;">
+                                PI Qty
+                            </th>
+                        </tr>
+                    </thead>
+
+                    <tbody>
+                        <template for:each={lineItems} for:item="item">
+                            <tr key={item.id}>
+                                <!-- Product -->
+                                <td style="text-align: center; width: 35%;">
+                                    <lightning-input type="text" value={item.productName} variant="label-hidden"
+                                        disabled>
+                                    </lightning-input>
+                                </td>
+
+                                <!-- Quote Qty -->
+                                <td style="text-align: center;width: 17%;">
+                                    <lightning-input type="text" value={item.quoteQuantity} variant="label-hidden"
+                                        disabled>
+                                    </lightning-input>
+                                </td>
+
+                                <!-- Remaining Qty (live value) -->
+                                <td style="text-align: center;width: 16%;">
+                                    <lightning-input type="text" value={item.remainingQuantity} variant="label-hidden"
+                                        disabled>
+                                    </lightning-input>
+                                </td>
+
+                                <!-- PI Qty -->
+                                <td style="text-align: center;width: 17%;">
+                                    <lightning-input type="number" value={item.piQuantity} min="0"
+                                        max={item.originalRemainingQuantity} step="1" onchange={handleQuantityChange}
+                                        data-id={item.id} variant="label-hidden" class="quantity-input"
+                                        disabled={item.isFullyInvoiced}>
+                                    </lightning-input>
+                                </td>
+                            </tr>
+                        </template>
+                    </tbody>
+
+                </table>
+            </div>
+
+
+            <!-- Actions -->
+            <div class="slds-m-top_large slds-text-align_center">
+
+                <lightning-button variant="brand" label="Save" onclick={handleCreatePI} disabled={isCreateDisabled}
+                    class="slds-m-right_small">
+                </lightning-button>
+
+                <lightning-button label="Cancel" onclick={handleCancel}>
+                </lightning-button>
+
+
+            </div>
+        </div>
+
+        <!-- Error/Success Messages -->
+        <template if:true={error}>
+            <div class="slds-notify slds-notify_alert slds-theme_error slds-m-top_medium">
+                <span class="slds-assistive-text">Error</span>
+                <span class="slds-icon_container slds-icon-utility-error slds-m-right_x-small">
+                    <lightning-icon icon-name="utility:error" size="x-small"></lightning-icon>
+                </span>
+                <h2>{error}</h2>
+            </div>
+        </template>
+
+        <template if:true={successMessage}>
+            <div class="slds-notify slds-notify_alert slds-theme_success slds-m-top_medium">
+                <span class="slds-assistive-text">Success</span>
+                <span class="slds-icon_container slds-icon-utility-success slds-m-right_x-small">
+                    <lightning-icon icon-name="utility:success" size="x-small"></lightning-icon>
+                </span>
+                <h2>{successMessage}</h2>
+                <div class="slds-m-top_small">
+                    <a href={createdPIUrl} target="_blank">View Proforma Invoice</a>
+                </div>
+            </div>
+        </template>
+
+    </lightning-card>
+</template>

@@ -859,8 +859,14 @@ public with sharing class ExpenseController {
         }
     }
     
+    
     @AuraEnabled(cacheable=true)
-    public static Map<String, Object> checkAllowanceEligibility(String expenseDate, String userId) {
+    public static Map<String, Object> checkAllowanceEligibilityForDate(
+        String expenseDate, 
+        String userId, 
+        String lineItemId,
+        List<Map<String, Object>> currentPageLineItems
+    ) {
         try {
             Map<String, Object> result = new Map<String, Object>();
             
@@ -874,28 +880,75 @@ public with sharing class ExpenseController {
             // Convert string date to Date object
             Date selectedDate = Date.valueOf(expenseDate);
             
-            // Check if user already has ANY expense with Daily Allowance OR Out of Pocket on this date
-            List<Expense__c> existingAllowanceExpenses = [
-                SELECT Id, Date__c, Type_of_Voucher__c 
-                FROM Expense__c 
-                WHERE Employee_Name__c = :userId 
-                AND Date__c = :selectedDate
-                AND Id IN (
-                    SELECT Expense__c 
-                    FROM Expense_Line_Item__c 
-                    WHERE Daily_Allowance__c > 0
-                )
-            ];
-            
-            // Check if any existing expense has Daily Allowance (Local voucher)
+            // Track claims from both database AND current page
             Boolean hasDailyAllowanceClaimed = false;
             Boolean hasOutOfPocketClaimed = false;
             
-            for (Expense__c exp : existingAllowanceExpenses) {
-                if (exp.Type_of_Voucher__c == 'Local') {
+            // 1. CHECK DATABASE RECORDS
+            List<Expense_Line_Item__c> existingAllowanceLineItems;
+            
+            if (String.isNotBlank(lineItemId)) {
+                existingAllowanceLineItems = [
+                    SELECT Id, Date__c, Expense__r.Type_of_Voucher__c, Daily_Allowance__c
+                    FROM Expense_Line_Item__c
+                    WHERE Expense__r.Employee_Name__c = :userId
+                    AND Date__c = :selectedDate
+                    AND (
+                        Daily_Allowance__c > 0
+                        OR Expense__r.Type_of_Voucher__c IN ('Local', 'Outstation')
+                    )
+                    AND Id != :lineItemId
+                ];
+            } else {
+                existingAllowanceLineItems = [
+                    SELECT Id, Date__c, Expense__r.Type_of_Voucher__c, Daily_Allowance__c
+                    FROM Expense_Line_Item__c
+                    WHERE Expense__r.Employee_Name__c = :userId
+                    AND Date__c = :selectedDate
+                    AND (
+                        Daily_Allowance__c > 0
+                        OR Expense__r.Type_of_Voucher__c IN ('Local', 'Outstation')
+                    )
+                ];
+            }
+            
+            for (Expense_Line_Item__c li : existingAllowanceLineItems) {
+                if (li.Expense__r.Type_of_Voucher__c == 'Local' || (li.Daily_Allowance__c != null && li.Daily_Allowance__c > 0)) {
                     hasDailyAllowanceClaimed = true;
-                } else if (exp.Type_of_Voucher__c == 'Outstation') {
+                }
+                if (li.Expense__r.Type_of_Voucher__c == 'Outstation') {
                     hasOutOfPocketClaimed = true;
+                }
+                if (hasDailyAllowanceClaimed && hasOutOfPocketClaimed) break;
+            }
+            
+            // 2. CHECK CURRENT PAGE LINE ITEMS (that haven't been saved yet)
+            if (currentPageLineItems != null && !currentPageLineItems.isEmpty()) {
+                for (Map<String, Object> lineItem : currentPageLineItems) {
+                    // Skip the current line item being checked
+                    String currentLineItemId = (String)lineItem.get('id');
+                    if (String.isNotBlank(currentLineItemId) && currentLineItemId.equals(lineItemId)) {
+                        continue;
+                    }
+                    
+                    String itemDateStr = (String)lineItem.get('date');
+                    String outstationDateStr = (String)lineItem.get('outstationDate');
+                    String voucherType = (String)lineItem.get('voucherType');
+                    Decimal dailyAllowance = (Decimal)lineItem.get('dailyAllowance');
+                    
+                    // Check if this line item has the same date
+                    if ((String.isNotBlank(itemDateStr) && Date.valueOf(itemDateStr) == selectedDate) ||
+                        (String.isNotBlank(outstationDateStr) && Date.valueOf(outstationDateStr) == selectedDate)) {
+                            
+                            // Check if this line item already has Daily Allowance or Out of Pocket
+                            if (voucherType == 'Local' && dailyAllowance != null && dailyAllowance > 0) {
+                                hasDailyAllowanceClaimed = true;
+                            } else if (voucherType == 'Outstation' && dailyAllowance != null && dailyAllowance > 0) {
+                                hasOutOfPocketClaimed = true;
+                            }
+                        }
+                    
+                    if (hasDailyAllowanceClaimed && hasOutOfPocketClaimed) break;
                 }
             }
             
@@ -920,13 +973,134 @@ public with sharing class ExpenseController {
             }
             
             result.put('message', message);
-            result.put('existingExpenseCount', existingAllowanceExpenses.size());
+            result.put('existingLineItemCount', existingAllowanceLineItems.size());
             
             return result;
             
         } catch (Exception e) {
-            System.debug('Error in checkAllowanceEligibility: ' + e.getMessage() + ' - ' + e.getStackTraceString());
+            System.debug('Error in checkAllowanceEligibilityForDate: ' + e.getMessage() + ' - ' + e.getStackTraceString());
             throw new AuraHandledException('Error checking allowance eligibility: ' + e.getMessage());
+        }
+    }
+    
+    // Also update the batch method to handle current page items
+    @AuraEnabled(cacheable=true)
+    public static Map<String, Map<String, Object>> checkMultipleDatesAllowanceEligibility(
+        Map<String, String> dateUserIdMap,
+        List<Map<String, Object>> currentPageLineItems
+    ) {
+        try {
+            Map<String, Map<String, Object>> result = new Map<String, Map<String, Object>>();
+            
+            // Prepare sets for query
+            Set<Date> datesSet = new Set<Date>();
+            Set<String> userIds = new Set<String>();
+            Map<String, Map<String, String>> dateUserMapping = new Map<String, Map<String, String>>();
+            
+            for (String key : dateUserIdMap.keySet()) {
+                String[] parts = key.split('_');
+                String dateStr = parts[0];
+                String userId = parts[1];
+                Date expenseDate = Date.valueOf(dateStr);
+                
+                datesSet.add(expenseDate);
+                userIds.add(userId);
+                
+                if (!dateUserMapping.containsKey(dateStr)) {
+                    dateUserMapping.put(dateStr, new Map<String, String>());
+                }
+                dateUserMapping.get(dateStr).put(userId, key);
+            }
+            
+            // 1. Query existing allowance line items from database
+            List<Expense_Line_Item__c> existingAllowanceLineItems = [
+                SELECT Id, Date__c, Daily_Allowance__c, Expense__r.Type_of_Voucher__c, Expense__r.Employee_Name__c
+                FROM Expense_Line_Item__c 
+                WHERE Expense__r.Employee_Name__c IN :userIds 
+                AND Date__c IN :datesSet
+                AND Daily_Allowance__c > 0
+            ];
+            
+            // Create maps to track claimed allowances
+            Map<String, Map<String, Boolean>> dailyAllowanceClaimedMap = new Map<String, Map<String, Boolean>>();
+            Map<String, Map<String, Boolean>> outOfPocketClaimedMap = new Map<String, Map<String, Boolean>>();
+            
+            // 2. Process database records
+            for (Expense_Line_Item__c li : existingAllowanceLineItems) {
+                String dateStr = String.valueOf(li.Date__c);
+                String userId = li.Expense__r.Employee_Name__c;
+                
+                if (!dailyAllowanceClaimedMap.containsKey(dateStr)) {
+                    dailyAllowanceClaimedMap.put(dateStr, new Map<String, Boolean>());
+                    outOfPocketClaimedMap.put(dateStr, new Map<String, Boolean>());
+                }
+                
+                if (li.Expense__r.Type_of_Voucher__c == 'Local') {
+                    dailyAllowanceClaimedMap.get(dateStr).put(userId, true);
+                } else if (li.Expense__r.Type_of_Voucher__c == 'Outstation') {
+                    outOfPocketClaimedMap.get(dateStr).put(userId, true);
+                }
+            }
+            
+            // 3. Process current page line items
+            if (currentPageLineItems != null && !currentPageLineItems.isEmpty()) {
+                for (Map<String, Object> lineItem : currentPageLineItems) {
+                    String dateStr = (String)lineItem.get('date');
+                    String outstationDateStr = (String)lineItem.get('outstationDate');
+                    String userId = (String)lineItem.get('userId');
+                    String voucherType = (String)lineItem.get('voucherType');
+                    Decimal dailyAllowance = (Decimal)lineItem.get('dailyAllowance');
+                    
+                    // Use whichever date is applicable
+                    String effectiveDateStr = String.isNotBlank(dateStr) ? dateStr : outstationDateStr;
+                    
+                    if (String.isNotBlank(effectiveDateStr) && String.isNotBlank(userId) && 
+                        dateUserMapping.containsKey(effectiveDateStr) && 
+                        dateUserMapping.get(effectiveDateStr).containsKey(userId)) {
+                            
+                            if (!dailyAllowanceClaimedMap.containsKey(effectiveDateStr)) {
+                                dailyAllowanceClaimedMap.put(effectiveDateStr, new Map<String, Boolean>());
+                                outOfPocketClaimedMap.put(effectiveDateStr, new Map<String, Boolean>());
+                            }
+                            
+                            if (dailyAllowance != null && dailyAllowance > 0) {
+                                if (voucherType == 'Local') {
+                                    dailyAllowanceClaimedMap.get(effectiveDateStr).put(userId, true);
+                                } else if (voucherType == 'Outstation') {
+                                    outOfPocketClaimedMap.get(effectiveDateStr).put(userId, true);
+                                }
+                            }
+                        }
+                }
+            }
+            
+            // 4. Build results
+            for (String dateStr : dateUserMapping.keySet()) {
+                for (String userId : dateUserMapping.get(dateStr).keySet()) {
+                    String key = dateUserMapping.get(dateStr).get(userId);
+                    
+                    Boolean hasDA = dailyAllowanceClaimedMap.containsKey(dateStr) && 
+                        dailyAllowanceClaimedMap.get(dateStr).containsKey(userId);
+                    Boolean hasOOP = outOfPocketClaimedMap.containsKey(dateStr) && 
+                        outOfPocketClaimedMap.get(dateStr).containsKey(userId);
+                    
+                    Map<String, Object> eligibility = new Map<String, Object>();
+                    eligibility.put('isDailyAllowanceEligible', !hasDA && !hasOOP);
+                    eligibility.put('isOutOfPocketEligible', !hasOOP && !hasDA);
+                    eligibility.put('hasDailyAllowanceClaimed', hasDA);
+                    eligibility.put('hasOutOfPocketClaimed', hasOOP);
+                    eligibility.put('date', dateStr);
+                    eligibility.put('userId', userId);
+                    
+                    result.put(key, eligibility);
+                }
+            }
+            
+            return result;
+            
+        } catch (Exception e) {
+            System.debug('Error in checkMultipleDatesAllowanceEligibility: ' + e.getMessage());
+            throw new AuraHandledException('Error checking multiple dates allowance eligibility: ' + e.getMessage());
         }
     }
     
@@ -1049,4 +1223,5 @@ public with sharing class ExpenseController {
             throw new AuraHandledException('Error getting combined allowances: ' + e.getMessage());
         }
     }
+    
 }

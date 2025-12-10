@@ -40,3 +40,14 @@
     overflow-y: unset;
     height: auto;
 }
+
+.filter-section {
+    background-color: #f3f2f2;
+    border-radius: 0.25rem;
+    padding: 1rem;
+}
+
+.slds-form-element__label {
+    font-weight: bold;
+    color: #514f4d;
+}

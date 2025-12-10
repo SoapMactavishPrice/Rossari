@@ -10,7 +10,7 @@ public class CAPAFormCustomController {
         if (String.isNotBlank(recordId)) {
             try {
                 caseRecord = [
-                    SELECT Id, CaseNumber, CAPA_No__c, CAPA_Date__c, Nature_of_Complaint__c,
+                    SELECT Id, CaseNumber, CAPA_Date__c, Nature_of_Complaint__c,
                     Ref_Document_No__c, Description_of_Non_Conformity__c, Root_Cause__c,
                     Concern_Department_Head__c, Concern_Department_Head_Sign__c,
                     Concern_Department_Head_Date__c, Q_A_Manager_Designee__c,

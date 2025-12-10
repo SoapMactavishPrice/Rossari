@@ -1,8 +1,33 @@
 @isTest
 public class CAPAFormCustomControllerTest {
+    
+    
+    private static User createRNDUser() {
+        Profile p = [SELECT Id FROM Profile WHERE Name = 'Standard User' LIMIT 1];
+        
+        User u = new User(
+            LastName = 'RND User',
+            Email = 'rnduser@test.com',
+            Username = 'rnduser' + System.currentTimeMillis() + '@test.com',
+            Alias = 'rndu',
+            TimeZoneSidKey = 'America/Los_Angeles',
+            LocaleSidKey = 'en_US',
+            EmailEncodingKey = 'UTF-8',
+            LanguageLocaleKey = 'en_US',
+            ProfileId = p.Id,
+            R_D_User__c = true
+        );
+        
+        insert u;
+        return u;
+    }
+
 
     // Utility method to create a Case record for testing
     private static Case createTestCase() {
+        
+         User rndUser = createRNDUser();
+        
         Case c = new Case(
             Subject = 'Test CAPA Case',
             Status = 'New',
@@ -15,7 +40,8 @@ public class CAPAFormCustomControllerTest {
             Root_Cause__c = 'Test Root Cause',
             Action_Taken_By_Name_Designation__c = 'Test User',
             Date_of_completion_of_Corrective_Action__c = Date.today(),
-            Corrective_Preventive_Action_Taken__c = 'Test Corrective Action'
+            Corrective_Preventive_Action_Taken__c = 'Test Corrective Action',
+            RND_User__c = rndUser.Id
         );
         insert c;
         return c;
